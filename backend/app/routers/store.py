@@ -1,6 +1,6 @@
-"""Store: coin/gold packs, offers and the purchase entry point.
+"""Store: gold/diamonds packs, offers and the purchase entry point.
 
-A purchase only creates a pending order. Coins are added after the payment
+A purchase only creates a pending order. Balances are added after the payment
 provider confirms the payment (webhook) or an administrator approves the order
 in the admin panel — never from the client alone.
 """
@@ -30,7 +30,7 @@ class PurchaseIn(BaseModel):
 
 
 class ItemBuyIn(BaseModel):
-    currency: str = "coins"
+    currency: str = "diamonds"
 
 
 @router.get("")
@@ -132,9 +132,9 @@ def buy_cosmetic(
     user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    """Buy a cosmetic with coins/gold: the wallet is debited and the item is stored."""
+    """Buy a cosmetic with diamonds/gold: the wallet is debited and the item is stored."""
     item = inventory.get_item(db, item_id)
-    currency = payload.currency if payload.currency in {"coins", "gold"} else "coins"
+    currency = payload.currency if payload.currency in {"diamonds", "gold"} else "diamonds"
     ownership, entry, created = purchase_item(db, user, item, currency)
     return {
         "item": item_public(item, ownership),

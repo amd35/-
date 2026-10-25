@@ -5,7 +5,7 @@ import '../main.dart';
 import '../theme.dart';
 import '../widgets/die_face.dart';
 
-/// Dice store: buy a dice skin with coins/gold from the wallet, then equip it.
+/// Dice store: buy a dice skin with diamonds/gold from the wallet, then equip it.
 class DiceStoreScreen extends StatefulWidget {
   const DiceStoreScreen({super.key});
 
@@ -105,7 +105,7 @@ class _DiceStoreScreenState extends State<DiceStoreScreen> {
                   children: [
                     const Text('الرصيد', style: TextStyle(fontWeight: FontWeight.bold)),
                     const Spacer(),
-                    Text('🪙 ${state.coins} كوين · 🏆 ${state.gold} ذهب', style: const TextStyle(color: AppColors.gold)),
+                    Text('💎 ${state.diamonds} ماس · 🏆 ${state.gold} ذهب', style: const TextStyle(color: AppColors.gold)),
                   ],
                 ),
               ),
@@ -143,7 +143,7 @@ class _ItemCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final owned = item['owned'] == true;
     final equipped = item['equipped'] == true;
-    final coins = (item['price_coins'] ?? 0) as int;
+    final diamonds = (item['price_diamonds'] ?? 0) as int;
     final gold = (item['price_gold'] ?? 0) as int;
     return GlassPanel(
       child: Row(
@@ -174,8 +174,8 @@ class _ItemCard extends StatelessWidget {
                     spacing: 8,
                     runSpacing: 8,
                     children: [
-                      if (coins > 0)
-                        ElevatedButton(onPressed: busy ? null : () => onBuy(item, 'coins'), child: Text('شراء بـ $coins 🪙')),
+                      if (diamonds > 0)
+                        ElevatedButton(onPressed: busy ? null : () => onBuy(item, 'diamonds'), child: Text('شراء بـ $diamonds 💎')),
                       if (gold > 0)
                         ElevatedButton(onPressed: busy ? null : () => onBuy(item, 'gold'), child: Text('شراء بـ $gold 🏆')),
                     ],

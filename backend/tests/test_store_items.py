@@ -27,37 +27,37 @@ def test_buying_a_dice_debits_the_wallet_and_fills_the_inventory(client, make_us
 
     # No balance -> the server refuses and nothing is given away.
     poor = client.post(
-        f"/api/store/cosmetics/{item['id']}/purchase", json={"currency": "coins"}, headers=auth(token)
+        f"/api/store/cosmetics/{item['id']}/purchase", json={"currency": "diamonds"}, headers=auth(token)
     )
     assert poor.status_code == 400, poor.text
     assert "الرصيد غير كافٍ" in poor.json()["detail"]
 
-    before = client.get("/api/wallet", headers=auth(token)).json()["wallet"]["coins"]
-    _credit(client, admin_token, user["user"]["id"], "coins", item["price_coins"] + 500)
+    before = client.get("/api/wallet", headers=auth(token)).json()["wallet"]["diamonds"]
+    _credit(client, admin_token, user["user"]["id"], "diamonds", item["price_diamonds"] + 500)
     left = before + 500
 
     bought = client.post(
-        f"/api/store/cosmetics/{item['id']}/purchase", json={"currency": "coins"}, headers=auth(token)
+        f"/api/store/cosmetics/{item['id']}/purchase", json={"currency": "diamonds"}, headers=auth(token)
     )
     assert bought.status_code == 201, bought.text
     body = bought.json()
     assert body["created"] is True
-    assert body["balances"]["coins"] == left
+    assert body["balances"]["diamonds"] == left
     assert body["item"]["owned"] is True and body["item"]["equipped"] is True
     assert body["ledger"]["kind"] == "store_item"
-    assert body["ledger"]["amount"] == -item["price_coins"]
+    assert body["ledger"]["amount"] == -item["price_diamonds"]
     assert body["ledger"]["balance_after"] == left
 
     # Replaying the same purchase returns the stored rows and never charges twice.
     replay = client.post(
-        f"/api/store/cosmetics/{item['id']}/purchase", json={"currency": "coins"}, headers=auth(token)
+        f"/api/store/cosmetics/{item['id']}/purchase", json={"currency": "diamonds"}, headers=auth(token)
     )
     assert replay.status_code == 201, replay.text
     assert replay.json()["created"] is False
-    assert replay.json()["balances"]["coins"] == left
+    assert replay.json()["balances"]["diamonds"] == left
 
     # Balance, ledger and inventory agree with the database.
-    assert client.get("/api/wallet", headers=auth(token)).json()["wallet"]["coins"] == left
+    assert client.get("/api/wallet", headers=auth(token)).json()["wallet"]["diamonds"] == left
     entries = client.get("/api/wallet/ledger", headers=auth(token)).json()["entries"]
     assert entries[0]["kind"] == "store_item"
     equipped = client.get("/api/auth/me", headers=auth(token)).json()["equipped_items"]
@@ -74,10 +74,10 @@ def test_only_one_dice_is_equipped_and_unowned_items_are_refused(client, make_us
     refused = client.post(f"/api/store/cosmetics/{second['id']}/equip", headers=auth(token))
     assert refused.status_code == 403, refused.text
 
-    _credit(client, admin_token, user["user"]["id"], "coins", first["price_coins"] + second["price_coins"])
+    _credit(client, admin_token, user["user"]["id"], "diamonds", first["price_diamonds"] + second["price_diamonds"])
     for item in (first, second):
         paid = client.post(
-            f"/api/store/cosmetics/{item['id']}/purchase", json={"currency": "coins"}, headers=auth(token)
+            f"/api/store/cosmetics/{item['id']}/purchase", json={"currency": "diamonds"}, headers=auth(token)
         )
         assert paid.status_code == 201, paid.text
 

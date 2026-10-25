@@ -497,7 +497,7 @@ class _RoomScreenState extends State<RoomScreen> {
                     await _guard(() async {
                       final sent = await api.sendGift(
                         giftId: gift['id'] as int,
-                        currency: 'coins',
+                        currency: 'diamonds',
                         roomId: widget.roomId,
                         idempotencyKey: DateTime.now().microsecondsSinceEpoch.toString(),
                       );
@@ -509,7 +509,7 @@ class _RoomScreenState extends State<RoomScreen> {
                     children: [
                       Text('${gift['emoji']}', style: const TextStyle(fontSize: 30)),
                       Text('${gift['name']}', style: const TextStyle(fontSize: 12)),
-                      Text('${gift['price_coins']} 🪙', style: const TextStyle(fontSize: 11, color: AppColors.gold)),
+                      Text('${gift['price_diamonds']} 💎', style: const TextStyle(fontSize: 11, color: AppColors.gold)),
                     ],
                   ),
                 ),

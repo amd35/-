@@ -28,7 +28,7 @@ router = APIRouter(prefix="/api/wallet", tags=["wallet"])
 
 class TransferIn(BaseModel):
     to_username: str
-    currency: str = "coins"
+    currency: str = "diamonds"
     amount: int = Field(gt=0)
     idempotency_key: Optional[str] = Field(default=None, max_length=96)
 
@@ -43,7 +43,7 @@ class RechargeIn(BaseModel):
 
 
 class WithdrawIn(BaseModel):
-    currency: str = "coins"
+    currency: str = "diamonds"
     amount: int = Field(gt=0)
     method: str = Field(min_length=2, max_length=32)
     payout_currency: str = "IQD"
@@ -68,7 +68,7 @@ def wallet(user: User = Depends(get_current_user), db: Session = Depends(get_db)
         "royal": royal.status_for(db, user),
         "withdrawal": {
             "enabled": bool(get_setting(db, "withdrawal_enabled", False)),
-            "minimum": int(get_setting(db, "withdrawal_min_coins", 50000)),
+            "minimum": int(get_setting(db, "withdrawal_min_diamonds", 50000)),
             "fee_percent": int(get_setting(db, "withdrawal_fee_percent", 10)),
             "exchange_rate_usd_iqd": int(get_setting(db, "exchange_rate_usd_iqd", 1320)),
         },
@@ -110,7 +110,7 @@ def transfer(
         recipient.id,
         "account",
         "تحويل وارد",
-        f"استلمت {payload.amount} {'كوين' if payload.currency == 'coins' else 'ذهب'} من {user.username}",
+        f"استلمت {payload.amount} {'ذهب' if payload.currency == 'gold' else 'ماس'} من {user.username}",
         {"from": user.id, "amount": payload.amount, "currency": payload.currency},
     )
     db.commit()

@@ -297,7 +297,7 @@ def test_ludo_win_pays_the_reward_once(client, make_user):
     client.post(f"/api/games/rooms/{room['id']}/ready", headers=auth(other["token"]))
     client.post(f"/api/games/rooms/{room['id']}/start", headers=auth(winner["token"]))
 
-    before = client.get("/api/auth/me", headers=auth(winner["token"])).json()["wallet"]["coins"]
+    before = client.get("/api/auth/me", headers=auth(winner["token"])).json()["wallet"]["diamonds"]
 
     # One move away from a full win; the server still validates it as a move.
     db = SessionLocal()
@@ -321,7 +321,7 @@ def test_ludo_win_pays_the_reward_once(client, make_user):
     assert finished.status_code == 200, finished.text
     assert finished.json()["room"]["status"] == "finished"
 
-    after = client.get("/api/auth/me", headers=auth(winner["token"])).json()["wallet"]["coins"]
+    after = client.get("/api/auth/me", headers=auth(winner["token"])).json()["wallet"]["diamonds"]
     assert after - before == 200, "the winner is paid the configured reward"
 
     db = SessionLocal()

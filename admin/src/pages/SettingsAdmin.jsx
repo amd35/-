@@ -6,11 +6,11 @@ const NUMERIC = [
   'exchange_rate_usd_iqd',
   'gift_receiver_share_percent',
   'room_gift_receiver_share_percent',
-  'withdrawal_min_coins',
+  'withdrawal_min_diamonds',
   'withdrawal_fee_percent',
   'vip_price_coins',
   'vip_days',
-  'welcome_bonus_coins',
+  'welcome_bonus_diamonds',
   'vip_price_usd_cents',
 ]
 

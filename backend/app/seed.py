@@ -34,7 +34,7 @@ GIFTS = [
 ]
 
 # (النوع، الاسم، الكمية، المكافأة، نقاط رويال، السعر IQD، السعر بالسنت، الشارة، الترتيب)
-# حزم الجواهر هي باقات رويال: كل باقة تمنح جواهر + نقاط رويال، وكلها قابلة للتعديل من
+# باقات الذهب والماس هي باقات رويال: كل باقة تمنح عملة + نقاط رويال، وكلها قابلة للتعديل من
 # لوحة الإدارة (الأسعار هنا باقات مبدئية فقط).
 PACKS = [
     ("gold", "400 ذهب", 400, 0, 7, 1320, 100, "", 1),
@@ -53,7 +53,7 @@ PACKS = [
     ("diamonds", "53,000 ماس", 53000, 0, 700, 120000, 9091, "باقة خاصة", 17),
 ]
 
-# Cosmetics sold inside the app for coins/gold. ``accent``/``pips`` draw the dice
+# Cosmetics sold inside the app for diamonds/gold. ``accent``/``pips`` draw the dice
 # face; a real photo can be attached to an item later through ``image_url``.
 ITEMS = [
     ("dice", "نرد الجوز", "Walnut dice", "خشب جوز داكن بحواف مصقولة", 1200, 0, "#5c3618", "#f4c662", 1),
@@ -146,7 +146,7 @@ def _seed_admin(db: Session) -> None:
 
 
 def _seed_gifts(db: Session) -> None:
-    for name, name_en, category, emoji, coins, gold, target, sort in GIFTS:
+    for name, name_en, category, emoji, diamonds, gold, target, sort in GIFTS:
         found = db.execute(select(Gift).where(Gift.name == name)).scalar_one_or_none()
         if found is not None:
             continue
@@ -157,7 +157,7 @@ def _seed_gifts(db: Session) -> None:
                 category=category,
                 emoji=emoji,
                 animation="float" if category == "normal" else ("pulse" if category == "premium" else "burst"),
-                price_coins=coins,
+                price_diamonds=diamonds,
                 price_gold=gold,
                 target=target,
                 sort=sort,
@@ -188,7 +188,7 @@ def _seed_packs(db: Session) -> None:
 
 
 def _seed_store_items(db: Session) -> None:
-    for kind, name, name_en, description, coins, gold, accent, pips, sort in ITEMS:
+    for kind, name, name_en, description, diamonds, gold, accent, pips, sort in ITEMS:
         found = db.execute(
             select(StoreItem).where(StoreItem.name == name, StoreItem.kind == kind)
         ).scalar_one_or_none()
@@ -200,7 +200,7 @@ def _seed_store_items(db: Session) -> None:
                 name=name,
                 name_en=name_en,
                 description=description,
-                price_coins=coins,
+                price_diamonds=diamonds,
                 price_gold=gold,
                 accent=accent,
                 pips=pips,

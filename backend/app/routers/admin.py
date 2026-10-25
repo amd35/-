@@ -95,7 +95,7 @@ class UserPatch(BaseModel):
 
 class WalletPatch(BaseModel):
     # "royal" ليست عملة محفظة: تعديلها يحرّك نقاط رويال عبر سجلها الخاص.
-    currency: str = "coins"
+    currency: str = "diamonds"
     amount: int
     note: str = Field(min_length=2, max_length=200)
 
@@ -124,7 +124,7 @@ class GiftIn(BaseModel):
     category: str = "normal"
     emoji: str = "🎁"
     animation: str = "pulse"
-    price_coins: int = 0
+    price_diamonds: int = 0
     price_gold: int = 0
     target: str = "both"
     active: bool = True
@@ -137,7 +137,7 @@ class GiftPatch(BaseModel):
     category: Optional[str] = None
     emoji: Optional[str] = None
     animation: Optional[str] = None
-    price_coins: Optional[int] = None
+    price_diamonds: Optional[int] = None
     price_gold: Optional[int] = None
     target: Optional[str] = None
     active: Optional[bool] = None
@@ -176,7 +176,7 @@ class SettingsPatch(BaseModel):
 class GameSettingsPatch(BaseModel):
     games_enabled: Optional[dict] = None
     domino_target_score: Optional[int] = Field(default=None, ge=20, le=300)
-    game_win_reward_coins: Optional[int] = Field(default=None, ge=0, le=100000)
+    game_win_reward_diamonds: Optional[int] = Field(default=None, ge=0, le=100000)
     game_win_xp: Optional[int] = Field(default=None, ge=0, le=10000)
 
 
@@ -280,9 +280,8 @@ def stats(user: User = Depends(get_admin_user), db: Session = Depends(get_db)):
         .order_by(LedgerEntry.id.desc())
         .limit(10)
     ).all()
-    circulating_coins, circulating_gold, circulating_diamonds = db.execute(
+    circulating_gold, circulating_diamonds = db.execute(
         select(
-            func.coalesce(func.sum(Wallet.coins), 0),
             func.coalesce(func.sum(Wallet.gold), 0),
             func.coalesce(func.sum(Wallet.diamonds), 0),
         )
@@ -364,7 +363,6 @@ def stats(user: User = Depends(get_admin_user), db: Session = Depends(get_db)):
             "flow": flow,
             "by_kind": by_kind,
             "circulating": {
-                "coins": int(circulating_coins),
                 "gold": int(circulating_gold),
                 "diamonds": int(circulating_diamonds),
             },
@@ -1038,7 +1036,7 @@ def admin_games(
         "settings": {
             "games_enabled": get_setting(db, "games_enabled", {}),
             "domino_target_score": get_setting(db, "domino_target_score", 100),
-            "game_win_reward_coins": get_setting(db, "game_win_reward_coins", 200),
+            "game_win_reward_diamonds": get_setting(db, "game_win_reward_diamonds", 200),
             "game_win_xp": get_setting(db, "game_win_xp", 50),
         },
         "stats": stats,
@@ -1060,8 +1058,8 @@ def patch_game_settings(
         set_setting(db, "games_enabled", {key: bool(value) for key, value in payload.games_enabled.items()})
     if payload.domino_target_score is not None:
         set_setting(db, "domino_target_score", payload.domino_target_score)
-    if payload.game_win_reward_coins is not None:
-        set_setting(db, "game_win_reward_coins", payload.game_win_reward_coins)
+    if payload.game_win_reward_diamonds is not None:
+        set_setting(db, "game_win_reward_diamonds", payload.game_win_reward_diamonds)
     if payload.game_win_xp is not None:
         set_setting(db, "game_win_xp", payload.game_win_xp)
     audit(db, actor, "games.settings", "settings", "games", payload.model_dump(exclude_none=True))

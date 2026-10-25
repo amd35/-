@@ -6,7 +6,6 @@
  * `/img/icons/<file>`. `name` is the UI key below, `size` the rendered px box.
  */
 const ICONS = {
-  coin: 'coin.jpg',
   gold: 'gold.jpg',
   gem: 'gem.jpg',
   trophy: 'trophy.png',

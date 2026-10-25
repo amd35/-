@@ -72,9 +72,9 @@ def test_royal_points_are_credited_once_after_the_order_is_confirmed(
     order = purchase.json()["order"]
     assert order["royal_points"] == diamonds_pack["royal_points"]
 
-    # قبل تأكيد الدفع على الخادم: لا جواهر ولا نقاط رويال.
+    # قبل تأكيد الدفع على الخادم: مكافأة الترحيب فقط ولا نقاط رويال.
     before = client.get("/api/auth/me", headers=auth(user["token"])).json()
-    assert before["wallet"]["diamonds"] == 0
+    assert before["wallet"]["diamonds"] == 500
     assert before["user"]["royal_points"] == 0
 
     approved = client.post(
@@ -85,7 +85,7 @@ def test_royal_points_are_credited_once_after_the_order_is_confirmed(
     assert approved.status_code == 200, approved.text
 
     after = client.get("/api/auth/me", headers=auth(user["token"])).json()
-    assert after["wallet"]["diamonds"] == diamonds_pack["amount"]
+    assert after["wallet"]["diamonds"] == 500 + diamonds_pack["amount"]
     assert after["user"]["royal_points"] == diamonds_pack["royal_points"]
 
     # إعادة تأكيد الطلب نفسه لا تضيف رصيداً ولا نقاطاً مرة ثانية.
@@ -94,7 +94,7 @@ def test_royal_points_are_credited_once_after_the_order_is_confirmed(
     )
     assert replay.status_code == 400
     again = client.get("/api/auth/me", headers=auth(user["token"])).json()
-    assert again["wallet"]["diamonds"] == diamonds_pack["amount"]
+    assert again["wallet"]["diamonds"] == 500 + diamonds_pack["amount"]
     assert again["user"]["royal_points"] == diamonds_pack["royal_points"]
 
 

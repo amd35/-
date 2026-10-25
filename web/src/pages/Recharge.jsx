@@ -6,7 +6,7 @@ import { useAuth } from '../lib/store.jsx'
 import { useI18n } from '../lib/i18n.jsx'
 
 const STATUS_LABEL = { pending: 'pending', paid: 'paid', failed: 'failed', cancelled: 'cancelled' }
-const CURRENCY_LABEL = { coins: 'كوين', gold: 'ذهب', diamonds: 'ماس' }
+const CURRENCY_LABEL = { gold: 'ذهب', diamonds: 'ماس' }
 
 // تبويبان داخل المتجر نفسه: شحن بالذهب وشحن بالماس، وكل باقة تمنح نقاط رويال.
 const RECHARGE_KINDS = [

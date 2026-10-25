@@ -75,15 +75,15 @@ export default function Layout() {
             <span>{t('appName')}</span>
           </Link>
           <div className="topbar-spacer" />
-          <button type="button" className="currency-pill currency-coins" data-testid="balance-coins" onClick={openRecharge} title={t('recharge')}>
-            <span className="coin-icon">
-              <PhotoIcon name="coin" size={16} />
+          <button type="button" className="currency-pill currency-diamonds" data-testid="balance-diamonds" onClick={openRecharge} title={t('recharge')}>
+            <span className="currency-icon">
+              <PhotoIcon name="gem" size={16} />
             </span>
-            <span className="currency-value">{wallet.coins}</span>
+            <span className="currency-value">{wallet.diamonds}</span>
             <span className="currency-plus">+</span>
           </button>
           <button type="button" className="currency-pill currency-gold" data-testid="balance-gold" onClick={openRecharge} title={t('recharge')}>
-            <span className="coin-icon">
+            <span className="currency-icon">
               <PhotoIcon name="gold" size={16} />
             </span>
             <span className="currency-value">{wallet.gold}</span>

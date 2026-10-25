@@ -47,7 +47,7 @@ def catalog(db: Session = Depends(get_db)) -> dict:
                 "target_score": int(get_setting(db, "domino_target_score", 100)) if key == "domino" else None,
             }
         )
-    return {"games": games, "win_reward_coins": int(get_setting(db, "game_win_reward_coins", 200))}
+    return {"games": games, "win_reward_diamonds": int(get_setting(db, "game_win_reward_diamonds", 200))}
 
 
 @router.get("/board/ludo")

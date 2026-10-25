@@ -13,14 +13,14 @@ DEFAULTS: dict[str, Any] = {
     "gift_receiver_share_percent": 60,
     "room_gift_receiver_share_percent": 0,
     "withdrawal_enabled": False,
-    "withdrawal_min_coins": 50000,
+    "withdrawal_min_diamonds": 50000,
     "withdrawal_fee_percent": 10,
-    "welcome_bonus_coins": 500,
+    "welcome_bonus_diamonds": 500,
     "ads": [
         {
             "id": "ad_welcome",
             "title": "مرحباً بك في التطبيق",
-            "body": "أكمل ملفك الشخصي واحصل على 100 كوين إضافية.",
+            "body": "أكمل ملفك الشخصي واحصل على 100 ماس إضافية.",
             "kind": "info",
         }
     ],
@@ -28,14 +28,14 @@ DEFAULTS: dict[str, Any] = {
         {
             "id": "offer_first_recharge",
             "title": "عرض الشحن الأول",
-            "body": "احصل على 20% كوين إضافية عند أول عملية شحن.",
+            "body": "احصل على 20% ماس إضافية عند أول عملية شحن.",
             "percent": 20,
             "active": True,
         }
     ],
     "games_enabled": {"ludo": True, "domino": True},
     "domino_target_score": 100,
-    "game_win_reward_coins": 200,
+    "game_win_reward_diamonds": 200,
     "game_win_xp": 50,
     "maintenance": False,
 }
@@ -81,7 +81,7 @@ def public_settings(db: Session) -> dict[str, Any]:
         "ads": values["ads"],
         "offers": values["offers"],
         "withdrawal_enabled": values["withdrawal_enabled"],
-        "withdrawal_min_coins": values["withdrawal_min_coins"],
+        "withdrawal_min_diamonds": values["withdrawal_min_diamonds"],
         "withdrawal_fee_percent": values["withdrawal_fee_percent"],
         "games_enabled": values["games_enabled"],
         "maintenance": values["maintenance"],

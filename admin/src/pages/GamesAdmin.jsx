@@ -32,7 +32,7 @@ export default function GamesAdmin() {
       await api.patch('/api/admin/games/settings', {
         games_enabled: draft.games_enabled,
         domino_target_score: Number(draft.domino_target_score),
-        game_win_reward_coins: Number(draft.game_win_reward_coins),
+        game_win_reward_diamonds: Number(draft.game_win_reward_diamonds),
         game_win_xp: Number(draft.game_win_xp),
       })
       setMessage('تم حفظ إعدادات الألعاب')
@@ -105,11 +105,11 @@ export default function GamesAdmin() {
             />
           </div>
           <div className="field">
-            <label>مكافأة الفوز (كوين)</label>
+            <label>مكافأة الفوز (ماس)</label>
             <input
               type="number"
-              value={draft.game_win_reward_coins}
-              onChange={(event) => setDraft({ ...draft, game_win_reward_coins: event.target.value })}
+              value={draft.game_win_reward_diamonds}
+              onChange={(event) => setDraft({ ...draft, game_win_reward_diamonds: event.target.value })}
             />
           </div>
           <div className="field">

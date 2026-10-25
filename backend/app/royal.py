@@ -1,7 +1,7 @@
 """نظام رويال: نقاط تُكتسب من الشحن فقط، ومستويات عتباتها قابلة للتعديل.
 
-Royal points are their own counter on the member (never mixed with the coins /
-gold / diamonds wallet). They only move through :func:`add_points`, which writes an
+Royal points are their own counter on the member (never mixed with the gold /
+diamonds wallet). They only move through :func:`add_points`, which writes an
 append-only ``royal_point_entries`` row with a unique ``ref`` — so a repeated
 payment or a replayed admin action can never grant the same points twice.
 

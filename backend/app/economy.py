@@ -1,4 +1,4 @@
-"""Wallet / coin / gold movements.
+"""Wallet / gold / diamonds movements.
 
 Every balance change happens here, inside one database transaction, with the
 wallet row locked (``SELECT ... FOR UPDATE``) and a ledger row written. Rows
@@ -28,10 +28,10 @@ from .models import (
 )
 from .settings_store import get_setting
 
-CURRENCIES = ("coins", "gold", "diamonds")
+CURRENCIES = ("gold", "diamonds")
 
 # كل عملة تحمل اسم عمودها في جدول المحافظ، واسمها العربي في الرسائل.
-CURRENCY_LABELS = {"coins": "كوين", "gold": "ذهب", "diamonds": "ماس"}
+CURRENCY_LABELS = {"gold": "ذهب", "diamonds": "ماس"}
 
 
 def _field(currency: str) -> str:
@@ -54,7 +54,7 @@ def get_wallet(db: Session, user_id: int, lock: bool = False) -> Wallet:
         statement = statement.with_for_update()
     wallet = db.execute(statement).scalar_one_or_none()
     if wallet is None:
-        wallet = Wallet(user_id=user_id, coins=0, gold=0, diamonds=0)
+        wallet = Wallet(user_id=user_id, gold=0, diamonds=0)
         db.add(wallet)
         db.flush()
     return wallet
@@ -173,7 +173,7 @@ def send_gift(
     if existing is not None:
         return existing, False
 
-    price = gift.price_coins if currency == "coins" else gift.price_gold
+    price = gift.price_diamonds if currency == "diamonds" else gift.price_gold
     if price <= 0:
         raise HTTPException(status.HTTP_400_BAD_REQUEST, "هذه الهدية غير متاحة بهذه العملة")
 
@@ -291,7 +291,7 @@ def create_withdraw_request(
             status.HTTP_400_BAD_REQUEST,
             "السحب غير مفعّل حالياً. يتم تفعيله من لوحة الإدارة بعد ربط مزود الدفع.",
         )
-    minimum = int(get_setting(db, "withdrawal_min_coins", 50000))
+    minimum = int(get_setting(db, "withdrawal_min_diamonds", 50000))
     if amount < minimum:
         raise HTTPException(
             status.HTTP_400_BAD_REQUEST,
@@ -377,7 +377,7 @@ def admin_adjust(db: Session, user: User, currency: str, amount: int, note: str)
 def purchase_item(
     db: Session, user: User, item: StoreItem, currency: str
 ) -> tuple[UserItem, Optional[LedgerEntry], bool]:
-    """Buy a store cosmetic with coins/gold; returns (inventory row, entry, created).
+    """Buy a store cosmetic with diamonds/gold; returns (inventory row, entry, created).
 
     The item is permanent, so ``item:<user>:<item>`` is its own unique ref: a
     repeated request returns the stored rows instead of charging twice.
@@ -386,7 +386,7 @@ def purchase_item(
         raise HTTPException(status.HTTP_400_BAD_REQUEST, "هذا العنصر غير متاح حالياً")
 
     field = _field(currency)
-    price = item.price_coins if field == "coins" else item.price_gold
+    price = item.price_diamonds if field == "diamonds" else item.price_gold
     if price <= 0:
         raise HTTPException(status.HTTP_400_BAD_REQUEST, "هذا العنصر غير متاح بهذه العملة")
 

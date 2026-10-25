@@ -6,7 +6,7 @@ import { useRemote } from '../lib/hooks.js'
 import { useAuth } from '../lib/store.jsx'
 import { BACKGROUND_LABELS, usePageText } from '../lib/pageText.js'
 
-const ICONS = { room: 'mic', game: 'dice', transaction: 'coin', order: 'cart', gift: 'gift' }
+const ICONS = { room: 'mic', game: 'dice', transaction: 'wallet', order: 'cart', gift: 'gift' }
 
 /** Full detail view for one record (?type=room&id=12) with the actions it supports. */
 export default function ItemDetails() {

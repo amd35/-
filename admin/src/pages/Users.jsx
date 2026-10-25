@@ -5,7 +5,7 @@ export default function Users({ admin }) {
   const [users, setUsers] = useState([])
   const [query, setQuery] = useState('')
   const [selected, setSelected] = useState(null)
-  const [adjust, setAdjust] = useState({ currency: 'coins', amount: 100, note: '' })
+  const [adjust, setAdjust] = useState({ currency: 'diamonds', amount: 100, note: '' })
   const [message, setMessage] = useState('')
   const [error, setError] = useState('')
 
@@ -44,7 +44,7 @@ export default function Users({ admin }) {
         note: adjust.note || 'تعديل إداري',
       })
       setSelected({ ...selected, wallet: result.wallet })
-      setMessage(`تم تعديل الرصيد (${result.wallet.coins} كوين / ${result.wallet.gold} ذهب)`)
+      setMessage(`تم تعديل الرصيد (${result.wallet.diamonds} ماس / ${result.wallet.gold} ذهب)`)
       await load()
     } catch (err) {
       setError(err.message)
@@ -96,7 +96,7 @@ export default function Users({ admin }) {
                 <td>
                   <span className="pill">{user.status}</span>
                 </td>
-                <td>🪙 {user.wallet.coins} · 🏆 {user.wallet.gold}</td>
+                <td>💎 {user.wallet.diamonds} · 🏆 {user.wallet.gold}</td>
                 <td className="muted">{user.is_admin ? user.admin_role : '—'}</td>
                 <td>
                   <button type="button" className="btn" onClick={() => setSelected(user)}>
@@ -155,7 +155,6 @@ export default function Users({ admin }) {
             <div>
               <label>العملة</label>
               <select value={adjust.currency} onChange={(event) => setAdjust({ ...adjust, currency: event.target.value })}>
-                <option value="coins">كوين</option>
                 <option value="gold">ذهب</option>
                 <option value="diamonds">ماس</option>
               </select>

@@ -9,7 +9,7 @@ import { usePageText } from '../lib/pageText.js'
 const TABS = [
   { key: 'rooms', icon: 'mic' },
   { key: 'games', icon: 'dice' },
-  { key: 'ledger', icon: 'coin' },
+  { key: 'ledger', icon: 'wallet' },
   { key: 'orders', icon: 'cart' },
   { key: 'gifts', icon: 'gift' },
 ]

@@ -94,7 +94,7 @@ def user_private(user: Any) -> dict[str, Any]:
 
 
 def wallet_public(wallet: Any) -> dict[str, int]:
-    return {"coins": wallet.coins, "gold": wallet.gold, "diamonds": wallet.diamonds}
+    return {"gold": wallet.gold, "diamonds": wallet.diamonds}
 
 
 def ledger_public(entry: Any) -> dict[str, Any]:
@@ -153,7 +153,7 @@ def gift_public(gift: Any) -> dict[str, Any]:
         "category": gift.category,
         "emoji": gift.emoji,
         "animation": gift.animation,
-        "price_coins": gift.price_coins,
+        "price_diamonds": gift.price_diamonds,
         "price_gold": gift.price_gold,
         "target": gift.target,
         "active": bool(gift.active),
@@ -257,7 +257,7 @@ def item_public(item: Any, ownership: Any = None) -> dict[str, Any]:
         "name": item.name,
         "name_en": item.name_en,
         "description": item.description,
-        "price_coins": item.price_coins,
+        "price_diamonds": item.price_diamonds,
         "price_gold": item.price_gold,
         "image_url": item.image_url,
         "accent": item.accent,

@@ -8,7 +8,7 @@ export default function GiftSheet({ room, members = [], initialReceiverId = null
   const { wallet, setWallet, meta } = useAuth()
   const { t } = useI18n()
   const [gifts, setGifts] = useState([])
-  const [currency, setCurrency] = useState('coins')
+  const [currency, setCurrency] = useState('diamonds')
   const [selected, setSelected] = useState(null)
   const [target, setTarget] = useState(initialReceiverId ? String(initialReceiverId) : 'room')
   const [message, setMessage] = useState('')
@@ -23,10 +23,10 @@ export default function GiftSheet({ room, members = [], initialReceiverId = null
   }, [])
 
   const available = useMemo(
-    () => gifts.filter((gift) => (currency === 'coins' ? gift.price_coins > 0 : gift.price_gold > 0)),
+    () => gifts.filter((gift) => (currency === 'diamonds' ? gift.price_diamonds > 0 : gift.price_gold > 0)),
     [gifts, currency],
   )
-  const balance = currency === 'coins' ? wallet.coins : wallet.gold
+  const balance = currency === 'diamonds' ? wallet.diamonds : wallet.gold
 
   const submit = async () => {
     if (!selected) return
@@ -66,11 +66,11 @@ export default function GiftSheet({ room, members = [], initialReceiverId = null
         <div className="row wrap" style={{ margin: '10px 0' }}>
           <button
             type="button"
-            className={`auth-tab${currency === 'coins' ? ' auth-tab-active' : ''}`}
-            data-testid="gift-currency-coins"
-            onClick={() => setCurrency('coins')}
+            className={`auth-tab${currency === 'diamonds' ? ' auth-tab-active' : ''}`}
+            data-testid="gift-currency-diamonds"
+            onClick={() => setCurrency('diamonds')}
           >
-            <PhotoIcon name="coin" size={16} /> {t('coins')}
+            <PhotoIcon name="gem" size={16} /> {t('diamonds')}
           </button>
           <button
             type="button"
@@ -109,8 +109,8 @@ export default function GiftSheet({ room, members = [], initialReceiverId = null
               </span>
               <span>{gift.name}</span>
               <span className="gift-price">
-                {currency === 'coins' ? gift.price_coins : gift.price_gold}{' '}
-                <PhotoIcon name={currency === 'coins' ? 'coin' : 'gold'} size={13} />
+                {currency === 'diamonds' ? gift.price_diamonds : gift.price_gold}{' '}
+                <PhotoIcon name={currency === 'diamonds' ? 'gem' : 'gold'} size={13} />
               </span>
             </button>
           ))}

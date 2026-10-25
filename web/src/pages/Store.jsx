@@ -60,7 +60,7 @@ export default function Store() {
     { key: 'all', label: t('all') },
     { key: 'owned', label: t('owned') },
     { key: 'notOwned', label: t('notOwned') },
-    { key: 'coins', label: t('byCoins') },
+    { key: 'diamonds', label: t('byDiamonds') },
     { key: 'gold', label: t('byGold') },
   ]
 
@@ -69,7 +69,7 @@ export default function Store() {
     .filter((item) => {
       if (filter === 'owned') return item.owned
       if (filter === 'notOwned') return !item.owned
-      if (filter === 'coins') return item.price_coins > 0
+      if (filter === 'diamonds') return item.price_diamonds > 0
       if (filter === 'gold') return item.price_gold > 0
       return true
     })
@@ -107,7 +107,7 @@ export default function Store() {
     }
   }
 
-  const balances = data?.balances || { coins: 0, gold: 0 }
+  const balances = data?.balances || { diamonds: 0, gold: 0 }
 
   return (
     <div>
@@ -117,8 +117,8 @@ export default function Store() {
         </button>
         <span className="store-title">{t('store')}</span>
         <div className="topbar-spacer" />
-        <span className="chip chip-coins" data-testid="store-balance-coins">
-          <PhotoIcon name="coin" size={15} /> {balances.coins}
+        <span className="chip chip-diamonds" data-testid="store-balance-diamonds">
+          <PhotoIcon name="gem" size={15} /> {balances.diamonds}
         </span>
         <span className="chip chip-gold" data-testid="store-balance-gold">
           <PhotoIcon name="gold" size={15} /> {balances.gold}
@@ -185,15 +185,15 @@ export default function Store() {
                   </span>
                 ) : (
                   <div className="shop-item-actions">
-                    {item.price_coins > 0 ? (
+                    {item.price_diamonds > 0 ? (
                       <button
                         type="button"
                         className="btn btn-small btn-primary"
-                        data-testid={`shop-buy-${item.id}-coins`}
-                        disabled={busy === `${item.id}-coins`}
-                        onClick={() => buy(item, 'coins')}
+                        data-testid={`shop-buy-${item.id}-diamonds`}
+                        disabled={busy === `${item.id}-diamonds`}
+                        onClick={() => buy(item, 'diamonds')}
                       >
-                        <PhotoIcon name="coin" size={14} /> {item.price_coins}
+                        <PhotoIcon name="gem" size={14} /> {item.price_diamonds}
                       </button>
                     ) : null}
                     {item.price_gold > 0 ? (

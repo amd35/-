@@ -116,7 +116,7 @@ export default function Games() {
               </button>
             </div>
             <p className="muted" style={{ marginBottom: 0 }}>
-              الفائز يحصل على {catalog?.win_reward_coins ?? 200} كوين. لا يوجد أي مراهنة أو مال حقيقي في الألعاب.
+              الفائز يحصل على {catalog?.win_reward_diamonds ?? 200} ماس. لا يوجد أي مراهنة أو مال حقيقي في الألعاب.
             </p>
           </div>
         ))}

@@ -25,7 +25,7 @@ const TEXT = {
 
     dashboard: 'لوحة القيادة',
     dashboardSub: 'ملخص سريع لحسابك ونشاطك الحقيقي داخل التطبيق.',
-    coins: 'الكوين',
+    diamonds: 'الماس',
     gold: 'الذهب',
     level: 'المستوى',
     royalLevel: 'مستوى رويال',
@@ -218,7 +218,7 @@ const TEXT = {
 
     dashboard: 'Dashboard',
     dashboardSub: 'A quick summary of your account and real activity in the app.',
-    coins: 'Coins',
+    diamonds: 'Coins',
     gold: 'Gold',
     level: 'Level',
     royalLevel: 'Royal level',

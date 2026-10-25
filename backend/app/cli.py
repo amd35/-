@@ -50,7 +50,7 @@ def create_admin(username: str, email: str, password: str) -> int:
         )
         db.add(user)
         db.flush()
-        db.add(Wallet(user_id=user.id, coins=0, gold=0))
+        db.add(Wallet(user_id=user.id, gold=0, diamonds=0))
         db.commit()
         print(f"administrator '{username}' created")
         return 0

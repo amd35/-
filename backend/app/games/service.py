@@ -316,12 +316,19 @@ def _finish(db: Session, room: GameRoom, winner_seat: int) -> None:
     winner_row = next((player for player, _ in rows if int(player.seat) == int(winner_seat)), None)
     if winner_row is not None:
         room.winner_id = winner_row.user_id
-    coins = int(get_setting(db, "game_win_reward_coins", 200))
+    diamonds = int(get_setting(db, "game_win_reward_diamonds", 200))
     xp_reward = int(get_setting(db, "game_win_xp", 50))
     for player, player_user in rows:
         if player.seat == winner_seat:
-            if coins > 0:
-                grant_reward(db, player_user, "coins", coins, f"فوز في {GAME_NAMES.get(room.game)}", f"game:{room.id}:{player_user.id}:coins")
+            if diamonds > 0:
+                grant_reward(
+                    db,
+                    player_user,
+                    "diamonds",
+                    diamonds,
+                    f"فوز في {GAME_NAMES.get(room.game)}",
+                    f"game:{room.id}:{player_user.id}:diamonds",
+                )
             if xp_reward > 0:
                 player_user.xp = int(player_user.xp or 0) + xp_reward
                 db.add(player_user)
@@ -330,7 +337,7 @@ def _finish(db: Session, room: GameRoom, winner_seat: int) -> None:
                 player_user.id,
                 "game",
                 "فوز في المباراة 🎉",
-                f"فزت في {GAME_NAMES.get(room.game)} وحصلت على {coins} كوين و {xp_reward} نقطة خبرة.",
+                f"فزت في {GAME_NAMES.get(room.game)} وحصلت على {diamonds} ماس و {xp_reward} نقطة خبرة.",
                 {"game_room_id": room.id, "game": room.game},
             )
         else:

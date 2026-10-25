@@ -18,7 +18,7 @@ const KIND_LABEL = {
   purchase: 'شراء من المتجر',
 }
 
-const CURRENCY_LABEL = { coins: 'كوين', gold: 'ذهب' }
+const CURRENCY_LABEL = { gold: 'ذهب', diamonds: 'ماس' }
 
 const number = (value) => Number(value || 0).toLocaleString('en-US')
 
@@ -191,7 +191,7 @@ export default function Dashboard() {
       <h2>حركات المحفظة — آخر {wallet.window_hours} ساعة</h2>
       <div className="panel" data-testid="admin-wallet-flow">
         <div className="grid">
-          {['coins', 'gold'].map((currency) => {
+          {['gold', 'diamonds'].map((currency) => {
             const values = wallet.flow[currency]
             return (
               <div className="stat" key={currency}>
@@ -207,9 +207,9 @@ export default function Dashboard() {
           })}
           <div className="stat">
             <span>إجمالي الأرصدة الموجودة</span>
-            <strong>{number(wallet.circulating.coins)}</strong>
+            <strong>{number(wallet.circulating.gold)}</strong>
             <span className="muted">
-              كوين · {number(wallet.circulating.gold)} ذهب · {number(wallet.circulating.diamonds)} ماس
+              ذهب · {number(wallet.circulating.diamonds)} ماس
             </span>
           </div>
         </div>

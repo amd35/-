@@ -20,7 +20,7 @@ router = APIRouter(prefix="/api/gifts", tags=["gifts"])
 
 class SendGiftIn(BaseModel):
     gift_id: int
-    currency: str = "coins"
+    currency: str = "diamonds"
     receiver_id: Optional[int] = None
     room_id: Optional[int] = None
     idempotency_key: Optional[str] = Field(default=None, max_length=96)

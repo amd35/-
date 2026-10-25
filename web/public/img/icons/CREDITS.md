@@ -5,7 +5,6 @@ with a free licence (shown per file); the licence travels with the file.
 
 | UI key | Commons file | Licence | Author | Source |
 | --- | --- | --- | --- | --- |
-| coin | Monnaie de Bactriane, Eucratide I, pile.jpg | Public domain | | https://commons.wikimedia.org/wiki/File:Monnaie_de_Bactriane,_Eucratide_I,_pile.jpg |
 | gem | Brillanten.jpg | CC BY-SA 3.0 | Mario Sarto | https://commons.wikimedia.org/wiki/File:Brillanten.jpg |
 | gold | Gold Ingots on white background.jpg | Public domain | Szaaman | https://commons.wikimedia.org/wiki/File:Gold_Ingots_on_white_background.jpg |
 | trophy | Cyclone Cup trophy.png | CC BY-SA 4.0 | BlueHypercane761 | https://commons.wikimedia.org/wiki/File:Cyclone_Cup_trophy.png |

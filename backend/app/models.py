@@ -59,9 +59,8 @@ class Wallet(Base):
 
     id = Column(Integer, primary_key=True)
     user_id = Column(ForeignKey("users.id", ondelete="CASCADE"), unique=True, nullable=False)
-    coins = Column(Integer, nullable=False, default=0)
     gold = Column(Integer, nullable=False, default=0)
-    # عملة الشحن الثانية بعد حذف «الجوهرة»: الماس (باقات الشحن تمنح ذهباً أو ماساً).
+    # عملتا المحفظة بعد حذف «الكوين» و«الجوهرة»: الذهب والماس.
     diamonds = Column(Integer, nullable=False, default=0)
     updated_at = Column(DateTime(timezone=True), nullable=False, default=utcnow, onupdate=utcnow)
 
@@ -73,7 +72,7 @@ class LedgerEntry(Base):
 
     id = Column(Integer, primary_key=True)
     user_id = Column(ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
-    currency = Column(String(8), nullable=False)  # coins|gold|diamonds
+    currency = Column(String(8), nullable=False)  # gold|diamonds
     amount = Column(Integer, nullable=False)  # signed
     balance_after = Column(Integer, nullable=False, default=0)
     kind = Column(String(32), nullable=False)  # reward|gift_sent|gift_received|transfer_in|transfer_out|recharge|withdrawal|admin_adjust|purchase
@@ -169,7 +168,7 @@ class Gift(Base):
     category = Column(String(16), nullable=False, default="normal")  # normal|premium|luxury
     emoji = Column(String(16), nullable=False, default="🎁")
     animation = Column(String(32), nullable=False, default="pulse")
-    price_coins = Column(Integer, nullable=False, default=0)
+    price_diamonds = Column(Integer, nullable=False, default=0)
     price_gold = Column(Integer, nullable=False, default=0)
     target = Column(String(8), nullable=False, default="both")  # user|room|both
     active = Column(Boolean, nullable=False, default=True)
@@ -266,7 +265,7 @@ class StorePack(Base):
 
 
 class StoreItem(Base):
-    """Cosmetic sold inside the app for coins/gold: a dice skin or a board theme."""
+    """Cosmetic sold inside the app for gold/diamonds: a dice skin or a board theme."""
 
     __tablename__ = "store_items"
 
@@ -275,7 +274,7 @@ class StoreItem(Base):
     name = Column(String(64), nullable=False)
     name_en = Column(String(64), nullable=False, default="")
     description = Column(String(255), nullable=False, default="")
-    price_coins = Column(Integer, nullable=False, default=0)
+    price_diamonds = Column(Integer, nullable=False, default=0)
     price_gold = Column(Integer, nullable=False, default=0)
     image_url = Column(String(512), nullable=False, default="")
     accent = Column(String(16), nullable=False, default="#f4c662")
@@ -361,7 +360,7 @@ class WithdrawRequest(Base):
 
     id = Column(Integer, primary_key=True)
     user_id = Column(ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
-    currency = Column(String(8), nullable=False, default="coins")
+    currency = Column(String(8), nullable=False, default="diamonds")
     amount = Column(Integer, nullable=False)
     fee = Column(Integer, nullable=False, default=0)
     net_amount = Column(Integer, nullable=False, default=0)

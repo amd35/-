@@ -15,8 +15,8 @@ export default function Profile() {
   const [walletInfo, setWalletInfo] = useState(null)
   const [prefs, setPrefs] = useState({})
   const [privacy, setPrivacy] = useState({})
-  const [transfer, setTransfer] = useState({ to_username: '', currency: 'coins', amount: 100 })
-  const [withdraw, setWithdraw] = useState({ currency: 'coins', amount: 50000, method: 'zaincash', phone: '' })
+  const [transfer, setTransfer] = useState({ to_username: '', currency: 'diamonds', amount: 100 })
+  const [withdraw, setWithdraw] = useState({ currency: 'diamonds', amount: 50000, method: 'zaincash', phone: '' })
   const [message, setMessage] = useState('')
   const [error, setError] = useState('')
 
@@ -192,8 +192,8 @@ export default function Profile() {
           {t('wallet')}
         </h3>
         <div className="row wrap">
-          <span className="chip chip-coins">
-            <PhotoIcon name="coin" size={15} /> {wallet.coins}
+          <span className="chip chip-diamonds">
+            <PhotoIcon name="gem" size={15} /> {wallet.diamonds}
           </span>
           <span className="chip chip-gold">
             <PhotoIcon name="gold" size={15} /> {wallet.gold}
@@ -283,7 +283,7 @@ export default function Profile() {
               {entry.amount >= 0 ? '+' : ''}
               {entry.amount}{' '}
               <PhotoIcon
-                name={entry.currency === 'coins' ? 'coin' : entry.currency === 'gold' ? 'gold' : 'gem'}
+                name={entry.currency === 'gold' ? 'gold' : 'gem'}
                 size={13}
               />
             </span>

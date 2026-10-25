@@ -29,7 +29,7 @@ def test_admin_stats_report_activity_tables_and_wallet_flow(client, admin_token,
         "/api/wallet/transfer",
         json={
             "to_username": "statsreceiver",
-            "currency": "coins",
+            "currency": "diamonds",
             "amount": 100,
             "idempotency_key": "stats-dashboard-flow",
         },
@@ -50,8 +50,8 @@ def test_admin_stats_report_activity_tables_and_wallet_flow(client, admin_token,
     assert table_id in [row["id"] for row in after["game_rooms"]["tables"]]
 
     # The transfer shows up as two movements in the 24h flow, both of them in-app.
-    assert after["wallet"]["flow"]["coins"]["entries"] == before_wallet["flow"]["coins"]["entries"] + 2
-    assert after["wallet"]["flow"]["coins"]["net"] == before_wallet["flow"]["coins"]["net"]
-    assert after["wallet"]["flow"]["coins"]["out"] == before_wallet["flow"]["coins"]["out"] + 100
-    assert after["wallet"]["flow"]["coins"]["in"] == before_wallet["flow"]["coins"]["in"] + 100
+    assert after["wallet"]["flow"]["diamonds"]["entries"] == before_wallet["flow"]["diamonds"]["entries"] + 2
+    assert after["wallet"]["flow"]["diamonds"]["net"] == before_wallet["flow"]["diamonds"]["net"]
+    assert after["wallet"]["flow"]["diamonds"]["out"] == before_wallet["flow"]["diamonds"]["out"] + 100
+    assert after["wallet"]["flow"]["diamonds"]["in"] == before_wallet["flow"]["diamonds"]["in"] + 100
     assert {"statsgiver", "statsreceiver"} <= {row["username"] for row in after["wallet"]["recent"]}

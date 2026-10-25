@@ -50,7 +50,7 @@ export default function Notifications() {
   return (
     <div data-testid="notifications-page">
       <PageBar title={s.notificationsTitle} back="/dashboard" testId="notifications">
-        <span className="chip chip-coins" data-testid="notifications-unread">
+        <span className="chip chip-gold" data-testid="notifications-unread">
           <PhotoIcon name="bell" size={15} /> {data ? data.unread : '—'}
         </span>
       </PageBar>

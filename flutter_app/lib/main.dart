@@ -79,7 +79,7 @@ class AppState extends ChangeNotifier {
   final ApiClient api;
   Realtime? realtime;
   Map<String, dynamic>? user;
-  Map<String, dynamic> wallet = {'coins': 0, 'gold': 0};
+  Map<String, dynamic> wallet = {'gold': 0, 'diamonds': 0};
   Map<String, dynamic>? meta;
   bool loading = true;
   String? lastError;
@@ -88,7 +88,7 @@ class AppState extends ChangeNotifier {
   final List<Map<String, dynamic>> notifications = [];
   final List<void Function(Map<String, dynamic>)> _listeners = [];
 
-  int get coins => (wallet['coins'] ?? 0) as int;
+  int get diamonds => (wallet['diamonds'] ?? 0) as int;
   int get gold => (wallet['gold'] ?? 0) as int;
 
   Future<void> bootstrap() async {

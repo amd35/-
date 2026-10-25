@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { api } from '../api.js'
 
-const EMPTY = { name: '', name_en: '', category: 'normal', emoji: '🎁', price_coins: 100, price_gold: 0, target: 'both', sort: 99 }
+const EMPTY = { name: '', name_en: '', category: 'normal', emoji: '🎁', price_diamonds: 100, price_gold: 0, target: 'both', sort: 99 }
 
 export default function GiftsAdmin() {
   const [gifts, setGifts] = useState([])
@@ -37,7 +37,7 @@ export default function GiftsAdmin() {
     event.preventDefault()
     setError('')
     try {
-      await api.post('/api/admin/gifts', { ...draft, price_coins: Number(draft.price_coins), price_gold: Number(draft.price_gold) })
+      await api.post('/api/admin/gifts', { ...draft, price_diamonds: Number(draft.price_diamonds), price_gold: Number(draft.price_gold) })
       setDraft(EMPTY)
       setMessage('تمت إضافة هدية جديدة')
       await load()
@@ -59,7 +59,7 @@ export default function GiftsAdmin() {
               <th>#</th>
               <th>الهدية</th>
               <th>الفئة</th>
-              <th>سعر الكوين</th>
+              <th>سعر الماس</th>
               <th>سعر الذهب</th>
               <th>الهدف</th>
               <th>مفعّلة</th>
@@ -78,9 +78,9 @@ export default function GiftsAdmin() {
                 <td>
                   <input
                     type="number"
-                    defaultValue={gift.price_coins}
+                    defaultValue={gift.price_diamonds}
                     style={{ width: 110 }}
-                    onBlur={(event) => Number(event.target.value) !== gift.price_coins && patch(gift, { price_coins: Number(event.target.value) })}
+                    onBlur={(event) => Number(event.target.value) !== gift.price_diamonds && patch(gift, { price_diamonds: Number(event.target.value) })}
                   />
                 </td>
                 <td>
@@ -135,8 +135,8 @@ export default function GiftsAdmin() {
             </select>
           </div>
           <div className="field">
-            <label>سعر الكوين</label>
-            <input type="number" value={draft.price_coins} onChange={(event) => setDraft({ ...draft, price_coins: event.target.value })} />
+            <label>سعر الماس</label>
+            <input type="number" value={draft.price_diamonds} onChange={(event) => setDraft({ ...draft, price_diamonds: event.target.value })} />
           </div>
           <div className="field">
             <label>سعر الذهب</label>

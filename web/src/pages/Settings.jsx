@@ -53,7 +53,7 @@ export default function Settings() {
         ['/rooms', t('navRooms'), 'mic'],
         ['/friends', t('navFriends'), 'friends'],
         ['/profile', t('profile'), 'crown'],
-        ['/recharge', t('recharge'), 'coin'],
+        ['/recharge', t('recharge'), 'gem'],
       ],
     },
     {

@@ -5,7 +5,7 @@ from conftest import auth
 def test_payments_are_never_assumed(client, make_user, admin_token):
     buyer = make_user("buyer")
     packs = client.get("/api/store", headers=auth(buyer["token"])).json()["packs"]
-    # الشحن صار بالذهب أو الماس فقط، والكوين يُكتسب داخل التطبيق لا بالشحن.
+    # الشحن صار بالذهب أو الماس فقط.
     pack = next(pack for pack in packs if pack["kind"] == "diamonds")
 
     response = client.post(
@@ -20,15 +20,14 @@ def test_payments_are_never_assumed(client, make_user, admin_token):
 
     # No provider keys -> no credit, no checkout, and the webhook refuses.
     before = client.get("/api/auth/me", headers=auth(buyer["token"])).json()["wallet"]
-    assert before["coins"] == 500  # مكافأة الترحيب فقط
-    assert before["diamonds"] == 0
+    assert before["diamonds"] == 500  # مكافأة الترحيب فقط
     assert client.post(f"/api/payments/orders/{order['id']}/checkout", headers=auth(buyer["token"])).status_code == 503
     assert (
         client.post("/api/payments/webhook/stripe", content=b"{}", headers={"stripe-signature": "fake"}).status_code
         == 503
     )
     after_attempts = client.get("/api/auth/me", headers=auth(buyer["token"])).json()["wallet"]
-    assert after_attempts["coins"] == 500 and after_attempts["diamonds"] == 0
+    assert after_attempts["diamonds"] == 500
 
     # A verified administrator approval credits once, and only once.
     approved = client.post(
@@ -36,11 +35,13 @@ def test_payments_are_never_assumed(client, make_user, admin_token):
     )
     assert approved.status_code == 200
     credited = client.get("/api/auth/me", headers=auth(buyer["token"])).json()["wallet"]
-    assert credited["diamonds"] == pack["total"]
-    assert credited["coins"] == 500
+    assert credited["diamonds"] == 500 + pack["total"]  # مكافأة الترحيب + الباقة
     again = client.post(f"/api/admin/orders/{order['id']}/approve", json={}, headers=auth(admin_token))
     assert again.status_code == 400
-    assert client.get("/api/auth/me", headers=auth(buyer["token"])).json()["wallet"]["diamonds"] == pack["total"]
+    assert (
+        client.get("/api/auth/me", headers=auth(buyer["token"])).json()["wallet"]["diamonds"]
+        == 500 + pack["total"]
+    )
 
 
 def test_admin_rights_are_enforced_on_the_server(client, make_user, admin_token):
@@ -57,11 +58,11 @@ def test_admin_rights_are_enforced_on_the_server(client, make_user, admin_token)
 
     adjusted = client.post(
         f"/api/admin/users/{plain['user']['id']}/wallet",
-        json={"currency": "coins", "amount": 1000, "note": "تعويض اختباري"},
+        json={"currency": "diamonds", "amount": 1000, "note": "تعويض اختباري"},
         headers=auth(admin_token),
     )
     assert adjusted.status_code == 200
-    assert adjusted.json()["wallet"]["coins"] == 1500
+    assert adjusted.json()["wallet"]["diamonds"] == 1500
 
     logs = client.get("/api/admin/audit-logs", headers=auth(admin_token)).json()["logs"]
     assert any(entry["action"] == "wallet.adjust" and entry["actor_id"] for entry in logs)
@@ -80,7 +81,7 @@ def test_admin_rights_are_enforced_on_the_server(client, make_user, admin_token)
 def test_withdrawal_flow_and_refund(client, make_user, admin_token):
     user = make_user("withdrawer")
     body = {
-        "currency": "coins",
+        "currency": "diamonds",
         "amount": 60000,
         "method": "zaincash",
         "payout_currency": "IQD",
@@ -94,20 +95,20 @@ def test_withdrawal_flow_and_refund(client, make_user, admin_token):
 
     client.post(
         f"/api/admin/users/{user['user']['id']}/wallet",
-        json={"currency": "coins", "amount": 100000, "note": "رصيد اختباري"},
+        json={"currency": "diamonds", "amount": 100000, "note": "رصيد اختباري"},
         headers=auth(admin_token),
     )
     created = client.post("/api/wallet/withdrawals", json=body, headers=auth(user["token"]))
     assert created.status_code == 201, created.text
     request = created.json()["request"]
     assert request["fee"] == 6000 and request["net_amount"] == 54000
-    assert created.json()["wallet"]["coins"] == 100500 - 60000
+    assert created.json()["wallet"]["diamonds"] == 100500 - 60000
 
     rejected = client.post(
         f"/api/admin/withdrawals/{request['id']}/reject", json={"note": "بيانات مستفيد غير صحيحة"}, headers=auth(admin_token)
     )
     assert rejected.status_code == 200
-    assert client.get("/api/auth/me", headers=auth(user["token"])).json()["wallet"]["coins"] == 100500
+    assert client.get("/api/auth/me", headers=auth(user["token"])).json()["wallet"]["diamonds"] == 100500
     client.patch("/api/admin/settings", json={"settings": {"withdrawal_enabled": False}}, headers=auth(admin_token))
 
 

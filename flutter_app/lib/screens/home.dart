@@ -32,7 +32,7 @@ class _HomeShellState extends State<HomeShell> {
           appBar: AppBar(
             title: const Text('TON Voice'),
             actions: [
-              _Chip(label: '🪙 ${state.coins}', color: AppColors.gold),
+              _Chip(label: '💎 ${state.diamonds}', color: AppColors.gold),
               const SizedBox(width: 6),
               _Chip(label: '🏆 ${state.gold}', color: AppColors.goldDeep),
               IconButton(
@@ -131,7 +131,7 @@ class _Chip extends StatelessWidget {
   }
 }
 
-/// Home & store: balance, in-app adverts and offers, coin/gold packs, and the
+/// Home & store: balance, in-app adverts and offers, gold/diamonds packs, and the
 /// Royal levels sheet (which replaces the old crown membership).
 class HomeTab extends StatefulWidget {
   const HomeTab({super.key});
@@ -214,7 +214,7 @@ class _HomeTabState extends State<HomeTab> {
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Text('الحد الأدنى: ${state.meta?['withdrawal_min_coins'] ?? 50000} كوين · الرسوم ${state.meta?['withdrawal_fee_percent'] ?? 10}%'),
+            Text('الحد الأدنى: ${state.meta?['withdrawal_min_diamonds'] ?? 50000} ماس · الرسوم ${state.meta?['withdrawal_fee_percent'] ?? 10}%'),
             const SizedBox(height: 8),
             TextField(controller: amount, keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: 'المبلغ')),
             TextField(controller: method, decoration: const InputDecoration(labelText: 'طريقة الدفع (ZainCash، FastPay، تحويل بنكي)')),
@@ -228,7 +228,7 @@ class _HomeTabState extends State<HomeTab> {
               Navigator.pop(context);
               try {
                 await state.api.withdraw(
-                  currency: 'coins',
+                  currency: 'diamonds',
                   amount: int.tryParse(amount.text.trim()) ?? 0,
                   method: method.text.trim(),
                   beneficiary: {'account': account.text.trim()},
@@ -267,7 +267,7 @@ class _HomeTabState extends State<HomeTab> {
                 const SizedBox(height: 8),
                 Row(
                   children: [
-                    _Chip(label: '🪙 ${state.coins} كوين', color: AppColors.gold),
+                    _Chip(label: '💎 ${state.diamonds} ماس', color: AppColors.gold),
                     const SizedBox(width: 8),
                     _Chip(label: '🏆 ${state.gold} ذهب', color: AppColors.goldDeep),
                   ],
@@ -368,7 +368,7 @@ class _HomeTabState extends State<HomeTab> {
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       Text('${pack['name']}', style: const TextStyle(fontWeight: FontWeight.bold)),
-                      Text('${pack['amount']} + ${pack['bonus']} ${pack['kind'] == 'gold' ? 'ذهب' : 'كوين'}',
+                      Text('${pack['amount']} + ${pack['bonus']} ${pack['kind'] == 'gold' ? 'ذهب' : 'ماس'}',
                           style: const TextStyle(color: AppColors.muted, fontSize: 12)),
                       Text('${pack['price_iqd']} IQD · ${((pack['price_usd_cents'] ?? 0) / 100).toStringAsFixed(2)} USD',
                           style: const TextStyle(color: AppColors.gold, fontSize: 12)),

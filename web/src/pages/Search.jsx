@@ -90,7 +90,7 @@ export default function Search() {
           .map((item) => ({
             id: `item-${item.id}`,
             title: item.name,
-            meta: `${item.kind} · ${item.price_coins} coins / ${item.price_gold} gold`,
+            meta: `${item.kind} · ${item.price_diamonds} diamonds / ${item.price_gold} gold`,
             to: '/store',
           })),
       },

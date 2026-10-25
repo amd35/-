@@ -162,9 +162,6 @@ export default function Home() {
         <div className="panel-body">
           <div className="panel-title">{t('balance')}</div>
           <div className="row wrap" style={{ marginTop: 6 }}>
-            <span className="chip chip-coins">
-              <PhotoIcon name="coin" size={15} /> {wallet.coins} {t('coins')}
-            </span>
             <span className="chip chip-gold">
               <PhotoIcon name="gold" size={15} /> {wallet.gold} {t('gold')}
             </span>

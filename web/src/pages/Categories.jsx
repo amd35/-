@@ -58,7 +58,7 @@ export default function Categories() {
             <div className="row wrap" style={{ marginTop: 8 }}>
               {items.slice(0, 8).map((item) => (
                 <span className="badge-pill" key={item.id}>
-                  {item.name} · {item.price_coins}/{item.price_gold}
+                  {item.name} · {item.price_diamonds}/{item.price_gold}
                 </span>
               ))}
             </div>
@@ -83,7 +83,7 @@ export default function Categories() {
           <div className="row wrap" style={{ marginTop: 8 }}>
             {gifts.slice(0, 8).map((gift) => (
               <span className="badge-pill" key={gift.id}>
-                {gift.name} · {gift.price_coins || gift.price_gold}
+                {gift.name} · {gift.price_diamonds || gift.price_gold}
               </span>
             ))}
           </div>
