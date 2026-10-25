@@ -1,11 +1,24 @@
+import { pipsFor } from '../lib/pips.js'
+
+/** نصف القطعة: نقاط حقيقية في شبكة 3×3 بدل الأرقام. */
+function Half({ value }) {
+  return (
+    <span className="dom-half">
+      {pipsFor(value).map((on, index) => (
+        <span key={index} className={on ? 'dom-pip dom-pip-on' : 'dom-pip'} />
+      ))}
+    </span>
+  )
+}
+
 /** Domino table: the shared chain plus the player's own tiles. */
-function Tile({ tile, highlighted, small }) {
+function Tile({ tile, highlighted }) {
   const [a, b] = tile
   return (
-    <span className={`dom-tile${small ? ' dom-tile-small' : ''}${highlighted ? ' dom-tile-matching' : ''}`}>
-      <span>{a}</span>
+    <span className={`dom-tile${highlighted ? ' dom-tile-matching' : ''}`} data-value={`${a}-${b}`}>
+      <Half value={a} />
       <span className="dom-tile-divider" />
-      <span>{b}</span>
+      <Half value={b} />
     </span>
   )
 }

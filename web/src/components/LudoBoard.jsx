@@ -64,6 +64,7 @@ export default function LudoBoard({ geometry, state, mySeat, legal, onMove }) {
 
   return (
     <div className="ludo-board" data-testid="ludo-board" style={{ gridTemplateColumns: `repeat(${size}, 1fr)` }}>
+      <span className="ludo-hub" aria-hidden="true" />
       {rows.map((row) =>
         rows.map((col) => {
           const key = `${row}-${col}`

@@ -769,95 +769,109 @@ textarea:focus {
 /* --- games: Ludo board ------------------------------------------------ */
 
 .ludo-board {
+  position: relative;
   display: grid;
   gap: 2px;
   width: 100%;
   max-width: 520px;
   aspect-ratio: 1 / 1;
   margin: 0 auto;
-  padding: 6px;
-  border-radius: 16px;
-  border: 1px solid var(--stroke);
-  background: linear-gradient(160deg, rgba(255, 255, 255, 0.07), rgba(0, 0, 0, 0.4));
+  padding: 8px;
+  border: 9px solid transparent;
+  border-radius: 18px;
 }
 
 .ludo-cell {
   position: relative;
-  border-radius: 4px;
-  background: rgba(255, 255, 255, 0.04);
+  z-index: 1;
+  border-radius: 3px;
 }
 
 .ludo-track {
-  background: rgba(255, 255, 255, 0.13);
+  background-image: linear-gradient(180deg, #fffdf6, #f1e7d2);
+  box-shadow:
+    inset 0 0 0 0.5px rgba(122, 79, 34, 0.4),
+    inset 0 -1px 2px rgba(122, 79, 34, 0.16);
 }
 
 .ludo-safe {
-  box-shadow: inset 0 0 0 1px var(--gold);
+  box-shadow: inset 0 0 0 1px rgba(201, 143, 24, 0.8), inset 0 0 9px rgba(201, 143, 24, 0.35);
+}
+
+/* نجمة الأمان المطبوعة على الخلية كما في الألواح الحقيقية */
+.ludo-safe::after {
+  content: '';
+  position: absolute;
+  inset: 24%;
+  pointer-events: none;
+  background: linear-gradient(180deg, #ffe19a, #c9880f);
+  clip-path: polygon(50% 2%, 61% 35%, 96% 35%, 68% 57%, 79% 96%, 50% 74%, 21% 96%, 32% 57%, 4% 35%, 39% 35%);
+  opacity: 0.9;
 }
 
 .ludo-yard,
 .ludo-start {
-  opacity: 0.55;
+  opacity: 1;
 }
 
 .ludo-yard-0,
 .ludo-start-0,
 .ludo-home-0 {
-  background: rgba(255, 107, 107, 0.45);
+  background-image: linear-gradient(180deg, #f4818a, #b32b2b);
 }
 
 .ludo-yard-1,
 .ludo-start-1,
 .ludo-home-1 {
-  background: rgba(72, 209, 138, 0.45);
+  background-image: linear-gradient(180deg, #5fcb8f, #26794b);
 }
 
 .ludo-yard-2,
 .ludo-start-2,
 .ludo-home-2 {
-  background: rgba(93, 156, 255, 0.45);
+  background-image: linear-gradient(180deg, #74a2f2, #2b53b5);
 }
 
 .ludo-yard-3,
 .ludo-start-3,
 .ludo-home-3 {
-  background: rgba(244, 198, 98, 0.45);
+  background-image: linear-gradient(180deg, #f6d071, #bf8c12);
 }
 
 .ludo-center {
-  background: radial-gradient(circle, rgba(244, 198, 98, 0.55), rgba(0, 0, 0, 0.45));
+  background: transparent;
 }
 
 .ludo-token {
   position: absolute;
-  inset-inline-start: 35%;
-  inset-block-start: 35%;
-  width: 30%;
-  height: 30%;
+  inset-inline-start: 28%;
+  inset-block-start: 24%;
+  width: 44%;
+  height: 44%;
   padding: 0;
   border-radius: 50%;
   border: 1px solid rgba(0, 0, 0, 0.45);
-  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.5);
 }
 
 .ludo-token:disabled {
   opacity: 1;
 }
 
+/* بيدق بلاستيكي لامع: بقعة ضوء عليا وتدرّج داكن نحو القاعدة */
 .ludo-token-red {
-  background: radial-gradient(circle at 30% 30%, #ffb3b3, #d64545);
+  background-image: radial-gradient(circle at 32% 26%, #fff 4%, #ff9c92 26%, #cf3630 66%, #7f1614);
 }
 
 .ludo-token-green {
-  background: radial-gradient(circle at 30% 30%, #b6f0cf, #2f9c63);
+  background-image: radial-gradient(circle at 32% 26%, #fff 4%, #93edbb 26%, #2a8f57 66%, #14512f);
 }
 
 .ludo-token-blue {
-  background: radial-gradient(circle at 30% 30%, #bcd4ff, #3d6fd6);
+  background-image: radial-gradient(circle at 32% 26%, #fff 4%, #a9c8ff 26%, #2f5fc4 66%, #17306b);
 }
 
 .ludo-token-yellow {
-  background: radial-gradient(circle at 30% 30%, #ffe9b0, #d2a11f);
+  background-image: radial-gradient(circle at 32% 26%, #fff 4%, #ffe8a8 26%, #d9a51c 66%, #7d5a05);
 }
 
 @keyframes ludoPulse {
@@ -891,28 +905,49 @@ textarea:focus {
 .dom-tile {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  padding: 8px 10px;
-  border-radius: 10px;
-  background: linear-gradient(160deg, #fdf7ee, #d7cbb9);
+  gap: 4px;
+  padding: 3px;
+  border-radius: 6px;
   color: #201722;
-  font-weight: 700;
-  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.35);
 }
 
+/* نصف القطعة: شبكة 3×3 تُرسم فيها النقاط كما في قطع الدومينو الحقيقية */
+.dom-half {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  grid-template-rows: repeat(3, 1fr);
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  gap: 1px;
+}
+
+.dom-pip {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: transparent;
+}
+
+.dom-pip-on {
+  background: radial-gradient(circle at 34% 28%, #4a4038, #171310);
+  box-shadow:
+    inset 0 1px 1px rgba(0, 0, 0, 0.6),
+    0 0.5px 0 rgba(255, 255, 255, 0.5);
+}
+
+/* مجرى الفاصل بين نصفَي القطعة */
 .dom-tile-divider {
-  width: 1px;
-  height: 18px;
-  background: rgba(0, 0, 0, 0.35);
+  align-self: stretch;
+  width: 2px;
+  margin: 1px 0;
+  border-radius: 2px;
+  background: linear-gradient(180deg, rgba(60, 45, 25, 0.55), rgba(60, 45, 25, 0.25), rgba(60, 45, 25, 0.55));
+  box-shadow: 0.5px 0 0 rgba(255, 255, 255, 0.6);
 }
 
 .dom-tile-matching {
   outline: 2px solid var(--gold);
-}
-
-.dom-tile-small {
-  padding: 4px 6px;
-  font-size: 12px;
 }
 
 .domino-hand {
@@ -2338,41 +2373,148 @@ textarea:focus {
   box-shadow: inset 0 2px 3px rgba(0, 0, 0, 0.5), 0 1px 0 rgba(255, 255, 255, 0.35);
 }
 
-/* --- 13) اللودو والدومينو: عمق وظلال واقعية --- */
+/* --- 13) اللودو والدومينو: خامات حقيقية (خشب، جوخ، عاج، بلاستيك لامع) --- */
+
+/* لوح خشبي حقيقي بإطار وسطح مطبوع: طبقة السطح أعلى طبقات الخشب ومقصوصة على المحتوى */
 .ludo-board {
+  background-image:
+    radial-gradient(ellipse at 50% 26%, #fdf8ec, #f0e6cf 68%, #dcccaa),
+    repeating-linear-gradient(
+      91deg,
+      rgba(255, 236, 205, 0.1) 0 2px,
+      rgba(58, 27, 5, 0.18) 2px 7px,
+      rgba(255, 236, 205, 0.05) 7px 13px
+    ),
+    linear-gradient(158deg, #ad6c31, #78471b 48%, #41230a);
+  background-clip: content-box, border-box, border-box;
+  background-origin: content-box, border-box, border-box;
   box-shadow:
-    inset 0 2px 8px rgba(0, 0, 0, 0.5),
-    inset 0 -2px 0 rgba(255, 255, 255, 0.07),
-    0 20px 34px -18px rgba(0, 0, 0, 0.85);
+    0 30px 44px -22px rgba(0, 0, 0, 0.95),
+    inset 0 2px 0 rgba(255, 255, 255, 0.25),
+    inset 0 -6px 16px rgba(0, 0, 0, 0.6);
 }
 
-.ludo-cell {
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08);
+/* مركز اللوح: أربعة مثلثات ملوّنة وزر ذهبي في الوسط */
+.ludo-hub {
+  position: absolute;
+  inset: 40%;
+  z-index: 0;
+  pointer-events: none;
+  border-radius: 2px;
+  background: conic-gradient(
+    from 45deg,
+    #2f8f5a 0 90deg,
+    #2f5fc4 90deg 180deg,
+    #d9a51c 180deg 270deg,
+    #c3372f 270deg 360deg
+  );
+  box-shadow:
+    inset 0 0 0 1px rgba(122, 79, 34, 0.55),
+    inset 0 -2px 6px rgba(0, 0, 0, 0.3);
 }
 
+.ludo-hub::after {
+  content: '';
+  position: absolute;
+  inset: 22%;
+  border-radius: 50%;
+  background: radial-gradient(circle at 34% 28%, #fff3cd, #e0a92a 60%, #a4710c);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.7);
+}
+
+/* بيادق لامعة واقفة على اللوح بظل أرضي */
 .ludo-token {
   box-shadow:
-    0 5px 10px -3px rgba(0, 0, 0, 0.75),
-    inset 0 -3px 6px rgba(0, 0, 0, 0.35),
-    inset 0 3px 5px rgba(255, 255, 255, 0.5);
+    0 4px 5px -1px rgba(0, 0, 0, 0.75),
+    0 9px 12px -5px rgba(0, 0, 0, 0.6),
+    inset 0 -3px 5px rgba(0, 0, 0, 0.38),
+    inset 0 2px 3px rgba(255, 255, 255, 0.75);
 }
 
+/* طاولة جوخ تحت قطع الدومينو */
+.card.domino-board {
+  background-image:
+    repeating-linear-gradient(45deg, rgba(255, 255, 255, 0.04) 0 2px, rgba(0, 0, 0, 0.06) 2px 4px),
+    radial-gradient(ellipse at 50% 20%, #2e8261, #11503a 62%, #06271c);
+  background-blend-mode: overlay, normal;
+  border: 1px solid rgba(0, 0, 0, 0.55);
+  box-shadow:
+    0 24px 36px -20px rgba(0, 0, 0, 0.95),
+    inset 0 0 44px rgba(0, 0, 0, 0.55),
+    inset 0 2px 0 rgba(255, 255, 255, 0.07);
+}
+
+/* قطع عاجية: حافة مشطوفة، لمعة علوية، وظل أرضي */
 .dom-tile {
   background-image:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.85), rgba(255, 255, 255, 0) 45%),
-    linear-gradient(160deg, #fdf7ee, #d7cbb9);
+    linear-gradient(180deg, rgba(255, 255, 255, 0.95), rgba(255, 255, 255, 0) 42%),
+    linear-gradient(160deg, #fffdf5, #f3ead6 58%, #dccdb0);
   box-shadow:
-    0 8px 14px -6px rgba(0, 0, 0, 0.65),
+    0 9px 14px -7px rgba(0, 0, 0, 0.8),
+    0 2px 4px rgba(0, 0, 0, 0.35),
+    inset 0 0 0 1px rgba(96, 74, 40, 0.4),
     inset 0 -4px 8px rgba(0, 0, 0, 0.16),
-    inset 0 1px 0 rgba(255, 255, 255, 0.9);
+    inset 0 1px 0 rgba(255, 255, 255, 0.95);
+}
+
+.dom-tile-matching {
+  box-shadow:
+    0 9px 16px -6px rgba(0, 0, 0, 0.8),
+    0 0 14px rgba(244, 204, 68, 0.5),
+    inset 0 0 0 1px rgba(96, 74, 40, 0.4),
+    inset 0 1px 0 rgba(255, 255, 255, 0.95);
+}
+
+/* قطع اللاعب أكبر قليلًا من قطع السلسلة */
+.domino-hand .dom-half {
+  width: 30px;
+  height: 30px;
+}
+
+.domino-hand .dom-pip {
+  width: 6px;
+  height: 6px;
 }
 
 .domino-tile-button {
-  transition: transform 140ms var(--ease-soft);
+  transition: transform 140ms var(--ease-soft), filter 140ms ease;
+}
+
+.domino-tile-button:hover:not(:disabled) {
+  transform: translateY(-2px);
 }
 
 .domino-tile-button:active:not(:disabled) {
-  transform: translateY(2px);
+  transform: translateY(1px);
+}
+
+/* النرد الحقيقي في طاولة اللودو */
+.game-die {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  grid-template-rows: repeat(3, 1fr);
+  place-items: center;
+  gap: 1px;
+  padding: 5px;
+  border-radius: 9px;
+  background-image: linear-gradient(150deg, #ffffff, #efe7d7 62%, #cfc3ab);
+  box-shadow:
+    0 8px 12px -5px rgba(0, 0, 0, 0.75),
+    inset 0 -5px 9px rgba(0, 0, 0, 0.22),
+    inset 0 2px 3px rgba(255, 255, 255, 0.95),
+    inset 0 0 0 1px rgba(96, 74, 40, 0.35);
+}
+
+.game-die-pip {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: transparent;
+}
+
+.game-die-pip-on {
+  background: radial-gradient(circle at 34% 28%, #55483c, #100d0b);
+  box-shadow: inset 0 1px 1px rgba(0, 0, 0, 0.7), 0 0.5px 0 rgba(255, 255, 255, 0.55);
 }
 
 /* --- 14) الأيقونات الفوتوغرافية: إطار ضوء وظل ناعم --- */

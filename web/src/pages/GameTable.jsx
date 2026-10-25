@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import Avatar from '../components/Avatar.jsx'
 import PhotoIcon from '../components/PhotoIcon.jsx'
+import DieFace from '../components/DieFace.jsx'
 import DominoTable from '../components/DominoTable.jsx'
 import LudoBoard from '../components/LudoBoard.jsx'
 import { api } from '../lib/api.js'
@@ -253,7 +254,7 @@ export default function GameTable() {
                 >
                   <PhotoIcon name="dice" size={16} /> رمي النرد
                 </button>
-                {dice ? <span className="chip">النرد: {dice}</span> : null}
+                {dice ? <DieFace value={Number(dice)} /> : null}
                 {myTurn && dice && (room.legal || []).length ? (
                   <span className="muted">اختر قطعة مضيئة للتحريك</span>
                 ) : null}
