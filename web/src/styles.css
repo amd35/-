@@ -1,22 +1,21 @@
 :root {
-  --bg-1: #2b1533;
-  --bg-2: #6b2a12;
-  --bg-3: #c06214;
-  --glass: rgba(18, 12, 26, 0.62);
-  --glass-solid: rgba(24, 17, 34, 0.92);
-  --stroke: rgba(255, 255, 255, 0.14);
-  --text: #fdf7ee;
-  --muted: #c9bcd0;
-  --gold: #f4c662;
-  --gold-deep: #b8860b;
-  --accent: #7c5cff;
-  --ok: #48d18a;
-  --warn: #ffb347;
-  --danger: #ff6b6b;
-  --radius: 18px;
-  --shadow: 0 18px 40px rgba(0, 0, 0, 0.35);
-  /* خلفية التطبيق: صورة فوتوغرافية واقعية (سطح فاخر عند الغروب) */
-  --app-backdrop: url("https://media.base44.com/images/public/6addb0a6b0689d303ed3a495/736e4558e_generated_78ab64b8.png");
+  /* الهوية البصرية: تصميم ألعاب أخضر/ذهبي (مطابق للصور المرجعية) */
+  --bg-1: #0b3f37;
+  --bg-2: #14705f;
+  --bg-3: #1e8f7a;
+  --glass: rgba(11, 61, 54, 0.72);
+  --glass-solid: rgba(9, 50, 45, 0.95);
+  --stroke: rgba(255, 255, 255, 0.18);
+  --text: #f2fffb;
+  --muted: #a9d8cf;
+  --gold: #f4cc44;
+  --gold-deep: #c98f18;
+  --accent: #60caff;
+  --ok: #5ce6a5;
+  --warn: #ffc861;
+  --danger: #ff7a6b;
+  --radius: 20px;
+  --shadow: 0 16px 34px rgba(0, 0, 0, 0.32);
 }
 
 * {
@@ -32,14 +31,13 @@ body,
 body {
   margin: 0;
   color: var(--text);
-  font-family: 'Segoe UI', Tahoma, 'Noto Naskh Arabic', system-ui, -apple-system, sans-serif;
+  font-family: 'Cairo', 'Tajawal', 'Segoe UI', Tahoma, 'Noto Naskh Arabic', system-ui, -apple-system, sans-serif;
+  font-weight: 600;
   background-color: var(--bg-1);
+  /* خلفية متدرجة خضراء بلمسة ضوء علوية (هوية الألعاب) */
   background-image:
-    linear-gradient(180deg, rgba(12, 8, 18, 0.66) 0%, rgba(12, 8, 18, 0.38) 40%, rgba(12, 8, 18, 0.72) 100%),
-    var(--app-backdrop);
-  background-size: cover;
-  background-position: center;
-  background-repeat: no-repeat;
+    radial-gradient(120% 55% at 50% -10%, rgba(255, 255, 255, 0.16), transparent 62%),
+    linear-gradient(180deg, #0b3f37 0%, #14705f 44%, #1e8f7a 100%);
   background-attachment: fixed;
   min-height: 100vh;
 }
@@ -954,4 +952,697 @@ textarea:focus {
 .btn-small {
   padding: 4px 8px;
   font-size: 12px;
+}
+
+/* =====================================================================
+   طبقة الهوية البصرية: تصميم الألعاب الأخضر/الذهبي (مطابق للصور المرجعية)
+   لا تحمل هذه الطبقة أي بيانات: كل الأرقام تُبنى من استجابات الخادم.
+   ===================================================================== */
+
+.app-shell {
+  max-width: 760px;
+  padding: 10px 12px 108px;
+}
+
+/* --- الشريط العلوي: الشعار + الأرصدة الحقيقية + الأدوات --- */
+.topbar {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  flex-wrap: nowrap;
+  gap: 6px;
+  padding: 8px 10px;
+  margin-bottom: 14px;
+  border-radius: 0 0 22px 22px;
+  background: linear-gradient(180deg, rgba(9, 60, 53, 0.97), rgba(13, 80, 70, 0.9));
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-top: none;
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.38);
+  backdrop-filter: blur(10px);
+}
+
+.topbar .brand {
+  flex: none;
+}
+
+.brand-mark {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 25%, #ffe9a8, #e2ab2c 70%);
+  color: #4a2f05;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.4), inset 0 -3px 6px rgba(0, 0, 0, 0.2);
+}
+
+.topbar .brand span:last-child {
+  font-weight: 900;
+  letter-spacing: 0.4px;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.45);
+}
+
+.currency-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 5px 3px 10px;
+  border-radius: 999px;
+  background: rgba(5, 37, 33, 0.78);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: var(--text);
+  font-weight: 800;
+  font-size: 13px;
+  cursor: pointer;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.16);
+}
+
+.currency-pill .coin-icon {
+  font-size: 15px;
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.5));
+}
+
+.currency-pill .currency-value {
+  min-width: 16px;
+  text-align: center;
+}
+
+.currency-coins {
+  color: var(--gold);
+}
+
+.currency-gold {
+  color: #cdeeff;
+}
+
+.currency-plus {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: linear-gradient(180deg, #ffe08a, #e2ab2c);
+  color: #4a2f05;
+  font-weight: 900;
+  font-size: 14px;
+  line-height: 1;
+}
+
+.topbar .icon-button {
+  width: 34px;
+  height: 34px;
+  border-radius: 12px;
+  background: rgba(5, 37, 33, 0.7);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  font-size: 15px;
+}
+
+.profile-chip {
+  flex: none;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  box-shadow: 0 0 0 2px rgba(244, 204, 68, 0.7), 0 4px 10px rgba(0, 0, 0, 0.4);
+}
+
+/* --- شريط التنقل السفلي --- */
+.tabs {
+  gap: 4px;
+  padding: 8px 8px 12px;
+  background: linear-gradient(180deg, rgba(6, 42, 37, 0.55), rgba(5, 33, 30, 0.98) 55%);
+  border-top: 2px solid rgba(244, 204, 68, 0.35);
+}
+
+.tab {
+  position: relative;
+  max-width: 150px;
+  gap: 3px;
+  padding: 6px 4px;
+  border-radius: 16px;
+  color: #bfe6dd;
+  font-size: 10px;
+  font-weight: 800;
+}
+
+.tab span:first-child {
+  font-size: 20px;
+  filter: drop-shadow(0 2px 3px rgba(0, 0, 0, 0.5));
+}
+
+/* النص لا يمدّ الشريط: يتقلّص بدل أن يُخرج الصفحة عن العرض */
+.tab {
+  min-width: 0;
+}
+
+.tab span:last-child {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.tab-active {
+  background: linear-gradient(180deg, rgba(244, 204, 68, 0.3), rgba(244, 204, 68, 0.05));
+  color: var(--gold);
+  border: 1px solid rgba(244, 204, 68, 0.55);
+  box-shadow: 0 0 14px rgba(244, 204, 68, 0.25);
+}
+
+.tab-badge {
+  position: absolute;
+  top: 0;
+  inset-inline-end: 20%;
+  min-width: 16px;
+  height: 16px;
+  padding: 0 4px;
+  border-radius: 999px;
+  background: linear-gradient(180deg, #ff9a5c, #e0432a);
+  color: #fff;
+  font-size: 10px;
+  display: grid;
+  place-items: center;
+}
+
+/* --- الأسطح: البطاقات واللوحات --- */
+.glass,
+.card {
+  background: linear-gradient(180deg, rgba(41, 158, 143, 0.92), rgba(19, 106, 94, 0.94));
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  border-radius: var(--radius);
+  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.26);
+  backdrop-filter: blur(6px);
+}
+
+.card {
+  position: relative;
+  padding: 14px 16px;
+  margin-bottom: 12px;
+}
+
+.page-title {
+  font-size: 20px;
+  font-weight: 900;
+  text-shadow: 0 3px 6px rgba(0, 0, 0, 0.45);
+}
+
+.section-title {
+  color: var(--gold);
+  font-weight: 900;
+  font-size: 15px;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.4);
+}
+
+.panel {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 12px 12px 14px;
+  margin-bottom: 12px;
+  border-radius: 22px;
+  background: linear-gradient(180deg, #37c1ad 0%, #1c8577 100%);
+  border: 2px solid rgba(244, 204, 68, 0.55);
+  box-shadow: 0 14px 26px rgba(0, 0, 0, 0.32), inset 0 2px 0 rgba(255, 255, 255, 0.32),
+    inset 0 -10px 18px rgba(0, 0, 0, 0.16);
+}
+
+.panel::after {
+  content: '';
+  position: absolute;
+  inset: 5px;
+  border-radius: 17px;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  pointer-events: none;
+}
+
+.panel-icon {
+  flex: none;
+  width: 58px;
+  height: 58px;
+  display: grid;
+  place-items: center;
+  font-size: 30px;
+  border-radius: 18px;
+  background: radial-gradient(circle at 50% 32%, rgba(255, 255, 255, 0.6), rgba(255, 255, 255, 0.08) 72%);
+  box-shadow: inset 0 0 16px rgba(255, 255, 255, 0.35), 0 6px 14px rgba(0, 0, 0, 0.28);
+}
+
+.panel-body {
+  flex: 1;
+  min-width: 0;
+}
+
+.panel-title {
+  font-size: 16px;
+  font-weight: 800;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.35);
+}
+
+.panel-sub {
+  margin-top: 4px;
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.88);
+}
+
+.panel-side {
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 6px;
+}
+
+.panel-list {
+  margin: 6px 0 0;
+  padding-inline-start: 16px;
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.88);
+}
+
+/* --- الشريط الدوّار (الإعلانات) --- */
+.carousel {
+  margin-bottom: 14px;
+}
+
+.carousel-track {
+  display: flex;
+  gap: 10px;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  padding-bottom: 4px;
+  scrollbar-width: none;
+}
+
+.carousel-track::-webkit-scrollbar {
+  display: none;
+}
+
+.carousel-slide {
+  flex: 0 0 92%;
+  margin-bottom: 0;
+  scroll-snap-align: center;
+}
+
+.carousel-dots {
+  display: flex;
+  justify-content: center;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.carousel-dot {
+  width: 8px;
+  height: 8px;
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.35);
+  cursor: pointer;
+}
+
+.carousel-dot-active {
+  width: 22px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #ffe08a, #d79a1c);
+}
+
+/* --- شريط التقدم (برج المكافآت) --- */
+.progress-label {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 6px;
+  font-size: 12px;
+  font-weight: 800;
+  color: #ffe9b0;
+}
+
+.progress {
+  height: 16px;
+  border-radius: 999px;
+  background: rgba(5, 37, 33, 0.75);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  overflow: hidden;
+}
+
+.progress-fill {
+  height: 100%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #ffe08a, #f0a824);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.5);
+  transition: width 0.4s ease;
+}
+
+/* --- المتجر: تبويبات فرعية، مرشّحات، شريط العنوان، الأرفف --- */
+.store-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  margin-bottom: 10px;
+  border-radius: 18px;
+  background: linear-gradient(180deg, rgba(41, 158, 143, 0.92), rgba(19, 106, 94, 0.94));
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.28);
+}
+
+.store-title {
+  font-weight: 900;
+  font-size: 16px;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.4);
+}
+
+.subnav {
+  display: flex;
+  gap: 6px;
+  overflow-x: auto;
+  padding: 6px;
+  margin-bottom: 8px;
+  border-radius: 18px;
+  background: rgba(6, 45, 40, 0.68);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  scrollbar-width: none;
+}
+
+.subnav::-webkit-scrollbar,
+.filter-bar::-webkit-scrollbar {
+  display: none;
+}
+
+.subnav-item {
+  flex: none;
+  padding: 8px 14px;
+  border-radius: 14px;
+  background: linear-gradient(180deg, #2aa694, #17796a);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: #eafffa;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.subnav-item-active {
+  background: linear-gradient(180deg, #ffe08a, #d79a1c);
+  border-color: transparent;
+  color: #4a2f05;
+}
+
+.filter-bar {
+  display: flex;
+  gap: 6px;
+  overflow-x: auto;
+  padding: 2px 0 8px;
+  scrollbar-width: none;
+}
+
+.filter-pill {
+  flex: none;
+  padding: 6px 12px;
+  border-radius: 999px;
+  background: rgba(6, 45, 40, 0.72);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  color: #d6f4ee;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.filter-pill-active {
+  background: linear-gradient(180deg, #3ec4b0, #1d8474);
+  border-color: rgba(255, 255, 255, 0.4);
+  color: #fff;
+}
+
+.ribbon {
+  width: min(340px, 78%);
+  margin: 14px auto 12px;
+  padding: 8px 20px;
+  text-align: center;
+  font-weight: 900;
+  color: #4a2f05;
+  background: linear-gradient(180deg, #ffe08a, #e2ab2c);
+  clip-path: polygon(0 50%, 7% 0, 93% 0, 100% 50%, 93% 100%, 7% 100%);
+  filter: drop-shadow(0 6px 10px rgba(0, 0, 0, 0.35));
+}
+
+.shelf {
+  margin-bottom: 18px;
+  padding: 10px 10px 16px;
+  border-radius: 20px;
+  background: linear-gradient(180deg, rgba(37, 148, 143, 0.5), rgba(10, 68, 61, 0.75));
+  box-shadow: inset 0 -9px 0 rgba(5, 38, 34, 0.6), 0 12px 22px rgba(0, 0, 0, 0.3);
+}
+
+.shelf-items {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.shop-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 6px;
+  border-radius: 14px;
+  background: linear-gradient(180deg, #b3e5f2, #7cc7e4);
+  border: 2px solid #87d2ef;
+  color: #0b3f3a;
+}
+
+.shop-item-owned {
+  border-color: rgba(244, 204, 68, 0.85);
+}
+
+.shop-item-equipped {
+  border-color: var(--gold);
+  box-shadow: 0 0 0 2px rgba(244, 204, 68, 0.55), 0 0 14px rgba(244, 204, 68, 0.5);
+}
+
+.shop-item-label {
+  font-size: 11px;
+  font-weight: 800;
+  text-align: center;
+  color: #08403a;
+}
+
+.shop-item-body {
+  display: grid;
+  place-items: center;
+  width: 100%;
+  height: 64px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 50% 42%, rgba(255, 255, 255, 0.8), rgba(255, 255, 255, 0) 70%);
+}
+
+.shop-item-image {
+  width: 54px;
+  height: 54px;
+  object-fit: contain;
+}
+
+.shop-item-price {
+  font-size: 11px;
+  font-weight: 900;
+  color: #5a3a06;
+}
+
+.shop-item-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.shop-item-actions .btn,
+.shop-item > .btn {
+  width: 100%;
+}
+
+.die-face {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  grid-template-rows: repeat(3, 1fr);
+  width: 52px;
+  height: 52px;
+  padding: 6px;
+  border-radius: 13px;
+  box-shadow: inset 0 2px 6px rgba(255, 255, 255, 0.45), inset 0 -6px 12px rgba(0, 0, 0, 0.3),
+    0 6px 12px rgba(0, 0, 0, 0.35);
+}
+
+.die-pip {
+  place-self: center;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.35);
+}
+
+/* --- عناصر عامة بلمسة الهوية --- */
+.btn {
+  border-radius: 999px;
+  padding: 10px 18px;
+  font-weight: 800;
+  background: linear-gradient(180deg, #3ec4b0, #1d8474);
+  border: 1px solid rgba(255, 255, 255, 0.28);
+  box-shadow: 0 6px 14px rgba(0, 0, 0, 0.26), inset 0 1px 0 rgba(255, 255, 255, 0.34);
+}
+
+.btn-primary {
+  background: linear-gradient(180deg, #ffd75e, #e08a2a);
+  color: #43290a;
+  border-color: transparent;
+}
+
+.btn-accent {
+  background: linear-gradient(180deg, #7fd8ff, #2f9fd8);
+  color: #06303f;
+  border-color: transparent;
+}
+
+.chip {
+  background: rgba(5, 37, 33, 0.72);
+  border-color: rgba(255, 255, 255, 0.22);
+  font-weight: 800;
+}
+
+.chip-gold {
+  color: #cdeeff;
+}
+
+.badge-pill {
+  background: rgba(244, 204, 68, 0.22);
+  border-color: rgba(244, 204, 68, 0.5);
+}
+
+.list-item {
+  padding: 12px;
+  margin-bottom: 8px;
+  border-radius: 16px;
+  background: rgba(6, 45, 40, 0.55);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-bottom: none;
+}
+
+.ledger-row {
+  margin-bottom: 6px;
+  padding: 8px 10px;
+  border-radius: 12px;
+  background: rgba(6, 45, 40, 0.45);
+  border-bottom: none;
+}
+
+.status-pill {
+  background: rgba(5, 37, 33, 0.6);
+}
+
+.overlay {
+  background: rgba(3, 26, 23, 0.78);
+}
+
+.sheet {
+  background: linear-gradient(180deg, #2ba493, #12574d);
+  border: 2px solid rgba(244, 204, 68, 0.45);
+  border-radius: 24px;
+}
+
+input,
+select,
+textarea {
+  background: rgba(5, 37, 33, 0.72);
+  border-color: rgba(255, 255, 255, 0.22);
+  border-radius: 14px;
+}
+
+.notice {
+  background: rgba(255, 200, 97, 0.16);
+  border-color: rgba(255, 200, 97, 0.45);
+  color: #ffe6bb;
+}
+
+.gift-card {
+  background: rgba(6, 45, 40, 0.6);
+}
+
+.auth-tab {
+  background: rgba(6, 45, 40, 0.6);
+}
+
+.auth-tab-active {
+  background: linear-gradient(180deg, #ffe08a, #d79a1c);
+  border-color: transparent;
+  color: #4a2f05;
+}
+
+@media (max-width: 620px) {
+  .shelf-items {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 480px) {
+  .app-shell {
+    padding: 8px 10px 104px;
+  }
+
+  .topbar .brand span:last-child {
+    display: none;
+  }
+
+  .panel-icon {
+    width: 50px;
+    height: 50px;
+    font-size: 26px;
+  }
+}
+
+/* --- منع التمدد الأفقي: الشرائط تتكيّف مع عرض الشاشة بدل أن تخرج عنه --- */
+.tabs {
+  width: 100%;
+  max-width: 100%;
+  overflow: hidden;
+}
+
+.row-between,
+.list-item {
+  flex-wrap: wrap;
+}
+
+.grid-packs .card,
+.grid-packs .row-between {
+  min-width: 0;
+}
+
+@media (max-width: 430px) {
+  .topbar {
+    gap: 4px;
+    padding: 7px 8px;
+  }
+
+  .currency-pill {
+    padding: 2px 4px 2px 7px;
+    font-size: 12px;
+  }
+
+  .currency-pill .coin-icon {
+    font-size: 13px;
+  }
+
+  .currency-plus {
+    width: 17px;
+    height: 17px;
+    font-size: 12px;
+  }
+
+  .topbar .icon-button {
+    width: 30px;
+    height: 30px;
+    font-size: 14px;
+  }
+
+  .brand-mark {
+    width: 30px;
+    height: 30px;
+    font-size: 14px;
+  }
 }

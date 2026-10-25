@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { api } from '../lib/api.js'
 import { useAuth } from '../lib/store.jsx'
 import { useI18n } from '../lib/i18n.jsx'
@@ -13,6 +13,8 @@ export default function Home() {
   const [message, setMessage] = useState('')
   const [error, setError] = useState('')
   const [busy, setBusy] = useState('')
+  const [promoIndex, setPromoIndex] = useState(0)
+  const trackRef = useRef(null)
 
   const load = useCallback(async () => {
     try {
@@ -60,57 +62,133 @@ export default function Home() {
     }
   }
 
+  const ads = store?.ads || []
+  const offers = store?.offers || []
+  const xpInto = user.xp_into_level ?? 0
+  const xpNext = user.next_level_xp ?? 0
+  const xpPercent = xpNext ? Math.min(100, Math.round((xpInto / xpNext) * 100)) : 0
+
+  // Keeps the pagination dots in sync with the carousel (works in RTL and LTR).
+  const onTrackScroll = () => {
+    const track = trackRef.current
+    if (!track || !track.children.length) return
+    const bounds = track.getBoundingClientRect()
+    const center = bounds.left + bounds.width / 2
+    let nearest = 0
+    let best = Number.POSITIVE_INFINITY
+    Array.from(track.children).forEach((child, index) => {
+      const childBounds = child.getBoundingClientRect()
+      const distance = Math.abs(childBounds.left + childBounds.width / 2 - center)
+      if (distance < best) {
+        best = distance
+        nearest = index
+      }
+    })
+    setPromoIndex(nearest)
+  }
+
+  const goToPromo = (index) => {
+    trackRef.current?.children[index]?.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' })
+  }
+
   return (
     <div>
-      <h1 className="page-title">{t('home')}</h1>
-
-      <div className="grid-two">
-        <div className="card glass">
-          <div className="muted">{t('balance')}</div>
-          <div className="row" style={{ gap: 14, marginTop: 6 }}>
-            <span className="chip chip-coins">🪙 {wallet.coins} {t('coins')}</span>
-            <span className="chip chip-gold">🏆 {wallet.gold} {t('gold')}</span>
+      {ads.length ? (
+        <section className="carousel" aria-label="promotions">
+          <div className="carousel-track" ref={trackRef} onScroll={onTrackScroll}>
+            {ads.map((ad) => (
+              <article className="panel carousel-slide" key={ad.id} data-testid="ad-card">
+                <div className="panel-icon">🎉</div>
+                <div className="panel-body">
+                  <div className="panel-title">{ad.title}</div>
+                  <div className="panel-sub">{ad.body}</div>
+                </div>
+              </article>
+            ))}
           </div>
-          <div className="muted" style={{ marginTop: 8 }}>
-            {user.vip ? `VIP — ${t('level')} ${user.level}` : `${t('level')} ${user.level} · ${user.xp} ${t('xp')}`}
+          {ads.length > 1 ? (
+            <div className="carousel-dots">
+              {ads.map((ad, index) => (
+                <button
+                  key={ad.id}
+                  type="button"
+                  className={`carousel-dot${index === promoIndex ? ' carousel-dot-active' : ''}`}
+                  aria-label={`slide-${index + 1}`}
+                  onClick={() => goToPromo(index)}
+                />
+              ))}
+            </div>
+          ) : null}
+        </section>
+      ) : null}
+
+      {offers.map((offer) => (
+        <article className="panel" key={offer.id}>
+          <div className="panel-icon">📣</div>
+          <div className="panel-body">
+            <div className="panel-title">{offer.title}</div>
+            <div className="panel-sub">{offer.body}</div>
+          </div>
+        </article>
+      ))}
+
+      <article className="panel" data-testid="reward-tower">
+        <div className="panel-icon">🏆</div>
+        <div className="panel-body">
+          <div className="panel-title">{t('rewardTower')}</div>
+          <div className="progress-label">
+            <span>
+              {t('level')} {user.level}
+            </span>
+            <span data-testid="xp-progress-label">
+              {xpInto}/{xpNext}
+            </span>
+          </div>
+          <div className="progress">
+            <div className="progress-fill" style={{ width: `${xpPercent}%` }} data-testid="xp-progress" />
           </div>
         </div>
+      </article>
 
-        <div className="card glass" data-testid="vip-card">
-          <div className="row-between">
-            <strong>👑 {t('vip')}</strong>
-            <span className="chip chip-gold">{store?.vip?.price_coins ?? '—'} 🪙</span>
-          </div>
-          <ul className="muted" style={{ margin: '8px 0', paddingInlineStart: 18 }}>
+      <article className="panel" data-testid="vip-card">
+        <div className="panel-icon">👑</div>
+        <div className="panel-body">
+          <div className="panel-title">{t('vip')}</div>
+          <ul className="panel-list">
             {(store?.vip?.benefits || []).slice(0, 3).map((benefit) => (
               <li key={benefit}>{benefit}</li>
             ))}
           </ul>
-          <button type="button" className="btn btn-primary btn-block" data-testid="buy-vip" disabled={busy === 'vip'} onClick={buyVip}>
+        </div>
+        <div className="panel-side">
+          <span className="chip chip-coins">{store?.vip?.price_coins ?? '—'} 🪙</span>
+          <button type="button" className="btn btn-primary" data-testid="buy-vip" disabled={busy === 'vip'} onClick={buyVip}>
             {t('buyVip')}
           </button>
         </div>
-      </div>
+      </article>
 
-      {store?.ads?.length ? (
-        <section>
-          <h2 className="section-title">الإعلانات والعروض</h2>
-          {store.ads.map((ad) => (
-            <div className="card glass" key={ad.id} data-testid="ad-card">
-              <strong>{ad.title}</strong>
-              <p className="muted" style={{ margin: '6px 0 0' }}>{ad.body}</p>
-            </div>
-          ))}
-          {store.offers.map((offer) => (
-            <div className="card glass" key={offer.id}>
-              <strong>{offer.title}</strong>
-              <p className="muted" style={{ margin: '6px 0 0' }}>{offer.body}</p>
-            </div>
-          ))}
-        </section>
-      ) : null}
+      <article className="panel">
+        <div className="panel-icon">👛</div>
+        <div className="panel-body">
+          <div className="panel-title">{t('balance')}</div>
+          <div className="row wrap" style={{ marginTop: 6 }}>
+            <span className="chip chip-coins">
+              🪙 {wallet.coins} {t('coins')}
+            </span>
+            <span className="chip chip-gold">
+              💎 {wallet.gold} {t('gold')}
+            </span>
+          </div>
+          <div className="panel-sub">
+            {user.vip ? `VIP — ${t('level')} ${user.level}` : `${t('level')} ${user.level} · ${user.xp} ${t('xp')}`}
+          </div>
+        </div>
+      </article>
 
-      <h2 className="section-title">{t('packs')}</h2>
+      <h2 className="section-title" id="packs">
+        {t('packs')}
+      </h2>
       <div className="grid-packs">
         {(store?.packs || []).map((pack) => (
           <div className="card glass" key={pack.id} data-testid={`pack-${pack.id}`}>
@@ -119,7 +197,7 @@ export default function Home() {
               {pack.badge ? <span className="badge-pill">{pack.badge}</span> : null}
             </div>
             <div className="muted" style={{ marginTop: 6 }}>
-              {pack.kind === 'coins' ? '🪙' : '🏆'} {pack.amount}
+              {pack.kind === 'coins' ? '🪙' : '💎'} {pack.amount}
               {pack.bonus ? ` + ${pack.bonus}` : ''}
             </div>
             <div className="row-between" style={{ marginTop: 10 }}>
@@ -130,7 +208,7 @@ export default function Home() {
               </span>
               <button
                 type="button"
-                className="btn btn-accent"
+                className="btn btn-primary"
                 data-testid={`buy-pack-${pack.id}`}
                 disabled={busy === `pack-${pack.id}`}
                 onClick={() => buyPack(pack)}
@@ -163,8 +241,16 @@ export default function Home() {
         ))}
       </div>
 
-      {message ? <p className="success-text" data-testid="home-message">{message}</p> : null}
-      {error ? <p className="error-text" data-testid="home-error">{error}</p> : null}
+      {message ? (
+        <p className="success-text" data-testid="home-message">
+          {message}
+        </p>
+      ) : null}
+      {error ? (
+        <p className="error-text" data-testid="home-error">
+          {error}
+        </p>
+      ) : null}
     </div>
   )
 }

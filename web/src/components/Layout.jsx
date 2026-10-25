@@ -54,28 +54,42 @@ export default function Layout() {
   const navigate = useNavigate()
   const [showNotifications, setShowNotifications] = useState(false)
 
+  // The "+" on each balance goes to the real recharge packs (no fake flow).
+  const openRecharge = () => {
+    if (window.location.pathname !== '/') navigate('/')
+    window.setTimeout(() => document.getElementById('packs')?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 80)
+  }
+
   const tabs = [
     { to: '/', icon: '🏠', label: t('home') },
+    { to: '/store', icon: '🛍️', label: t('store') },
     { to: '/games', icon: '🎲', label: t('games') },
-    { to: '/rooms', icon: '🎙️', label: t('rooms') },
-    { to: '/friends', icon: '👥', label: t('friends') },
+    { to: '/rooms', icon: '🎙️', label: t('navRooms') },
+    { to: '/friends', icon: '👥', label: t('navFriends'), badge: unread },
   ]
 
   return (
     <>
       <div className="app-shell">
-        <header className="glass topbar">
+        <header className="topbar glass">
           <Link className="brand" to="/">
             <span className="brand-mark">T</span>
             <span>{t('appName')}</span>
           </Link>
           <div className="topbar-spacer" />
-          <span className="chip chip-coins" data-testid="balance-coins">
-            🪙 {wallet.coins}
-          </span>
-          <span className="chip chip-gold" data-testid="balance-gold">
-            🏆 {wallet.gold}
-          </span>
+          <button type="button" className="currency-pill currency-coins" data-testid="balance-coins" onClick={openRecharge} title={t('recharge')}>
+            <span className="coin-icon">🪙</span>
+            <span className="currency-value">{wallet.coins}</span>
+            <span className="currency-plus">+</span>
+          </button>
+          <button type="button" className="currency-pill currency-gold" data-testid="balance-gold" onClick={openRecharge} title={t('recharge')}>
+            <span className="coin-icon">💎</span>
+            <span className="currency-value">{wallet.gold}</span>
+            <span className="currency-plus">+</span>
+          </button>
+          <Link className="icon-button" to="/store" aria-label={t('store')} data-testid="cart-button">
+            🛒
+          </Link>
           <button
             type="button"
             className="icon-button"
@@ -95,8 +109,8 @@ export default function Layout() {
           >
             {lang === 'ar' ? 'EN' : 'ع'}
           </button>
-          <Link to="/profile" aria-label={t('profile')}>
-            <Avatar user={user} size={36} />
+          <Link className="profile-chip" to="/profile" data-testid="profile-button" aria-label={t('profile')}>
+            <Avatar user={user} size={34} />
           </Link>
         </header>
 
@@ -126,6 +140,7 @@ export default function Layout() {
           >
             <span>{tab.icon}</span>
             <span>{tab.label}</span>
+            {tab.badge ? <span className="tab-badge">{tab.badge}</span> : null}
           </NavLink>
         ))}
       </nav>
