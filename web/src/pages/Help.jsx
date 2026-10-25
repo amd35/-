@@ -9,12 +9,13 @@ export default function Help() {
   const s = usePageText()
 
   const { data, error, loading } = useRemote(async () => {
-    const [catalog, wallet, payments] = await Promise.all([
+    const [catalog, wallet, payments, royal] = await Promise.all([
       api.get('/api/games/catalog'),
       api.get('/api/wallet'),
       api.get('/api/payments/status'),
+      api.get('/api/royal'),
     ])
-    return { catalog, wallet, payments }
+    return { catalog, wallet, payments, royal }
   })
 
   const guides = [
@@ -24,7 +25,7 @@ export default function Help() {
     { title: 'الألعاب: لودو ودومينو', steps: ['من صفحة الألعاب أنشئ طاولة أو انضم إلى طاولة مفتوحة.', 'اضغط «جاهز» وينتظر الجميع بدء المضيف.', 'قواعد اللعبة تُحسب على الخادم فقط، ولا يشارك اللعب أي مال.'] },
     { title: 'شحن الرصيد', steps: ['افتح «شحن الرصيد» واختر الباقة.', 'يُنشأ طلب بحالة «معلق» حتى يأتي تأكيد مزود الدفع.', 'لا يُضاف أي رصيد قبل التأكيد؛ ترى حالة كل طلب في سجل الطلبات.'] },
     { title: 'سحب الرصيد', steps: ['يُفعَّل السحب من لوحة الإدارة مع تحديد الحد الأدنى والرسم.', 'أرسل طلب سحب من ملفك الشخصي مع رقم المستفيد.', 'يراجع المشرف الطلب ثم يوافق أو يرفض.'] },
-    { title: 'عضوية VIP', steps: ['من الصفحة الرئيسية اضغط «شراء العضوية».', 'السعر يُقرأ من إعدادات الخادم ويُخصم من الكوين.', 'تحصل على الشارة وأولوية المقاعد وحد أعلى للهدايا.'] },
+    { title: 'نظام رويال والمستويات', steps: ['افتح صفحة «رويال» من الصفحة الرئيسية لمشاهدة تاج كل مستوى وامتيازاته.', 'نقاط رويال تُكتسب من شحن حزم الجواهر فقط، وكل حزمة تعرض نقاطها قبل الشراء.', 'المستوى يُحسب من نقاطك مقابل عتبة يحدّدها المشرف من لوحة الإدارة، وتظهر لك النقاط المتبقية للترقية.'] },
   ]
 
   const faq = [
@@ -62,9 +63,8 @@ export default function Help() {
           </div>
         ))}
         {data ? (
-          <p className="muted" style={{ marginTop: 8 }}>
-            {data.wallet.vip.price_coins} كوين · VIP {data.wallet.vip.days} يوم · مكافأة الفوز{' '}
-            {data.catalog.win_reward_coins} كوين
+          <p className="muted" style={{ marginTop: 8 }} data-testid="help-royal">
+            {`مستوى رويال الحالي: ${data.royal.status.tier?.name_ar || 'رويال 1'} · ${data.royal.status.points} نقطة رويال · للترقية لا تزال بحاجة ${data.royal.status.points_to_next} · مكافأة الفوز ${data.catalog.win_reward_coins} كوين`}
           </p>
         ) : null}
       </div>

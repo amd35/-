@@ -1,7 +1,17 @@
 import { useCallback, useEffect, useState } from 'react'
 import { api } from '../api.js'
 
-const EMPTY = { kind: 'coins', name: '', amount: 500, bonus: 0, price_iqd: 5000, price_usd_cents: 399, badge: '', sort: 99 }
+const EMPTY = {
+  kind: 'coins',
+  name: '',
+  amount: 500,
+  bonus: 0,
+  royal_points: 0,
+  price_iqd: 5000,
+  price_usd_cents: 399,
+  badge: '',
+  sort: 99,
+}
 
 export default function StoreAdmin() {
   const [packs, setPacks] = useState([])
@@ -40,6 +50,7 @@ export default function StoreAdmin() {
         ...draft,
         amount: Number(draft.amount),
         bonus: Number(draft.bonus),
+        royal_points: Number(draft.royal_points),
         price_iqd: Number(draft.price_iqd),
         price_usd_cents: Number(draft.price_usd_cents),
       })
@@ -66,6 +77,7 @@ export default function StoreAdmin() {
               <th>النوع</th>
               <th>الكمية</th>
               <th>المكافأة</th>
+              <th>نقاط رويال</th>
               <th>السعر IQD</th>
               <th>السعر USD (سنت)</th>
               <th>مفعّلة</th>
@@ -82,6 +94,18 @@ export default function StoreAdmin() {
                 <td className="muted">{pack.kind}</td>
                 <td>{pack.amount}</td>
                 <td>{pack.bonus}</td>
+                <td>
+                  <input
+                    type="number"
+                    defaultValue={pack.royal_points}
+                    style={{ width: 110 }}
+                    data-testid={`pack-royal-points-${pack.id}`}
+                    onBlur={(event) =>
+                      Number(event.target.value) !== pack.royal_points &&
+                      patch(pack, { royal_points: Number(event.target.value) })
+                    }
+                  />
+                </td>
                 <td>
                   <input
                     type="number"
@@ -117,6 +141,7 @@ export default function StoreAdmin() {
             <select value={draft.kind} onChange={(event) => setDraft({ ...draft, kind: event.target.value })}>
               <option value="coins">كوين</option>
               <option value="gold">ذهب</option>
+              <option value="gems">جوهرة (حزمة رويال)</option>
             </select>
           </div>
           <div className="field">
@@ -130,6 +155,14 @@ export default function StoreAdmin() {
           <div className="field">
             <label>المكافأة</label>
             <input type="number" value={draft.bonus} onChange={(event) => setDraft({ ...draft, bonus: event.target.value })} />
+          </div>
+          <div className="field">
+            <label>نقاط رويال</label>
+            <input
+              type="number"
+              value={draft.royal_points}
+              onChange={(event) => setDraft({ ...draft, royal_points: event.target.value })}
+            />
           </div>
           <div className="field">
             <label>السعر بالدينار</label>

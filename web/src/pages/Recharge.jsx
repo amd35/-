@@ -54,6 +54,8 @@ export default function Recharge() {
   const groups = [
     { key: 'coins', icon: 'coin', label: t('coins') },
     { key: 'gold', icon: 'gem', label: t('gold') },
+    // حزم الجواهر هي حزم رويال: تمنح جواهر + نقاط رويال (تظهر في صفحة رويال أيضاً).
+    { key: 'gems', icon: 'star', label: t('gems') },
   ]
     .map((group) => ({ ...group, packs: packs.filter((pack) => pack.kind === group.key) }))
     .filter((group) => group.packs.length)
@@ -98,6 +100,11 @@ export default function Recharge() {
                   <PhotoIcon name={pack.kind === 'coins' ? 'coin' : 'gem'} size={15} /> {pack.amount}
                   {pack.bonus ? ` + ${pack.bonus}` : ''}
                 </div>
+                {pack.royal_points ? (
+                  <div className="royal-pack-points" data-testid={`pack-royal-points-${pack.id}`}>
+                    +{pack.royal_points} {t('royalPoints')}
+                  </div>
+                ) : null}
                 <div className="row-between" style={{ marginTop: 10 }}>
                   <span className="chip chip-gold">
                     {store?.currency_default === 'USD'

@@ -8,6 +8,7 @@ import RoomsAdmin from './pages/RoomsAdmin.jsx'
 import GamesAdmin from './pages/GamesAdmin.jsx'
 import GiftsAdmin from './pages/GiftsAdmin.jsx'
 import StoreAdmin from './pages/StoreAdmin.jsx'
+import RoyalAdmin from './pages/RoyalAdmin.jsx'
 import Finance from './pages/Finance.jsx'
 import SettingsAdmin from './pages/SettingsAdmin.jsx'
 import Moderation from './pages/Moderation.jsx'
@@ -19,6 +20,7 @@ const SECTIONS = [
   { to: '/games', label: '🎲 الألعاب' },
   { to: '/gifts', label: '🎁 الهدايا' },
   { to: '/store', label: '🛍️ المتجر' },
+  { to: '/royal', label: '👑 مستويات رويال' },
   { to: '/finance', label: '💳 الشحن والسحب' },
   { to: '/settings', label: '⚙️ الإعدادات' },
   { to: '/moderation', label: '🚨 البلاغات والسجل' },
@@ -93,6 +95,7 @@ export default function App() {
                     <Route path="/games" element={<GamesAdmin />} />
                     <Route path="/gifts" element={<GiftsAdmin />} />
                     <Route path="/store" element={<StoreAdmin />} />
+                    <Route path="/royal" element={<RoyalAdmin />} />
                     <Route path="/finance" element={<Finance />} />
                     <Route path="/settings" element={<SettingsAdmin admin={admin} />} />
                     <Route path="/moderation" element={<Moderation />} />

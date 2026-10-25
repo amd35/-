@@ -8,6 +8,7 @@ import 'dice_store.dart';
 import 'friends.dart';
 import 'games.dart';
 import 'rooms.dart';
+import 'royal.dart';
 
 /// The four main sections, in the order fixed by the specification:
 /// home & store · games · voice rooms · friends.
@@ -130,7 +131,8 @@ class _Chip extends StatelessWidget {
   }
 }
 
-/// Home & store: balance, in-app adverts and offers, coin/gold packs, VIP.
+/// Home & store: balance, in-app adverts and offers, coin/gold packs, and the
+/// Royal levels sheet (which replaces the old crown membership).
 class HomeTab extends StatefulWidget {
   const HomeTab({super.key});
 
@@ -189,22 +191,14 @@ class _HomeTabState extends State<HomeTab> {
     }
   }
 
-  Future<void> _buyVip() async {
-    final state = AppScope.of(context);
-    setState(() {
-      _busy = true;
-      _error = null;
-    });
-    try {
-      final result = await state.api.buyVip(DateTime.now().microsecondsSinceEpoch.toString());
-      setState(() => _message = 'تم تفعيل VIP حتى ${result['vip_until']}');
-      await state.refresh();
-      await _load();
-    } on ApiException catch (err) {
-      setState(() => _error = err.message);
-    } finally {
-      if (mounted) setState(() => _busy = false);
-    }
+  Future<void> _openRoyal() async {
+    await showModalBottomSheet<void>(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (_) => const RoyalSheet(),
+    );
+    if (mounted) await _load();
   }
 
   Future<void> _requestWithdraw() async {
@@ -290,8 +284,8 @@ class _HomeTabState extends State<HomeTab> {
                     const SizedBox(width: 8),
                     Expanded(
                       child: ElevatedButton(
-                        onPressed: _busy ? null : _buyVip,
-                        child: const Text('عضوية VIP'),
+                        onPressed: _openRoyal,
+                        child: const Text('رويال'),
                       ),
                     ),
                   ],
@@ -494,7 +488,8 @@ class _ProfileSheetState extends State<ProfileSheet> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text('${user['display_name'] ?? user['username']}', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-                  Text('ID: ${user['id']} · المستوى ${user['level']} · ${user['vip'] == true ? 'VIP' : 'عضو'}',
+                  Text(
+                      'ID: ${user['id']} · المستوى ${user['level']} · ${user['royal_name'] ?? 'رويال ${user['royal_level'] ?? 1}'}',
                       style: const TextStyle(color: AppColors.muted, fontSize: 12)),
                 ],
               ),

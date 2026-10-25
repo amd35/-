@@ -61,7 +61,6 @@ export default function SeatGrid({ room, me, onSeatClick, onMemberClick, myMembe
                     <PhotoIcon name="mic" size={15} className="photo-icon-dim" />
                   )}
                 </span>
-                {member.user.vip ? <span className="vip-badge">VIP</span> : null}
               </>
             ) : (
               <>

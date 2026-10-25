@@ -198,7 +198,9 @@ export default function Profile() {
           <span className="chip chip-gold">
             <PhotoIcon name="gem" size={15} /> {wallet.gold}
           </span>
-          {walletInfo?.vip?.active ? <span className="badge-pill">VIP {new Date(walletInfo.vip.until).toLocaleDateString('ar')}</span> : null}
+          <span className="badge-pill" data-testid="profile-royal">
+            <PhotoIcon name="crown" size={14} /> {user.royal_name || `${t('royal')} ${user.royal_level}`}
+          </span>
         </div>
 
         <form className="grid-two" style={{ marginTop: 12 }} onSubmit={doTransfer}>

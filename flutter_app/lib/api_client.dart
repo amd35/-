@@ -102,8 +102,8 @@ class ApiClient {
   Future<Map<String, dynamic>> buyItem(int itemId, String currency) =>
       post('/api/store/cosmetics/$itemId/purchase', {'currency': currency});
   Future<Map<String, dynamic>> equipItem(int itemId) => post('/api/store/cosmetics/$itemId/equip');
-  Future<Map<String, dynamic>> buyVip(String idempotencyKey) =>
-      post('/api/wallet/vip', {'idempotency_key': idempotencyKey});
+  /// نظام رويال: الحالة، المستويات الخمسة، وحزم الجواهر التي تمنح نقاط رويال.
+  Future<Map<String, dynamic>> royal() => get('/api/royal');
   Future<Map<String, dynamic>> withdraw({
     required String currency,
     required int amount,

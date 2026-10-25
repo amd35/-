@@ -2,10 +2,12 @@ import { useCallback, useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { api } from '../lib/api.js'
 import PhotoIcon from '../components/PhotoIcon.jsx'
+import RoyalCrown from '../components/RoyalCrown.jsx'
 import { useAuth } from '../lib/store.jsx'
 import { useI18n } from '../lib/i18n.jsx'
 
-const RING = 2 * Math.PI * 52
+// قوس التقدم فوق التاج: نصف دائرة (pathLength=100 يجعل الطول المئوي مباشراً).
+const ARC = 'M 8 96 A 52 52 0 0 1 112 96'
 
 /**
  * صفحة رويال: التاج ومؤشر المستوى، شروط الترقية الحقيقية من الخادم،
@@ -148,20 +150,21 @@ export default function Royal() {
           ‹
         </button>
         <div className="royal-stage">
-          <svg className="royal-ring" viewBox="0 0 120 120" role="img" aria-label={`${percent}%`}>
-            <circle className="royal-ring-track" cx="60" cy="60" r="52" />
-            <circle
-              className="royal-ring-fill"
-              cx="60"
-              cy="60"
-              r="52"
-              strokeDasharray={`${(percent * RING) / 100} ${RING}`}
-            />
+          <svg className="royal-ring" viewBox="0 0 120 140" role="img" aria-label={`${percent}%`}>
+            <path className="royal-ring-track" d={ARC} />
+            <path className="royal-ring-fill" d={ARC} pathLength="100" strokeDasharray={`${percent} 100`} />
           </svg>
-          <div className="royal-crown">
-            <PhotoIcon name="crown" size={62} alt={tier?.name_ar || ''} />
-            <span className="royal-crown-jewel" />
+          <span className="royal-stage-glow" />
+          <div className="royal-crown" data-testid="royal-crown">
+            <RoyalCrown
+              level={tier?.level ?? 1}
+              accent={tier?.accent || '#f4cc44'}
+              jewel={tier?.jewel || '#45d2ba'}
+              size={132}
+            />
           </div>
+          {/* منصّة مخملية تحت التاج (تصميم فقط) */}
+          <span className="royal-pedestal" aria-hidden="true" />
           <div className="royal-ring-value">{percent}%</div>
         </div>
         <button type="button" className="royal-arrow" onClick={() => step(1)} aria-label="›" data-testid="royal-next">
@@ -176,15 +179,19 @@ export default function Royal() {
         {isCurrent ? t('yourLevel') : reached ? t('royalPassed') : t('reachLevel')}
       </p>
 
-      <div className="royal-meters card glass" data-testid="royal-meters">
-        <div className="row-between">
-          <span className="muted">{t('currentPoints')}</span>
+      {/* نقاط رويال الحالية والمتبقية للترقية — من الخادم فقط */}
+      <div className="royal-hero-stats">
+        <span className="royal-stat" data-testid="royal-current">
+          <PhotoIcon name="star" size={14} /> {t('currentPoints')}:{' '}
           <strong data-testid="royal-points">{points}</strong>
-        </div>
-        <div className="row-between">
-          <span className="muted">{t('pointsToNext')}</span>
+        </span>
+        <span className="royal-stat" data-testid="royal-remaining">
+          <PhotoIcon name="trophy" size={14} /> {t('pointsToNext')}:{' '}
           <strong data-testid="royal-points-to-next">{status?.points_to_next ?? 0}</strong>
-        </div>
+        </span>
+      </div>
+
+      <div className="royal-meters card glass" data-testid="royal-meters">
         <div className="row-between">
           <span className="muted">{t('royalNeedToOpen')}</span>
           <strong data-testid="royal-tier-requirement">{tier?.required_points ?? 0}</strong>

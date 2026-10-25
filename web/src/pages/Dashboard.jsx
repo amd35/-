@@ -43,9 +43,9 @@ export default function Dashboard() {
     { key: 'games', label: s.openGames, value: data ? data.games.length : '—', icon: 'dice' },
     { key: 'notifications', label: s.unreadCount, value: data ? data.unread : '—', icon: 'bell' },
     {
-      key: 'vip',
-      label: s.vip,
-      value: data?.vault?.vip?.active ? s.vipActive : s.vipInactive,
+      key: 'royal',
+      label: s.royalLevel,
+      value: user.royal_name || `${t('royal')} ${user.royal_level}`,
       icon: 'crown',
     },
   ]
@@ -100,8 +100,8 @@ export default function Dashboard() {
         <div className="progress">
           <div className="progress-fill" style={{ width: `${xpPercent}%` }} />
         </div>
-        <div className="muted" style={{ marginTop: 8 }}>
-          {data?.vault?.vip?.until ? `VIP ${new Date(data.vault.vip.until).toLocaleDateString('en')}` : '—'}
+        <div className="muted" style={{ marginTop: 8 }} data-testid="dashboard-royal">
+          {`${t('royal')} · ${user.royal_points} ${t('royalPoints')}`}
         </div>
       </div>
 

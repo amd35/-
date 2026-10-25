@@ -120,10 +120,12 @@ export default function Settings() {
             </span>
           </div>
           <div className="row-between">
-            <span className="muted">{s.vip}</span>
-            <span className={user.vip ? 'badge-pill' : 'muted'}>
-              {user.vip ? (user.vip_until ? new Date(user.vip_until).toLocaleDateString('en') : s.vipActive) : s.vipInactive}
-            </span>
+            <span className="muted">{s.royalLevel}</span>
+            <span className="badge-pill">{user.royal_name || `${t('royal')} ${user.royal_level}`}</span>
+          </div>
+          <div className="row-between">
+            <span className="muted">{s.royalPointsLabel}</span>
+            <span>{user.royal_points}</span>
           </div>
         </div>
         <Link className="btn" style={{ marginTop: 12 }} to="/profile">
