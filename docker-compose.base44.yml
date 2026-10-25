@@ -1,0 +1,145 @@
+# TON Voice — development stack (source is bind-mounted, never baked in).
+#
+# Web client  : http://localhost:3000   (its dev server proxies /api, /media, /ws to the API)
+# Admin panel : http://localhost:3001   (proxies /api and /media)
+# API + docs  : http://localhost:8000/docs
+#
+# Secrets: /.env.base44-defaults holds harmless placeholders; the platform's
+# /run/base44/app.env is listed last and therefore always wins.
+name: tonvoice
+
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: app
+      POSTGRES_PASSWORD: app_dev_password
+      POSTGRES_DB: app
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U app -d app"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 10s
+    volumes:
+      - db_data:/var/lib/postgresql/data
+    restart: on-failure
+
+  migrate:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile.dev
+    working_dir: /workspace
+    command: ["sh", "-ec", "alembic upgrade head"]
+    env_file:
+      - ./.env.base44-defaults
+      - /run/base44/app.env
+    environment:
+      DATABASE_URL: postgresql+psycopg://app:app_dev_password@db:5432/app
+    volumes:
+      - ./backend:/workspace
+    depends_on:
+      db:
+        condition: service_healthy
+
+  api:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile.dev
+    working_dir: /workspace
+    command:
+      [
+        "sh",
+        "-ec",
+        "exec uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload --reload-dir /workspace/app",
+      ]
+    env_file:
+      - ./.env.base44-defaults
+      - /run/base44/app.env
+    environment:
+      DATABASE_URL: postgresql+psycopg://app:app_dev_password@db:5432/app
+      MEDIA_DIR: /data/media
+      AUTO_CREATE_TABLES: "1"
+      AUTO_SEED: "1"
+      CORS_ORIGINS: http://localhost:3000,http://localhost:3001
+      WEB_ORIGIN: http://localhost:3000
+      ADMIN_ORIGIN: http://localhost:3001
+      # Bind mounts do not always emit inotify events: poll so reloads still fire.
+      WATCHFILES_FORCE_POLLING: "true"
+      # Platform-provided values (passed through as-is, never hardcoded).
+      BASE44_PREVIEW_MODE:
+      BASE44_PUBLIC_HOST_SUFFIX:
+      BASE44_SANDBOX_HOST_DOMAIN:
+    ports:
+      - "8000:8000"
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "python -c \"import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://127.0.0.1:8000/api/health', timeout=4).status==200 else 1)\"",
+        ]
+      interval: 10s
+      timeout: 6s
+      retries: 6
+      start_period: 20s
+    volumes:
+      - ./backend:/workspace
+      - media:/data/media
+    depends_on:
+      db:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
+    restart: on-failure
+
+  web:
+    image: node:22-alpine
+    working_dir: /app
+    command: ["sh", "-ec", "npm install --no-audit --no-fund && exec npm run dev -- --host 0.0.0.0 --port 3000"]
+    environment:
+      BASE44_PREVIEW_MODE:
+      BASE44_SANDBOX_HOST_DOMAIN:
+    ports:
+      - "3000:3000"
+    healthcheck:
+      test: ["CMD-SHELL", "node -e \"fetch('http://127.0.0.1:3000/').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))\""]
+      interval: 15s
+      timeout: 6s
+      retries: 6
+      start_period: 60s
+    volumes:
+      - ./web:/app
+      - web_node_modules:/app/node_modules
+    depends_on:
+      api:
+        condition: service_healthy
+    restart: on-failure
+
+  admin:
+    image: node:22-alpine
+    working_dir: /app
+    command: ["sh", "-ec", "npm install --no-audit --no-fund && exec npm run dev -- --host 0.0.0.0 --port 3001"]
+    environment:
+      BASE44_PREVIEW_MODE:
+      BASE44_SANDBOX_HOST_DOMAIN:
+    ports:
+      - "3001:3001"
+    healthcheck:
+      test: ["CMD-SHELL", "node -e \"fetch('http://127.0.0.1:3001/').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))\""]
+      interval: 15s
+      timeout: 6s
+      retries: 6
+      start_period: 60s
+    volumes:
+      - ./admin:/app
+      - admin_node_modules:/app/node_modules
+    depends_on:
+      api:
+        condition: service_healthy
+    restart: on-failure
+
+volumes:
+  db_data:
+  media:
+  web_node_modules:
+  admin_node_modules:

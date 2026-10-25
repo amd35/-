@@ -1,0 +1,36 @@
+name: ton_voice
+description: TON Voice — social voice rooms, Ludo and Domino, wallet and gifts (Arabic-first, RTL).
+publish_to: "none"
+version: 1.0.0+1
+
+environment:
+  sdk: ">=3.4.0 <4.0.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+  flutter_localizations:
+    sdk: flutter
+  http: ^1.2.2
+  web_socket_channel: ^3.0.1
+  shared_preferences: ^2.3.2
+  flutter_webrtc: ^0.11.7
+  image_picker: ^1.1.2
+  intl: ^0.19.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^4.0.0
+
+flutter:
+  uses-material-design: true
+  # Arabic UI font: drop Cairo-Regular.ttf / Cairo-Bold.ttf into assets/fonts
+  # and uncomment the block below to bundle them (the app falls back to the
+  # system Arabic font when these files are absent).
+  # fonts:
+  #   - family: Cairo
+  #     fonts:
+  #       - asset: assets/fonts/Cairo-Regular.ttf
+  #       - asset: assets/fonts/Cairo-Bold.ttf
+  #         weight: 700

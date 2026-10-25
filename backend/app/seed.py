@@ -1,0 +1,201 @@
+"""Initial data: gifts, store packs, settings, the bootstrap admin and one room.
+
+Idempotent: running it again never duplicates rows and never overwrites data
+the operators changed.
+"""
+import logging
+import sys
+
+from sqlalchemy import select
+from sqlalchemy.orm import Session
+
+from .config import settings
+from .economy import grant_reward, get_wallet
+from .models import AppSetting, Gift, Room, RoomMember, RoomMessage, StorePack, User
+from .security import hash_password, verify_password
+from .settings_store import DEFAULTS, get_setting, set_setting
+
+log = logging.getLogger("app.seed")
+
+GIFTS = [
+    ("وردة", "Rose", "normal", "🌹", 10, 0, "both", 1),
+    ("قلب", "Heart", "normal", "❤️", 25, 0, "both", 2),
+    ("قهوة", "Coffee", "normal", "☕", 50, 0, "both", 3),
+    ("كيك", "Cake", "normal", "🍰", 80, 0, "both", 4),
+    ("دبدوب", "Teddy", "premium", "🧸", 200, 0, "both", 5),
+    ("سيارة", "Car", "premium", "🚗", 500, 0, "both", 6),
+    ("تاج", "Crown", "premium", "👑", 1500, 0, "user", 7),
+    ("صاروخ", "Rocket", "premium", "🚀", 2000, 0, "both", 8),
+    ("قصر", "Castle", "luxury", "🏰", 5000, 25, "both", 9),
+    ("يخت", "Yacht", "luxury", "🛥️", 8000, 40, "both", 10),
+    ("طائرة", "Jet", "luxury", "✈️", 12000, 60, "room", 11),
+    ("نجمة ذهبية", "Golden Star", "luxury", "🌟", 20000, 100, "both", 12),
+]
+
+PACKS = [
+    ("coins", "500 كوين", 500, 0, 5000, 399, "", 1),
+    ("coins", "1,200 كوين", 1200, 200, 10000, 799, "الأكثر رواجاً", 2),
+    ("coins", "2,500 كوين", 2500, 500, 19000, 1499, "", 3),
+    ("coins", "6,500 كوين", 6500, 1500, 45000, 3499, "قيمة مميزة", 4),
+    ("coins", "13,000 كوين", 13000, 4000, 85000, 6999, "الأفضل", 5),
+    ("gold", "100 ذهب", 100, 0, 25000, 1999, "", 6),
+    ("gold", "500 ذهب", 500, 50, 110000, 8999, "قيمة مميزة", 7),
+]
+
+
+def seed(db: Session) -> None:
+    _seed_admin(db)
+    _seed_gifts(db)
+    _seed_packs(db)
+    _seed_settings(db)
+    _seed_room(db)
+    db.commit()
+
+
+def _seed_admin(db: Session) -> None:
+    existing = db.execute(select(User).where(User.username == settings.admin_username)).scalar_one_or_none()
+    if existing is not None:
+        changed = False
+        if not existing.is_admin:
+            existing.is_admin = True
+            existing.admin_role = "owner"
+            changed = True
+        # ADMIN_PASSWORD is authoritative for the bootstrap account: setting it
+        # in the secrets dashboard and restarting applies it here.
+        if settings.admin_password and not verify_password(settings.admin_password, existing.password_hash):
+            existing.password_hash = hash_password(settings.admin_password)
+            log.warning("Password of the bootstrap administrator '%s' synced with ADMIN_PASSWORD", existing.username)
+            changed = True
+        if changed:
+            db.commit()
+        return
+    if not settings.admin_password:
+        log.warning(
+            "ADMIN_PASSWORD is empty: no administrator account was created. "
+            "Set ADMIN_PASSWORD and restart the API."
+        )
+        return
+    admin = User(
+        username=settings.admin_username,
+        email=settings.admin_email,
+        password_hash=hash_password(settings.admin_password),
+        display_name="إدارة التطبيق",
+        is_admin=True,
+        admin_role="owner",
+        email_verified=True,
+        status="active",
+        notif_prefs={},
+        privacy={"show_online": True, "allow_room_invites": True, "allow_gifts": True},
+        voice_prefs={"mic_auto_on": False, "speaker_volume": 100},
+    )
+    db.add(admin)
+    db.flush()
+    get_wallet(db, admin.id)
+    db.commit()
+    log.info("Administrator account '%s' created", admin.username)
+
+
+def _seed_gifts(db: Session) -> None:
+    for name, name_en, category, emoji, coins, gold, target, sort in GIFTS:
+        found = db.execute(select(Gift).where(Gift.name == name)).scalar_one_or_none()
+        if found is not None:
+            continue
+        db.add(
+            Gift(
+                name=name,
+                name_en=name_en,
+                category=category,
+                emoji=emoji,
+                animation="float" if category == "normal" else ("pulse" if category == "premium" else "burst"),
+                price_coins=coins,
+                price_gold=gold,
+                target=target,
+                sort=sort,
+            )
+        )
+    db.commit()
+
+
+def _seed_packs(db: Session) -> None:
+    for kind, name, amount, bonus, iqd, usd_cents, badge, sort in PACKS:
+        found = db.execute(select(StorePack).where(StorePack.name == name, StorePack.kind == kind)).scalar_one_or_none()
+        if found is not None:
+            continue
+        db.add(
+            StorePack(
+                kind=kind,
+                name=name,
+                amount=amount,
+                bonus=bonus,
+                price_iqd=iqd,
+                price_usd_cents=usd_cents,
+                badge=badge,
+                sort=sort,
+            )
+        )
+    db.commit()
+
+
+def _seed_settings(db: Session) -> None:
+    defaults = dict(DEFAULTS)
+    defaults["vip_price_coins"] = get_setting(db, "vip_price_coins", 5000)
+    for key in ("exchange_rate_usd_iqd", "ads", "offers", "vip_price_coins", "vip_days", "games_enabled"):
+        if db.get(AppSetting, key) is None:
+            set_setting(db, key, defaults[key])
+    db.commit()
+
+
+def _seed_room(db: Session) -> None:
+    owner = db.execute(select(User).where(User.username == settings.admin_username)).scalar_one_or_none()
+    if owner is None:
+        return
+    existing = db.execute(select(Room).where(Room.name == "غرفة الأصدقاء")).scalar_one_or_none()
+    if existing is not None:
+        return
+    room = Room(
+        name="غرفة الأصدقاء",
+        description="الغرفة الرئيسية للتجربة والترحيب بالأعضاء الجدد.",
+        background="sunset",
+        rules=(
+            "1. احترام جميع الأعضاء\n"
+            "2. يمنع السب والشتم\n"
+            "3. ممنوع إرسال الروابط\n"
+            "4. يمنع طلب الهدايا أو التحويل\n"
+            "5. عدم الترويج لأي حسابات خارجية\n"
+            "6. الالتزام بالهدوء والنظام"
+        ),
+        seat_count=20,
+        locked_seats=[7, 9, 13, 18],
+        owner_id=owner.id,
+        gifts_enabled=True,
+        chat_enabled=True,
+    )
+    db.add(room)
+    db.flush()
+    db.add(RoomMember(room_id=room.id, user_id=owner.id, role="owner", seat_index=0, mic_granted=True))
+    db.add(
+        RoomMessage(
+            room_id=room.id,
+            user_id=owner.id,
+            kind="system",
+            text="مرحباً بكم في غرفة الأصدقاء 💛 التزموا بالقوانين واحترموا الجميع",
+        )
+    )
+    db.commit()
+    log.info("Sample room '%s' created", room.name)
+
+
+def main() -> int:
+    from .db import SessionLocal
+
+    db = SessionLocal()
+    try:
+        seed(db)
+        log.info("Seed completed")
+    finally:
+        db.close()
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

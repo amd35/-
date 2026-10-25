@@ -1,0 +1,13 @@
+# Development image: dependencies only, never the application source.
+# The source is bind-mounted at run time, so edits are picked up by
+# `uvicorn --reload` without rebuilding anything.
+FROM python:3.12-slim
+
+ENV PYTHONUNBUFFERED=1 \
+    PYTHONDONTWRITEBYTECODE=1 \
+    PIP_NO_CACHE_DIR=1
+
+WORKDIR /workspace
+
+COPY requirements.txt /tmp/requirements.txt
+RUN pip install --root-user-action=ignore -r /tmp/requirements.txt

@@ -1,0 +1,62 @@
+{
+  "previewPort": 3000,
+  "healthPath": "/api/health",
+  "startCommand": "docker compose -f docker-compose.base44.yml up -d --build",
+  "ports": {
+    "web": 3000,
+    "admin": 3001,
+    "api": 8000
+  },
+  "secrets": [
+    {
+      "name": "SECRET_KEY",
+      "description": "Signing key for JWT access tokens (any long random string).",
+      "requiredAtBoot": true
+    },
+    {
+      "name": "ADMIN_PASSWORD",
+      "description": "Password of the bootstrap administrator account (username: admin).",
+      "requiredAtBoot": true
+    },
+    {
+      "name": "STRIPE_SECRET_KEY",
+      "description": "Optional. Stripe secret key (sk_live_/sk_test_) from https://dashboard.stripe.com/apikeys — needed for real card top-ups.",
+      "requiredAtBoot": false
+    },
+    {
+      "name": "STRIPE_WEBHOOK_SECRET",
+      "description": "Optional. Stripe webhook signing secret (whsec_...) from Dashboard → Developers → Webhooks — required before any order is credited.",
+      "requiredAtBoot": false
+    },
+    {
+      "name": "TURN_URL",
+      "description": "Optional. TURN server URL (turn:host:3478) for voice between different mobile networks; a STUN-only service works on the same network.",
+      "requiredAtBoot": false
+    },
+    {
+      "name": "TURN_USERNAME",
+      "description": "Optional. TURN credential username.",
+      "requiredAtBoot": false
+    },
+    {
+      "name": "TURN_CREDENTIAL",
+      "description": "Optional. TURN credential password.",
+      "requiredAtBoot": false
+    },
+    {
+      "name": "SMTP_HOST",
+      "description": "Optional. SMTP host used to email verification and reset codes; without it the codes stay in the API log.",
+      "requiredAtBoot": false
+    },
+    {
+      "name": "SMTP_USER",
+      "description": "Optional. SMTP username / sender account.",
+      "requiredAtBoot": false
+    },
+    {
+      "name": "SMTP_PASSWORD",
+      "description": "Optional. SMTP password or app password.",
+      "requiredAtBoot": false
+    }
+  ]
+}
