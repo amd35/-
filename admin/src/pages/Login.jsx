@@ -19,7 +19,7 @@ export default function Login({ onSignedIn }) {
       // Rights are checked again by the server on every admin call.
       await api.get('/api/admin/me')
       await onSignedIn()
-      navigate('/')
+      navigate('/dashboard')
     } catch (err) {
       setToken('')
       setError(err.message)

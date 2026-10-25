@@ -4,11 +4,12 @@ Every route depends on ``get_admin_user`` (server-side check of the admin flag
 and role) and on a per-role permission. Hiding buttons in the panel is not a
 security boundary; these checks are.
 """
+from datetime import timedelta
 from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from pydantic import BaseModel, Field
-from sqlalchemy import func, or_, select
+from sqlalchemy import case, func, or_, select
 from sqlalchemy.orm import Session
 
 from ..config import settings
@@ -26,8 +27,10 @@ from ..models import (
     RechargeOrder,
     Report,
     Room,
+    RoomMember,
     StorePack,
     User,
+    Wallet,
     WithdrawRequest,
     utcnow,
 )
@@ -191,12 +194,86 @@ def me(user: User = Depends(get_admin_user)):
 
 @router.get("/stats")
 def stats(user: User = Depends(get_admin_user), db: Session = Depends(get_db)):
+    """Command-panel snapshot: user activity, live game tables and the recent wallet flow."""
     require_permission(user, "stats")
-    day_start = utcnow().replace(hour=0, minute=0, second=0, microsecond=0)
+    from ..games import GAME_NAMES
+
+    now = utcnow()
+    day_start = now.replace(hour=0, minute=0, second=0, microsecond=0)
+    active_since = now - timedelta(minutes=15)
+    flow_since = now - timedelta(hours=24)
     paid_orders = db.execute(select(RechargeOrder).where(RechargeOrder.status == "paid")).scalars().all()
     revenue_iqd = sum(order.price_amount for order in paid_orders if order.price_currency == "IQD")
     revenue_usd = sum(order.price_amount for order in paid_orders if order.price_currency == "USD")
+
+    # Live tables: the Ludo/Domino rooms a player can join right now.
+    live_tables = (
+        db.execute(
+            select(GameRoom)
+            .where(GameRoom.status.in_(("waiting", "playing")))
+            .order_by(GameRoom.id.desc())
+            .limit(10)
+        )
+        .scalars()
+        .all()
+    )
+    players_per_table = dict(
+        db.execute(
+            select(GamePlayer.game_room_id, func.count(GamePlayer.id))
+            .where(GamePlayer.game_room_id.in_([room.id for room in live_tables] or [0]))
+            .group_by(GamePlayer.game_room_id)
+        ).all()
+    )
+    hosts = {
+        account.id: account.username
+        for account in db.execute(
+            select(User).where(User.id.in_([room.host_id for room in live_tables] or [0]))
+        ).scalars()
+    }
+
+    # Wallet flow over the recent window, split per currency and movement kind.
+    flow = {currency: {"in": 0, "out": 0, "net": 0, "entries": 0} for currency in ("coins", "gold")}
+    for currency, credited, debited, entries in db.execute(
+        select(
+            LedgerEntry.currency,
+            func.coalesce(func.sum(case((LedgerEntry.amount > 0, LedgerEntry.amount), else_=0)), 0),
+            func.coalesce(func.sum(case((LedgerEntry.amount < 0, -LedgerEntry.amount), else_=0)), 0),
+            func.count(LedgerEntry.id),
+        )
+        .where(LedgerEntry.created_at >= flow_since)
+        .group_by(LedgerEntry.currency)
+    ).all():
+        if currency in flow:
+            flow[currency] = {
+                "in": int(credited),
+                "out": int(debited),
+                "net": int(credited) - int(debited),
+                "entries": int(entries),
+            }
+    by_kind = [
+        {"kind": kind, "currency": currency, "total": int(total), "count": int(count)}
+        for kind, currency, total, count in db.execute(
+            select(LedgerEntry.kind, LedgerEntry.currency, func.sum(LedgerEntry.amount), func.count(LedgerEntry.id))
+            .where(LedgerEntry.created_at >= flow_since)
+            .group_by(LedgerEntry.kind, LedgerEntry.currency)
+            .order_by(func.count(LedgerEntry.id).desc())
+            .limit(8)
+        ).all()
+    ]
+    recent_movements = db.execute(
+        select(LedgerEntry, User.username)
+        .join(User, User.id == LedgerEntry.user_id)
+        .order_by(LedgerEntry.id.desc())
+        .limit(10)
+    ).all()
+    circulating_coins, circulating_gold = db.execute(
+        select(func.coalesce(func.sum(Wallet.coins), 0), func.coalesce(func.sum(Wallet.gold), 0))
+    ).one()
+    games_waiting = int(db.execute(select(func.count(GameRoom.id)).where(GameRoom.status == "waiting")).scalar() or 0)
+    games_playing = int(db.execute(select(func.count(GameRoom.id)).where(GameRoom.status == "playing")).scalar() or 0)
+
     return {
+        "generated_at": iso(now),
         "users": {
             "total": int(db.execute(select(func.count(User.id))).scalar() or 0),
             "active": int(db.execute(select(func.count(User.id)).where(User.status == "active")).scalar() or 0),
@@ -210,9 +287,57 @@ def stats(user: User = Depends(get_admin_user), db: Session = Depends(get_db)):
                 or 0
             ),
         },
+        "activity": {
+            "active_15m": int(
+                db.execute(select(func.count(User.id)).where(User.last_seen_at >= active_since)).scalar() or 0
+            ),
+            "active_today": int(
+                db.execute(select(func.count(User.id)).where(User.last_seen_at >= day_start)).scalar() or 0
+            ),
+            "in_voice_rooms": int(
+                db.execute(select(func.count(func.distinct(RoomMember.user_id)))).scalar() or 0
+            ),
+            "seated": int(db.execute(select(func.count(RoomMember.id))).scalar() or 0),
+        },
         "rooms": {
             "total": int(db.execute(select(func.count(Room.id))).scalar() or 0),
             "open": int(db.execute(select(func.count(Room.id)).where(Room.status == "open")).scalar() or 0),
+        },
+        "game_rooms": {
+            "waiting": games_waiting,
+            "playing": games_playing,
+            "live": games_waiting + games_playing,
+            "players": sum(int(count) for count in players_per_table.values()),
+            "finished_today": int(
+                db.execute(
+                    select(func.count(GameRoom.id)).where(
+                        GameRoom.status == "finished", GameRoom.finished_at >= day_start
+                    )
+                ).scalar()
+                or 0
+            ),
+            "tables": [
+                {
+                    "id": room.id,
+                    "game": room.game,
+                    "game_name": GAME_NAMES.get(room.game, room.game),
+                    "name": room.name,
+                    "status": room.status,
+                    "player_count": int(players_per_table.get(room.id, 0)),
+                    "max_players": room.max_players,
+                    "host": hosts.get(room.host_id, ""),
+                    "created_at": iso(room.created_at),
+                }
+                for room in live_tables
+            ],
+        },
+        "wallet": {
+            "window_hours": 24,
+            "since": iso(flow_since),
+            "flow": flow,
+            "by_kind": by_kind,
+            "circulating": {"coins": int(circulating_coins), "gold": int(circulating_gold)},
+            "recent": [dict(ledger_public(entry), username=username) for entry, username in recent_movements],
         },
         "orders": {
             "pending": int(

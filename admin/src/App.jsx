@@ -13,7 +13,7 @@ import SettingsAdmin from './pages/SettingsAdmin.jsx'
 import Moderation from './pages/Moderation.jsx'
 
 const SECTIONS = [
-  { to: '/', label: '📊 الإحصائيات' },
+  { to: '/dashboard', label: '📊 لوحة التحكم' },
   { to: '/users', label: '👤 المستخدمون' },
   { to: '/rooms', label: '🎙️ الغرف' },
   { to: '/games', label: '🎲 الألعاب' },
@@ -85,6 +85,8 @@ export default function App() {
                 </nav>
                 <main className="content">
                   <Routes>
+                    {/* "/dashboard" is the panel's route; "/" stays a working alias. */}
+                    <Route path="/dashboard" element={<Dashboard admin={admin} />} />
                     <Route path="/" element={<Dashboard admin={admin} />} />
                     <Route path="/users" element={<Users admin={admin} />} />
                     <Route path="/rooms" element={<RoomsAdmin />} />
@@ -94,7 +96,7 @@ export default function App() {
                     <Route path="/finance" element={<Finance />} />
                     <Route path="/settings" element={<SettingsAdmin admin={admin} />} />
                     <Route path="/moderation" element={<Moderation />} />
-                    <Route path="*" element={<Navigate to="/" replace />} />
+                    <Route path="*" element={<Navigate to="/dashboard" replace />} />
                   </Routes>
                 </main>
               </div>
