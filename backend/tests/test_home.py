@@ -18,10 +18,26 @@ def test_home_reports_every_section_from_the_database(client, make_user):
     assert viewer["user"]["username"] not in usernames
     # عدّاد الدول مشتق من عدد الأعضاء النشطين في كل دولة (لا رقم مكتوب).
     assert isinstance(payload["countries"], list)
-    # كل غرفة تُرسل بصور أعضائها (الشريحة تعرض صورتين).
+    # كل غرفة تُرسل بصور أعضائها (الشريحة تعرض صورتين) وبصورة فوتوغرافية حقيقية
+    # في `background_photo_url` — حتى الغرف التي ما زالت على ثيم متدرّج قديم.
     for room in payload["rooms"]:
         assert isinstance(room["members"], list)
+        assert room["background_photo_url"].startswith("/img/rooms/")
+        assert room["background_photo_url"].endswith(".jpg")
     assert other["user"]["id"] in [row["id"] for row in payload["top_users"]] or payload["top_users"] == []
+
+
+def test_every_background_has_a_real_photo(client):
+    """كل خلفية غرفة (صورة أو ثيم متدرّج قديم) لها صورة فوتوغرافية حقيقية تمثّلها."""
+    from app.room_backgrounds import BACKGROUND_SLUGS, photo_url
+
+    for slug in BACKGROUND_SLUGS:
+        url = photo_url(slug)
+        assert url.startswith("/img/rooms/"), slug
+        assert url.endswith(".jpg"), slug
+    # ثيمان مختلفان لا يُعرضان بالصورة نفسها.
+    assert photo_url("sunset") != photo_url("aurora")
+    assert photo_url("aurora") == photo_url("night")
 
 
 def test_home_tabs_follow_the_rooms_i_own_and_visit(client, make_user):

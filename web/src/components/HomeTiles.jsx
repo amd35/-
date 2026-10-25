@@ -51,7 +51,7 @@ function ActivityTile({ room, onOpenRoom, onOpenUser }) {
   }
   return (
     <article className="home-tile" data-testid="home-tile-activity">
-      <img className="home-tile-media" src={room.background_url || '/img/bg/stage.jpg'} alt="" loading="lazy" />
+      <img className="home-tile-media" src={room.background_photo_url || room.background_url || '/img/bg/stage.jpg'} alt="" loading="lazy" />
       <FlagBadge country={room.owner?.country} />
       <div className="home-tile-body">
         <span className="home-tile-name">{t('officialRoom')}</span>

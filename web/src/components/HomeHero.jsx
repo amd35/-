@@ -79,43 +79,49 @@ export default function HomeHero({ rooms, onOpenRoom, onOpenUser, onCreate }) {
   return (
     <section className="home-hero" aria-label={t('rooms')}>
       <div className="home-hero-track" ref={trackRef} onScroll={onScroll} data-testid="home-hero-track">
-        {rooms.map((room) => (
-          <article
-            className="home-slide"
-            key={room.id}
-            data-testid={`home-slide-${room.id}`}
-            style={
-              room.background_url
-                ? { backgroundImage: `linear-gradient(180deg, rgba(24, 6, 8, 0.34), rgba(10, 3, 4, 0.86)), url(${room.background_url})` }
-                : undefined
-            }
-          >
-            <div className="home-slide-stage">
-              <MemberSlot member={room.members?.[0]} onOpenUser={onOpenUser} />
-              <button
-                type="button"
-                className="home-slide-crest"
-                onClick={() => onOpenRoom(room)}
-                data-testid={`home-slide-open-${room.id}`}
-                aria-label={room.name}
-              >
-                <span className="home-crest">
-                  <BrandEmblem size={52} />
+        {rooms.map((room) => {
+          // صورة فوتوغرافية حقيقية لكل شريحة: صورة خلفية الغرفة، أو الصورة التي تمثّل
+          // ثيمها المتدرّج القديم — الخادم يرسلها في `background_photo_url` فلا تظهر
+          // شريحة بصندوق فارغ بلا صورة.
+          const photo = room.background_photo_url || room.background_url
+          return (
+            <article
+              className="home-slide"
+              key={room.id}
+              data-testid={`home-slide-${room.id}`}
+              style={
+                photo
+                  ? { backgroundImage: `linear-gradient(180deg, rgba(24, 6, 8, 0.34), rgba(10, 3, 4, 0.86)), url(${photo})` }
+                  : undefined
+              }
+            >
+              <div className="home-slide-stage">
+                <MemberSlot member={room.members?.[0]} onOpenUser={onOpenUser} />
+                <button
+                  type="button"
+                  className="home-slide-crest"
+                  onClick={() => onOpenRoom(room)}
+                  data-testid={`home-slide-open-${room.id}`}
+                  aria-label={room.name}
+                >
+                  <span className="home-crest">
+                    <BrandEmblem size={52} />
+                  </span>
+                </button>
+                <MemberSlot member={room.members?.[1]} onOpenUser={onOpenUser} />
+              </div>
+              <button type="button" className="home-slide-caption" onClick={() => onOpenRoom(room)}>
+                <span className="home-slide-name">{room.name}</span>
+                <span className="home-slide-meta">
+                  <PhotoIcon name="mic" size={14} />
+                  {`${room.member_count} ${t('members')}`}
+                  <span className="home-slide-sep">·</span>
+                  {`${t('roomNumber')} ${room.number}`}
                 </span>
               </button>
-              <MemberSlot member={room.members?.[1]} onOpenUser={onOpenUser} />
-            </div>
-            <button type="button" className="home-slide-caption" onClick={() => onOpenRoom(room)}>
-              <span className="home-slide-name">{room.name}</span>
-              <span className="home-slide-meta">
-                <PhotoIcon name="mic" size={14} />
-                {`${room.member_count} ${t('members')}`}
-                <span className="home-slide-sep">·</span>
-                {`${t('roomNumber')} ${room.number}`}
-              </span>
-            </button>
-          </article>
-        ))}
+            </article>
+          )
+        })}
       </div>
       {rooms.length > 1 ? (
         <div className="home-hero-dots">
