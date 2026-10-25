@@ -1666,3 +1666,730 @@ textarea {
     font-size: 14px;
   }
 }
+
+/* =====================================================================
+   طبقة الواقعية ثلاثية الأبعاد (تصميم فقط).
+   لا تحمل أي بيانات ولا تغيّر بنية الصفحات أو ترتيبها أو وظائف الأزرار:
+   كل ما هنا خامات وإضاءة وظلال وانعكاسات وحركات على نفس العناصر القائمة.
+   ===================================================================== */
+
+:root {
+  /* خامات الذهب */
+  --gold-hi: #fff6cf;
+  --gold-1: #ffe08a;
+  --gold-2: #f0b73c;
+  --gold-3: #c98f18;
+  --gold-4: #8a5c06;
+  /* خامات الزمرد */
+  --em-1: #45d2ba;
+  --em-2: #1d8474;
+  --em-3: #12695c;
+  --em-4: #0a4a41;
+  /* حواف وانعكاسات */
+  --rim: rgba(255, 255, 255, 0.3);
+  --rim-soft: rgba(255, 255, 255, 0.14);
+  --ease-soft: cubic-bezier(0.22, 0.75, 0.3, 1);
+  /* حبيبات دقيقة (SVG) تعطي إحساس الخامة الحقيقية بدل الأسطح المسطحة */
+  --grain: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='g'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='200' height='200' filter='url(%23g)' opacity='0.07'/%3E%3C/svg%3E");
+  --shadow-card: 0 20px 34px -16px rgba(0, 0, 0, 0.75);
+}
+
+/* --- 1) خلفية فوتوغرافية واقعية + إضاءة سينمائية --- */
+body {
+  background-color: #051f1b;
+  background-image: linear-gradient(180deg, #0b3f37 0%, #08332c 55%, #051f1b 100%);
+  background-attachment: fixed;
+}
+
+/* الصورة الفوتوغرافية في طبقة مستقلة: نعالجها بضبابية ناعمة وتغميق
+   فلا تزاحم المحتوى، مع بقاء عمق الصورة وإضاءتها الحقيقية. */
+body::before {
+  content: '';
+  position: fixed;
+  inset: -8%;
+  z-index: 0;
+  pointer-events: none;
+  background-image: url('/img/bg/backdrop.jpg');
+  background-size: cover;
+  background-position: 50% 34%;
+  background-repeat: no-repeat;
+  filter: blur(9px) saturate(1.14) brightness(0.6) contrast(1.06);
+  animation: backdropIn 900ms ease-out both;
+}
+
+/* طبقة الإضاءة: وهج علوي، انحناء سفلي، توهج ذهبي وزمردي خفيف، ثم حبيبات دقيقة. */
+body::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background-image:
+    var(--grain),
+    radial-gradient(120% 55% at 50% -8%, rgba(255, 255, 255, 0.14), rgba(255, 255, 255, 0) 62%),
+    radial-gradient(150% 90% at 50% 120%, rgba(0, 0, 0, 0.6), rgba(0, 0, 0, 0) 62%),
+    radial-gradient(70% 45% at 92% 6%, rgba(244, 204, 68, 0.13), rgba(244, 204, 68, 0) 70%),
+    radial-gradient(60% 40% at 4% 100%, rgba(69, 210, 186, 0.13), rgba(69, 210, 186, 0) 70%),
+    linear-gradient(180deg, rgba(6, 41, 36, 0.42) 0%, rgba(4, 28, 25, 0.68) 45%, rgba(3, 19, 17, 0.84) 100%);
+  background-size: 200px 200px, auto, auto, auto, auto, auto;
+  background-repeat: repeat, no-repeat, no-repeat, no-repeat, no-repeat, no-repeat;
+}
+
+.app-shell {
+  position: relative;
+  z-index: 1;
+}
+
+@keyframes backdropIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/* --- 2) انتقالات سلسة بين الصفحات --- */
+@keyframes pageRise {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 10px, 0);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.app-shell > * {
+  animation: pageRise 380ms var(--ease-soft) both;
+}
+
+/* --- 3) الأسطح: زجاج أخضر بعمق وانعكاس داخلي --- */
+.glass,
+.card {
+  background-image:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.16), rgba(255, 255, 255, 0.02) 42%),
+    linear-gradient(180deg, rgba(38, 150, 136, 0.94), rgba(14, 86, 76, 0.96));
+  border: 1px solid var(--rim-soft);
+  border-top-color: var(--rim);
+  box-shadow:
+    0 18px 32px -16px rgba(0, 0, 0, 0.7),
+    inset 0 1px 0 rgba(255, 255, 255, 0.24),
+    inset 0 -12px 22px rgba(0, 0, 0, 0.2);
+  backdrop-filter: blur(10px) saturate(1.08);
+}
+
+/* اللوحات الكبيرة: زمرد مصقول بحافة ذهبية وحافة ضوء داخلية */
+.panel {
+  background-image:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.2), rgba(255, 255, 255, 0) 42%),
+    radial-gradient(130% 90% at 18% -25%, rgba(255, 255, 255, 0.2), rgba(255, 255, 255, 0) 62%),
+    linear-gradient(180deg, #2fbda8 0%, var(--em-2) 58%, var(--em-3) 100%);
+  border: 1px solid rgba(255, 255, 255, 0.26);
+  border-top-color: rgba(255, 255, 255, 0.4);
+  box-shadow:
+    0 20px 32px -16px rgba(0, 0, 0, 0.72),
+    inset 0 2px 0 rgba(255, 255, 255, 0.28),
+    inset 0 -14px 22px rgba(0, 0, 0, 0.22);
+}
+
+.panel::after {
+  border-color: rgba(244, 204, 68, 0.22);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.12);
+}
+
+.panel-icon {
+  border-radius: 20px;
+  background-image:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.42), rgba(255, 255, 255, 0) 60%),
+    radial-gradient(circle at 50% 30%, rgba(255, 255, 255, 0.5), rgba(255, 255, 255, 0.06) 72%);
+  box-shadow:
+    0 0 0 1px rgba(255, 255, 255, 0.3),
+    0 8px 16px -6px rgba(0, 0, 0, 0.6),
+    inset 0 -6px 12px rgba(0, 0, 0, 0.18);
+}
+
+.panel-title {
+  text-shadow: 0 2px 5px rgba(0, 0, 0, 0.5);
+}
+
+/* --- 4) الأزرار: أزرار ثلاثية الأبعاد بحافة ضوء وظل سفلي وضغط حقيقي --- */
+.btn {
+  position: relative;
+  padding: 10px 18px;
+  border-radius: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  border-top-color: rgba(255, 255, 255, 0.5);
+  color: #eafffa;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.4);
+  background-image:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.34), rgba(255, 255, 255, 0) 48%),
+    linear-gradient(180deg, var(--em-1) 0%, var(--em-2) 56%, #146f63 100%);
+  box-shadow:
+    0 4px 0 #0a4a41,
+    0 14px 22px -10px rgba(0, 0, 0, 0.75),
+    inset 0 -3px 7px rgba(0, 0, 0, 0.26),
+    inset 0 1px 0 rgba(255, 255, 255, 0.45);
+  transition: transform 130ms var(--ease-soft), box-shadow 130ms var(--ease-soft),
+    filter 130ms var(--ease-soft);
+}
+
+.btn:hover {
+  filter: brightness(1.05);
+}
+
+/* ضغط حقيقي: الزر يهبط ويفقد ظله السفلي فيظهر مغروسًا في السطح */
+.btn:active:not(:disabled) {
+  transform: translateY(4px);
+  box-shadow:
+    0 0 0 #0a4a41,
+    0 4px 10px -8px rgba(0, 0, 0, 0.6),
+    inset 0 3px 9px rgba(0, 0, 0, 0.45),
+    inset 0 1px 0 rgba(255, 255, 255, 0.2);
+}
+
+.btn:focus-visible {
+  outline: none;
+  box-shadow:
+    0 0 0 2px rgba(244, 204, 68, 0.85),
+    0 4px 0 #0a4a41,
+    0 14px 22px -10px rgba(0, 0, 0, 0.75);
+}
+
+.btn-primary {
+  color: #3d2503;
+  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.5);
+  border-color: rgba(255, 255, 255, 0.55);
+  background-image:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.6), rgba(255, 255, 255, 0) 46%),
+    linear-gradient(180deg, var(--gold-1) 0%, var(--gold-2) 56%, var(--gold-3) 100%);
+  box-shadow:
+    0 4px 0 var(--gold-4),
+    0 14px 24px -10px rgba(0, 0, 0, 0.7),
+    inset 0 -3px 7px rgba(138, 92, 6, 0.45),
+    inset 0 1px 0 rgba(255, 255, 255, 0.85);
+}
+
+.btn-primary:active:not(:disabled) {
+  box-shadow:
+    0 0 0 var(--gold-4),
+    0 4px 10px -8px rgba(0, 0, 0, 0.6),
+    inset 0 3px 9px rgba(138, 92, 6, 0.6),
+    inset 0 1px 0 rgba(255, 255, 255, 0.4);
+}
+
+.btn-primary:focus-visible {
+  box-shadow:
+    0 0 0 2px rgba(255, 255, 255, 0.9),
+    0 4px 0 var(--gold-4),
+    0 14px 24px -10px rgba(0, 0, 0, 0.7);
+}
+
+.btn-accent {
+  color: #04283a;
+  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.45);
+  border-color: rgba(255, 255, 255, 0.5);
+  background-image:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.55), rgba(255, 255, 255, 0) 46%),
+    linear-gradient(180deg, #9fe4ff 0%, #45b4e6 58%, #1f7fae 100%);
+  box-shadow:
+    0 4px 0 #145a7d,
+    0 14px 24px -10px rgba(0, 0, 0, 0.7),
+    inset 0 -3px 7px rgba(9, 56, 79, 0.4),
+    inset 0 1px 0 rgba(255, 255, 255, 0.8);
+}
+
+.btn-accent:active:not(:disabled) {
+  box-shadow:
+    0 0 0 #145a7d,
+    0 4px 10px -8px rgba(0, 0, 0, 0.6),
+    inset 0 3px 9px rgba(9, 56, 79, 0.55),
+    inset 0 1px 0 rgba(255, 255, 255, 0.35);
+}
+
+.btn-danger {
+  color: #ffeaea;
+  border-color: rgba(255, 255, 255, 0.36);
+  background-image:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.3), rgba(255, 255, 255, 0) 48%),
+    linear-gradient(180deg, #ff8a7a 0%, #d9534a 58%, #a8322b 100%);
+  box-shadow:
+    0 4px 0 #6f1f1a,
+    0 14px 22px -10px rgba(0, 0, 0, 0.75),
+    inset 0 -3px 7px rgba(111, 31, 26, 0.5),
+    inset 0 1px 0 rgba(255, 255, 255, 0.5);
+}
+
+.btn-danger:active:not(:disabled) {
+  box-shadow:
+    0 0 0 #6f1f1a,
+    0 4px 10px -8px rgba(0, 0, 0, 0.6),
+    inset 0 3px 9px rgba(111, 31, 26, 0.6),
+    inset 0 1px 0 rgba(255, 255, 255, 0.28);
+}
+
+.btn:disabled {
+  box-shadow: 0 2px 0 rgba(0, 0, 0, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.2);
+}
+
+.btn-small {
+  padding: 5px 11px;
+  border-radius: 11px;
+  box-shadow: 0 2px 0 rgba(10, 74, 65, 0.9), inset 0 1px 0 rgba(255, 255, 255, 0.35);
+}
+
+/* --- 5) الشريط العلوي: زجاج بحافة ذهبية وانعكاس علوي --- */
+.topbar {
+  background-image:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.16), rgba(255, 255, 255, 0) 55%),
+    linear-gradient(180deg, rgba(11, 74, 65, 0.97), rgba(7, 45, 40, 0.93));
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-bottom-color: rgba(244, 204, 68, 0.5);
+  box-shadow:
+    0 16px 28px -14px rgba(0, 0, 0, 0.85),
+    inset 0 1px 0 rgba(255, 255, 255, 0.22),
+    inset 0 -8px 16px rgba(0, 0, 0, 0.2);
+  backdrop-filter: blur(12px) saturate(1.1);
+}
+
+.brand-mark {
+  background-image:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.75), rgba(255, 255, 255, 0) 55%),
+    radial-gradient(circle at 35% 25%, var(--gold-hi), var(--gold-2) 65%, var(--gold-3));
+  box-shadow:
+    0 6px 12px -4px rgba(0, 0, 0, 0.6),
+    0 0 0 1px rgba(255, 255, 255, 0.45),
+    inset 0 -3px 7px rgba(138, 92, 6, 0.4);
+  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.55);
+}
+
+.currency-pill {
+  background-image:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.16), rgba(255, 255, 255, 0) 55%),
+    linear-gradient(180deg, rgba(6, 48, 43, 0.95), rgba(3, 28, 25, 0.95));
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-top-color: rgba(255, 255, 255, 0.34);
+  box-shadow:
+    0 6px 12px -6px rgba(0, 0, 0, 0.7),
+    inset 0 -2px 5px rgba(0, 0, 0, 0.45),
+    inset 0 1px 0 rgba(255, 255, 255, 0.22);
+  transition: transform 130ms var(--ease-soft), filter 130ms var(--ease-soft);
+}
+
+.currency-pill:active {
+  transform: translateY(2px);
+  filter: brightness(0.96);
+}
+
+.currency-plus {
+  background-image:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.7), rgba(255, 255, 255, 0) 55%),
+    linear-gradient(180deg, var(--gold-1), var(--gold-2));
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.5), inset 0 -1px 2px rgba(138, 92, 6, 0.5);
+}
+
+.icon-button {
+  background-image:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.16), rgba(255, 255, 255, 0) 55%),
+    linear-gradient(180deg, rgba(6, 48, 43, 0.9), rgba(4, 30, 27, 0.92));
+  box-shadow:
+    0 6px 12px -6px rgba(0, 0, 0, 0.7),
+    inset 0 -2px 5px rgba(0, 0, 0, 0.4),
+    inset 0 1px 0 rgba(255, 255, 255, 0.2);
+  transition: transform 130ms var(--ease-soft), filter 130ms var(--ease-soft);
+}
+
+.icon-button:hover {
+  filter: brightness(1.1);
+}
+
+.icon-button:active {
+  transform: translateY(2px) scale(0.97);
+}
+
+.tab-badge {
+  background-image:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.4), rgba(255, 255, 255, 0) 50%),
+    linear-gradient(180deg, #ff9a5c, #d63a22);
+  box-shadow: 0 3px 6px -2px rgba(0, 0, 0, 0.7), inset 0 -1px 2px rgba(90, 20, 10, 0.5);
+}
+
+/* --- 6) شريط التنقل: معدن زمردي بحافة ذهبية وتبويب نشط بارز --- */
+.tabs {
+  background-image:
+    radial-gradient(120% 100% at 50% -30%, rgba(69, 210, 186, 0.16), rgba(69, 210, 186, 0) 60%),
+    linear-gradient(180deg, rgba(6, 42, 37, 0.6), rgba(4, 26, 23, 0.99) 58%);
+  border-top: 1px solid rgba(244, 204, 68, 0.42);
+  box-shadow: 0 -16px 28px -16px rgba(0, 0, 0, 0.95), inset 0 1px 0 rgba(255, 255, 255, 0.12);
+  backdrop-filter: blur(12px);
+}
+
+.tab {
+  transition: transform 160ms var(--ease-soft), background-color 160ms ease, color 160ms ease,
+    box-shadow 160ms ease;
+}
+
+.tab-active {
+  background-image:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.28), rgba(255, 255, 255, 0) 55%),
+    linear-gradient(180deg, rgba(244, 204, 68, 0.36), rgba(244, 204, 68, 0.06));
+  border: 1px solid rgba(244, 204, 68, 0.6);
+  box-shadow:
+    0 8px 16px -8px rgba(0, 0, 0, 0.8),
+    0 0 16px rgba(244, 204, 68, 0.28),
+    inset 0 1px 0 rgba(255, 255, 255, 0.35);
+  transform: translateY(-1px);
+}
+
+.tab:active {
+  transform: translateY(1px) scale(0.98);
+}
+
+/* --- 7) الشرائح والرقائق والحقول --- */
+.chip,
+.status-pill,
+.badge-pill {
+  background-image:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.14), rgba(255, 255, 255, 0) 55%),
+    linear-gradient(180deg, rgba(6, 48, 43, 0.9), rgba(4, 30, 27, 0.9));
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-top-color: rgba(255, 255, 255, 0.3);
+  box-shadow: 0 6px 12px -8px rgba(0, 0, 0, 0.7), inset 0 1px 0 rgba(255, 255, 255, 0.2);
+}
+
+.badge-pill {
+  color: var(--gold-hi);
+}
+
+input,
+select,
+textarea {
+  background-image:
+    linear-gradient(180deg, rgba(0, 0, 0, 0.4), rgba(0, 0, 0, 0.12) 32%),
+    linear-gradient(180deg, rgba(6, 46, 41, 0.85), rgba(4, 28, 25, 0.85));
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-top-color: rgba(0, 0, 0, 0.45);
+  box-shadow: inset 0 3px 7px rgba(0, 0, 0, 0.45), inset 0 -1px 0 rgba(255, 255, 255, 0.1);
+  transition: box-shadow 150ms ease, border-color 150ms ease;
+}
+
+input:focus,
+select:focus,
+textarea:focus {
+  outline: none;
+  border-color: rgba(244, 204, 68, 0.6);
+  box-shadow:
+    0 0 0 3px rgba(244, 204, 68, 0.22),
+    0 0 18px rgba(244, 204, 68, 0.2),
+    inset 0 3px 7px rgba(0, 0, 0, 0.45);
+}
+
+/* --- 8) الأفاتار والأوسمة والمؤشرات --- */
+.avatar {
+  background-image:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.28), rgba(255, 255, 255, 0) 55%),
+    linear-gradient(140deg, #6c4bd8, #b0459a);
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.28), 0 6px 14px -6px rgba(0, 0, 0, 0.8);
+}
+
+.avatar-level {
+  background-image:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.6), rgba(255, 255, 255, 0) 55%),
+    linear-gradient(180deg, var(--gold-1), var(--gold-2));
+  color: #3d2503;
+  border-color: rgba(255, 255, 255, 0.6);
+  box-shadow: 0 3px 6px -2px rgba(0, 0, 0, 0.7);
+}
+
+.profile-chip {
+  box-shadow:
+    0 0 0 2px rgba(244, 204, 68, 0.75),
+    0 0 14px rgba(244, 204, 68, 0.3),
+    0 6px 14px -4px rgba(0, 0, 0, 0.7);
+}
+
+.progress {
+  box-shadow: inset 0 3px 7px rgba(0, 0, 0, 0.5), inset 0 -1px 0 rgba(255, 255, 255, 0.12);
+}
+
+.progress-fill {
+  background-image:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.55), rgba(255, 255, 255, 0) 55%),
+    linear-gradient(90deg, var(--gold-1), var(--gold-2) 70%, var(--gold-3));
+  box-shadow: 0 0 14px rgba(244, 204, 68, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.6);
+}
+
+/* --- 9) القوائم والبطاقات الصغيرة: ألواح زجاجية بحدود ضوء --- */
+.list-item,
+.ledger-row {
+  background-image:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.09), rgba(255, 255, 255, 0) 60%),
+    linear-gradient(180deg, rgba(8, 54, 48, 0.72), rgba(5, 34, 31, 0.72));
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  box-shadow: 0 10px 18px -12px rgba(0, 0, 0, 0.8), inset 0 1px 0 rgba(255, 255, 255, 0.12);
+}
+
+.notice {
+  box-shadow: 0 12px 22px -14px rgba(0, 0, 0, 0.8), inset 0 1px 0 rgba(255, 255, 255, 0.18);
+}
+
+/* --- 10) غرفة الصوت: مقاعد زجاجية بعمق ووهج للمتحدث --- */
+.room-header {
+  background-image:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.14), rgba(255, 255, 255, 0) 55%),
+    linear-gradient(180deg, rgba(4, 30, 27, 0.72), rgba(3, 20, 18, 0.78));
+  box-shadow: 0 14px 24px -16px rgba(0, 0, 0, 0.9), inset 0 1px 0 rgba(255, 255, 255, 0.16);
+}
+
+.room-background {
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.3),
+    inset 0 -46px 60px -34px rgba(0, 0, 0, 0.75),
+    inset 0 30px 50px -34px rgba(255, 255, 255, 0.16),
+    var(--shadow);
+}
+
+.seat {
+  background-image:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.14), rgba(255, 255, 255, 0) 55%),
+    linear-gradient(180deg, rgba(4, 32, 29, 0.6), rgba(3, 20, 18, 0.68));
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-top-color: rgba(255, 255, 255, 0.26);
+  box-shadow: 0 10px 18px -12px rgba(0, 0, 0, 0.85), inset 0 1px 0 rgba(255, 255, 255, 0.16);
+  transition: transform 150ms var(--ease-soft), box-shadow 150ms ease;
+}
+
+.seat:active:not(.seat-locked) {
+  transform: translateY(2px) scale(0.985);
+}
+
+.seat-owner {
+  border-color: rgba(244, 204, 68, 0.6);
+  box-shadow:
+    0 12px 20px -12px rgba(0, 0, 0, 0.85),
+    0 0 18px rgba(244, 204, 68, 0.2),
+    inset 0 1px 0 rgba(255, 255, 255, 0.25);
+}
+
+.seat-speaking {
+  box-shadow:
+    0 0 0 2px rgba(72, 209, 138, 0.7),
+    0 0 22px rgba(72, 209, 138, 0.45),
+    inset 0 1px 0 rgba(255, 255, 255, 0.2);
+}
+
+.chat-bubble {
+  background-image: linear-gradient(180deg, rgba(255, 255, 255, 0.16), rgba(255, 255, 255, 0.06));
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  box-shadow: 0 8px 14px -10px rgba(0, 0, 0, 0.8);
+}
+
+.chat-bubble-mine {
+  background-image:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.24), rgba(255, 255, 255, 0.06)),
+    linear-gradient(140deg, rgba(124, 92, 255, 0.5), rgba(69, 210, 186, 0.32));
+}
+
+/* --- 11) النوافذ والطبقات --- */
+.overlay {
+  animation: overlayIn 200ms ease-out both;
+}
+
+.sheet {
+  background-image:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.18), rgba(255, 255, 255, 0) 45%),
+    linear-gradient(180deg, #2ba493 0%, #145d51 100%);
+  border: 1px solid rgba(244, 204, 68, 0.5);
+  box-shadow:
+    0 30px 60px -20px rgba(0, 0, 0, 0.9),
+    inset 0 1px 0 rgba(255, 255, 255, 0.28),
+    inset 0 -16px 26px rgba(0, 0, 0, 0.25);
+  animation: sheetIn 260ms var(--ease-soft) both;
+}
+
+@keyframes overlayIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes sheetIn {
+  from {
+    opacity: 0;
+    transform: translateY(16px) scale(0.985);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* --- 12) المتجر: أرفف وخامات وعناصر بارزة --- */
+.store-bar {
+  background-image:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.16), rgba(255, 255, 255, 0) 48%),
+    linear-gradient(180deg, rgba(38, 150, 136, 0.94), rgba(14, 86, 76, 0.96));
+  border-top-color: rgba(255, 255, 255, 0.34);
+  box-shadow: 0 16px 26px -16px rgba(0, 0, 0, 0.8), inset 0 1px 0 rgba(255, 255, 255, 0.22);
+}
+
+.subnav,
+.filter-bar {
+  background-image: linear-gradient(180deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0) 60%);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.1), inset 0 -3px 8px rgba(0, 0, 0, 0.35);
+}
+
+.subnav-item,
+.filter-pill {
+  background-image:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.2), rgba(255, 255, 255, 0) 52%),
+    linear-gradient(180deg, #2aa694, #17796a);
+  box-shadow: 0 3px 0 rgba(6, 45, 40, 0.9), inset 0 1px 0 rgba(255, 255, 255, 0.28);
+  transition: transform 130ms var(--ease-soft), filter 130ms var(--ease-soft);
+}
+
+.subnav-item:active,
+.filter-pill:active {
+  transform: translateY(3px);
+  box-shadow: inset 0 3px 7px rgba(0, 0, 0, 0.45);
+}
+
+.subnav-item-active,
+.filter-pill-active {
+  background-image:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.65), rgba(255, 255, 255, 0) 50%),
+    linear-gradient(180deg, var(--gold-1), var(--gold-3));
+  color: #42280a;
+  border-color: rgba(255, 255, 255, 0.55);
+  box-shadow:
+    0 4px 0 var(--gold-4),
+    0 12px 20px -10px rgba(0, 0, 0, 0.75),
+    inset 0 -3px 6px rgba(138, 92, 6, 0.4);
+}
+
+.shelf {
+  background-image:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.12), rgba(255, 255, 255, 0) 40%),
+    linear-gradient(180deg, rgba(37, 148, 143, 0.5), rgba(10, 68, 61, 0.78));
+  box-shadow:
+    inset 0 -10px 0 rgba(4, 30, 27, 0.75),
+    inset 0 1px 0 rgba(255, 255, 255, 0.16),
+    0 18px 28px -16px rgba(0, 0, 0, 0.8);
+}
+
+.shop-item {
+  background-image:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.55), rgba(255, 255, 255, 0) 55%),
+    linear-gradient(180deg, #c3ecf7, #7cc7e4);
+  box-shadow:
+    0 8px 16px -10px rgba(0, 0, 0, 0.7),
+    inset 0 -4px 8px rgba(12, 63, 58, 0.22),
+    inset 0 1px 0 rgba(255, 255, 255, 0.8);
+  transition: transform 150ms var(--ease-soft), box-shadow 150ms ease;
+}
+
+.shop-item:active {
+  transform: translateY(2px);
+  box-shadow: inset 0 4px 9px rgba(12, 63, 58, 0.35);
+}
+
+.shop-item-owned {
+  box-shadow:
+    0 8px 16px -10px rgba(0, 0, 0, 0.7),
+    0 0 0 1px rgba(244, 204, 68, 0.5),
+    inset 0 1px 0 rgba(255, 255, 255, 0.8);
+}
+
+.shop-item-equipped {
+  box-shadow:
+    0 10px 18px -10px rgba(0, 0, 0, 0.75),
+    0 0 0 2px rgba(244, 204, 68, 0.65),
+    0 0 20px rgba(244, 204, 68, 0.5),
+    inset 0 1px 0 rgba(255, 255, 255, 0.85);
+}
+
+.shop-item-image,
+.gift-emoji img {
+  filter: drop-shadow(0 6px 8px rgba(0, 0, 0, 0.35)) saturate(1.05);
+}
+
+.ribbon {
+  background-image:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.75), rgba(255, 255, 255, 0) 48%),
+    linear-gradient(180deg, var(--gold-1), var(--gold-2) 60%, var(--gold-3));
+  box-shadow: 0 8px 16px -8px rgba(0, 0, 0, 0.7);
+}
+
+.die-face {
+  background-blend-mode: normal;
+  box-shadow:
+    inset 0 3px 7px rgba(255, 255, 255, 0.4),
+    inset 0 -8px 14px rgba(0, 0, 0, 0.42),
+    0 10px 16px -6px rgba(0, 0, 0, 0.7);
+}
+
+.die-pip {
+  box-shadow: inset 0 2px 3px rgba(0, 0, 0, 0.5), 0 1px 0 rgba(255, 255, 255, 0.35);
+}
+
+/* --- 13) اللودو والدومينو: عمق وظلال واقعية --- */
+.ludo-board {
+  box-shadow:
+    inset 0 2px 8px rgba(0, 0, 0, 0.5),
+    inset 0 -2px 0 rgba(255, 255, 255, 0.07),
+    0 20px 34px -18px rgba(0, 0, 0, 0.85);
+}
+
+.ludo-cell {
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08);
+}
+
+.ludo-token {
+  box-shadow:
+    0 5px 10px -3px rgba(0, 0, 0, 0.75),
+    inset 0 -3px 6px rgba(0, 0, 0, 0.35),
+    inset 0 3px 5px rgba(255, 255, 255, 0.5);
+}
+
+.dom-tile {
+  background-image:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.85), rgba(255, 255, 255, 0) 45%),
+    linear-gradient(160deg, #fdf7ee, #d7cbb9);
+  box-shadow:
+    0 8px 14px -6px rgba(0, 0, 0, 0.65),
+    inset 0 -4px 8px rgba(0, 0, 0, 0.16),
+    inset 0 1px 0 rgba(255, 255, 255, 0.9);
+}
+
+.domino-tile-button {
+  transition: transform 140ms var(--ease-soft);
+}
+
+.domino-tile-button:active:not(:disabled) {
+  transform: translateY(2px);
+}
+
+/* --- 14) الأيقونات الفوتوغرافية: إطار ضوء وظل ناعم --- */
+.photo-icon {
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.28), 0 3px 7px -2px rgba(0, 0, 0, 0.7);
+  filter: saturate(1.06) contrast(1.04);
+}
+
+.panel-icon .photo-icon {
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.45), 0 6px 12px -4px rgba(0, 0, 0, 0.6);
+}
+
+/* --- 15) احترام تقليل الحركة --- */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 1ms !important;
+    animation-delay: 0ms !important;
+    transition-duration: 1ms !important;
+  }
+}
