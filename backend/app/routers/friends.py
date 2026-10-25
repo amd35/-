@@ -7,7 +7,7 @@ from sqlalchemy import and_, func, or_, select
 from sqlalchemy.orm import Session
 
 from ..db import get_db
-from ..models import Block, DirectMessage, FriendRequest, Friendship, User
+from ..models import Block, DirectMessage, Follow, FriendRequest, Friendship, User
 from ..notifications import create_notification
 from ..realtime import hub
 from ..security import get_current_user
@@ -340,9 +340,15 @@ def suggestions(user: User = Depends(get_current_user), db: Session = Depends(ge
         .all()
     )
     blocked = set(row.blocked_user_id for row in db.execute(select(Block).where(Block.user_id == user.id)).scalars().all())
-    out = [
-        user_public(candidate)
-        for candidate in candidates
-        if candidate.id not in friend_ids and candidate.id not in blocked
-    ][:12]
-    return {"users": out}
+    # حالة المتابعة تُحسب هنا بجملة واحدة (لا استعلام لكل مقترح) ليظهر زر المتابعة صحيحًا.
+    followed_ids = set(
+        db.execute(select(Follow.followed_user_id).where(Follow.user_id == user.id)).scalars().all()
+    )
+    out = []
+    for candidate in candidates:
+        if candidate.id in friend_ids or candidate.id in blocked:
+            continue
+        payload = user_public(candidate)
+        payload["following"] = candidate.id in followed_ids
+        out.append(payload)
+    return {"users": out[:12]}

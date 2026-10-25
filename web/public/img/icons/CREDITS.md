@@ -39,3 +39,5 @@ with a free licence (shown per file); the licence travels with the file.
 | user | Black bearded man smiling, 2442565.jpg | CC0 | Leroy Skalstad | https://commons.wikimedia.org/wiki/File:Black_bearded_man_smiling,_2442565.jpg |
 | chat | Petra, People in conversation, Jordan.jpg | CC BY 4.0 | Vyacheslav Argenberg | https://commons.wikimedia.org/wiki/File:Petra,_People_in_conversation,_Jordan.jpg |
 | star | Star aniseed.jpg | Public domain | Jebulon | https://commons.wikimedia.org/wiki/File:Star_aniseed.jpg |
+| search | Magnifying glass2.jpg | Public domain | Heptagon | https://commons.wikimedia.org/wiki/File:Magnifying_glass2.jpg |
+| support | JLab Studio Black Headphones.jpg | CC BY-SA 4.0 | Maomaoox | https://commons.wikimedia.org/wiki/File:JLab_Studio_Black_Headphones.jpg |

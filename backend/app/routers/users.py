@@ -154,7 +154,12 @@ def search_users(
     user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    pattern = f"%{q.strip()}%"
+    needle = q.strip()
+    pattern = f"%{needle}%"
+    # البحث يقبل الاسم أو اسم المستخدم، ورقم المستخدم أيضًا (الأرقام فقط).
+    matcher = or_(User.username.ilike(pattern), User.display_name.ilike(pattern))
+    if needle.isdigit():
+        matcher = or_(matcher, User.id == int(needle))
     blocked_ids = set(
         db.execute(
             select(Block.blocked_user_id).where(Block.user_id == user.id)
@@ -168,7 +173,7 @@ def search_users(
         .where(
             User.status == "active",
             User.id != user.id,
-            or_(User.username.ilike(pattern), User.display_name.ilike(pattern)),
+            matcher,
         )
         .order_by(User.username)
         .limit(limit)

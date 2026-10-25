@@ -4543,7 +4543,7 @@ body[data-surface='profile'] .app-shell {
 }
 
 /* --- شريط تنقل الصفحة (نفس ترتيب تصميم الملف) --- */
-.profile-nav {
+.page-nav {
   position: fixed;
   inset-inline: 0;
   bottom: 0;
@@ -4557,7 +4557,7 @@ body[data-surface='profile'] .app-shell {
   backdrop-filter: blur(12px);
 }
 
-.profile-nav-item {
+.page-nav-item {
   flex: 1;
   max-width: 150px;
   display: flex;
@@ -4572,7 +4572,7 @@ body[data-surface='profile'] .app-shell {
   text-decoration: none;
 }
 
-.profile-nav-item.is-active {
+.page-nav-item.is-active {
   color: #f7d977;
   background: linear-gradient(180deg, rgba(94, 26, 32, 0.85), rgba(30, 10, 12, 0.9));
   border: 1px solid rgba(244, 204, 68, 0.42);
@@ -4603,6 +4603,394 @@ body[data-surface='profile'] .app-shell {
   }
 
   .profile-stat-label {
+    font-size: 11px;
+  }
+}
+
+/* =====================================================================
+   25) صفحة المحادثات «المحادثات» ولوحة «إضافة صديق»: هوية داكنة (عنابي/ذهبي)
+   بنفس ترتيب التصميم — هيدر الصفحة، شريط البحث، صف الدعم الفني، القوائم،
+   ولوحة إضافة صديق. تصميم فقط: لا بيانات ولا تغيير في الأصناف أو الوظائف.
+   ===================================================================== */
+
+/* خلفية القسم: الصورة الفوتوغرافية نفسها مع مسحة عنابية داكنة (عائلة تصميم الملف الشخصي) */
+body[data-surface='chats'] {
+  --surface-image: url('/img/bg/bokeh.jpg');
+  --surface-focus: 50% 40%;
+  --surface-dim: 0.86;
+  --surface-tint: rgba(44, 10, 16, 0.6);
+  --surface-warm: rgba(212, 175, 55, 0.2);
+  --surface-cool: rgba(140, 24, 34, 0.32);
+  --stars-size: 480px 480px;
+  background-image: linear-gradient(180deg, #260b10 0%, #150608 55%, #070304 100%);
+}
+
+/* داخل المحادثات: هيدر الصفحة وشريط تنقلها بدل كروم التطبيق */
+body[data-surface='chats'] .topbar,
+body[data-surface='chats'] .tabs {
+  display: none;
+}
+
+body[data-surface='chats'] .app-shell {
+  padding: 12px 12px 104px;
+}
+
+/* زر الخروج العام لا يحمله تصميم الصفحة؛ يبقى في بقية الصفحات وفي قائمة الملف الشخصي. */
+body[data-surface='chats'] .app-shell > button.btn {
+  display: none;
+}
+
+.chats-screen {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* --- الهيدر: زر «إضافة صديق» ثم العنوان والوصف ثم الشعار --- */
+.chats-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.chats-add {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  border-radius: 999px;
+  background: linear-gradient(180deg, #f7d977, #c79a24);
+  border: 1px solid rgba(255, 233, 166, 0.7);
+  color: #2b1a05;
+  font-size: 13px;
+  font-weight: 900;
+  white-space: nowrap;
+  box-shadow: 0 12px 20px -14px rgba(0, 0, 0, 0.95), inset 0 1px 0 rgba(255, 255, 255, 0.5);
+}
+
+.chats-add-plus {
+  font-size: 16px;
+  font-weight: 900;
+  line-height: 1;
+}
+
+.chats-head-text {
+  flex: 1;
+  min-width: 0;
+}
+
+.chats-title {
+  margin: 0;
+  font-size: 22px;
+  font-weight: 900;
+  color: #fff;
+}
+
+.chats-subtitle {
+  margin: 2px 0 0;
+  font-size: 12px;
+  font-weight: 700;
+  color: #e6d5c4;
+}
+
+.chats-logo {
+  display: grid;
+  place-items: center;
+  width: 42px;
+  height: 42px;
+  border-radius: 14px;
+  background: linear-gradient(180deg, #f7d977, #a8791b);
+  border: 1px solid rgba(255, 233, 166, 0.55);
+  color: #2b1a05;
+  font-size: 18px;
+  font-weight: 900;
+  box-shadow: 0 10px 20px -12px rgba(0, 0, 0, 0.95), inset 0 1px 0 rgba(255, 255, 255, 0.4);
+}
+
+/* --- شريط البحث --- */
+.chats-search {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 4px 4px 14px;
+  border-radius: 999px;
+  background: linear-gradient(180deg, rgba(24, 9, 11, 0.9), rgba(12, 4, 6, 0.92));
+  border: 1px solid rgba(212, 175, 55, 0.32);
+  box-shadow: inset 0 2px 8px rgba(0, 0, 0, 0.55), 0 12px 22px -18px rgba(0, 0, 0, 0.95);
+}
+
+.chats-search input {
+  flex: 1;
+  min-width: 0;
+  padding: 10px 4px;
+  background: transparent;
+  background-image: none;
+  border: 0;
+  box-shadow: none;
+  color: #fff;
+  font-size: 14px;
+}
+
+.chats-search input::placeholder {
+  color: #b8a496;
+}
+
+.chats-search-btn {
+  display: grid;
+  place-items: center;
+  width: 38px;
+  height: 38px;
+  flex: 0 0 38px;
+  border-radius: 50%;
+  background: linear-gradient(180deg, rgba(84, 22, 28, 0.95), rgba(24, 8, 10, 0.95));
+  border: 1px solid rgba(212, 175, 55, 0.5);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.16);
+}
+
+/* --- صف الدعم الفني --- */
+.chats-support {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: 16px;
+  text-decoration: none;
+  background: linear-gradient(180deg, rgba(58, 18, 22, 0.86), rgba(14, 5, 7, 0.92));
+  border: 1px solid rgba(212, 175, 55, 0.34);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.1);
+}
+
+.chats-support-icon {
+  display: grid;
+  place-items: center;
+  width: 46px;
+  height: 46px;
+  flex: 0 0 46px;
+  border-radius: 50%;
+  background: linear-gradient(180deg, rgba(122, 34, 42, 0.95), rgba(30, 10, 12, 0.95));
+  border: 1px solid rgba(244, 204, 68, 0.5);
+}
+
+.chats-support-text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.chats-support-text strong {
+  color: #fff;
+  font-size: 14px;
+  font-weight: 800;
+}
+
+.chats-support-text span {
+  color: #cbb6a6;
+  font-size: 12px;
+}
+
+.chats-support-chevron {
+  color: rgba(244, 204, 68, 0.85);
+  font-size: 20px;
+  line-height: 1;
+}
+
+/* --- بطاقات القوائم وصفوفها --- */
+.chats-card {
+  padding: 10px 12px;
+  border-radius: 18px;
+  background: linear-gradient(180deg, rgba(50, 15, 19, 0.86), rgba(13, 4, 6, 0.94));
+  border: 1px solid rgba(212, 175, 55, 0.3);
+  box-shadow: 0 20px 34px -24px rgba(0, 0, 0, 0.95), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+}
+
+.chats-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 2px;
+  border-bottom: 1px solid rgba(212, 175, 55, 0.16);
+}
+
+.chats-row:last-child {
+  border-bottom: 0;
+}
+
+.chats-row-text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.chats-row-name {
+  color: #fff;
+  font-size: 14px;
+  font-weight: 800;
+}
+
+.chats-row-meta {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: #cbb6a6;
+  font-size: 12px;
+}
+
+.chats-row-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  justify-content: flex-end;
+}
+
+.chats-row-actions .btn {
+  padding: 7px 12px;
+  font-size: 12px;
+  border-radius: 10px;
+}
+
+/* --- لوحة إضافة صديق --- */
+.sheet.add-sheet {
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.06), rgba(255, 255, 255, 0) 40%),
+    linear-gradient(180deg, rgba(30, 9, 12, 0.99), rgba(10, 3, 4, 0.99));
+  border: 1px solid rgba(212, 175, 55, 0.5);
+  border-radius: 22px;
+  box-shadow: 0 30px 60px -20px rgba(0, 0, 0, 0.95), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+}
+
+.add-head {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.add-close {
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  flex: 0 0 34px;
+  border-radius: 12px;
+  background: linear-gradient(180deg, rgba(58, 18, 22, 0.95), rgba(20, 7, 9, 0.95));
+  border: 1px solid rgba(212, 175, 55, 0.45);
+  color: #f4cc44;
+  font-size: 14px;
+  font-weight: 900;
+  line-height: 1;
+}
+
+.add-head-text {
+  flex: 1;
+  min-width: 0;
+}
+
+.add-title {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 900;
+  color: #fff;
+}
+
+.add-subtitle {
+  margin: 3px 0 0;
+  color: #cbb6a6;
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.add-search {
+  margin-top: 12px;
+}
+
+.add-tabs {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin: 14px 0 8px;
+}
+
+.add-tab {
+  padding: 6px 12px;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.3);
+  border: 1px solid rgba(212, 175, 55, 0.24);
+  color: #cbb6a6;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.add-tab.is-active {
+  background: linear-gradient(180deg, #f7d977, #c79a24);
+  border-color: rgba(255, 233, 166, 0.6);
+  color: #2b1a05;
+}
+
+.add-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-height: 52vh;
+  overflow-y: auto;
+}
+
+.add-card {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  border-radius: 16px;
+  background: linear-gradient(180deg, rgba(48, 14, 18, 0.92), rgba(14, 5, 7, 0.95));
+  border: 1px solid rgba(212, 175, 55, 0.26);
+}
+
+.add-card .avatar {
+  border: 1px solid rgba(244, 204, 68, 0.55);
+}
+
+.add-card-text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.add-card-text strong {
+  color: #fff;
+  font-size: 14px;
+  font-weight: 800;
+}
+
+.add-card-id {
+  color: #cbb6a6;
+  font-size: 12px;
+}
+
+.add-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.add-btn {
+  min-width: 96px;
+  padding: 7px 10px;
+  border-radius: 10px;
+  background: rgba(212, 175, 55, 0.14);
+  border: 1px solid rgba(212, 175, 55, 0.45);
+  color: #f0dca6;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.add-btn-primary {
+  background: linear-gradient(180deg, #f7d977, #c79a24);
+  border-color: rgba(255, 233, 166, 0.6);
+  color: #2b1a05;
+}
+
+@media (max-width: 380px) {
+  .add-btn {
+    min-width: 76px;
     font-size: 11px;
   }
 }

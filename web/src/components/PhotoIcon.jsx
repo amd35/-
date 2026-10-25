@@ -40,6 +40,8 @@ const ICONS = {
   star: 'star.jpg',
   user: 'user.jpg',
   chat: 'chat.jpg',
+  search: 'search.jpg',
+  support: 'support.jpg',
 }
 
 /** Gift emojis stored on the server, mapped to the matching photo (VS16 stripped). */

@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
-import { Link, NavLink } from 'react-router-dom'
+import { Link } from 'react-router-dom'
 import Avatar from '../components/Avatar.jsx'
+import PageNav from '../components/PageNav.jsx'
 import PhotoIcon, { giftIconName } from '../components/PhotoIcon.jsx'
 import GiftSheet from '../components/GiftSheet.jsx'
 import ProfileEditSheet from '../components/ProfileEditSheet.jsx'
@@ -9,14 +10,6 @@ import ProfileWalletSheet from '../components/ProfileWalletSheet.jsx'
 import { api } from '../lib/api.js'
 import { useAuth } from '../lib/store.jsx'
 import { useI18n } from '../lib/i18n.jsx'
-
-// شريط التنقل الخاص بصفحة الملف الشخصي (نفس ترتيب تصميم الملف: الرئيسية → أنا).
-const NAV = [
-  { to: '/', icon: 'house', key: 'home' },
-  { to: '/games', icon: 'dice', key: 'games' },
-  { to: '/friends', icon: 'chat', key: 'chats' },
-  { to: '/profile', icon: 'user', key: 'me' },
-]
 
 /**
  * الملف الشخصي: هوية العضو والأرقام الحقيقية (متابعون/يتابع/أصدقاء)، والرصيد من
@@ -298,20 +291,7 @@ export default function Profile() {
         </Link>
       </section>
 
-      <nav className="profile-nav" aria-label="profile">
-        {NAV.map((item) => (
-          <NavLink
-            key={item.to}
-            to={item.to}
-            end={item.to === '/'}
-            className={({ isActive }) => `profile-nav-item${isActive ? ' is-active' : ''}`}
-            data-testid={`profile-nav-${item.key}`}
-          >
-            <PhotoIcon name={item.icon} size={22} />
-            <span>{t(item.key)}</span>
-          </NavLink>
-        ))}
-      </nav>
+      <PageNav testIdPrefix="profile-nav" />
 
       {sheet === 'menu' ? (
         <ProfileSheet title={t('profile')} icon="user" onClose={() => setSheet('')} testId="profile-menu-sheet">

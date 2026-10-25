@@ -8,7 +8,8 @@ const RULES = [
   [/^\/games/, 'games'],
   [/^\/store/, 'store'],
   [/^\/recharge/, 'wallet'],
-  [/^\/(friends|notifications|search)/, 'social'],
+  [/^\/friends/, 'chats'],
+  [/^\/(notifications|search)/, 'social'],
   [/^\/profile/, 'profile'],
 ]
 
