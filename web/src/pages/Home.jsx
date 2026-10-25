@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { api } from '../lib/api.js'
+import PhotoIcon from '../components/PhotoIcon.jsx'
 import { useAuth } from '../lib/store.jsx'
 import { useI18n } from '../lib/i18n.jsx'
 
@@ -79,7 +80,9 @@ export default function Home() {
           <div className="carousel-track" ref={trackRef} onScroll={onTrackScroll}>
             {ads.map((ad) => (
               <article className="panel carousel-slide" key={ad.id} data-testid="ad-card">
-                <div className="panel-icon">🎉</div>
+                <div className="panel-icon">
+                  <PhotoIcon name="party" size={28} />
+                </div>
                 <div className="panel-body">
                   <div className="panel-title">{ad.title}</div>
                   <div className="panel-sub">{ad.body}</div>
@@ -105,7 +108,9 @@ export default function Home() {
 
       {offers.map((offer) => (
         <article className="panel" key={offer.id}>
-          <div className="panel-icon">📣</div>
+          <div className="panel-icon">
+            <PhotoIcon name="megaphone" size={28} />
+          </div>
           <div className="panel-body">
             <div className="panel-title">{offer.title}</div>
             <div className="panel-sub">{offer.body}</div>
@@ -114,7 +119,9 @@ export default function Home() {
       ))}
 
       <article className="panel" data-testid="reward-tower">
-        <div className="panel-icon">🏆</div>
+        <div className="panel-icon">
+          <PhotoIcon name="trophy" size={28} />
+        </div>
         <div className="panel-body">
           <div className="panel-title">{t('rewardTower')}</div>
           <div className="progress-label">
@@ -132,7 +139,9 @@ export default function Home() {
       </article>
 
       <article className="panel" data-testid="vip-card">
-        <div className="panel-icon">👑</div>
+        <div className="panel-icon">
+          <PhotoIcon name="crown" size={28} />
+        </div>
         <div className="panel-body">
           <div className="panel-title">{t('vip')}</div>
           <ul className="panel-list">
@@ -142,7 +151,9 @@ export default function Home() {
           </ul>
         </div>
         <div className="panel-side">
-          <span className="chip chip-coins">{store?.vip?.price_coins ?? '—'} 🪙</span>
+          <span className="chip chip-coins">
+            {store?.vip?.price_coins ?? '—'} <PhotoIcon name="coin" size={15} />
+          </span>
           <button type="button" className="btn btn-primary" data-testid="buy-vip" disabled={busy === 'vip'} onClick={buyVip}>
             {t('buyVip')}
           </button>
@@ -150,15 +161,17 @@ export default function Home() {
       </article>
 
       <article className="panel">
-        <div className="panel-icon">👛</div>
+        <div className="panel-icon">
+          <PhotoIcon name="wallet" size={28} />
+        </div>
         <div className="panel-body">
           <div className="panel-title">{t('balance')}</div>
           <div className="row wrap" style={{ marginTop: 6 }}>
             <span className="chip chip-coins">
-              🪙 {wallet.coins} {t('coins')}
+              <PhotoIcon name="coin" size={15} /> {wallet.coins} {t('coins')}
             </span>
             <span className="chip chip-gold">
-              💎 {wallet.gold} {t('gold')}
+              <PhotoIcon name="gem" size={15} /> {wallet.gold} {t('gold')}
             </span>
           </div>
           <div className="panel-sub">

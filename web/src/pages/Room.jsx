@@ -4,6 +4,7 @@ import SeatGrid from '../components/SeatGrid.jsx'
 import ChatPanel from '../components/ChatPanel.jsx'
 import GiftSheet from '../components/GiftSheet.jsx'
 import Avatar from '../components/Avatar.jsx'
+import PhotoIcon, { giftIconName } from '../components/PhotoIcon.jsx'
 import { api } from '../lib/api.js'
 import { useAuth, useSocketEvent } from '../lib/store.jsx'
 import { useI18n } from '../lib/i18n.jsx'
@@ -77,7 +78,7 @@ export default function Room() {
   })
   useSocketEvent('gift', (payload) => {
     if (payload.room_id !== roomNumber) return
-    const label = `${payload.sender.display_name || payload.sender.username} أرسل ${payload.gift.emoji} ${payload.gift.name}`
+    const label = `${payload.sender.display_name || payload.sender.username} أرسل ${payload.gift.name}`
     setMessages((previous) => [...previous, { id: `gift-${Date.now()}`, kind: 'system', text: label }])
     setFloats((previous) => [...previous, { id: `${Date.now()}-${Math.random()}`, emoji: payload.gift.emoji }])
   })
@@ -218,7 +219,7 @@ export default function Room() {
       <div className={`room-background bg-${room.background}`}>
         <div className="room-header">
           <span className="seat-crown" style={{ position: 'static' }}>
-            👑
+            <PhotoIcon name="crown" size={18} />
           </span>
           <div>
             <strong>{room.name}</strong>
@@ -226,9 +227,15 @@ export default function Room() {
           </div>
           <div className="topbar-spacer" />
           <div className="room-stats">
-            <span data-testid="room-members">👥 {room.member_count}</span>
-            <span>🎤 {seated.filter((member) => member.mic_on).length}</span>
-            <span>✋ {room.hand_requests?.length || 0}</span>
+            <span data-testid="room-members">
+              <PhotoIcon name="friends" size={14} /> {room.member_count}
+            </span>
+            <span>
+              <PhotoIcon name="mic" size={14} /> {seated.filter((member) => member.mic_on).length}
+            </span>
+            <span>
+              <PhotoIcon name="hand" size={14} /> {room.hand_requests?.length || 0}
+            </span>
           </div>
         </div>
 
@@ -257,7 +264,7 @@ export default function Room() {
                 {micOn ? t('micOff') : t('micOn')}
               </button>
               <button type="button" className="btn" data-testid="room-gift" onClick={() => setShowGift(true)} disabled={!room.gifts_enabled}>
-                🎁 {t('gift')}
+                <PhotoIcon name="gift" size={16} /> {t('gift')}
               </button>
               <button type="button" className="btn btn-danger" data-testid="room-leave" onClick={leave}>
                 {t('leave')}
@@ -396,7 +403,7 @@ export default function Room() {
                   {t('approve')} المايك
                 </button>
                 <button type="button" className="btn" onClick={() => setShowGift(true)}>
-                  🎁 {t('gift')}
+                  <PhotoIcon name="gift" size={16} /> {t('gift')}
                 </button>
               </>
             ) : null}
@@ -447,7 +454,7 @@ export default function Room() {
 
       {floats.map((float) => (
         <span key={float.id} className="gift-float" style={{ insetInlineStart: `${20 + Math.random() * 60}%`, bottom: '18%' }}>
-          {float.emoji}
+          <PhotoIcon name={giftIconName(float.emoji)} size={46} alt="" />
         </span>
       ))}
     </div>

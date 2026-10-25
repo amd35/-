@@ -1,3 +1,4 @@
+import PhotoIcon from './PhotoIcon.jsx'
 import { useI18n } from '../lib/i18n.jsx'
 
 export default function SeatGrid({ room, me, onSeatClick, onMemberClick, myMember }) {
@@ -36,7 +37,11 @@ export default function SeatGrid({ room, me, onSeatClick, onMemberClick, myMembe
             onClick={() => (member ? onMemberClick?.(member) : onSeatClick?.(seat))}
           >
             <span className="seat-number">{seat + 1}</span>
-            {isOwnerSeat ? <span className="seat-crown">👑</span> : null}
+            {isOwnerSeat ? (
+              <span className="seat-crown">
+                <PhotoIcon name="crown" size={16} />
+              </span>
+            ) : null}
             {member ? (
               <>
                 <span className="avatar" style={{ width: 38, height: 38 }}>
@@ -48,14 +53,20 @@ export default function SeatGrid({ room, me, onSeatClick, onMemberClick, myMembe
                 </span>
                 <span className="seat-name">{member.user.display_name || member.user.username}</span>
                 <span className="seat-mic">
-                  {member.mic_on ? '🎙️' : member.hand_raised ? '✋' : '🔇'}
+                  {member.mic_on ? (
+                    <PhotoIcon name="mic" size={15} />
+                  ) : member.hand_raised ? (
+                    <PhotoIcon name="hand" size={15} />
+                  ) : (
+                    <PhotoIcon name="mic" size={15} className="photo-icon-dim" />
+                  )}
                 </span>
                 {member.user.vip ? <span className="vip-badge">VIP</span> : null}
               </>
             ) : (
               <>
-                <span className="seat-mic" style={{ fontSize: 22 }}>
-                  {isLocked ? '🔒' : '🎤'}
+                <span className="seat-mic">
+                  <PhotoIcon name={isLocked ? 'lock' : 'mic'} size={22} />
                 </span>
                 <span className="seat-name muted">{isLocked ? t('locked') : t('seats')}</span>
               </>

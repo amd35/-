@@ -964,6 +964,26 @@ textarea:focus {
   padding: 10px 12px 108px;
 }
 
+/* --- أيقونات فوتوغرافية بدل الإيموجي (web/public/img/icons) --- */
+.photo-icon {
+  display: inline-block;
+  vertical-align: middle;
+  border-radius: 50%;
+  object-fit: cover;
+  flex: none;
+  background: rgba(255, 255, 255, 0.12);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.35);
+}
+
+.panel-icon .photo-icon {
+  border-radius: 14px;
+}
+
+.photo-icon-dim {
+  filter: grayscale(0.85) brightness(0.8);
+  opacity: 0.75;
+}
+
 /* --- الشريط العلوي: الشعار + الأرصدة الحقيقية + الأدوات --- */
 .topbar {
   position: sticky;

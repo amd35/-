@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Link, NavLink, Outlet, useNavigate } from 'react-router-dom'
 import Avatar from './Avatar.jsx'
+import PhotoIcon from './PhotoIcon.jsx'
 import { useAuth } from '../lib/store.jsx'
 import { useI18n } from '../lib/i18n.jsx'
 import { api } from '../lib/api.js'
@@ -58,11 +59,11 @@ export default function Layout() {
   const openRecharge = () => navigate('/recharge')
 
   const tabs = [
-    { to: '/', icon: '🏠', label: t('home') },
-    { to: '/store', icon: '🛍️', label: t('store') },
-    { to: '/games', icon: '🎲', label: t('games') },
-    { to: '/rooms', icon: '🎙️', label: t('navRooms') },
-    { to: '/friends', icon: '👥', label: t('navFriends'), badge: unread },
+    { to: '/', icon: 'house', label: t('home') },
+    { to: '/store', icon: 'bag', label: t('store') },
+    { to: '/games', icon: 'dice', label: t('games') },
+    { to: '/rooms', icon: 'mic', label: t('navRooms') },
+    { to: '/friends', icon: 'friends', label: t('navFriends'), badge: unread },
   ]
 
   return (
@@ -75,17 +76,21 @@ export default function Layout() {
           </Link>
           <div className="topbar-spacer" />
           <button type="button" className="currency-pill currency-coins" data-testid="balance-coins" onClick={openRecharge} title={t('recharge')}>
-            <span className="coin-icon">🪙</span>
+            <span className="coin-icon">
+              <PhotoIcon name="coin" size={16} />
+            </span>
             <span className="currency-value">{wallet.coins}</span>
             <span className="currency-plus">+</span>
           </button>
           <button type="button" className="currency-pill currency-gold" data-testid="balance-gold" onClick={openRecharge} title={t('recharge')}>
-            <span className="coin-icon">💎</span>
+            <span className="coin-icon">
+              <PhotoIcon name="gem" size={16} />
+            </span>
             <span className="currency-value">{wallet.gold}</span>
             <span className="currency-plus">+</span>
           </button>
           <Link className="icon-button" to="/store" aria-label={t('store')} data-testid="cart-button">
-            🛒
+            <PhotoIcon name="cart" size={20} />
           </Link>
           <button
             type="button"
@@ -94,7 +99,7 @@ export default function Layout() {
             onClick={() => setShowNotifications(true)}
             aria-label={t('notifications')}
           >
-            🔔
+            <PhotoIcon name="bell" size={20} />
             {unread ? <span className="dot">{unread}</span> : null}
           </button>
           <button
@@ -135,7 +140,9 @@ export default function Layout() {
             className={({ isActive }) => `tab${isActive ? ' tab-active' : ''}`}
             data-testid={`tab-${tab.to === '/' ? 'home' : tab.to.slice(1)}`}
           >
-            <span>{tab.icon}</span>
+            <span>
+              <PhotoIcon name={tab.icon} size={22} />
+            </span>
             <span>{tab.label}</span>
             {tab.badge ? <span className="tab-badge">{tab.badge}</span> : null}
           </NavLink>

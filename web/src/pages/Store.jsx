@@ -1,10 +1,11 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { api } from '../lib/api.js'
+import PhotoIcon from '../components/PhotoIcon.jsx'
 import { useAuth } from '../lib/store.jsx'
 import { useI18n } from '../lib/i18n.jsx'
 
-const KIND_ICON = { dice: '🎲', theme: '🎨' }
+const KIND_ICON = { dice: 'dice', theme: 'palette' }
 
 /** A die face drawn from the item's own colours: no image asset required. */
 function DieFace({ accent, pips }) {
@@ -117,10 +118,10 @@ export default function Store() {
         <span className="store-title">{t('store')}</span>
         <div className="topbar-spacer" />
         <span className="chip chip-coins" data-testid="store-balance-coins">
-          🪙 {balances.coins}
+          <PhotoIcon name="coin" size={15} /> {balances.coins}
         </span>
         <span className="chip chip-gold" data-testid="store-balance-gold">
-          💎 {balances.gold}
+          <PhotoIcon name="gem" size={15} /> {balances.gold}
         </span>
       </div>
 
@@ -133,7 +134,7 @@ export default function Store() {
             data-testid={`store-kind-${key}`}
             onClick={() => setKind(key)}
           >
-            {KIND_ICON[key]} {key === 'dice' ? t('diceKind') : t('themeKind')}
+            <PhotoIcon name={KIND_ICON[key]} size={16} /> {key === 'dice' ? t('diceKind') : t('themeKind')}
           </button>
         ))}
       </div>
@@ -192,7 +193,7 @@ export default function Store() {
                         disabled={busy === `${item.id}-coins`}
                         onClick={() => buy(item, 'coins')}
                       >
-                        🪙 {item.price_coins}
+                        <PhotoIcon name="coin" size={14} /> {item.price_coins}
                       </button>
                     ) : null}
                     {item.price_gold > 0 ? (
@@ -203,7 +204,7 @@ export default function Store() {
                         disabled={busy === `${item.id}-gold`}
                         onClick={() => buy(item, 'gold')}
                       >
-                        💎 {item.price_gold}
+                        <PhotoIcon name="gem" size={14} /> {item.price_gold}
                       </button>
                     ) : null}
                   </div>

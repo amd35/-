@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import Avatar from '../components/Avatar.jsx'
+import PhotoIcon from '../components/PhotoIcon.jsx'
 import DominoTable from '../components/DominoTable.jsx'
 import LudoBoard from '../components/LudoBoard.jsx'
 import { api } from '../lib/api.js'
@@ -23,7 +24,7 @@ function lastEventText(state) {
     case 'move':
       return `${who(event.seat)} حرّك القطعة ${Number(event.token) + 1}` +
         (event.captures?.length ? ' وأخرج قطعة الخصم' : '') +
-        (event.home ? ' وأوصل قطعة إلى البيت 🎉' : '')
+        (event.home ? ' وأوصل قطعة إلى البيت' : '')
     case 'play':
       return `${who(event.seat)} لعب قطعة`
     case 'draw':
@@ -250,7 +251,7 @@ export default function GameTable() {
                   disabled={!myTurn || Boolean(dice)}
                   onClick={() => act('roll')}
                 >
-                  🎲 رمي النرد
+                  <PhotoIcon name="dice" size={16} /> رمي النرد
                 </button>
                 {dice ? <span className="chip">النرد: {dice}</span> : null}
                 {myTurn && dice && (room.legal || []).length ? (

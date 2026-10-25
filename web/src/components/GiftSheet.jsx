@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { api } from '../lib/api.js'
+import PhotoIcon, { giftIconName } from './PhotoIcon.jsx'
 import { useAuth } from '../lib/store.jsx'
 import { useI18n } from '../lib/i18n.jsx'
 
@@ -41,7 +42,7 @@ export default function GiftSheet({ room, members = [], initialReceiverId = null
       else body.receiver_id = Number(target)
       const result = await api.post('/api/gifts/send', body)
       setWallet(result.wallet)
-      setMessage(`تم إرسال ${selected.name} ✅`)
+      setMessage(`تم إرسال ${selected.name}`)
       onSent?.(result, selected)
     } catch (err) {
       setError(err.message)
@@ -55,7 +56,7 @@ export default function GiftSheet({ room, members = [], initialReceiverId = null
       <div className="glass sheet" onClick={(event) => event.stopPropagation()}>
         <div className="row-between">
           <h3 className="section-title" style={{ margin: 0 }}>
-            🎁 {t('gifts')}
+            <PhotoIcon name="gift" size={20} /> {t('gifts')}
           </h3>
           <button type="button" className="btn" onClick={onClose}>
             {t('cancel')}
@@ -69,7 +70,7 @@ export default function GiftSheet({ room, members = [], initialReceiverId = null
             data-testid="gift-currency-coins"
             onClick={() => setCurrency('coins')}
           >
-            🪙 {t('coins')}
+            <PhotoIcon name="coin" size={16} /> {t('coins')}
           </button>
           <button
             type="button"
@@ -77,7 +78,7 @@ export default function GiftSheet({ room, members = [], initialReceiverId = null
             data-testid="gift-currency-gold"
             onClick={() => setCurrency('gold')}
           >
-            🏆 {t('gold')}
+            <PhotoIcon name="gem" size={16} /> {t('gold')}
           </button>
           <span className="chip">{t('balance')}: {balance}</span>
         </div>
@@ -103,10 +104,13 @@ export default function GiftSheet({ room, members = [], initialReceiverId = null
               data-testid={`gift-${gift.id}`}
               onClick={() => setSelected(gift)}
             >
-              <span className="gift-emoji">{gift.emoji}</span>
+              <span className="gift-emoji">
+                <PhotoIcon name={giftIconName(gift.emoji)} size={34} alt={gift.name} />
+              </span>
               <span>{gift.name}</span>
               <span className="gift-price">
-                {currency === 'coins' ? `${gift.price_coins} 🪙` : `${gift.price_gold} 🏆`}
+                {currency === 'coins' ? gift.price_coins : gift.price_gold}{' '}
+                <PhotoIcon name={currency === 'coins' ? 'coin' : 'gem'} size={13} />
               </span>
             </button>
           ))}

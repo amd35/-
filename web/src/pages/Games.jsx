@@ -1,13 +1,14 @@
 import { useCallback, useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import Avatar from '../components/Avatar.jsx'
+import PhotoIcon from '../components/PhotoIcon.jsx'
 import { api } from '../lib/api.js'
 import { useAuth } from '../lib/store.jsx'
 import { useI18n } from '../lib/i18n.jsx'
 
 const GAME_META = {
-  ludo: { icon: '🎲', blurb: 'طاولة لودو بأربعة لاعبين — النرد والحركات تتحقق على الخادم.' },
-  domino: { icon: '🁫', blurb: 'دومينو (6-6) — توزيع القطع، الأدوار والنقاط تُحسب على الخادم.' },
+  ludo: { icon: 'dice', blurb: 'طاولة لودو بأربعة لاعبين — النرد والحركات تتحقق على الخادم.' },
+  domino: { icon: 'domino', blurb: 'دومينو (6-6) — توزيع القطع، الأدوار والنقاط تُحسب على الخادم.' },
 }
 
 export default function Games() {
@@ -78,7 +79,7 @@ export default function Games() {
           <div className="card glass" key={game.key} data-testid={`game-${game.key}`}>
             <div className="row-between">
               <strong>
-                {GAME_META[game.key]?.icon} {game.name}
+                <PhotoIcon name={GAME_META[game.key]?.icon} size={18} /> {game.name}
               </strong>
               <span className={`status-pill ${game.enabled ? 'status-paid' : 'status-pending'}`}>
                 {game.enabled ? 'متاحة' : 'معطّلة'}
@@ -126,7 +127,9 @@ export default function Games() {
       <div className="stack">
         {rooms.map((room) => (
           <div className="list-item" key={room.id} data-testid={`games-room-${room.id}`}>
-            <span style={{ fontSize: 22 }}>{GAME_META[room.game]?.icon}</span>
+            <span>
+              <PhotoIcon name={GAME_META[room.game]?.icon} size={22} />
+            </span>
             <Avatar user={room.host} size={34} />
             <div>
               <strong>{room.name}</strong>

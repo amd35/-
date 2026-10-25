@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
 import Avatar from '../components/Avatar.jsx'
+import PhotoIcon from '../components/PhotoIcon.jsx'
 import { api } from '../lib/api.js'
 import { useAuth } from '../lib/store.jsx'
 import { useI18n } from '../lib/i18n.jsx'
@@ -190,8 +191,12 @@ export default function Profile() {
           {t('wallet')}
         </h3>
         <div className="row wrap">
-          <span className="chip chip-coins">🪙 {wallet.coins}</span>
-          <span className="chip chip-gold">🏆 {wallet.gold}</span>
+          <span className="chip chip-coins">
+            <PhotoIcon name="coin" size={15} /> {wallet.coins}
+          </span>
+          <span className="chip chip-gold">
+            <PhotoIcon name="gem" size={15} /> {wallet.gold}
+          </span>
           {walletInfo?.vip?.active ? <span className="badge-pill">VIP {new Date(walletInfo.vip.until).toLocaleDateString('ar')}</span> : null}
         </div>
 
@@ -273,7 +278,7 @@ export default function Profile() {
             </span>
             <span className={entry.amount >= 0 ? 'amount-in' : 'amount-out'}>
               {entry.amount >= 0 ? '+' : ''}
-              {entry.amount} {entry.currency === 'coins' ? '🪙' : '🏆'}
+              {entry.amount} <PhotoIcon name={entry.currency === 'coins' ? 'coin' : 'gem'} size={13} />
             </span>
           </div>
         ))}

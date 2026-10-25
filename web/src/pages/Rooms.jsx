@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { api } from '../lib/api.js'
+import PhotoIcon from '../components/PhotoIcon.jsx'
 import { useAuth } from '../lib/store.jsx'
 import { useI18n } from '../lib/i18n.jsx'
 
@@ -95,12 +96,16 @@ export default function Rooms() {
             <div className="row-between">
               <div>
                 <strong>
-                  {room.name} {room.is_private ? '🔒' : ''}
+                  {room.name} {room.is_private ? <PhotoIcon name="lock" size={14} /> : ''}
                 </strong>
                 <div className="muted">{room.description || '—'}</div>
                 <div className="room-stats" style={{ marginTop: 6 }}>
-                  <span>👥 {room.member_count}</span>
-                  <span>🎤 {room.seat_count}</span>
+                  <span>
+                    <PhotoIcon name="friends" size={14} /> {room.member_count}
+                  </span>
+                  <span>
+                    <PhotoIcon name="mic" size={14} /> {room.seat_count}
+                  </span>
                   <span className="muted">{room.owner.display_name || room.owner.username}</span>
                 </div>
               </div>

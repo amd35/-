@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { api } from '../lib/api.js'
+import PhotoIcon from '../components/PhotoIcon.jsx'
 import { useAuth } from '../lib/store.jsx'
 import { useI18n } from '../lib/i18n.jsx'
 
@@ -51,8 +52,8 @@ export default function Recharge() {
 
   const packs = store?.packs || []
   const groups = [
-    { key: 'coins', icon: '🪙', label: t('coins') },
-    { key: 'gold', icon: '💎', label: t('gold') },
+    { key: 'coins', icon: 'coin', label: t('coins') },
+    { key: 'gold', icon: 'gem', label: t('gold') },
   ]
     .map((group) => ({ ...group, packs: packs.filter((pack) => pack.kind === group.key) }))
     .filter((group) => group.packs.length)
@@ -72,10 +73,10 @@ export default function Recharge() {
         <span className="store-title">{t('recharge')}</span>
         <div className="topbar-spacer" />
         <span className="chip chip-coins" data-testid="recharge-balance-coins">
-          🪙 {wallet.coins}
+          <PhotoIcon name="coin" size={15} /> {wallet.coins}
         </span>
         <span className="chip chip-gold" data-testid="recharge-balance-gold">
-          💎 {wallet.gold}
+          <PhotoIcon name="gem" size={15} /> {wallet.gold}
         </span>
       </div>
 
@@ -84,7 +85,7 @@ export default function Recharge() {
       {groups.map((group) => (
         <section key={group.key} data-testid={`recharge-group-${group.key}`}>
           <div className="ribbon">
-            {group.icon} {group.label}
+            <PhotoIcon name={group.icon} size={17} /> {group.label}
           </div>
           <div className="grid-packs">
             {group.packs.map((pack) => (
@@ -94,7 +95,7 @@ export default function Recharge() {
                   {pack.badge ? <span className="badge-pill">{pack.badge}</span> : null}
                 </div>
                 <div className="muted" style={{ marginTop: 6 }}>
-                  {pack.kind === 'coins' ? '🪙' : '💎'} {pack.amount}
+                  <PhotoIcon name={pack.kind === 'coins' ? 'coin' : 'gem'} size={15} /> {pack.amount}
                   {pack.bonus ? ` + ${pack.bonus}` : ''}
                 </div>
                 <div className="row-between" style={{ marginTop: 10 }}>

@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
 import Avatar from '../components/Avatar.jsx'
+import PhotoIcon from '../components/PhotoIcon.jsx'
 import { api } from '../lib/api.js'
 import { useAuth } from '../lib/store.jsx'
 import { useI18n } from '../lib/i18n.jsx'
@@ -164,7 +165,10 @@ export default function Friends() {
             <Avatar user={friend} size={36} />
             <div>
               <strong>{friend.display_name || friend.username}</strong>
-              <div className="muted">{friend.online ? `🟢 ${t('online')}` : `⚪ ${t('offline')}`}</div>
+              <div className="muted">
+                <PhotoIcon name={friend.online ? 'dotOn' : 'dotOff'} size={12} />{' '}
+                {friend.online ? t('online') : t('offline')}
+              </div>
             </div>
             <div className="topbar-spacer" />
             <button type="button" className="btn" onClick={() => openConversation(friend)}>
