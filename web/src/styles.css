@@ -787,8 +787,9 @@ textarea:focus {
   border-radius: 3px;
 }
 
+/* الخلايا المطبوعة شبه شفافة ليظهر سطح اللوح الفوتوغرافي تحتها */
 .ludo-track {
-  background-image: linear-gradient(180deg, #fffdf6, #f1e7d2);
+  background-image: linear-gradient(180deg, rgba(255, 253, 246, 0.86), rgba(241, 231, 210, 0.86));
   box-shadow:
     inset 0 0 0 0.5px rgba(122, 79, 34, 0.4),
     inset 0 -1px 2px rgba(122, 79, 34, 0.16);
@@ -842,45 +843,51 @@ textarea:focus {
   background: transparent;
 }
 
+/* البيدق صورة فوتوغرافية مقصوصة (توثيقها في web/public/img/games/CREDITS.md) */
 .ludo-token {
   position: absolute;
-  inset-inline-start: 28%;
-  inset-block-start: 24%;
-  width: 44%;
-  height: 44%;
+  inset-inline-start: 8%;
+  inset-block-start: 4%;
+  width: 84%;
+  height: 92%;
   padding: 0;
-  border-radius: 50%;
-  border: 1px solid rgba(0, 0, 0, 0.45);
+  border: 0;
+  border-radius: 0;
+  background-color: transparent;
+  background-repeat: no-repeat;
+  background-position: center bottom;
+  background-size: contain;
 }
 
 .ludo-token:disabled {
   opacity: 1;
 }
 
-/* بيدق بلاستيكي لامع: بقعة ضوء عليا وتدرّج داكن نحو القاعدة */
+/* بيادق فوتوغرافية: صورة حقيقية لكل مقعد بألوان المقاعد الأربعة */
 .ludo-token-red {
-  background-image: radial-gradient(circle at 32% 26%, #fff 4%, #ff9c92 26%, #cf3630 66%, #7f1614);
+  background-image: url('/img/games/pawn-red.png');
 }
 
 .ludo-token-green {
-  background-image: radial-gradient(circle at 32% 26%, #fff 4%, #93edbb 26%, #2a8f57 66%, #14512f);
+  background-image: url('/img/games/pawn-green.png');
 }
 
 .ludo-token-blue {
-  background-image: radial-gradient(circle at 32% 26%, #fff 4%, #a9c8ff 26%, #2f5fc4 66%, #17306b);
+  background-image: url('/img/games/pawn-blue.png');
 }
 
 .ludo-token-yellow {
-  background-image: radial-gradient(circle at 32% 26%, #fff 4%, #ffe8a8 26%, #d9a51c 66%, #7d5a05);
+  background-image: url('/img/games/pawn-yellow.png');
 }
 
+/* نبض القطعة المتاحة: توهّج ذهبي حول حدود الصورة المقصوصة */
 @keyframes ludoPulse {
   0%,
   100% {
-    box-shadow: 0 0 0 0 rgba(244, 198, 98, 0.85);
+    filter: drop-shadow(0 3px 3px rgba(0, 0, 0, 0.55)) drop-shadow(0 0 0 rgba(244, 198, 98, 0.9));
   }
   50% {
-    box-shadow: 0 0 0 7px rgba(244, 198, 98, 0);
+    filter: drop-shadow(0 3px 3px rgba(0, 0, 0, 0.55)) drop-shadow(0 0 7px rgba(244, 198, 98, 0.9));
   }
 }
 
@@ -2373,70 +2380,52 @@ textarea:focus {
   box-shadow: inset 0 2px 3px rgba(0, 0, 0, 0.5), 0 1px 0 rgba(255, 255, 255, 0.35);
 }
 
-/* --- 13) اللودو والدومينو: خامات حقيقية (خشب، جوخ، عاج، بلاستيك لامع) --- */
+/* --- 13) اللودو والدومينو: صور فوتوغرافية حقيقية للوح والطاولة والقطع
+   (خشب اللوح، سطحه المطبوع، مركزه، البيادق، جوخ الطاولة، العاج، والنرد) —
+   كل ملف مصدره Wikimedia Commons برخصة حرة، والتراخيص في
+   web/public/img/games/CREDITS.md --- */
 
 /* لوح خشبي حقيقي بإطار وسطح مطبوع: طبقة السطح أعلى طبقات الخشب ومقصوصة على المحتوى */
 .ludo-board {
-  background-image:
-    radial-gradient(ellipse at 50% 26%, #fdf8ec, #f0e6cf 68%, #dcccaa),
-    repeating-linear-gradient(
-      91deg,
-      rgba(255, 236, 205, 0.1) 0 2px,
-      rgba(58, 27, 5, 0.18) 2px 7px,
-      rgba(255, 236, 205, 0.05) 7px 13px
-    ),
-    linear-gradient(158deg, #ad6c31, #78471b 48%, #41230a);
-  background-clip: content-box, border-box, border-box;
-  background-origin: content-box, border-box, border-box;
+  background-image: url('/img/games/board-surface.jpg'), url('/img/games/board-wood.jpg');
+  background-size: cover, cover;
+  background-position: center, center;
+  background-repeat: no-repeat, no-repeat;
+  background-clip: content-box, border-box;
+  background-origin: content-box, border-box;
   box-shadow:
     0 30px 44px -22px rgba(0, 0, 0, 0.95),
     inset 0 2px 0 rgba(255, 255, 255, 0.25),
     inset 0 -6px 16px rgba(0, 0, 0, 0.6);
 }
 
-/* مركز اللوح: أربعة مثلثات ملوّنة وزر ذهبي في الوسط */
+/* مركز اللوح: صورة فوتوغرافية لمركز لوح لودو حقيقي مصوَّر من الأعلى */
 .ludo-hub {
   position: absolute;
   inset: 40%;
   z-index: 0;
   pointer-events: none;
   border-radius: 2px;
-  background: conic-gradient(
-    from 45deg,
-    #2f8f5a 0 90deg,
-    #2f5fc4 90deg 180deg,
-    #d9a51c 180deg 270deg,
-    #c3372f 270deg 360deg
-  );
+  background-image: url('/img/games/hub.jpg');
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
   box-shadow:
     inset 0 0 0 1px rgba(122, 79, 34, 0.55),
     inset 0 -2px 6px rgba(0, 0, 0, 0.3);
 }
 
-.ludo-hub::after {
-  content: '';
-  position: absolute;
-  inset: 22%;
-  border-radius: 50%;
-  background: radial-gradient(circle at 34% 28%, #fff3cd, #e0a92a 60%, #a4710c);
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.7);
-}
-
-/* بيادق لامعة واقفة على اللوح بظل أرضي */
+/* البيادق الفوتوغرافية: ظل أرضي حول حدود الصورة المقصوصة نفسها */
 .ludo-token {
-  box-shadow:
-    0 4px 5px -1px rgba(0, 0, 0, 0.75),
-    0 9px 12px -5px rgba(0, 0, 0, 0.6),
-    inset 0 -3px 5px rgba(0, 0, 0, 0.38),
-    inset 0 2px 3px rgba(255, 255, 255, 0.75);
+  filter: drop-shadow(0 3px 3px rgba(0, 0, 0, 0.55));
 }
 
-/* طاولة جوخ تحت قطع الدومينو */
+/* طاولة جوخ حقيقية: صورة فوتوغرافية لقماش الجوخ الأخضر */
 .card.domino-board {
-  background-image:
-    repeating-linear-gradient(45deg, rgba(255, 255, 255, 0.04) 0 2px, rgba(0, 0, 0, 0.06) 2px 4px),
-    radial-gradient(ellipse at 50% 20%, #2e8261, #11503a 62%, #06271c);
-  background-blend-mode: overlay, normal;
+  background-image: url('/img/games/domino-felt.jpg');
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
   border: 1px solid rgba(0, 0, 0, 0.55);
   box-shadow:
     0 24px 36px -20px rgba(0, 0, 0, 0.95),
@@ -2444,11 +2433,12 @@ textarea:focus {
     inset 0 2px 0 rgba(255, 255, 255, 0.07);
 }
 
-/* قطع عاجية: حافة مشطوفة، لمعة علوية، وظل أرضي */
+/* قطع عاجية: صورة فوتوغرافية لخامة عاجية (رخام كريمي) مع حافة وظل أرضي */
 .dom-tile {
-  background-image:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.95), rgba(255, 255, 255, 0) 42%),
-    linear-gradient(160deg, #fffdf5, #f3ead6 58%, #dccdb0);
+  background-image: url('/img/games/ivory.jpg');
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
   box-shadow:
     0 9px 14px -7px rgba(0, 0, 0, 0.8),
     0 2px 4px rgba(0, 0, 0, 0.35),
@@ -2497,7 +2487,11 @@ textarea:focus {
   gap: 1px;
   padding: 5px;
   border-radius: 9px;
-  background-image: linear-gradient(150deg, #ffffff, #efe7d7 62%, #cfc3ab);
+  /* جسم النرد: خامة العاج الفوتوغرافية نفسها المستخدمة لقطع الدومينو */
+  background-image: url('/img/games/ivory.jpg');
+  background-size: 260%;
+  background-position: 42% 26%;
+  background-repeat: no-repeat;
   box-shadow:
     0 8px 12px -5px rgba(0, 0, 0, 0.75),
     inset 0 -5px 9px rgba(0, 0, 0, 0.22),
