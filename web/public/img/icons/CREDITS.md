@@ -36,4 +36,6 @@ with a free licence (shown per file); the licence travels with the file.
 | castle | Schloss Neuschwanstein 2013.jpg | CC BY-SA 3.0 de | Thomas Wolf, www.foto-tw.de | https://commons.wikimedia.org/wiki/File:Schloss_Neuschwanstein_2013.jpg |
 | yacht | 01 Power Play luxury superyacht of millionaire Jan Koum, built by Damen Yachting.jpg | CC BY 3.0 | Marek Ślusarczyk (Tupungato) Photo portfolio | https://commons.wikimedia.org/wiki/File:01_Power_Play_luxury_superyacht_of_millionaire_Jan_Koum,_built_by_Damen_Yachting.jpg |
 | jet | Private twin-turboprop aircraft in Guate.jpg | CC BY 2.0 | Barry Pousman | https://commons.wikimedia.org/wiki/File:Private_twin-turboprop_aircraft_in_Guate.jpg |
+| user | Black bearded man smiling, 2442565.jpg | CC0 | Leroy Skalstad | https://commons.wikimedia.org/wiki/File:Black_bearded_man_smiling,_2442565.jpg |
+| chat | Petra, People in conversation, Jordan.jpg | CC BY 4.0 | Vyacheslav Argenberg | https://commons.wikimedia.org/wiki/File:Petra,_People_in_conversation,_Jordan.jpg |
 | star | Star aniseed.jpg | Public domain | Jebulon | https://commons.wikimedia.org/wiki/File:Star_aniseed.jpg |

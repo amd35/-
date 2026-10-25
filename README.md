@@ -91,7 +91,8 @@ docker compose -f docker-compose.base44.yml up -d --build
 docker compose -f docker-compose.base44.yml exec -T api python -m pytest -q
 ```
 تغطية الاختبارات الحالية: الحسابات والأمان، الغرف والمقاعد والمايك، الهدايا والمحفظة والعملات
-الذرية ومنع التكرار، المتجر وطلبات الشحن/السحب، الأصدقاء والرسائل، **وقواعد لودو ودومينو كاملة**
+الذرية ومنع التكرار، المتجر وطلبات الشحن/السحب، الأصدقاء والرسائل، المتابعة (علاقة أحادية
+الاتجاه بلا تكرار — `tests/test_follows.py`)، **وقواعد لودو ودومينو كاملة**
 (محرّك + مسار HTTP كامل + منع اللعب خارج الدور + مكافأة الفوز مرة واحدة).
 
 ---
@@ -201,7 +202,7 @@ flutter build apk --release --dart-define=API_BASE_URL=https://api.your-domain.c
 
 - التوثيق التفاعلي: `/docs` و`/redoc` (OpenAPI كامل).
 - أهم المجموعات: `/api/auth`, `/api/users`, `/api/rooms`, `/api/gifts`, `/api/wallet`,
-  `/api/store`, `/api/friends`, `/api/notifications`, `/api/reports`, `/api/games`, `/api/admin`.
+  `/api/store`, `/api/friends`, `/api/follows`, `/api/notifications`, `/api/reports`, `/api/games`, `/api/admin`.
 - سجل اللعب: `GET /api/games/rooms/{id}/moves` · هندسة لوحة لودو: `GET /api/games/board/ludo`.
 - WebSocket واحد: `/ws?token=...` — رسائل الغرف والدردشة وإشارات WebRTC وحركات الألعاب والإشعارات.
 

@@ -10,7 +10,8 @@ export default function GiftSheet({ room, members = [], initialReceiverId = null
   const [gifts, setGifts] = useState([])
   const [currency, setCurrency] = useState('diamonds')
   const [selected, setSelected] = useState(null)
-  const [target, setTarget] = useState(initialReceiverId ? String(initialReceiverId) : 'room')
+  // بلا غرفة (من الملف الشخصي): الهدف يكون العضو المُمرَّر وحده.
+  const [target, setTarget] = useState(initialReceiverId ? String(initialReceiverId) : room ? 'room' : '')
   const [message, setMessage] = useState('')
   const [error, setError] = useState('')
   const [busy, setBusy] = useState(false)
@@ -30,6 +31,10 @@ export default function GiftSheet({ room, members = [], initialReceiverId = null
 
   const submit = async () => {
     if (!selected) return
+    if (!target) {
+      setError('اختر المستلم')
+      return
+    }
     setBusy(true)
     setError('')
     try {
@@ -38,7 +43,7 @@ export default function GiftSheet({ room, members = [], initialReceiverId = null
         currency,
         idempotency_key: (window.crypto?.randomUUID?.() || `${Date.now()}-${Math.random()}`).slice(0, 60),
       }
-      if (target === 'room') body.room_id = room.id
+      if (target === 'room' && room) body.room_id = room.id
       else body.receiver_id = Number(target)
       const result = await api.post('/api/gifts/send', body)
       setWallet(result.wallet)
@@ -86,7 +91,7 @@ export default function GiftSheet({ room, members = [], initialReceiverId = null
         <div className="field">
           <label htmlFor="gift-target">{t('sendGift')} {t('giftTo')}</label>
           <select id="gift-target" data-testid="gift-target" value={target} onChange={(event) => setTarget(event.target.value)}>
-            <option value="room">{t('giftRoom')}</option>
+            {room ? <option value="room">{t('giftRoom')}</option> : null}
             {members.map((member) => (
               <option key={member.user.id} value={String(member.user.id)}>
                 {member.user.display_name || member.user.username}

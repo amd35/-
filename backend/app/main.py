@@ -14,6 +14,7 @@ from .realtime import hub
 from .routers import (
     admin,
     auth,
+    follows,
     friends,
     games,
     gifts,
@@ -87,6 +88,7 @@ app.include_router(royal.router)
 app.include_router(store.router)
 app.include_router(support.router)
 app.include_router(friends.router)
+app.include_router(follows.router)
 app.include_router(games.router)
 app.include_router(notifications.router)
 app.include_router(admin.router)

@@ -10,6 +10,7 @@ from .serializers import notification_public
 # Types a user may switch off from Settings. Administrative notices are always
 # delivered.
 MUTABLE_TYPES = {
+    "follow",
     "friend_request",
     "friend_accepted",
     "message",

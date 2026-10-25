@@ -76,6 +76,18 @@ export default function Friends() {
     }
   }
 
+  // متابعة/إلغاء متابعة عضو من نتائج البحث — الحالة تأتي من الخادم (result.following).
+  const toggleFollow = async (target) => {
+    setError('')
+    try {
+      if (target.following) await api.del(`/api/follows/${target.id}`)
+      else await api.post(`/api/follows/${target.id}`)
+      setResults((rows) => rows.map((row) => (row.id === target.id ? { ...row, following: !row.following } : row)))
+    } catch (err) {
+      setError(err.message)
+    }
+  }
+
   const respond = async (request, action) => {
     try {
       await api.post(`/api/friends/requests/${request.id}/${action}`)
@@ -119,6 +131,14 @@ export default function Friends() {
                 </div>
               </div>
               <div className="topbar-spacer" />
+              <button
+                type="button"
+                className={result.following ? 'btn' : 'btn btn-accent'}
+                data-testid={`follow-${result.id}`}
+                onClick={() => toggleFollow(result)}
+              >
+                {result.following ? t('unfollow') : t('follow')}
+              </button>
               <button type="button" className="btn btn-primary" onClick={() => addFriend(result.username)}>
                 {t('addFriend')}
               </button>

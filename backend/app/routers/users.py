@@ -10,7 +10,7 @@ from sqlalchemy.orm import Session
 
 from ..config import settings
 from ..db import get_db
-from ..models import Block, Friendship, Room, RoomMember, User
+from ..models import Block, Follow, Friendship, Room, RoomMember, User
 from ..security import get_current_user, hash_password, verify_password
 from ..serializers import user_private, user_public
 from .auth import auth_payload
@@ -174,7 +174,16 @@ def search_users(
         .limit(limit)
     )
     found = [candidate for candidate in db.execute(statement).scalars().all() if candidate.id not in blocked_ids]
-    return {"users": [user_public(candidate) for candidate in found]}
+    # حالة المتابعة تُحسب هنا بجملة واحدة (لا استعلام لكل نتيجة) لتظهر حالة الزر صحيحة.
+    followed_ids = set(
+        db.execute(select(Follow.followed_user_id).where(Follow.user_id == user.id)).scalars().all()
+    )
+    users = []
+    for candidate in found:
+        payload = user_public(candidate)
+        payload["following"] = candidate.id in followed_ids
+        users.append(payload)
+    return {"users": users}
 
 
 @router.get("/{user_id}")

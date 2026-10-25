@@ -248,6 +248,18 @@ class Block(Base):
     created_at = Column(DateTime(timezone=True), nullable=False, default=utcnow)
 
 
+class Follow(Base):
+    """متابعة أحادية الاتجاه (لا تحتاج قبولاً). صف واحد لكل علاقة، والعدّاد يُشتق من الجدول."""
+
+    __tablename__ = "follows"
+    __table_args__ = (UniqueConstraint("user_id", "followed_user_id", name="uq_follow"),)
+
+    id = Column(Integer, primary_key=True)
+    user_id = Column(ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    followed_user_id = Column(ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    created_at = Column(DateTime(timezone=True), nullable=False, default=utcnow)
+
+
 class DirectMessage(Base):
     __tablename__ = "direct_messages"
 
