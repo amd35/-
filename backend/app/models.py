@@ -259,6 +259,38 @@ class StorePack(Base):
     sort = Column(Integer, nullable=False, default=0)
 
 
+class StoreItem(Base):
+    """Cosmetic sold inside the app for coins/gold: a dice skin or a board theme."""
+
+    __tablename__ = "store_items"
+
+    id = Column(Integer, primary_key=True)
+    kind = Column(String(8), nullable=False)  # dice|theme
+    name = Column(String(64), nullable=False)
+    name_en = Column(String(64), nullable=False, default="")
+    description = Column(String(255), nullable=False, default="")
+    price_coins = Column(Integer, nullable=False, default=0)
+    price_gold = Column(Integer, nullable=False, default=0)
+    image_url = Column(String(512), nullable=False, default="")
+    accent = Column(String(16), nullable=False, default="#f4c662")
+    pips = Column(String(16), nullable=False, default="#1a1224")
+    active = Column(Boolean, nullable=False, default=True)
+    sort = Column(Integer, nullable=False, default=0)
+
+
+class UserItem(Base):
+    """Inventory: the cosmetics a user owns and the equipped one per kind."""
+
+    __tablename__ = "user_items"
+    __table_args__ = (UniqueConstraint("user_id", "item_id", name="uq_user_item"),)
+
+    id = Column(Integer, primary_key=True)
+    user_id = Column(ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    item_id = Column(ForeignKey("store_items.id", ondelete="CASCADE"), nullable=False, index=True)
+    equipped = Column(Boolean, nullable=False, default=False)
+    created_at = Column(DateTime(timezone=True), nullable=False, default=utcnow)
+
+
 class RechargeOrder(Base):
     __tablename__ = "recharge_orders"
 

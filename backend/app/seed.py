@@ -11,7 +11,7 @@ from sqlalchemy.orm import Session
 
 from .config import settings
 from .economy import grant_reward, get_wallet
-from .models import AppSetting, Gift, Room, RoomMember, RoomMessage, StorePack, User
+from .models import AppSetting, Gift, Room, RoomMember, RoomMessage, StoreItem, StorePack, User
 from .security import hash_password, verify_password
 from .settings_store import DEFAULTS, get_setting, set_setting
 
@@ -42,11 +42,21 @@ PACKS = [
     ("gold", "500 ذهب", 500, 50, 110000, 8999, "قيمة مميزة", 7),
 ]
 
+# Cosmetics sold inside the app for coins/gold. ``accent``/``pips`` draw the dice
+# face; a real photo can be attached to an item later through ``image_url``.
+ITEMS = [
+    ("dice", "نرد الجوز", "Walnut dice", "خشب جوز داكن بحواف مصقولة", 1200, 0, "#5c3618", "#f4c662", 1),
+    ("dice", "نرد الرخام", "Marble dice", "رخام كريمي بعروق رمادية", 2500, 0, "#efe7da", "#2b2117", 2),
+    ("dice", "نرد العاج", "Ivory dice", "عاج عتيق دافئ بتشقيقات دقيقة", 4000, 8, "#efe2cb", "#5c4426", 3),
+    ("dice", "نرد النحاس", "Brass dice", "نحاس مصقول بلمعان دافئ", 7000, 15, "#b07a2e", "#2b1c07", 4),
+]
+
 
 def seed(db: Session) -> None:
     _seed_admin(db)
     _seed_gifts(db)
     _seed_packs(db)
+    _seed_store_items(db)
     _seed_settings(db)
     _seed_room(db)
     db.commit()
@@ -130,6 +140,29 @@ def _seed_packs(db: Session) -> None:
                 price_iqd=iqd,
                 price_usd_cents=usd_cents,
                 badge=badge,
+                sort=sort,
+            )
+        )
+    db.commit()
+
+
+def _seed_store_items(db: Session) -> None:
+    for kind, name, name_en, description, coins, gold, accent, pips, sort in ITEMS:
+        found = db.execute(
+            select(StoreItem).where(StoreItem.name == name, StoreItem.kind == kind)
+        ).scalar_one_or_none()
+        if found is not None:
+            continue
+        db.add(
+            StoreItem(
+                kind=kind,
+                name=name,
+                name_en=name_en,
+                description=description,
+                price_coins=coins,
+                price_gold=gold,
+                accent=accent,
+                pips=pips,
                 sort=sort,
             )
         )

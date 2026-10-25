@@ -10,6 +10,7 @@ from pydantic import BaseModel, Field
 from sqlalchemy import or_, select
 from sqlalchemy.orm import Session
 
+from .. import inventory
 from ..config import settings
 from ..db import get_db
 from ..economy import get_wallet, grant_reward
@@ -24,7 +25,7 @@ from ..security import (
     rate_limit,
     verify_password,
 )
-from ..serializers import user_private, wallet_public
+from ..serializers import item_public, user_private, wallet_public
 from ..settings_store import get_setting
 
 log = logging.getLogger("app.auth")
@@ -68,12 +69,18 @@ class ResetConfirmIn(BaseModel):
     new_password: str = Field(min_length=6, max_length=128)
 
 
+def equipped_public(db: Session, user: User) -> list[dict]:
+    """Cosmetics this user equipped (one per kind: dice, theme)."""
+    return [item_public(item, row) for item, row in inventory.equipped_items(db, user.id)]
+
+
 def auth_payload(db: Session, user: User) -> dict:
     wallet = get_wallet(db, user.id)
     return {
         "token": create_access_token(user.id),
         "user": user_private(user),
         "wallet": wallet_public(wallet),
+        "equipped_items": equipped_public(db, user),
     }
 
 
@@ -215,6 +222,7 @@ def me(user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     return {
         "user": user_private(user),
         "wallet": wallet_public(get_wallet(db, user.id)),
+        "equipped_items": equipped_public(db, user),
     }
 
 

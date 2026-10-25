@@ -242,6 +242,26 @@ def pack_public(pack: Any) -> dict[str, Any]:
     }
 
 
+def item_public(item: Any, ownership: Any = None) -> dict[str, Any]:
+    """A store cosmetic, plus whether this user owns / equipped it."""
+    return {
+        "id": item.id,
+        "kind": item.kind,
+        "name": item.name,
+        "name_en": item.name_en,
+        "description": item.description,
+        "price_coins": item.price_coins,
+        "price_gold": item.price_gold,
+        "image_url": item.image_url,
+        "accent": item.accent,
+        "pips": item.pips,
+        "active": bool(item.active),
+        "sort": item.sort,
+        "owned": ownership is not None,
+        "equipped": bool(getattr(ownership, "equipped", False)),
+    }
+
+
 def report_public(report: Any) -> dict[str, Any]:
     return {
         "id": report.id,

@@ -11,11 +11,13 @@ from pydantic import BaseModel, Field
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from .. import inventory
 from ..config import settings
 from ..db import get_db
+from ..economy import get_wallet, purchase_item
 from ..models import RechargeOrder, StorePack, User
 from ..security import get_current_user
-from ..serializers import order_public, pack_public
+from ..serializers import item_public, ledger_public, order_public, pack_public, wallet_public
 from ..settings_store import all_settings, get_setting
 from .wallet import _payment_status
 
@@ -25,6 +27,10 @@ router = APIRouter(prefix="/api/store", tags=["store"])
 class PurchaseIn(BaseModel):
     price_currency: str = "IQD"
     idempotency_key: Optional[str] = Field(default=None, max_length=96)
+
+
+class ItemBuyIn(BaseModel):
+    currency: str = "coins"
 
 
 @router.get("")
@@ -108,3 +114,42 @@ def purchases(user: User = Depends(get_current_user), db: Session = Depends(get_
         .all()
     )
     return {"orders": [order_public(order) for order in rows], "payment": _payment_status()}
+
+
+@router.get("/cosmetics")
+def cosmetics(user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    """Dice (and board) cosmetics on sale, with this user's wallet and ownership."""
+    items = inventory.active_items(db)
+    owned = inventory.owned_map(db, user.id)
+    return {
+        "items": [item_public(item, owned.get(item.id)) for item in items],
+        "balances": wallet_public(get_wallet(db, user.id)),
+    }
+
+
+@router.post("/cosmetics/{item_id}/purchase", status_code=status.HTTP_201_CREATED)
+def buy_cosmetic(
+    item_id: int,
+    payload: ItemBuyIn,
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Buy a cosmetic with coins/gold: the wallet is debited and the item is stored."""
+    item = inventory.get_item(db, item_id)
+    currency = payload.currency if payload.currency in {"coins", "gold"} else "coins"
+    ownership, entry, created = purchase_item(db, user, item, currency)
+    return {
+        "item": item_public(item, ownership),
+        "ledger": ledger_public(entry) if entry is not None else None,
+        "balances": wallet_public(get_wallet(db, user.id)),
+        "created": created,
+    }
+
+
+@router.post("/cosmetics/{item_id}/equip")
+def equip_cosmetic(item_id: int, user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    """Equip an owned cosmetic; only one item per kind stays equipped."""
+    item = inventory.get_item(db, item_id)
+    ownership = inventory.equip(db, user.id, item)
+    db.commit()
+    return {"item": item_public(item, ownership)}

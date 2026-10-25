@@ -83,6 +83,8 @@ class AppState extends ChangeNotifier {
   Map<String, dynamic>? meta;
   bool loading = true;
   String? lastError;
+  /// Cosmetics the user equipped, keyed by kind (dice, theme).
+  Map<String, Map<String, dynamic>> equipped = {};
   final List<Map<String, dynamic>> notifications = [];
   final List<void Function(Map<String, dynamic>)> _listeners = [];
 
@@ -109,6 +111,7 @@ class AppState extends ChangeNotifier {
       final data = await api.me();
       user = data['user'] as Map<String, dynamic>?;
       wallet = (data['wallet'] as Map<String, dynamic>?) ?? wallet;
+      _applyEquipped(data);
       _connectSocket();
     } catch (_) {
       await api.saveToken(null);
@@ -134,6 +137,15 @@ class AppState extends ChangeNotifier {
     socket.connect();
   }
 
+  /// Reads ``equipped_items`` from a session payload (login, register or /me).
+  void _applyEquipped(Map<String, dynamic> data) {
+    final list = data['equipped_items'] as List?;
+    if (list == null) return;
+    equipped = {
+      for (final entry in list) '${(entry as Map<String, dynamic>)['kind']}': entry,
+    };
+  }
+
   void subscribe(void Function(Map<String, dynamic>) listener) => _listeners.add(listener);
 
   void unsubscribe(void Function(Map<String, dynamic>) listener) => _listeners.remove(listener);
@@ -149,6 +161,7 @@ class AppState extends ChangeNotifier {
     await api.saveToken(data['token'] as String?);
     user = data['user'] as Map<String, dynamic>?;
     wallet = (data['wallet'] as Map<String, dynamic>?) ?? wallet;
+    _applyEquipped(data);
     _connectSocket();
     notifyListeners();
   }
@@ -164,6 +177,7 @@ class AppState extends ChangeNotifier {
     await api.saveToken(data['token'] as String?);
     user = data['user'] as Map<String, dynamic>?;
     wallet = (data['wallet'] as Map<String, dynamic>?) ?? wallet;
+    _applyEquipped(data);
     _connectSocket();
     notifyListeners();
   }

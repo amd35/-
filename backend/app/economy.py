@@ -7,6 +7,8 @@ carry a unique ``ref`` so a repeated request can never move money twice.
 import uuid
 from typing import Iterable, Optional
 
+from . import inventory
+
 from fastapi import HTTPException, status
 from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
@@ -17,7 +19,9 @@ from .models import (
     GiftTransaction,
     LedgerEntry,
     RechargeOrder,
+    StoreItem,
     User,
+    UserItem,
     Wallet,
     WithdrawRequest,
     utcnow,
@@ -351,6 +355,38 @@ def admin_adjust(db: Session, user: User, currency: str, amount: int, note: str)
     )
     db.commit()
     return entry
+
+
+def purchase_item(
+    db: Session, user: User, item: StoreItem, currency: str
+) -> tuple[UserItem, Optional[LedgerEntry], bool]:
+    """Buy a store cosmetic with coins/gold; returns (inventory row, entry, created).
+
+    The item is permanent, so ``item:<user>:<item>`` is its own unique ref: a
+    repeated request returns the stored rows instead of charging twice.
+    """
+    if not item.active:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "هذا العنصر غير متاح حالياً")
+
+    field = _field(currency)
+    price = item.price_coins if field == "coins" else item.price_gold
+    if price <= 0:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "هذا العنصر غير متاح بهذه العملة")
+
+    reference = f"item:{user.id}:{item.id}"
+    owned = db.execute(
+        select(UserItem).where(UserItem.user_id == user.id, UserItem.item_id == item.id)
+    ).scalar_one_or_none()
+    if owned is not None:
+        entry = db.execute(select(LedgerEntry).where(LedgerEntry.ref == reference)).scalar_one_or_none()
+        return owned, entry, False
+
+    wallet = _locked_wallets(db, [user.id])[user.id]
+    entry = _move(db, wallet, currency, -price, "store_item", ref=reference, note=f"شراء {item.name}")
+    ownership = inventory.equip(db, user.id, item, create=True)
+    db.commit()
+    db.refresh(ownership)
+    return ownership, entry, True
 
 
 def grant_reward(db: Session, user: User, currency: str, amount: int, note: str, ref: str) -> Optional[LedgerEntry]:

@@ -98,6 +98,10 @@ class ApiClient {
   Future<Map<String, dynamic>> purchases() => get('/api/store/purchases');
   Future<Map<String, dynamic>> buyPack(int packId, String priceCurrency) =>
       post('/api/store/packs/$packId/purchase', {'price_currency': priceCurrency});
+  Future<Map<String, dynamic>> cosmetics() => get('/api/store/cosmetics');
+  Future<Map<String, dynamic>> buyItem(int itemId, String currency) =>
+      post('/api/store/cosmetics/$itemId/purchase', {'currency': currency});
+  Future<Map<String, dynamic>> equipItem(int itemId) => post('/api/store/cosmetics/$itemId/equip');
   Future<Map<String, dynamic>> buyVip(String idempotencyKey) =>
       post('/api/wallet/vip', {'idempotency_key': idempotencyKey});
   Future<Map<String, dynamic>> withdraw({

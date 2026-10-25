@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import '../api_client.dart';
 import '../main.dart';
 import '../theme.dart';
+import '../widgets/die_face.dart';
+import 'dice_store.dart';
 import 'friends.dart';
 import 'games.dart';
 import 'rooms.dart';
@@ -323,7 +325,39 @@ class _HomeTabState extends State<HomeTab> {
             ),
           ],
           const SizedBox(height: 12),
-          const Text('المتجر', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+          GlassPanel(
+            child: Row(
+              children: [
+                DieFace(
+                  imageUrl: '${state.equipped['dice']?['image_url'] ?? ''}',
+                  color: colorFromHex('${state.equipped['dice']?['accent'] ?? ''}', AppColors.gold),
+                  pipColor: colorFromHex('${state.equipped['dice']?['pips'] ?? ''}', const Color(0xFF1A1224)),
+                  size: 48,
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text('متجر النردات', style: TextStyle(fontWeight: FontWeight.bold)),
+                      Text(
+                        state.equipped['dice'] == null
+                            ? 'لم تشترِ نرداً بعد — نردك الحالي هو النرد الافتراضي'
+                            : 'نردك الحالي: ${state.equipped['dice']!['name']}',
+                        style: const TextStyle(color: AppColors.muted, fontSize: 12),
+                      ),
+                    ],
+                  ),
+                ),
+                ElevatedButton(
+                  onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const DiceStoreScreen())),
+                  child: const Text('افتح'),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 12),
+          const Text('باقات الشحن', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
           const SizedBox(height: 8),
           GridView.count(
             crossAxisCount: 2,

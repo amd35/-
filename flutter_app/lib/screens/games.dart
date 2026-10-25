@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../api_client.dart';
 import '../main.dart';
 import '../theme.dart';
+import '../widgets/die_face.dart';
 
 const _gameLabel = {'ludo': '🎲 لودو', 'domino': '🁫 دومينو'};
 
@@ -297,6 +298,16 @@ class _GameTableScreenState extends State<GameTableScreen> {
                   ElevatedButton(onPressed: myTurn && state['dice'] == null ? () => _act('roll') : null, child: const Text('🎲 رمي النرد')),
                   const SizedBox(width: 10),
                   Text('النرد: ${state['dice'] ?? '—'}'),
+                  if (state['dice'] != null) ...[
+                    const SizedBox(width: 8),
+                    DieFace(
+                      value: (state['dice'] as num).toInt(),
+                      imageUrl: '${AppScope.of(context).equipped['dice']?['image_url'] ?? ''}',
+                      color: colorFromHex('${AppScope.of(context).equipped['dice']?['accent'] ?? ''}', AppColors.gold),
+                      pipColor: colorFromHex('${AppScope.of(context).equipped['dice']?['pips'] ?? ''}', const Color(0xFF1A1224)),
+                      size: 34,
+                    ),
+                  ],
                 ],
               ),
               const SizedBox(height: 10),
