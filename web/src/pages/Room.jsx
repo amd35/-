@@ -1,12 +1,13 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { useNavigate, useParams } from 'react-router-dom'
+import { Link, useNavigate, useParams } from 'react-router-dom'
+import Avatar from '../components/Avatar.jsx'
 import SeatGrid from '../components/SeatGrid.jsx'
 import ChatPanel from '../components/ChatPanel.jsx'
 import GiftSheet from '../components/GiftSheet.jsx'
 import MemberSheet from '../components/MemberSheet.jsx'
 import RoomBanPanel from '../components/RoomBanPanel.jsx'
 import RoomBackgroundSheet from '../components/RoomBackgroundSheet.jsx'
-import RoomMemberList from '../components/RoomMemberList.jsx'
+import RoomToolsSheet from '../components/RoomToolsSheet.jsx'
 import PhotoIcon, { giftIconName } from '../components/PhotoIcon.jsx'
 import { api } from '../lib/api.js'
 import { useAuth, useSocketEvent } from '../lib/store.jsx'
@@ -41,6 +42,8 @@ export default function Room() {
   const [giftTarget, setGiftTarget] = useState(null)
   const [showBans, setShowBans] = useState(false)
   const [showBackgrounds, setShowBackgrounds] = useState(false)
+  const [showTools, setShowTools] = useState(false)
+  const [compact, setCompact] = useState(false)
   const [floats, setFloats] = useState([])
   const joining = useRef(false)
 
@@ -269,6 +272,27 @@ export default function Room() {
     setNotice(t('backgroundApplied'))
   }
 
+  // مشاركة الغرفة: مشاركة النظام إن توفّرت، وإلا نسخ الرابط إلى الحافظة.
+  const shareRoom = async () => {
+    const url = `${window.location.origin}/rooms/${roomNumber}`
+    try {
+      if (navigator.share) {
+        await navigator.share({ title: room?.name || '', url })
+        return
+      }
+      await navigator.clipboard.writeText(url)
+      setNotice(t('roomLinkCopied'))
+    } catch {
+      setNotice(t('roomLinkCopyFailed'))
+    }
+  }
+
+  // «دردشة» في الشريط السفلي: ينزل إلى حقل الكتابة ويضع المؤشر فيه.
+  const focusChat = () => {
+    document.querySelector('.room-chat')?.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
+    document.querySelector('[data-testid="chat-input"]')?.focus()
+  }
+
   if (!room) {
     return (
       <div>
@@ -278,12 +302,13 @@ export default function Room() {
     )
   }
 
-  const myRank = { owner: 3, moderator: 2, assistant: 1, member: 0 }[myRole] ?? -1
   const seated = room.members.filter((member) => member.seat_index !== null)
   const micCount = seated.filter((member) => member.mic_on).length
   const connectedPeers = Object.values(peerStates).filter((state) => state === 'connected').length
   const canBan = myRole === 'owner' || (myRole === 'moderator' && Boolean(myMember?.can_ban))
   const backgroundName = (lang === 'en' ? room.background_name_en : room.background_name_ar) || room.background
+  const levelPercent = user.next_level_xp ? Math.round(((user.xp_into_level || 0) / user.next_level_xp) * 100) : null
+  const voiceLive = Boolean(micOn) || connectedPeers > 0
 
   return (
     <div className="room-screen">
@@ -293,39 +318,88 @@ export default function Room() {
         data-background={room.background}
         style={room.background_url ? { '--room-photo': `url(${room.background_url})` } : undefined}
       >
-        <div className="room-header">
-          <span className="room-mark">
-            <PhotoIcon name="mic" size={22} />
-          </span>
+        <header className="room-header">
+          <div className="room-head-side">
+            <button type="button" className="room-round" data-testid="room-leave" onClick={leave} title={t('leave')}>
+              <span className="room-round-text">{t('leave')}</span>
+            </button>
+            <button
+              type="button"
+              className="room-round"
+              data-testid="room-minimize"
+              onClick={() => setCompact((value) => !value)}
+              title={t('minimizeRoom')}
+              aria-label={t('minimizeRoom')}
+            >
+              <span className="room-round-glyph">{compact ? '+' : '−'}</span>
+            </button>
+            <Link className="room-me" to="/profile" data-testid="room-me" title={t('profile')}>
+              <Avatar user={user} size={32} />
+              {myMember?.seat_index !== null && myMember?.seat_index !== undefined ? (
+                <span className="room-me-seat">{myMember.seat_index + 1}</span>
+              ) : null}
+            </Link>
+          </div>
+
           <div className="room-title">
             <strong>{room.name}</strong>
-            <div className="muted">
-              {t('roomNumber')}: {room.number} · {t('owner')}: {room.owner.display_name || room.owner.username}
-            </div>
+            <span className="muted">
+              {t('owner')}: {room.owner.display_name || room.owner.username}
+            </span>
+            <span className="muted">ID {room.number}</span>
           </div>
-          <div className="topbar-spacer" />
-          <button
-            type="button"
-            className={`like-btn${room.liked_by_me ? ' like-btn-on' : ''}`}
-            data-testid="room-like"
-            onClick={toggleLike}
-            disabled={!myMember}
-            title={t('likeRoom')}
-          >
-            <PhotoIcon name="heart" size={16} />
-            <span data-testid="room-like-count">{room.like_count}</span>
-          </button>
-        </div>
 
-        <div className="room-stats">
-          <span data-testid="room-members">
-            <PhotoIcon name="friends" size={14} /> {room.member_count}
-          </span>
-          <span data-testid="room-seated">
-            <PhotoIcon name="mic" size={14} /> {micCount}/{room.seat_count}
-          </span>
-          <span data-testid="room-free-seats">{room.free_seats} {t('seatFree')}</span>
-        </div>
+          <div className="room-head-side">
+            <button
+              type="button"
+              className="room-round"
+              data-testid="room-members"
+              onClick={() => setShowTools(true)}
+              title={t('members')}
+            >
+              <PhotoIcon name="friends" size={18} />
+              <span className="room-round-count" data-testid="room-members-count">
+                {room.member_count}
+              </span>
+            </button>
+            <button type="button" className="room-round" data-testid="room-share" onClick={shareRoom} title={t('shareRoom')}>
+              <PhotoIcon name="party" size={18} />
+            </button>
+          </div>
+        </header>
+
+        {compact ? null : (
+          <>
+            <div className="room-welcome" data-testid="room-welcome">
+              <span className="room-welcome-text">
+                {t('welcomePrefix')} {room.name}. {t('welcomeSuffix')}
+              </span>
+              <span className={`room-voice-chip${voiceLive ? ' room-voice-chip-on' : ''}`} data-testid="room-voice-state">
+                {voiceLive ? t('voiceConnected') : t('voiceIdle')}
+              </span>
+            </div>
+
+            <div className="room-stats">
+              <span className="room-stat" data-testid="room-level">
+                <PhotoIcon name="crown" size={14} /> {t('levelShort')} {user.level}
+                {levelPercent === null ? null : <b data-testid="room-level-percent">{levelPercent}%</b>}
+              </span>
+              <button
+                type="button"
+                className={`room-stat room-stat-like${room.liked_by_me ? ' room-stat-on' : ''}`}
+                data-testid="room-like"
+                onClick={toggleLike}
+                disabled={!myMember}
+                title={t('likeRoom')}
+              >
+                <PhotoIcon name="trophy" size={16} /> <span data-testid="room-like-count">{room.like_count}</span>
+              </button>
+              <span className="room-stat" data-testid="room-seated">
+                <PhotoIcon name="mic" size={14} /> {micCount}/{room.seat_count}
+              </span>
+            </div>
+          </>
+        )}
 
         <SeatGrid
           room={room}
@@ -336,49 +410,22 @@ export default function Room() {
           onUnseat={releaseSeat}
         />
 
-        <div className="notice" style={{ marginTop: 12 }}>
-          {room.rules ? room.rules.split('\n')[0] : `مرحباً بكم في ${room.name}`}
-        </div>
-
-        <div className="room-actions" style={{ marginTop: 12 }}>
-          {!myMember ? (
+        {!myMember ? (
+          <div className="room-join-row">
             <button type="button" className="btn btn-primary" data-testid="room-join" onClick={() => join()} disabled={Boolean(ban)}>
               {t('joinNow')}
             </button>
-          ) : (
-            <>
-              <button
-                type="button"
-                className={`btn ${micOn ? 'btn-danger' : 'btn-primary'}`}
-                data-testid="room-mic"
-                onClick={toggleMic}
-                disabled={myMember.seat_index === null || myMember.muted_by_mod}
-              >
-                {micOn ? t('micOff') : t('micOn')}
-              </button>
-              {myMember.seat_index === null ? (
-                <span className="muted" data-testid="seat-hint">
-                  اختر مقعداً فارغاً للصعود — المايك يبقى مكتوماً حتى تفتحه
-                </span>
-              ) : null}
-              <button
-                type="button"
-                className="btn"
-                data-testid="room-gift"
-                onClick={() => setShowGift(true)}
-                disabled={!room.gifts_enabled}
-              >
-                <PhotoIcon name="gift" size={16} /> {t('gift')}
-              </button>
-              <button type="button" className="btn" data-testid="room-leave" onClick={leave}>
-                {t('leave')}
-              </button>
-            </>
-          )}
-        </div>
+          </div>
+        ) : null}
+
+        {myMember && myMember.seat_index === null ? (
+          <p className="muted room-hint" data-testid="seat-hint">
+            اختر مقعداً فارغاً للصعود — المايك يبقى مكتوماً حتى تفتحه
+          </p>
+        ) : null}
 
         {myMember ? (
-          <p className="muted" style={{ marginTop: 10 }} data-testid="room-role">
+          <p className="muted room-hint" data-testid="room-role">
             {ROLE_LABEL[myMember.role]} ·{' '}
             {myMember.seat_index === null ? t('listener') : `مقعد ${myMember.seat_index + 1}`} ·{' '}
             {micOn ? 'مايكك مفتوح' : 'مايكك مكتوم'}
@@ -409,64 +456,91 @@ export default function Room() {
             {error}
           </p>
         ) : null}
-
-        {/* إعدادات خلفية الغرفة: زر المالك يفتح منتقي الخلفيات العشرين */}
-        {myRole === 'owner' ? (
-          <div className="row wrap" style={{ marginTop: 12 }}>
-            <button type="button" className="btn" data-testid="open-backgrounds" onClick={() => setShowBackgrounds(true)}>
-              <PhotoIcon name="palette" size={16} /> {t('roomBackgrounds')}
-            </button>
-            <span className="muted" data-testid="room-background-name">
-              {backgroundName}
-            </span>
-          </div>
-        ) : null}
-
-        {canBan ? (
-          <button type="button" className="btn room-bans-toggle" data-testid="toggle-bans" onClick={() => setShowBans((value) => !value)}>
-            <PhotoIcon name="lock" size={16} /> {t('banList')}
-          </button>
-        ) : null}
       </div>
+
+      {room.chat_enabled ? (
+        <div className="room-chat">
+          <ChatPanel
+            messages={messages}
+            chatEnabled={room.chat_enabled}
+            onSend={async (text) => {
+              if (send({ type: 'chat', room_id: roomNumber, text })) return
+              try {
+                const message = await api.post(`/api/rooms/${roomNumber}/messages`, { text })
+                setMessages((previous) => [...previous, { ...message, mine: true }])
+              } catch (err) {
+                setError(err.message)
+              }
+            }}
+          />
+        </div>
+      ) : (
+        <p className="notice">الدردشة معطلة في هذه الغرفة.</p>
+      )}
+
+      <nav className="room-toolbar" aria-label={t('roomToolsTitle')}>
+        <button type="button" className="room-tool" data-testid="room-tools" onClick={() => setShowTools(true)}>
+          <PhotoIcon name="palette" size={22} />
+          <span>{t('roomTools')}</span>
+        </button>
+        <button
+          type="button"
+          className={`room-tool room-speak${micOn ? ' room-speak-on' : ''}`}
+          data-testid="room-mic"
+          onClick={toggleMic}
+          disabled={!myMember || myMember.seat_index === null || myMember.muted_by_mod}
+          title={micOn ? t('micOff') : t('micOn')}
+        >
+          <span className="room-speak-circle">
+            <PhotoIcon name="mic" size={26} />
+          </span>
+          <span>{t('speakTab')}</span>
+        </button>
+        <button type="button" className="room-tool" data-testid="room-chat-tab" onClick={focusChat}>
+          <PhotoIcon name="megaphone" size={22} />
+          <span>{t('chatTab')}</span>
+        </button>
+        <button
+          type="button"
+          className="room-tool"
+          data-testid="room-gift"
+          onClick={() => setShowGift(true)}
+          disabled={!room.gifts_enabled || !myMember}
+        >
+          <PhotoIcon name="gift" size={22} />
+          <span>{t('giftTab')}</span>
+        </button>
+      </nav>
+
+      {showTools ? (
+        <RoomToolsSheet
+          room={room}
+          me={user}
+          isOwner={myRole === 'owner'}
+          canBan={canBan}
+          backgroundName={backgroundName}
+          onClose={() => setShowTools(false)}
+          onSelectMember={(member) => {
+            setShowTools(false)
+            setMemberSheet(member)
+          }}
+          onOpenBackgrounds={() => {
+            setShowTools(false)
+            setShowBackgrounds(true)
+          }}
+          onOpenBans={() => {
+            setShowTools(false)
+            setShowBans(true)
+          }}
+          onShare={shareRoom}
+        />
+      ) : null}
 
       {showBackgrounds && myRole === 'owner' ? (
         <RoomBackgroundSheet room={room} onClose={() => setShowBackgrounds(false)} onApply={applyBackground} />
       ) : null}
 
       {showBans && canBan ? <RoomBanPanel room={room} onUnban={unban} canUnban={myRole === 'owner'} /> : null}
-
-      <RoomMemberList room={room} me={user} onSelect={setMemberSheet} />
-
-      {room.rules ? (
-        <div className="card glass">
-          <h3 className="section-title room-section-title" style={{ marginTop: 0 }}>
-            {t('rules')}
-          </h3>
-          <ul className="rules-list">
-            {room.rules.split('\n').map((line) => (
-              <li key={line}>{line}</li>
-            ))}
-          </ul>
-        </div>
-      ) : null}
-
-      {room.chat_enabled ? (
-        <ChatPanel
-          messages={messages}
-          chatEnabled={room.chat_enabled}
-          onSend={async (text) => {
-            if (send({ type: 'chat', room_id: roomNumber, text })) return
-            try {
-              const message = await api.post(`/api/rooms/${roomNumber}/messages`, { text })
-              setMessages((previous) => [...previous, { ...message, mine: true }])
-            } catch (err) {
-              setError(err.message)
-            }
-          }}
-        />
-      ) : (
-        <p className="notice">الدردشة معطلة في هذه الغرفة.</p>
-      )}
 
       {showGift ? (
         <GiftSheet
