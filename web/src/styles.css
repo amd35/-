@@ -1701,12 +1701,12 @@ body {
   background-attachment: fixed;
 }
 
-/* الصورة الفوتوغرافية في طبقة مستقلة: نعالجها بضبابية ناعمة وتغميق
-   فلا تزاحم المحتوى، مع بقاء عمق الصورة وإضاءتها الحقيقية. */
+/* الصورة الفوتوغرافية في طبقة مستقلة بلا أي ضبابية: الصورة حادّة وواضحة،
+   ومعالجتها فقط بتشبّع وتفتيح خفيفين فتبقى معبّرة عن قسم الصفحة. */
 body::before {
   content: '';
   position: fixed;
-  inset: -9%;
+  inset: -4%;
   z-index: 0;
   pointer-events: none;
   /* الصورة نفسها تتبدّل حسب قسم الصفحة — التفاصيل في القسم 16 */
@@ -1714,13 +1714,15 @@ body::before {
   background-size: cover;
   background-position: var(--surface-focus);
   background-repeat: no-repeat;
-  filter: blur(5px) saturate(1.2) brightness(var(--surface-dim)) contrast(1.05);
+  /* بلا blur إطلاقًا: الصورة صافية (التفتيح المزدوج يرفع إضاءتها قليلًا) */
+  filter: saturate(1.14) contrast(1.05) brightness(1.14) brightness(var(--surface-dim));
   /* دخول ناعم عند تبديل القسم + انزلاق بطيء يعطي إحساس العمق */
   animation: backdropIn 900ms ease-out both, surfaceDriftA 78s ease-in-out infinite alternate;
 }
 
-/* طبقة الإضاءة: نجوم وغبار مضيء، حبيبات دقيقة، وهج علوي، انحناء سفلي،
-   وتوهج ذهبي وزمردي يتبدّل حسب القسم — مع تظليل يضمن وضوح النصوص فوق الصورة. */
+/* طبقة الإضاءة: نجوم وغبار مضيء، حبيبات دقيقة، وتوهج ذهبي وزمردي حسب القسم.
+   بلا ضباب فوق الصورة: الوهج العلوي خفيف والتظليل محصور في أسفل الشاشة
+   حتى تبقى الصورة واضحة مع وضوح النصوص عليها. */
 body::after {
   content: '';
   position: fixed;
@@ -1730,11 +1732,11 @@ body::after {
   background-image:
     var(--stars),
     var(--grain),
-    radial-gradient(120% 55% at 50% -8%, rgba(255, 255, 255, 0.13), rgba(255, 255, 255, 0) 62%),
-    radial-gradient(150% 90% at 50% 120%, rgba(0, 0, 0, 0.58), rgba(0, 0, 0, 0) 62%),
+    radial-gradient(120% 40% at 50% -8%, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0) 60%),
+    radial-gradient(120% 42% at 50% 118%, rgba(0, 0, 0, 0.5), rgba(0, 0, 0, 0) 62%),
     radial-gradient(70% 45% at 92% 6%, var(--surface-warm), rgba(0, 0, 0, 0) 70%),
     radial-gradient(60% 40% at 4% 100%, var(--surface-cool), rgba(0, 0, 0, 0) 70%),
-    linear-gradient(180deg, rgba(6, 41, 36, 0.18) 0%, var(--surface-tint) 52%, rgba(3, 19, 17, 0.8) 100%);
+    linear-gradient(180deg, rgba(6, 41, 36, 0) 34%, var(--surface-tint) 88%, rgba(3, 19, 17, 0.72) 100%);
   background-size: var(--stars-size), 200px 200px, auto, auto, auto, auto, auto;
   background-repeat: repeat, repeat, no-repeat, no-repeat, no-repeat, no-repeat, no-repeat;
   background-position: 0 0, 0 0, 50% 50%, 50% 50%, 50% 50%, 50% 50%, 50% 50%;

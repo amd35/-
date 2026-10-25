@@ -6,7 +6,8 @@ Commons with a free licence (shown per file); the licence travels with the file.
 No AI-generated imagery: only real, freely licensed photographs.
 
 Each file is the Commons thumbnail of the width noted below, used unchanged as a source
-file. The cinematic treatment (soft blur, dimming, colour glow, film grain, slow drift)
+file. The cinematic treatment (dimming, colour glow, film grain, slow drift — no blur,
+the photograph stays sharp)
 is applied in CSS (`body::before` / `body::after` in `web/src/styles.css`, section 16), so
 an asset stays a plain photograph and can be swapped by replacing that one file.
 
