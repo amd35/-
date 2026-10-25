@@ -53,6 +53,19 @@
 - **طبقة الواقعية ثلاثية الأبعاد**: في نهاية `web/src/styles.css` (خامات وذهب وزجاج وظلال وضغط الأزرار
   وانتقالات الصفحات). هذه الطبقة تصميمية بحتة: لا تحمل بيانات ولا تغيّر البنية أو الأصناف أو النصوص.
 
+## صفحات الإدارة في الويب
+- المسارات (خلف تسجيل الدخول): `/dashboard`، `/data-management`، `/item-details?type=&id=`،
+  `/entry-form[?id=]`، `/settings`، `/help`، `/activity-log`، `/system-status`، `/notifications`،
+  `/contact`، `/search`، `/categories` — تُسجَّل في `web/src/App.jsx`، ونقطة الوصول إليها من الملف
+  الشخصي ثم `/settings` (تجمع روابطها كلها). لا يوجد أي تغيير في شريط التنقل السفلي الخماسي.
+- النصوص في `web/src/lib/pageText.js` (ar/en)، والجلب عبر `useRemote` في `web/src/lib/hooks.js`،
+  وشريط العنوان المشترك `web/src/components/PageBar.jsx`. **لا أرقام ثابتة**: كل قيمة من `/api/*`.
+- `/activity-log` يستدعي `/api/admin/audit-logs` ويحتاج صلاحية `audit`؛ الصفحة تعرض تنبيهًا واضحًا
+  لغير المشرف، والأمان يبقى على الخادم عبر `get_admin_user` + `require_permission`.
+- «تواصل معنا»: `POST /api/support` يخزّن الرسالة في جدول `support_messages` (مُهاجَر في
+  `d52c8f1a9b30`) ويُنشئ إشعارًا داخليًا لكل مشرف (نوع `admin` غير قابل للتعطيل)، ويقرأ المستخدم
+  رسائله من `GET /api/support/mine`. لا بريد يُرسَل — التسليم داخل التطبيق فقط.
+
 ## التحقق
 - اختبارات الـ Backend: `docker compose -f docker-compose.base44.yml exec -T api python -m pytest -q`
   (تحتاج خدمة `db` تعمل؛ تُنشئ قاعدة `app_test` تلقائيًا).

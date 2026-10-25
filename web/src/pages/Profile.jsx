@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
+import { Link } from 'react-router-dom'
 import Avatar from '../components/Avatar.jsx'
 import PhotoIcon from '../components/PhotoIcon.jsx'
 import { api } from '../lib/api.js'
@@ -318,6 +319,29 @@ export default function Profile() {
         <button type="button" className="btn" style={{ marginTop: 8 }} onClick={() => api.post('/api/notifications/read-all').then(() => setUnread(0))}>
           تعليم كل الإشعارات كمقروءة
         </button>
+      </div>
+
+      <div className="card glass">
+        <h3 className="section-title" style={{ marginTop: 0 }}>
+          الصفحات
+        </h3>
+        <div className="row wrap">
+          <Link className="btn" to="/settings" data-testid="profile-open-settings">
+            الإعدادات
+          </Link>
+          <Link className="btn" to="/dashboard">
+            لوحة القيادة
+          </Link>
+          <Link className="btn" to="/data-management">
+            إدارة البيانات
+          </Link>
+          <Link className="btn" to="/search">
+            البحث
+          </Link>
+          <Link className="btn" to="/help">
+            مركز المساعدة
+          </Link>
+        </div>
       </div>
 
       {message ? <p className="success-text" data-testid="profile-message">{message}</p> : null}

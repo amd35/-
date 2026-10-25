@@ -286,3 +286,16 @@ def audit_public(entry: Any) -> dict[str, Any]:
         "details": entry.details or {},
         "created_at": iso(entry.created_at),
     }
+
+
+def support_public(message: Any) -> dict[str, Any]:
+    return {
+        "id": message.id,
+        "user_id": message.user_id,
+        "topic": message.topic,
+        "subject": message.subject,
+        "body": message.body,
+        "contact": message.contact,
+        "status": message.status,
+        "created_at": iso(message.created_at),
+    }

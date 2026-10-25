@@ -343,6 +343,21 @@ class Report(Base):
     created_at = Column(DateTime(timezone=True), nullable=False, default=utcnow, index=True)
 
 
+class SupportMessage(Base):
+    """A support request / feedback message sent by a user to the team."""
+
+    __tablename__ = "support_messages"
+
+    id = Column(Integer, primary_key=True)
+    user_id = Column(ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    topic = Column(String(32), nullable=False, default="general")  # general|bug|payment|abuse|suggestion
+    subject = Column(String(120), nullable=False)
+    body = Column(Text, nullable=False)
+    contact = Column(String(120), nullable=False, default="")
+    status = Column(String(16), nullable=False, default="open")  # open|answered|closed
+    created_at = Column(DateTime(timezone=True), nullable=False, default=utcnow, index=True)
+
+
 class AppSetting(Base):
     __tablename__ = "app_settings"
 
