@@ -13,6 +13,7 @@ from . import royal
 from .config import settings
 from .economy import grant_reward, get_wallet
 from .models import AppSetting, Gift, Room, RoomMember, RoomMessage, StoreItem, StorePack, User
+from .room_service import ROOM_SEATS
 from .security import hash_password, verify_password
 from .settings_store import DEFAULTS, get_setting, set_setting
 
@@ -237,15 +238,15 @@ def _seed_room(db: Session) -> None:
             "5. عدم الترويج لأي حسابات خارجية\n"
             "6. الالتزام بالهدوء والنظام"
         ),
-        seat_count=20,
-        locked_seats=[7, 9, 13, 18],
+        seat_count=ROOM_SEATS,
+        locked_seats=[],
         owner_id=owner.id,
         gifts_enabled=True,
         chat_enabled=True,
     )
     db.add(room)
     db.flush()
-    db.add(RoomMember(room_id=room.id, user_id=owner.id, role="owner", seat_index=0, mic_granted=True))
+    db.add(RoomMember(room_id=room.id, user_id=owner.id, role="owner", seat_index=0, mic_on=False))
     db.add(
         RoomMessage(
             room_id=room.id,

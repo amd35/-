@@ -3,7 +3,9 @@ import { useNavigate, useParams } from 'react-router-dom'
 import SeatGrid from '../components/SeatGrid.jsx'
 import ChatPanel from '../components/ChatPanel.jsx'
 import GiftSheet from '../components/GiftSheet.jsx'
-import Avatar from '../components/Avatar.jsx'
+import MemberSheet from '../components/MemberSheet.jsx'
+import RoomBanPanel from '../components/RoomBanPanel.jsx'
+import RoomMemberList from '../components/RoomMemberList.jsx'
 import PhotoIcon, { giftIconName } from '../components/PhotoIcon.jsx'
 import { api } from '../lib/api.js'
 import { useAuth, useSocketEvent } from '../lib/store.jsx'
@@ -30,17 +32,22 @@ export default function Room() {
   const { user, send, subscribe, meta } = useAuth()
   const { t } = useI18n()
   const [room, setRoom] = useState(null)
+  const [ban, setBan] = useState(null)
   const [messages, setMessages] = useState([])
   const [error, setError] = useState('')
   const [notice, setNotice] = useState('')
   const [showGift, setShowGift] = useState(false)
   const [memberSheet, setMemberSheet] = useState(null)
+  const [giftTarget, setGiftTarget] = useState(null)
+  const [showBans, setShowBans] = useState(false)
   const [floats, setFloats] = useState([])
+  const joining = useRef(false)
 
   const roomNumber = Number(roomId)
-  const myMember = room?.members?.find((member) => member.user.id === user.id) || null
+  const myMember = room?.members?.find((member) => member.user.id === user?.id) || null
+  const myRole = myMember?.role || null
 
-  const { micOn, error: voiceError, peerStates, remoteStreams, enableMic, disableMic, leaveVoice } = useVoiceRoom({
+  const { micOn, error: voiceError, peerStates, remoteStreams, speaking, enableMic, disableMic, leaveVoice } = useVoiceRoom({
     room,
     me: user,
     send,
@@ -52,6 +59,7 @@ export default function Room() {
     try {
       const data = await api.get(`/api/rooms/${roomNumber}`)
       setRoom(data.room)
+      setBan(data.ban || null)
       if (data.room.members.some((member) => member.user.id === user.id)) {
         const history = await api.get(`/api/rooms/${roomNumber}/messages?limit=50`)
         setMessages(history.messages.map((message) => ({ ...message, mine: message.sender_id === user.id })))
@@ -65,12 +73,41 @@ export default function Room() {
     load()
   }, [load])
 
+  const join = useCallback(
+    async (password) => {
+      setError('')
+      try {
+        const data = await api.post(`/api/rooms/${roomNumber}/join`, { password: password || null })
+        setRoom(data.room)
+        setBan(null)
+        await load()
+      } catch (err) {
+        setError(err.message)
+      }
+    },
+    [load, roomNumber],
+  )
+
+  // الانضمام تلقائي: من يدخل الغرفة يصبح عضواً ومستمعاً فوراً (بلا رفع يد أو موافقة).
+  useEffect(() => {
+    if (!room || !user || myMember || joining.current) return
+    if (ban || room.password_required) return
+    joining.current = true
+    join().finally(() => {
+      joining.current = false
+    })
+  }, [room, user, myMember, ban, join])
+
   useEffect(() => {
     if (myMember) send({ type: 'join_room', room_id: roomNumber })
   }, [myMember, roomNumber, send])
 
   useSocketEvent('room_state', (payload) => {
     if (payload.room?.id === roomNumber) setRoom(payload.room)
+  })
+  useSocketEvent('room_like', (payload) => {
+    if (payload.room_id !== roomNumber) return
+    setRoom((previous) => (previous ? { ...previous, like_count: payload.like_count } : previous))
   })
   useSocketEvent('chat', (payload) => {
     if (payload.room_id !== roomNumber) return
@@ -82,11 +119,6 @@ export default function Room() {
     setMessages((previous) => [...previous, { id: `gift-${Date.now()}`, kind: 'system', text: label }])
     setFloats((previous) => [...previous, { id: `${Date.now()}-${Math.random()}`, emoji: payload.gift.emoji }])
   })
-  useSocketEvent('mic_request', () => setNotice('هناك طلب صعود إلى المايك'))
-  useSocketEvent('mic_granted', () => {
-    setNotice('تمت الموافقة على المايك — يمكنك الجلوس على مقعد')
-    load()
-  })
   useSocketEvent('muted', (payload) => {
     if (payload.value) {
       disableMic()
@@ -94,8 +126,32 @@ export default function Room() {
     }
     load()
   })
-  useSocketEvent('kicked', () => navigate('/rooms'))
-  useSocketEvent('banned', () => navigate('/rooms'))
+  useSocketEvent('unseated', () => {
+    disableMic()
+    leaveVoice()
+    setNotice('تم إنزالك من المقعد — أنت الآن مستمع')
+    load()
+  })
+  useSocketEvent('voice_leave', () => {
+    disableMic()
+  })
+  useSocketEvent('kicked', () => {
+    leaveVoice()
+    navigate('/rooms')
+  })
+  useSocketEvent('banned', (payload) => {
+    leaveVoice()
+    setNotice(
+      payload?.expires_at
+        ? `تم طردك من الغرفة حتى ${new Date(payload.expires_at).toLocaleString('ar')}`
+        : 'تم طردك من الغرفة',
+    )
+    navigate('/rooms')
+  })
+  useSocketEvent('room_deleted', () => {
+    leaveVoice()
+    navigate('/rooms')
+  })
 
   useEffect(() => {
     if (floats.length === 0) return undefined
@@ -103,23 +159,12 @@ export default function Room() {
     return () => clearTimeout(timer)
   }, [floats])
 
-  const join = async () => {
-    setError('')
-    try {
-      const data = await api.post(`/api/rooms/${roomNumber}/join`, {})
-      setRoom(data.room)
-      await load()
-    } catch (err) {
-      setError(err.message)
-    }
-  }
-
   const leave = async () => {
     leaveVoice()
     try {
       await api.post(`/api/rooms/${roomNumber}/leave`)
     } catch {
-      /* leaving twice is harmless */
+      /* مغادرة المالك لا تحذف الغرفة، والخطأ هنا غير مؤثر */
     }
     send({ type: 'leave_room', room_id: roomNumber })
     navigate('/rooms')
@@ -130,15 +175,18 @@ export default function Room() {
     try {
       const data = await api.post(`/api/rooms/${roomNumber}/seats/${seat}/take`)
       setRoom(data.room)
+      setNotice('صعدت إلى المقعد — المايك مكتوم، افتحه عندما تريد التحدث')
     } catch (err) {
-      setError(err.message)
+      setError(err.message === 'جميع المقاعد مشغولة' ? t('allSeatsBusy') : err.message)
     }
   }
 
-  const toggleHand = async () => {
+  const releaseSeat = async (seat) => {
+    setError('')
     try {
-      const data = await api.post(`/api/rooms/${roomNumber}/hand`, { value: !myMember?.hand_raised })
+      const data = await api.post(`/api/rooms/${roomNumber}/seats/${seat}/release`)
       setRoom(data.room)
+      setNotice(t('listener'))
     } catch (err) {
       setError(err.message)
     }
@@ -148,45 +196,65 @@ export default function Room() {
     setError('')
     if (micOn) {
       await disableMic()
-      try {
-        await api.post(`/api/rooms/${roomNumber}/members/${user.id}/mic`, { value: false })
-      } catch {
-        /* state already broadcast */
-      }
+      api.post(`/api/rooms/${roomNumber}/members/${user.id}/mic`, { value: false }).then((data) => setRoom(data.room)).catch(() => {})
       send({ type: 'mic', room_id: roomNumber, value: false })
       return
     }
-    const started = await enableMic()
-    if (!started) return
+    // التحقق على الخادم أولاً، والمايك لا يُفتح إلا بعد الموافقة.
     try {
       const data = await api.post(`/api/rooms/${roomNumber}/members/${user.id}/mic`, { value: true })
       setRoom(data.room)
-      send({ type: 'mic', room_id: roomNumber, value: true })
     } catch (err) {
       setError(err.message)
-      await disableMic()
+      return
+    }
+    const started = await enableMic()
+    if (!started) {
+      api.post(`/api/rooms/${roomNumber}/members/${user.id}/mic`, { value: false }).catch(() => {})
+      return
+    }
+    send({ type: 'mic', room_id: roomNumber, value: true })
+  }
+
+  const toggleLike = async () => {
+    setError('')
+    try {
+      const data = await api.post(`/api/rooms/${roomNumber}/like`)
+      setRoom(data.room)
+    } catch (err) {
+      setError(err.message)
     }
   }
 
   const moderate = async (action, member, body) => {
     setError('')
+    const path = `/api/rooms/${roomNumber}/members/${member.user.id}/${action}`
+    const data = body ? await api.post(path, body) : await api.post(path)
+    if (data?.room) setRoom(data.room)
+    await load()
+    return data
+  }
+
+  const unseat = async (member) => {
     try {
-      const path = `/api/rooms/${roomNumber}/members/${member.user.id}/${action}`
-      const data = body ? await api.post(path, body) : await api.post(path)
-      if (data?.room) setRoom(data.room)
-      setMemberSheet(null)
-      await load()
+      await moderate('unseat', member)
     } catch (err) {
       setError(err.message)
     }
   }
 
-  const approve = async (member) => {
-    setError('')
+  const unban = async (userId) => {
     try {
-      const data = await api.post(`/api/rooms/${roomNumber}/hands/${member.user.id}/approve`)
-      setRoom(data.room)
-      setMemberSheet(null)
+      await api.del(`/api/rooms/${roomNumber}/bans/${userId}`)
+    } catch (err) {
+      setError(err.message)
+    }
+  }
+
+  const deleteRoom = async () => {
+    try {
+      await api.del(`/api/rooms/${roomNumber}`)
+      navigate('/rooms')
     } catch (err) {
       setError(err.message)
     }
@@ -205,41 +273,62 @@ export default function Room() {
     return (
       <div>
         <h1 className="page-title">{t('rooms')}</h1>
-        {error ? <p className="error-text">{error}</p> : <p className="muted">…</p>}
+        {error ? <p className="error-text" data-testid="room-error">{error}</p> : <p className="muted">…</p>}
       </div>
     )
   }
 
-  const myRank = { owner: 3, moderator: 2, assistant: 1, member: 0 }[myMember?.role] ?? -1
-  const seated = room.members.filter((member) => member.seat_index !== null && member.member_index !== -1)
+  const myRank = { owner: 3, moderator: 2, assistant: 1, member: 0 }[myRole] ?? -1
+  const seated = room.members.filter((member) => member.seat_index !== null)
+  const micCount = seated.filter((member) => member.mic_on).length
   const connectedPeers = Object.values(peerStates).filter((state) => state === 'connected').length
+  const canBan = myRole === 'owner' || (myRole === 'moderator' && Boolean(myMember?.can_ban))
 
   return (
     <div className="room-screen">
       <div className={`room-background bg-${room.background}`}>
         <div className="room-header">
-          <span className="seat-crown" style={{ position: 'static' }}>
-            <PhotoIcon name="crown" size={18} />
+          <span className="room-mark">
+            <PhotoIcon name="mic" size={22} />
           </span>
-          <div>
+          <div className="room-title">
             <strong>{room.name}</strong>
-            <div className="muted">ID: {room.id} · {t('owner')}: {room.owner.display_name || room.owner.username}</div>
+            <div className="muted">
+              {t('roomNumber')}: {room.number} · {t('owner')}: {room.owner.display_name || room.owner.username}
+            </div>
           </div>
           <div className="topbar-spacer" />
-          <div className="room-stats">
-            <span data-testid="room-members">
-              <PhotoIcon name="friends" size={14} /> {room.member_count}
-            </span>
-            <span>
-              <PhotoIcon name="mic" size={14} /> {seated.filter((member) => member.mic_on).length}
-            </span>
-            <span>
-              <PhotoIcon name="hand" size={14} /> {room.hand_requests?.length || 0}
-            </span>
-          </div>
+          <button
+            type="button"
+            className={`like-btn${room.liked_by_me ? ' like-btn-on' : ''}`}
+            data-testid="room-like"
+            onClick={toggleLike}
+            disabled={!myMember}
+            title={t('likeRoom')}
+          >
+            <PhotoIcon name="heart" size={16} />
+            <span data-testid="room-like-count">{room.like_count}</span>
+          </button>
         </div>
 
-        <SeatGrid room={room} me={user} myMember={myMember} onSeatClick={takeSeat} onMemberClick={setMemberSheet} />
+        <div className="room-stats">
+          <span data-testid="room-members">
+            <PhotoIcon name="friends" size={14} /> {room.member_count}
+          </span>
+          <span data-testid="room-seated">
+            <PhotoIcon name="mic" size={14} /> {micCount}/{room.seat_count}
+          </span>
+          <span data-testid="room-free-seats">{room.free_seats} {t('seatFree')}</span>
+        </div>
+
+        <SeatGrid
+          room={room}
+          me={user}
+          speaking={speaking}
+          onSeatClick={takeSeat}
+          onMemberClick={setMemberSheet}
+          onUnseat={releaseSeat}
+        />
 
         <div className="notice" style={{ marginTop: 12 }}>
           {room.rules ? room.rules.split('\n')[0] : `مرحباً بكم في ${room.name}`}
@@ -247,26 +336,35 @@ export default function Room() {
 
         <div className="room-actions" style={{ marginTop: 12 }}>
           {!myMember ? (
-            <button type="button" className="btn btn-primary" data-testid="room-join" onClick={join}>
-              {t('joinRoom')}
+            <button type="button" className="btn btn-primary" data-testid="room-join" onClick={() => join()} disabled={Boolean(ban)}>
+              {t('joinNow')}
             </button>
           ) : (
             <>
-              <button type="button" className="btn" data-testid="room-hand" onClick={toggleHand}>
-                {myMember.hand_raised ? t('lowerHand') : t('raiseHand')}
-              </button>
               <button
                 type="button"
                 className={`btn ${micOn ? 'btn-danger' : 'btn-primary'}`}
                 data-testid="room-mic"
                 onClick={toggleMic}
+                disabled={myMember.seat_index === null || myMember.muted_by_mod}
               >
                 {micOn ? t('micOff') : t('micOn')}
               </button>
-              <button type="button" className="btn" data-testid="room-gift" onClick={() => setShowGift(true)} disabled={!room.gifts_enabled}>
+              {myMember.seat_index === null ? (
+                <span className="muted" data-testid="seat-hint">
+                  اختر مقعداً فارغاً للصعود — المايك يبقى مكتوماً حتى تفتحه
+                </span>
+              ) : null}
+              <button
+                type="button"
+                className="btn"
+                data-testid="room-gift"
+                onClick={() => setShowGift(true)}
+                disabled={!room.gifts_enabled}
+              >
                 <PhotoIcon name="gift" size={16} /> {t('gift')}
               </button>
-              <button type="button" className="btn btn-danger" data-testid="room-leave" onClick={leave}>
+              <button type="button" className="btn" data-testid="room-leave" onClick={leave}>
                 {t('leave')}
               </button>
             </>
@@ -275,21 +373,36 @@ export default function Room() {
 
         {myMember ? (
           <p className="muted" style={{ marginTop: 10 }} data-testid="room-role">
-            {ROLE_LABEL[myMember.role]} · {myMember.seat_index === null ? 'بدون مقعد' : `مقعد ${myMember.seat_index + 1}`} ·{' '}
-            {myMember.mic_granted ? 'مسموح بالمايك' : 'بانتظار الموافقة'}
+            {ROLE_LABEL[myMember.role]} ·{' '}
+            {myMember.seat_index === null ? t('listener') : `مقعد ${myMember.seat_index + 1}`} ·{' '}
+            {micOn ? 'مايكك مفتوح' : 'مايكك مكتوم'}
+            {canBan ? ` · ${t('canBanPermission')}` : ''}
             {connectedPeers > 0 ? ` · ${t('connected')} (${connectedPeers})` : ''}
           </p>
         ) : null}
 
-        {micOn || connectedPeers > 0 ? (
-          <p className="success-text">
-            {connectedPeers > 0 ? t('connected') : t('connecting')} — {micOn ? 'مايكك مفتوح' : 'مايكك مغلق'}
+        {ban ? (
+          <p className="error-text" data-testid="room-ban-notice">
+            {t('youAreBanned')} — {t('bannedUntil')}: {new Date(ban.expires_at).toLocaleString('ar')}
+            {ban.reason ? ` · ${t('banReason')}: ${ban.reason}` : ''}
           </p>
         ) : null}
 
-        {voiceError ? <p className="error-text" data-testid="voice-error">{voiceError}</p> : null}
-        {notice ? <p className="muted" data-testid="room-notice">{notice}</p> : null}
-        {error ? <p className="error-text" data-testid="room-error">{error}</p> : null}
+        {voiceError ? (
+          <p className="error-text" data-testid="voice-error">
+            {voiceError}
+          </p>
+        ) : null}
+        {notice ? (
+          <p className="muted" data-testid="room-notice">
+            {notice}
+          </p>
+        ) : null}
+        {error ? (
+          <p className="error-text" data-testid="room-error">
+            {error}
+          </p>
+        ) : null}
 
         {myRank >= 1 ? (
           <div className="row wrap" style={{ marginTop: 12 }}>
@@ -307,11 +420,21 @@ export default function Room() {
             ))}
           </div>
         ) : null}
+
+        {canBan ? (
+          <button type="button" className="btn room-bans-toggle" data-testid="toggle-bans" onClick={() => setShowBans((value) => !value)}>
+            <PhotoIcon name="lock" size={16} /> {t('banList')}
+          </button>
+        ) : null}
       </div>
+
+      {showBans && canBan ? <RoomBanPanel room={room} onUnban={unban} canUnban={myRole === 'owner'} /> : null}
+
+      <RoomMemberList room={room} me={user} onSelect={setMemberSheet} />
 
       {room.rules ? (
         <div className="card glass">
-          <h3 className="section-title" style={{ marginTop: 0 }}>
+          <h3 className="section-title room-section-title" style={{ marginTop: 0 }}>
             {t('rules')}
           </h3>
           <ul className="rules-list">
@@ -322,44 +445,11 @@ export default function Room() {
         </div>
       ) : null}
 
-      {room.hand_requests?.length && myRank >= 1 ? (
-        <div className="card glass" data-testid="hand-requests">
-          <h3 className="section-title" style={{ marginTop: 0 }}>
-            طلبات المايك
-          </h3>
-          {room.hand_requests.map((request) => {
-            const member = room.members.find((item) => item.user.id === request.user_id)
-            if (!member) return null
-            return (
-              <div className="list-item" key={request.user_id}>
-                <Avatar user={member.user} size={36} />
-                <span>{member.user.display_name || member.user.username}</span>
-                <div className="topbar-spacer" />
-                <button type="button" className="btn btn-primary" onClick={() => approve(member)}>
-                  {t('approve')}
-                </button>
-                <button
-                  type="button"
-                  className="btn"
-                  onClick={() =>
-                    api.post(`/api/rooms/${roomNumber}/hands/${member.user.id}/reject`).then((data) => setRoom(data.room))
-                  }
-                >
-                  {t('reject')}
-                </button>
-              </div>
-            )
-          })}
-        </div>
-      ) : null}
-
       {room.chat_enabled ? (
         <ChatPanel
           messages={messages}
           chatEnabled={room.chat_enabled}
           onSend={async (text) => {
-            // Realtime first; the REST endpoint is the fallback when the socket
-            // is still connecting, so a message is never lost silently.
             if (send({ type: 'chat', room_id: roomNumber, text })) return
             try {
               const message = await api.post(`/api/rooms/${roomNumber}/messages`, { text })
@@ -377,75 +467,30 @@ export default function Room() {
         <GiftSheet
           room={room}
           members={room.members.filter((member) => member.user.id !== user.id)}
-          initialReceiverId={memberSheet?.user.id || null}
-          onClose={() => setShowGift(false)}
+          initialReceiverId={giftTarget?.user.id || memberSheet?.user.id || null}
+          onClose={() => {
+            setShowGift(false)
+            setGiftTarget(null)
+          }}
         />
       ) : null}
 
       {memberSheet ? (
-        <div className="overlay" onClick={() => setMemberSheet(null)}>
-          <div className="glass sheet stack" onClick={(event) => event.stopPropagation()} data-testid="member-sheet">
-            <div className="row">
-              <Avatar user={memberSheet.user} />
-              <div>
-                <strong>{memberSheet.user.display_name || memberSheet.user.username}</strong>
-                <div className="muted">
-                  {ROLE_LABEL[memberSheet.role]} · {t('level')} {memberSheet.user.level}
-                </div>
-              </div>
-            </div>
-            {myRank >= 1 && memberSheet.user.id !== user.id ? (
-              <>
-                <button type="button" className="btn" onClick={() => moderate('mute', memberSheet, { value: !memberSheet.muted_by_mod })}>
-                  {memberSheet.muted_by_mod ? 'إلغاء الكتم' : t('mute')}
-                </button>
-                <button type="button" className="btn" onClick={() => approve(memberSheet)} disabled={!memberSheet.hand_raised}>
-                  {t('approve')} المايك
-                </button>
-                <button type="button" className="btn" onClick={() => setShowGift(true)}>
-                  <PhotoIcon name="gift" size={16} /> {t('gift')}
-                </button>
-              </>
-            ) : null}
-            {myRank >= 2 && memberSheet.user.id !== user.id ? (
-              <>
-                <button type="button" className="btn btn-danger" onClick={() => moderate('kick', memberSheet)}>
-                  {t('kick')}
-                </button>
-                <button type="button" className="btn btn-danger" onClick={() => moderate('ban', memberSheet)}>
-                  {t('ban')}
-                </button>
-              </>
-            ) : null}
-            {myMember?.role === 'owner' && memberSheet.user.id !== user.id ? (
-              <>
-                <button type="button" className="btn" onClick={() => moderate('role', memberSheet, { role: 'moderator' })}>
-                  تعيين مشرف
-                </button>
-                <button type="button" className="btn" onClick={() => moderate('role', memberSheet, { role: 'assistant' })}>
-                  تعيين مساعد
-                </button>
-              </>
-            ) : null}
-            <button
-              type="button"
-              className="btn"
-              onClick={() =>
-                api
-                  .post('/api/reports', { target_type: 'user', target_id: memberSheet.user.id, reason: 'إساءة', details: '' })
-                  .then(() => {
-                    setNotice('تم إرسال بلاغ إلى الإدارة')
-                    setMemberSheet(null)
-                  })
-              }
-            >
-              {t('report')}
-            </button>
-            <button type="button" className="btn" onClick={() => setMemberSheet(null)}>
-              {t('cancel')}
-            </button>
-          </div>
-        </div>
+        <MemberSheet
+          room={room}
+          me={user}
+          member={memberSheet}
+          myRole={myRole}
+          canBan={canBan}
+          onClose={() => setMemberSheet(null)}
+          onAction={moderate}
+          onUnseat={unseat}
+          onGift={(member) => {
+            setGiftTarget(member)
+            setShowGift(true)
+          }}
+          onDelete={deleteRoom}
+        />
       ) : null}
 
       {Object.entries(remoteStreams).map(([id, stream]) => (

@@ -145,7 +145,16 @@ class ApiClient {
   Future<Map<String, dynamic>> leaveRoom(int id) => post('/api/rooms/$id/leave');
   Future<Map<String, dynamic>> takeSeat(int roomId, int seat) => post('/api/rooms/$roomId/seats/$seat/take');
   Future<Map<String, dynamic>> releaseSeat(int roomId, int seat) => post('/api/rooms/$roomId/seats/$seat/release');
-  Future<Map<String, dynamic>> raiseHand(int roomId, bool value) => post('/api/rooms/$roomId/hand', {'value': value});
+  Future<Map<String, dynamic>> likeRoom(int roomId) => post('/api/rooms/$roomId/like');
+  Future<Map<String, dynamic>> unseat(int roomId, int userId) =>
+      post('/api/rooms/$roomId/members/$userId/unseat');
+  Future<Map<String, dynamic>> banMember(int roomId, int userId, String duration, String reason) =>
+      post('/api/rooms/$roomId/members/$userId/ban', {'duration': duration, 'reason': reason});
+  Future<Map<String, dynamic>> roomBans(int roomId) => get('/api/rooms/$roomId/bans');
+  Future<Map<String, dynamic>> unbanMember(int roomId, int userId) =>
+      delete('/api/rooms/$roomId/bans/$userId');
+  Future<Map<String, dynamic>> setBanPermission(int roomId, int userId, bool value) =>
+      post('/api/rooms/$roomId/members/$userId/permissions', {'can_ban': value});
   Future<Map<String, dynamic>> setMic(int roomId, int userId, bool value) =>
       post('/api/rooms/$roomId/members/$userId/mic', {'value': value});
   Future<Map<String, dynamic>> roomMessages(int roomId) => get('/api/rooms/$roomId/messages?limit=50');

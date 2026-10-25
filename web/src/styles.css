@@ -3148,3 +3148,324 @@ body.surface-swap::before {
     font-size: 12px;
   }
 }
+
+/* =====================================================================
+   21) قسم الغرف الصوتية (سوداء/ذهبية): لوح أسود بحدود ذهبية، 12 مقعداً،
+   مؤشر الكلام الحقيقي، قائمة الأعضاء، ولوحة المحظورين.
+   تصميم فقط: لا يحمل بيانات ولا يغيّر البنية أو الوظائف.
+   ===================================================================== */
+.room-screen {
+  --room-ink: #07080b;
+  --room-ink-2: #121008;
+  --room-gold: #f4cc44;
+  --room-gold-soft: rgba(244, 204, 68, 0.35);
+}
+
+.room-background {
+  background-color: var(--room-ink);
+  background-image:
+    radial-gradient(120% 90% at 15% 0%, rgba(244, 204, 68, 0.16), rgba(244, 204, 68, 0) 55%),
+    linear-gradient(180deg, #0b0c10 0%, #14120c 55%, #07080b 100%);
+  border: 1px solid var(--room-gold-soft);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 232, 170, 0.22),
+    inset 0 -50px 70px -40px rgba(0, 0, 0, 0.9),
+    0 24px 44px -24px rgba(0, 0, 0, 0.9);
+}
+
+.room-header {
+  background-image: none;
+  background: linear-gradient(180deg, rgba(20, 18, 12, 0.9), rgba(7, 8, 11, 0.92));
+  border: 1px solid var(--room-gold-soft);
+}
+
+.room-mark {
+  display: grid;
+  place-items: center;
+  width: 42px;
+  height: 42px;
+  border-radius: 14px;
+  background: linear-gradient(180deg, rgba(244, 204, 68, 0.18), rgba(0, 0, 0, 0.4));
+  border: 1px solid var(--room-gold-soft);
+}
+
+.room-title strong {
+  color: var(--room-gold);
+  letter-spacing: 0.2px;
+}
+
+.room-stats {
+  color: var(--room-gold);
+}
+
+.like-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 12px;
+  border-radius: 999px;
+  font-weight: 800;
+  color: var(--room-gold);
+  background: linear-gradient(180deg, rgba(244, 204, 68, 0.12), rgba(0, 0, 0, 0.5));
+  border: 1px solid var(--room-gold-soft);
+  cursor: pointer;
+  transition: transform 140ms var(--ease-soft), box-shadow 140ms ease;
+}
+
+.like-btn:active:not(:disabled) {
+  transform: scale(0.95);
+}
+
+.like-btn-on {
+  background: linear-gradient(180deg, rgba(244, 204, 68, 0.35), rgba(120, 22, 22, 0.55));
+  box-shadow: 0 0 18px rgba(244, 204, 68, 0.35);
+  border-color: var(--room-gold);
+}
+
+.seat-grid {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.seat-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.seat {
+  background-image: none;
+  background: linear-gradient(180deg, rgba(28, 26, 20, 0.92), rgba(9, 10, 13, 0.95));
+  border: 1px solid rgba(244, 204, 68, 0.22);
+  border-radius: 18px;
+  min-height: 108px;
+}
+
+.seat-empty {
+  border-style: dashed;
+  opacity: 0.85;
+}
+
+.seat-taken {
+  border-color: var(--room-gold-soft);
+}
+
+.seat-live {
+  border-color: rgba(244, 204, 68, 0.55);
+}
+
+.seat-speaking {
+  box-shadow:
+    0 0 0 2px rgba(92, 230, 165, 0.85),
+    0 0 24px rgba(92, 230, 165, 0.5),
+    inset 0 1px 0 rgba(255, 255, 255, 0.18);
+}
+
+.seat-avatar {
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  overflow: hidden;
+  background: rgba(0, 0, 0, 0.6);
+  border: 2px solid rgba(244, 204, 68, 0.35);
+  font-size: 13px;
+  font-weight: 800;
+  color: var(--room-gold);
+}
+
+.seat-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* مؤشر الكلام: حلقة نابضة حول صورة من يتحدث فعلاً */
+.seat-avatar-speaking {
+  border-color: var(--ok);
+  animation: speakRing 1.1s ease-in-out infinite;
+}
+
+@keyframes speakRing {
+  0%,
+  100% {
+    box-shadow: 0 0 0 2px rgba(92, 230, 165, 0.55), 0 0 12px rgba(92, 230, 165, 0.35);
+  }
+  50% {
+    box-shadow: 0 0 0 5px rgba(92, 230, 165, 0.28), 0 0 22px rgba(92, 230, 165, 0.6);
+  }
+}
+
+.seat-down {
+  padding: 4px 6px;
+  font-size: 11px;
+  border-radius: 999px;
+  color: var(--room-gold);
+  background: rgba(0, 0, 0, 0.5);
+  border: 1px solid var(--room-gold-soft);
+  cursor: pointer;
+}
+
+.room-section-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--room-gold, var(--gold));
+}
+
+.member-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-height: 320px;
+  overflow-y: auto;
+}
+
+.member-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 8px 10px;
+  border-radius: 14px;
+  background: linear-gradient(180deg, rgba(28, 26, 20, 0.85), rgba(9, 10, 13, 0.9));
+  border: 1px solid rgba(244, 204, 68, 0.18);
+  color: var(--text);
+  text-align: start;
+  cursor: pointer;
+}
+
+.member-row-mine {
+  border-color: var(--room-gold-soft);
+  box-shadow: inset 0 0 0 1px rgba(244, 204, 68, 0.15);
+}
+
+.member-name {
+  display: flex;
+  flex-direction: column;
+  font-weight: 700;
+  font-size: 13px;
+}
+
+.member-role {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--muted);
+}
+
+.member-flags {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-inline-start: auto;
+}
+
+.member-seat {
+  min-width: 24px;
+  padding: 2px 7px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 800;
+  text-align: center;
+  color: var(--room-gold);
+  background: rgba(244, 204, 68, 0.12);
+  border: 1px solid var(--room-gold-soft);
+}
+
+.ban-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.ban-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px;
+  border-radius: 14px;
+  background: linear-gradient(180deg, rgba(36, 16, 16, 0.7), rgba(10, 8, 8, 0.9));
+  border: 1px solid rgba(255, 122, 107, 0.3);
+}
+
+.ban-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-size: 12px;
+}
+
+.ban-box {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px;
+  border-radius: 14px;
+  background: rgba(0, 0, 0, 0.35);
+  border: 1px solid rgba(255, 122, 107, 0.28);
+}
+
+.member-sheet {
+  max-height: 86vh;
+  overflow-y: auto;
+}
+
+.room-bans-toggle {
+  margin-top: 12px;
+  align-self: flex-start;
+}
+
+.room-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.room-card-media {
+  display: grid;
+  place-items: center;
+  width: 58px;
+  height: 58px;
+  border-radius: 16px;
+  overflow: hidden;
+  background: linear-gradient(180deg, rgba(28, 26, 20, 0.9), rgba(9, 10, 13, 0.95));
+  border: 1px solid var(--gold-deep, #c98f18);
+  flex: 0 0 auto;
+}
+
+.room-card-media img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.room-card-body {
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
+.room-card-title {
+  color: var(--gold);
+}
+
+@media (min-width: 620px) {
+  .seat-grid {
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 430px) {
+  .seat {
+    min-height: 96px;
+    padding: 6px 2px;
+  }
+
+  .seat-avatar {
+    width: 34px;
+    height: 34px;
+  }
+
+  .room-card {
+    flex-wrap: wrap;
+  }
+}

@@ -321,9 +321,19 @@ def stats(user: User = Depends(get_admin_user), db: Session = Depends(get_db)):
                 db.execute(select(func.count(User.id)).where(User.last_seen_at >= day_start)).scalar() or 0
             ),
             "in_voice_rooms": int(
-                db.execute(select(func.count(func.distinct(RoomMember.user_id)))).scalar() or 0
+                db.execute(
+                    select(func.count(func.distinct(RoomMember.user_id))).where(
+                        RoomMember.seat_index.is_not(None)
+                    )
+                ).scalar()
+                or 0
             ),
-            "seated": int(db.execute(select(func.count(RoomMember.id))).scalar() or 0),
+            "seated": int(
+                db.execute(
+                    select(func.count(RoomMember.id)).where(RoomMember.seat_index.is_not(None))
+                ).scalar()
+                or 0
+            ),
         },
         "rooms": {
             "total": int(db.execute(select(func.count(Room.id))).scalar() or 0),

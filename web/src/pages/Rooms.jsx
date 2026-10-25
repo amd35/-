@@ -2,7 +2,6 @@ import { useCallback, useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { api } from '../lib/api.js'
 import PhotoIcon from '../components/PhotoIcon.jsx'
-import { useAuth } from '../lib/store.jsx'
 import { useI18n } from '../lib/i18n.jsx'
 
 const BACKGROUNDS = ['sunset', 'night', 'desert', 'sea', 'royal', 'aurora']
@@ -10,20 +9,20 @@ const BACKGROUNDS = ['sunset', 'night', 'desert', 'sea', 'royal', 'aurora']
 const emptyRoom = {
   name: '',
   description: '',
-  seat_count: 20,
+  image_url: '',
+  background: 'sunset',
   is_private: false,
   password: '',
   gifts_enabled: true,
   chat_enabled: true,
   rules: '',
-  background: 'sunset',
 }
 
 export default function Rooms() {
-  const { user } = useAuth()
   const { t } = useI18n()
   const navigate = useNavigate()
   const [rooms, setRooms] = useState([])
+  const [myRoomId, setMyRoomId] = useState(null)
   const [loaded, setLoaded] = useState(false)
   const [query, setQuery] = useState('')
   const [form, setForm] = useState(emptyRoom)
@@ -36,6 +35,7 @@ export default function Rooms() {
     try {
       const data = await api.get(`/api/rooms${query ? `?query=${encodeURIComponent(query)}` : ''}`)
       setRooms(data.rooms)
+      setMyRoomId(data.my_room_id ?? null)
     } catch (err) {
       setError(err.message)
     } finally {
@@ -75,49 +75,83 @@ export default function Rooms() {
     <div>
       <div className="row-between">
         <h1 className="page-title">{t('rooms')}</h1>
-        <button type="button" className="btn btn-primary" data-testid="open-create-room" onClick={() => setShowCreate(true)}>
-          + {t('createRoom')}
-        </button>
+        {myRoomId ? (
+          <button type="button" className="btn btn-accent" data-testid="go-my-room" onClick={() => navigate(`/rooms/${myRoomId}`)}>
+            {t('goToMyRoom')}
+          </button>
+        ) : (
+          <button type="button" className="btn btn-primary" data-testid="open-create-room" onClick={() => setShowCreate(true)}>
+            + {t('createRoom')}
+          </button>
+        )}
       </div>
 
       <div className="card glass">
         <div className="field">
           <label htmlFor="room-search">{t('search')}</label>
-          <input id="room-search" data-testid="room-search" value={query} onChange={(event) => setQuery(event.target.value)} placeholder={t('search')} />
+          <input
+            id="room-search"
+            data-testid="room-search"
+            value={query}
+            onChange={(event) => setQuery(event.target.value)}
+            placeholder={t('search')}
+          />
         </div>
+        <p className="muted" style={{ marginBottom: 0 }}>
+          {myRoomId ? t('oneRoomOnly') : 'غرفة واحدة لكل مستخدم — منصة صوتية بـ 12 مقعداً، الانضمام مباشر بلا موافقة.'}
+        </p>
       </div>
 
-      {error ? <p className="error-text" data-testid="rooms-error">{error}</p> : null}
+      {error ? (
+        <p className="error-text" data-testid="rooms-error">
+          {error}
+        </p>
+      ) : null}
 
       <div className="stack">
-        {loaded && rooms.length === 0 ? <p className="muted" data-testid="rooms-empty">{t('noRooms')}</p> : null}
+        {loaded && rooms.length === 0 ? (
+          <p className="muted" data-testid="rooms-empty">
+            {t('noRooms')}
+          </p>
+        ) : null}
         {rooms.map((room) => (
-          <div className="card glass" key={room.id} data-testid={`room-card-${room.id}`}>
-            <div className="row-between">
-              <div>
-                <strong>
-                  {room.name} {room.is_private ? <PhotoIcon name="lock" size={14} /> : ''}
-                </strong>
-                <div className="muted">{room.description || '—'}</div>
-                <div className="room-stats" style={{ marginTop: 6 }}>
-                  <span>
-                    <PhotoIcon name="friends" size={14} /> {room.member_count}
-                  </span>
-                  <span>
-                    <PhotoIcon name="mic" size={14} /> {room.seat_count}
-                  </span>
-                  <span className="muted">{room.owner.display_name || room.owner.username}</span>
-                </div>
-              </div>
-              <button
-                type="button"
-                className="btn btn-accent"
-                data-testid={`join-room-${room.id}`}
-                onClick={() => (room.password_required ? setPasswordFor(room) : join(room))}
-              >
-                {t('joinRoom')}
-              </button>
+          <div className="card glass room-card" key={room.id} data-testid={`room-card-${room.id}`}>
+            <div className="room-card-media">
+              {room.image_url ? (
+                <img src={room.image_url} alt={room.name} loading="lazy" />
+              ) : (
+                <PhotoIcon name="mic" size={40} />
+              )}
             </div>
+            <div className="room-card-body">
+              <strong className="room-card-title">
+                {room.name} {room.is_private ? <PhotoIcon name="lock" size={14} /> : ''}
+              </strong>
+              <div className="muted">
+                {t('roomNumber')}: {room.number}
+              </div>
+              <div className="muted">{room.description || '—'}</div>
+              <div className="room-stats" style={{ marginTop: 6 }}>
+                <span data-testid={`room-card-members-${room.id}`}>
+                  <PhotoIcon name="friends" size={14} /> {room.member_count}
+                </span>
+                <span>
+                  <PhotoIcon name="mic" size={14} /> {room.seat_count}
+                </span>
+                <span data-testid={`room-card-likes-${room.id}`}>
+                  <PhotoIcon name="heart" size={14} /> {room.like_count}
+                </span>
+                <span className="muted">{room.owner.display_name || room.owner.username}</span>
+              </div>
+            </div>
+            <button
+              type="button"
+              className="btn btn-accent"
+              data-testid={`join-room-${room.id}`}
+              onClick={() => (room.password_required ? setPasswordFor(room) : join(room))}
+            >
+              {t('joinRoom')}
+            </button>
           </div>
         ))}
       </div>
@@ -147,34 +181,30 @@ export default function Rooms() {
                 onChange={(event) => setForm({ ...form, description: event.target.value })}
               />
             </div>
-            <div className="grid-two">
-              <div className="field">
-                <label htmlFor="room-seats">{t('seats')}</label>
-                <input
-                  id="room-seats"
-                  data-testid="create-room-seats"
-                  type="number"
-                  min="4"
-                  max="24"
-                  value={form.seat_count}
-                  onChange={(event) => setForm({ ...form, seat_count: Number(event.target.value) })}
-                />
-              </div>
-              <div className="field">
-                <label htmlFor="room-background">الخلفية</label>
-                <select
-                  id="room-background"
-                  data-testid="create-room-background"
-                  value={form.background}
-                  onChange={(event) => setForm({ ...form, background: event.target.value })}
-                >
-                  {BACKGROUNDS.map((background) => (
-                    <option key={background} value={background}>
-                      {background}
-                    </option>
-                  ))}
-                </select>
-              </div>
+            <div className="field">
+              <label htmlFor="room-image">صورة الغرفة (رابط)</label>
+              <input
+                id="room-image"
+                data-testid="create-room-image"
+                value={form.image_url}
+                onChange={(event) => setForm({ ...form, image_url: event.target.value })}
+                placeholder="https://…"
+              />
+            </div>
+            <div className="field">
+              <label htmlFor="room-background">الخلفية</label>
+              <select
+                id="room-background"
+                data-testid="create-room-background"
+                value={form.background}
+                onChange={(event) => setForm({ ...form, background: event.target.value })}
+              >
+                {BACKGROUNDS.map((background) => (
+                  <option key={background} value={background}>
+                    {background}
+                  </option>
+                ))}
+              </select>
             </div>
             <div className="field">
               <label htmlFor="room-rules">{t('rules')}</label>
@@ -255,10 +285,6 @@ export default function Rooms() {
           </div>
         </div>
       ) : null}
-
-      <p className="muted" style={{ marginTop: 18 }}>
-        {t('friends')}: {user.username}
-      </p>
     </div>
   )
 }

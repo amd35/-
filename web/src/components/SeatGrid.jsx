@@ -1,7 +1,11 @@
 import PhotoIcon from './PhotoIcon.jsx'
 import { useI18n } from '../lib/i18n.jsx'
 
-export default function SeatGrid({ room, me, onSeatClick, onMemberClick, myMember }) {
+/**
+ * منصة صوتية بـ 12 مقعداً: الصعود مباشر إلى أي مقعد فارغ، والمايك مكتوم افتراضياً.
+ * المؤشر الحوّل صورة المستخدم يظهر عند الكلام الفعلي (قياس مستوى الصوت).
+ */
+export default function SeatGrid({ room, me, onSeatClick, onMemberClick, speaking = {}, onUnseat }) {
   const { t } = useI18n()
   if (!room) return null
 
@@ -16,61 +20,75 @@ export default function SeatGrid({ room, me, onSeatClick, onMemberClick, myMembe
     <div className="seat-grid" data-testid="seat-grid">
       {seats.map((seat) => {
         const member = bySeat.get(seat)
-        const isOwnerSeat = seat === 0
         const isLocked = locked.has(seat)
+        const isMine = Boolean(member && me && member.user.id === me.id)
+        const isOwnerSeat = Boolean(member && room.owner && member.user.id === room.owner.id)
+        const isTalking = Boolean(member && member.mic_on && speaking[member.user.id])
         const classes = [
           'seat',
-          isOwnerSeat ? 'seat-owner' : '',
+          member ? 'seat-taken' : 'seat-empty',
           isLocked ? 'seat-locked' : '',
-          member && me && member.user.id === me.id ? 'seat-mine' : '',
-          member && member.mic_on ? 'seat-speaking' : '',
+          isMine ? 'seat-mine' : '',
+          member && member.mic_on ? 'seat-live' : '',
+          isTalking ? 'seat-speaking' : '',
         ]
           .filter(Boolean)
           .join(' ')
 
         return (
-          <button
-            type="button"
-            key={seat}
-            className={classes}
-            data-testid={`seat-${seat}`}
-            onClick={() => (member ? onMemberClick?.(member) : onSeatClick?.(seat))}
-          >
-            <span className="seat-number">{seat + 1}</span>
-            {isOwnerSeat ? (
-              <span className="seat-crown">
-                <PhotoIcon name="crown" size={16} />
-              </span>
+          <div className="seat-cell" key={seat}>
+            <button
+              type="button"
+              className={classes}
+              data-testid={`seat-${seat}`}
+              data-speaking={isTalking ? 'true' : 'false'}
+              onClick={() => (member ? onMemberClick?.(member) : onSeatClick?.(seat))}
+              disabled={isLocked && !member}
+            >
+              <span className="seat-number">{seat + 1}</span>
+              {isOwnerSeat ? (
+                <span className="seat-crown">
+                  <PhotoIcon name="crown" size={14} />
+                </span>
+              ) : null}
+              {member ? (
+                <>
+                  <span className={`seat-avatar${isTalking ? ' seat-avatar-speaking' : ''}`}>
+                    {member.user.avatar_url ? (
+                      <img src={member.user.avatar_url} alt={member.user.display_name} />
+                    ) : (
+                      (member.user.display_name || member.user.username).slice(0, 2)
+                    )}
+                  </span>
+                  <span className="seat-name">{member.user.display_name || member.user.username}</span>
+                  <span className="seat-mic" title={member.mic_on ? t('micOn') : t('micOff')}>
+                    {member.mic_on ? (
+                      <PhotoIcon name="mic" size={15} />
+                    ) : (
+                      <PhotoIcon name="mic" size={15} className="photo-icon-dim" />
+                    )}
+                  </span>
+                </>
+              ) : (
+                <>
+                  <span className="seat-mic">
+                    <PhotoIcon name={isLocked ? 'lock' : 'mic'} size={20} className="photo-icon-dim" />
+                  </span>
+                  <span className="seat-name muted">{isLocked ? t('locked') : t('seatFree')}</span>
+                </>
+              )}
+            </button>
+            {isMine && member?.seat_index !== null ? (
+              <button
+                type="button"
+                className="seat-down"
+                data-testid={`seat-down-${seat}`}
+                onClick={() => onUnseat?.(seat)}
+              >
+                {t('leaveSeat')}
+              </button>
             ) : null}
-            {member ? (
-              <>
-                <span className="avatar" style={{ width: 38, height: 38 }}>
-                  {member.user.avatar_url ? (
-                    <img src={member.user.avatar_url} alt={member.user.display_name} />
-                  ) : (
-                    (member.user.display_name || member.user.username).slice(0, 2)
-                  )}
-                </span>
-                <span className="seat-name">{member.user.display_name || member.user.username}</span>
-                <span className="seat-mic">
-                  {member.mic_on ? (
-                    <PhotoIcon name="mic" size={15} />
-                  ) : member.hand_raised ? (
-                    <PhotoIcon name="hand" size={15} />
-                  ) : (
-                    <PhotoIcon name="mic" size={15} className="photo-icon-dim" />
-                  )}
-                </span>
-              </>
-            ) : (
-              <>
-                <span className="seat-mic">
-                  <PhotoIcon name={isLocked ? 'lock' : 'mic'} size={22} />
-                </span>
-                <span className="seat-name muted">{isLocked ? t('locked') : t('seats')}</span>
-              </>
-            )}
-          </button>
+          </div>
         )
       })}
     </div>

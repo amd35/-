@@ -45,7 +45,6 @@ class _RoomsScreenState extends State<RoomsScreen> {
     final name = TextEditingController();
     final description = TextEditingController();
     final password = TextEditingController();
-    var seats = 20;
     var isPrivate = false;
     final created = await showDialog<bool>(
       context: context,
@@ -60,21 +59,9 @@ class _RoomsScreenState extends State<RoomsScreen> {
                 TextField(controller: name, decoration: const InputDecoration(labelText: 'اسم الغرفة')),
                 TextField(controller: description, decoration: const InputDecoration(labelText: 'الوصف')),
                 TextField(controller: password, obscureText: true, decoration: const InputDecoration(labelText: 'كلمة المرور (للغرف الخاصة)')),
-                Row(
-                  children: [
-                    const Text('عدد المقاعد'),
-                    Expanded(
-                      child: Slider(
-                        value: seats.toDouble(),
-                        min: 4,
-                        max: 20,
-                        divisions: 16,
-                        label: '$seats',
-                        onChanged: (value) => setDialogState(() => seats = value.round()),
-                      ),
-                    ),
-                    Text('$seats'),
-                  ],
+                const Align(
+                  alignment: AlignmentDirectional.centerStart,
+                  child: Text('منصة صوتية بـ 12 مقعداً', style: TextStyle(fontSize: 12, color: AppColors.muted)),
                 ),
                 SwitchListTile(
                   contentPadding: EdgeInsets.zero,
@@ -93,7 +80,6 @@ class _RoomsScreenState extends State<RoomsScreen> {
                   await AppScope.of(context).api.createRoom({
                     'name': name.text.trim(),
                     'description': description.text.trim(),
-                    'seat_count': seats,
                     'is_private': isPrivate,
                     if (password.text.isNotEmpty) 'password': password.text,
                   });
@@ -544,16 +530,16 @@ class _RoomScreenState extends State<RoomScreen> {
                 },
                 child: Text(member['muted_by_mod'] == true ? 'إلغاء الكتم' : 'كتم'),
               ),
-            if (myRank >= 1 && member['hand_raised'] == true)
-              ElevatedButton(
+            if (myRank >= 1 && member['seat_index'] != null)
+              OutlinedButton(
                 onPressed: () async {
                   Navigator.pop(context);
                   await _guard(() async {
-                    await api.post('/api/rooms/${widget.roomId}/hands/${member['user']['id']}/approve');
+                    await api.unseat(widget.roomId, member['user']['id'] as int);
                     await _load();
                   });
                 },
-                child: const Text('الموافقة على المايك'),
+                child: const Text('إنزال من المقعد'),
               ),
             if (myRank >= 2)
               OutlinedButton(
@@ -566,16 +552,53 @@ class _RoomScreenState extends State<RoomScreen> {
                 },
                 child: const Text('طرد من الغرفة'),
               ),
-            if (myRank >= 2)
+            if (myRank >= 2 && member['user']['id'] != _room?['owner']?['id'])
+              OutlinedButton(
+                onPressed: () async {
+                  Navigator.pop(context);
+                  final choice = await showDialog<String>(
+                    context: context,
+                    builder: (dialogContext) => AlertDialog(
+                      title: const Text('طرد من الغرفة'),
+                      content: const Text('اختر مدة الطرد: ساعتان أو 12 شهراً.'),
+                      actions: [
+                        TextButton(
+                          onPressed: () => Navigator.pop(dialogContext, '2h'),
+                          child: const Text('ساعتان'),
+                        ),
+                        TextButton(
+                          onPressed: () => Navigator.pop(dialogContext, '12mo'),
+                          child: const Text('12 شهراً'),
+                        ),
+                        TextButton(
+                          onPressed: () => Navigator.pop(dialogContext, null),
+                          child: const Text('إلغاء'),
+                        ),
+                      ],
+                    ),
+                  );
+                  if (choice == null) return;
+                  await _guard(() async {
+                    await api.banMember(widget.roomId, member['user']['id'] as int, choice, '');
+                    await _load();
+                  });
+                },
+                child: const Text('طرد مؤقت'),
+              ),
+            if (myRank >= 3 && member['role'] == 'moderator')
               OutlinedButton(
                 onPressed: () async {
                   Navigator.pop(context);
                   await _guard(() async {
-                    await api.post('/api/rooms/${widget.roomId}/members/${member['user']['id']}/ban');
+                    await api.setBanPermission(
+                      widget.roomId,
+                      member['user']['id'] as int,
+                      member['can_ban'] != true,
+                    );
                     await _load();
                   });
                 },
-                child: const Text('حظر'),
+                child: Text(member['can_ban'] == true ? 'سحب صلاحية الطرد' : 'منح صلاحية الطرد'),
               ),
             if (myRank >= 3)
               OutlinedButton(
@@ -624,7 +647,7 @@ class _RoomScreenState extends State<RoomScreen> {
     }
     final locked = ((room['locked_seats'] as List?) ?? []).map((value) => value as int).toSet();
     final myMember = _myMember;
-    final listening = members.where((member) => member['hand_raised'] == true).length;
+    final likes = room['like_count'] ?? 0;
 
     return SunsetScaffold(
       colors: background,
@@ -640,7 +663,7 @@ class _RoomScreenState extends State<RoomScreen> {
           actions: [
             Padding(
               padding: const EdgeInsets.only(left: 8),
-              child: Center(child: Text('👥 ${room['member_count']} · 🎤 ${members.where((m) => m['mic_on'] == true).length} · ✋ $listening')),
+              child: Center(child: Text('👥 ${room['member_count']} · 🎤 ${members.where((m) => m['mic_on'] == true).length} · ❤️ $likes')),
             ),
           ],
         ),
@@ -668,7 +691,7 @@ class _RoomScreenState extends State<RoomScreen> {
                     index: seat,
                     member: seated[seat],
                     locked: locked.contains(seat),
-                    isOwnerSeat: seat == 0,
+                    isOwnerSeat: seated[seat]?['user']?['id'] == room['owner']['id'],
                     onTap: () async {
                       final occupant = seated[seat];
                       if (occupant != null && occupant['user']['id'] != _myId) {
@@ -697,10 +720,10 @@ class _RoomScreenState extends State<RoomScreen> {
                 children: [
                   OutlinedButton(
                     onPressed: () => _guard(() async {
-                      await AppScope.of(context).api.raiseHand(widget.roomId, !(myMember['hand_raised'] == true));
+                      await AppScope.of(context).api.likeRoom(widget.roomId);
                       await _load();
                     }),
-                    child: Text(myMember['hand_raised'] == true ? 'إنزال اليد' : 'رفع اليد ✋'),
+                    child: Text('إعجاب ❤️ ${room['like_count'] ?? 0}'),
                   ),
                   ElevatedButton(
                     onPressed: _micOn ? _disableMic : _enableMic,
@@ -713,8 +736,8 @@ class _RoomScreenState extends State<RoomScreen> {
             const SizedBox(height: 10),
             if (myMember != null)
               Text(
-                '${_roleLabel[myMember['role']]} · ${myMember['seat_index'] == null ? 'بدون مقعد' : 'مقعد ${(myMember['seat_index'] as int) + 1}'} · '
-                '${myMember['mic_granted'] == true ? 'مسموح بالمايك' : 'بانتظار الموافقة'}',
+                '${_roleLabel[myMember['role']]} · ${myMember['seat_index'] == null ? 'مستمع' : 'مقعد ${(myMember['seat_index'] as int) + 1}'} · '
+                '${_micOn ? 'مايكك مفتوح' : 'مايكك مكتوم'}',
                 style: const TextStyle(color: AppColors.muted, fontSize: 12),
               ),
             if (room['gifts_enabled'] != true)

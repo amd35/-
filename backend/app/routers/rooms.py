@@ -1,20 +1,29 @@
-"""Voice rooms: creation, membership, seats, mic permissions, moderation."""
+"""Voice rooms: creation (one per user), direct joining, 12 seats, mics, bans."""
+import datetime as dt
 from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from pydantic import BaseModel, Field
 from sqlalchemy import func, or_, select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from ..db import get_db
-from ..models import Report, Room, RoomBan, RoomMember, RoomMessage, User
+from ..models import Report, Room, RoomBan, RoomLike, RoomMember, RoomMessage, User, utcnow
 from ..notifications import create_notification
 from ..realtime import hub
 from ..room_service import (
-    is_banned,
+    BAN_DURATIONS,
+    ROOM_SEATS,
+    active_ban,
+    ban_user,
+    is_room_admin,
+    like_count,
     member_count,
     membership,
+    purge_expired_bans,
     rank,
+    require_ban_permission,
     require_member,
     require_room,
     require_role,
@@ -34,7 +43,6 @@ class RoomIn(BaseModel):
     description: str = ""
     image_url: str = ""
     background: str = "sunset"
-    seat_count: int = Field(default=20, ge=4, le=24)
     is_private: bool = False
     password: Optional[str] = Field(default=None, max_length=64)
     rules: str = ""
@@ -48,7 +56,6 @@ class RoomPatch(BaseModel):
     description: Optional[str] = None
     image_url: Optional[str] = None
     background: Optional[str] = None
-    seat_count: Optional[int] = Field(default=None, ge=4, le=24)
     is_private: Optional[bool] = None
     password: Optional[str] = Field(default=None, max_length=64)
     clear_password: bool = False
@@ -71,6 +78,10 @@ class RoleIn(BaseModel):
     role: str
 
 
+class PermissionIn(BaseModel):
+    can_ban: bool
+
+
 class OwnerIn(BaseModel):
     user_id: int
 
@@ -88,10 +99,26 @@ class ReportIn(BaseModel):
     details: str = ""
 
 
-def _broadcast(db: Session, room: Room) -> dict:
-    state = room_state(db, room)
+class BanIn(BaseModel):
+    duration: str = Field(default="2h")
+    reason: str = Field(default="", max_length=200)
+
+
+def _broadcast(db: Session, room: Room, viewer: Optional[User] = None) -> dict:
+    state = room_state(db, room, viewer)
     hub.notify_room(room.id, {"type": "room_state", "room": state})
     return state
+
+
+def _owned_open_room(db: Session, user_id: int) -> Optional[Room]:
+    return db.execute(
+        select(Room).where(Room.owner_id == user_id, Room.status == "open")
+    ).scalar_one_or_none()
+
+
+def _my_room_id(db: Session, user_id: int) -> Optional[int]:
+    room = _owned_open_room(db, user_id)
+    return room.id if room is not None else None
 
 
 @router.get("")
@@ -113,12 +140,35 @@ def list_rooms(
     payload = []
     for room in rooms:
         owner = db.get(User, room.owner_id)
-        payload.append(room_public(room, owner, member_count(db, room.id)))
-    return {"rooms": payload}
+        payload.append(
+            room_public(
+                room,
+                owner,
+                member_count(db, room.id),
+                like_count(db, room.id),
+                bool(
+                    db.execute(
+                        select(RoomLike.id).where(RoomLike.room_id == room.id, RoomLike.user_id == user.id)
+                    ).first()
+                ),
+            )
+        )
+    return {
+        "rooms": payload,
+        # غرفة المستخدم الواحدة: الواجهة تخفي زر الإنشاء عندما تكون موجودة.
+        "my_room_id": _my_room_id(db, user.id),
+    }
 
 
 @router.post("", status_code=status.HTTP_201_CREATED)
 def create_room(payload: RoomIn, user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    """غرفة واحدة فقط لكل مستخدم — والمنع مطبّق أيضاً بفهرس فريد في قاعدة البيانات."""
+    existing = _owned_open_room(db, user.id)
+    if existing is not None:
+        raise HTTPException(
+            status.HTTP_409_CONFLICT,
+            f"لديك غرفة بالفعل ({existing.name}) — احذفها أولاً لإنشاء غرفة أخرى",
+        )
     background = payload.background if payload.background in BACKGROUNDS else "sunset"
     room = Room(
         name=payload.name.strip(),
@@ -126,7 +176,7 @@ def create_room(payload: RoomIn, user: User = Depends(get_current_user), db: Ses
         image_url=payload.image_url.strip()[:512],
         background=background,
         rules=payload.rules.strip()[:2000],
-        seat_count=payload.seat_count,
+        seat_count=ROOM_SEATS,
         is_private=payload.is_private,
         password_hash=hash_password(payload.password) if payload.is_private and payload.password else None,
         gifts_enabled=payload.gifts_enabled,
@@ -136,16 +186,12 @@ def create_room(payload: RoomIn, user: User = Depends(get_current_user), db: Ses
         owner_id=user.id,
     )
     db.add(room)
-    db.flush()
-    db.add(
-        RoomMember(
-            room_id=room.id,
-            user_id=user.id,
-            role="owner",
-            seat_index=0,
-            mic_granted=True,
-        )
-    )
+    try:
+        db.flush()
+    except IntegrityError as exc:  # القيد الفريد على قاعدة البيانات (غرفة واحدة لكل مستخدم)
+        db.rollback()
+        raise HTTPException(status.HTTP_409_CONFLICT, "لديك غرفة بالفعل") from exc
+    db.add(RoomMember(room_id=room.id, user_id=user.id, role="owner", seat_index=0, mic_on=False))
     db.add(
         RoomMessage(
             room_id=room.id,
@@ -156,13 +202,32 @@ def create_room(payload: RoomIn, user: User = Depends(get_current_user), db: Ses
     )
     db.commit()
     db.refresh(room)
-    return {"room": room_state(db, room)}
+    return {"room": room_state(db, room, user)}
 
 
 @router.get("/{room_id}")
 def get_room(room_id: int, user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     room = require_room(db, room_id)
-    return {"room": room_state(db, room)}
+    return {"room": room_state(db, room, user), "ban": _ban_payload(active_ban(db, room.id, user.id))}
+
+
+@router.delete("/{room_id}")
+def delete_room(room_id: int, user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    """حذف الغرفة (المالك): يحرّر حصة الغرفة الواحدة ويحذف أعضاءها وعقوباتها."""
+    room = require_room(db, room_id)
+    if not is_room_admin(room, user):
+        raise HTTPException(status.HTTP_403_FORBIDDEN, "حذف الغرفة من صلاحيات مالكها")
+    member_ids = [
+        row.user_id
+        for row in db.execute(select(RoomMember).where(RoomMember.room_id == room.id)).scalars().all()
+    ]
+    db.delete(room)
+    db.commit()
+    for member_id in member_ids:
+        if member_id != user.id:
+            hub.notify_user(member_id, {"type": "room_deleted", "room_id": room_id})
+    hub.notify_room(room_id, {"type": "room_deleted", "room_id": room_id})
+    return {"status": "deleted", "room_id": room_id}
 
 
 @router.patch("/{room_id}")
@@ -174,16 +239,20 @@ def update_room(
 ):
     room = require_room(db, room_id)
     member = membership(db, room.id, user.id)
-    if room.owner_id != user.id and not user.is_admin:
+    if not is_room_admin(room, user):
         require_member(db, room, user)
         require_role(member, "moderator")
 
     data = payload.model_dump(exclude_none=True)
     if "background" in data and data["background"] not in BACKGROUNDS:
         raise HTTPException(status.HTTP_400_BAD_REQUEST, "الخلفية غير متاحة")
-    if "status" in data and data["status"] not in {"open", "closed"}:
-        raise HTTPException(status.HTTP_400_BAD_REQUEST, "حالة الغرفة غير صحيحة")
-    if room.owner_id != user.id and not user.is_admin and set(data) - {"background", "rules", "gifts_enabled", "chat_enabled"}:
+    if "status" in data:
+        if data["status"] not in {"open", "closed"}:
+            raise HTTPException(status.HTTP_400_BAD_REQUEST, "حالة الغرفة غير صحيحة")
+        other = _owned_open_room(db, room.owner_id)
+        if data["status"] == "open" and other is not None and other.id != room.id:
+            raise HTTPException(status.HTTP_409_CONFLICT, "الغرفة الواحدة لكل مستخدم: أغلق غرفتك الأخرى أولاً")
+    if not is_room_admin(room, user) and set(data) - {"background", "rules", "gifts_enabled", "chat_enabled"}:
         raise HTTPException(status.HTTP_403_FORBIDDEN, "المشرف لا يمكنه تغيير هذه الإعدادات")
 
     data.pop("clear_password", None)
@@ -196,7 +265,7 @@ def update_room(
         room.is_private = True
     db.commit()
     db.refresh(room)
-    return {"room": _broadcast(db, room)}
+    return {"room": _broadcast(db, room, user)}
 
 
 @router.post("/{room_id}/join")
@@ -206,17 +275,19 @@ def join_room(
     user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
+    """الانضمام مباشر: العضو يصبح مستمعاً فوراً بلا رفع يد ولا موافقة."""
     room = require_room(db, room_id)
+    ban = active_ban(db, room.id, user.id)
+    if ban is not None:
+        raise HTTPException(status.HTTP_403_FORBIDDEN, _ban_message(ban))
     if room.status != "open":
         raise HTTPException(status.HTTP_400_BAD_REQUEST, "الغرفة مغلقة حالياً")
-    if is_banned(db, room.id, user.id):
-        raise HTTPException(status.HTTP_403_FORBIDDEN, "أنت محظور من هذه الغرفة")
     if room.password_hash and not verify_password(payload.password or "", room.password_hash):
         raise HTTPException(status.HTTP_403_FORBIDDEN, "كلمة مرور الغرفة غير صحيحة")
 
     member = membership(db, room.id, user.id)
     if member is None:
-        member = RoomMember(room_id=room.id, user_id=user.id, role="member")
+        member = RoomMember(room_id=room.id, user_id=user.id, role="member", mic_on=False)
         db.add(member)
         db.add(
             RoomMessage(
@@ -230,7 +301,8 @@ def join_room(
         user.xp = (user.xp or 0) + 5
     db.commit()
     db.refresh(room)
-    return {"room": _broadcast(db, room), "member": {"seat_index": member.seat_index, "mic_granted": member.mic_granted}}
+    hub.notify_room(room.id, {"type": "room_member_joined", "user_id": user.id})
+    return {"room": _broadcast(db, room, user)}
 
 
 @router.post("/{room_id}/leave", status_code=status.HTTP_200_OK)
@@ -238,6 +310,11 @@ def leave_room(room_id: int, user: User = Depends(get_current_user), db: Session
     room = require_room(db, room_id)
     member = membership(db, room.id, user.id)
     if member is not None:
+        if room.owner_id == user.id:
+            raise HTTPException(
+                status.HTTP_400_BAD_REQUEST,
+                "مالك الغرفة لا يغادرها — غرفتك تبقى لك حتى تحذفها",
+            )
         db.delete(member)
         db.add(
             RoomMessage(
@@ -250,7 +327,32 @@ def leave_room(room_id: int, user: User = Depends(get_current_user), db: Session
         db.commit()
     hub.notify_room(room.id, {"type": "room_member_left", "user_id": user.id})
     db.refresh(room)
-    return {"room": _broadcast(db, room)}
+    return {"room": _broadcast(db, room, user)}
+
+
+@router.post("/{room_id}/like")
+def toggle_like(room_id: int, user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    """إعجاب واحد لكل حساب: الضغط مرة أخرى يلغي الإعجاب."""
+    room = require_room(db, room_id)
+    require_member(db, room, user)
+    like = db.execute(
+        select(RoomLike).where(RoomLike.room_id == room.id, RoomLike.user_id == user.id)
+    ).scalar_one_or_none()
+    if like is None:
+        db.add(RoomLike(room_id=room.id, user_id=user.id))
+        liked = True
+    else:
+        db.delete(like)
+        liked = False
+    db.commit()
+    count = like_count(db, room.id)
+    hub.notify_room(
+        room.id,
+        {"type": "room_like", "room_id": room.id, "user_id": user.id, "liked": liked, "like_count": count},
+    )
+    state = room_state(db, room, user)
+    hub.notify_room(room.id, {"type": "room_state", "room": state})
+    return {"liked": liked, "like_count": count, "room": state}
 
 
 @router.post("/{room_id}/seats/{seat_index}/take")
@@ -260,29 +362,30 @@ def take_seat(
     user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
+    """الصعود مباشر لكل عضو إلى أي مقعد فارغ — المايك مكتوم حتى يفتحه بنفسه."""
     room = require_room(db, room_id)
     member = require_member(db, room, user)
     if seat_index < 0 or seat_index >= room.seat_count:
         raise HTTPException(status.HTTP_400_BAD_REQUEST, "رقم المقعد غير موجود")
     if seat_index in (room.locked_seats or []):
         raise HTTPException(status.HTTP_400_BAD_REQUEST, "هذا المقعد مقفل")
-    if seat_index == 0 and room.owner_id != user.id:
-        raise HTTPException(status.HTTP_403_FORBIDDEN, "مقعد المالك محجوز لصاحب الغرفة")
 
     occupied = db.execute(
-        select(RoomMember).where(RoomMember.room_id == room.id, RoomMember.seat_index == seat_index)
-    ).scalar_one_or_none()
-    if occupied is not None and occupied.user_id != user.id:
+        select(RoomMember).where(RoomMember.room_id == room.id, RoomMember.seat_index.is_not(None))
+    ).scalars().all()
+    taken = {row.seat_index for row in occupied}
+    locked = {index for index in (room.locked_seats or []) if 0 <= int(index) < room.seat_count}
+    if not (set(range(room.seat_count)) - taken - locked):
+        raise HTTPException(status.HTTP_409_CONFLICT, "جميع المقاعد مشغولة")
+    if seat_index in taken:
         raise HTTPException(status.HTTP_409_CONFLICT, "المقعد مشغول")
 
-    if rank(member) == 0 and not member.mic_granted:
-        raise HTTPException(status.HTTP_403_FORBIDDEN, "ارفع يدك وانتظر موافقة الإدارة على المايك")
-
+    # مقعد واحد لكل مستخدم: الانتقال إلى مقعد آخر يحرّر القديم أولاً.
     member.seat_index = seat_index
-    member.hand_raised = False
+    member.mic_on = False
     db.commit()
     db.refresh(room)
-    return {"room": _broadcast(db, room)}
+    return {"room": _broadcast(db, room, user)}
 
 
 @router.post("/{room_id}/seats/{seat_index}/release")
@@ -292,6 +395,7 @@ def release_seat(
     user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
+    """النزول من المقعد: يتوقف إرسال الصوت ويعود العضو مستمعاً."""
     room = require_room(db, room_id)
     member = require_member(db, room, user)
     if member.seat_index != seat_index:
@@ -300,7 +404,8 @@ def release_seat(
     member.mic_on = False
     db.commit()
     db.refresh(room)
-    return {"room": _broadcast(db, room)}
+    hub.notify_user(user.id, {"type": "voice_leave", "room_id": room.id})
+    return {"room": _broadcast(db, room, user)}
 
 
 @router.post("/{room_id}/seats/{seat_index}/lock")
@@ -313,7 +418,7 @@ def lock_seat(
 ):
     room = require_room(db, room_id)
     member = membership(db, room.id, user.id)
-    if room.owner_id != user.id and not user.is_admin:
+    if not is_room_admin(room, user):
         require_member(db, room, user)
         require_role(member, "moderator")
     if seat_index < 0 or seat_index >= room.seat_count:
@@ -328,116 +433,39 @@ def lock_seat(
         if holder is not None:
             holder.seat_index = None
             holder.mic_on = False
+            hub.notify_user(holder.user_id, {"type": "unseated", "room_id": room.id})
     else:
         locked.discard(seat_index)
     room.locked_seats = sorted(locked)
     db.commit()
     db.refresh(room)
-    return {"room": _broadcast(db, room)}
+    return {"room": _broadcast(db, room, user)}
 
 
-@router.post("/{room_id}/hand")
-def raise_hand(
-    room_id: int,
-    payload: BoolIn,
-    user: User = Depends(get_current_user),
-    db: Session = Depends(get_db),
-):
-    room = require_room(db, room_id)
-    member = require_member(db, room, user)
-    member.hand_raised = payload.value
-    if not payload.value:
-        member.mic_granted = member.mic_granted and member.seat_index is not None
-    db.commit()
-    db.refresh(room)
-    state = _broadcast(db, room)
-    if payload.value:
-        owner_ids = [
-            row.user_id
-            for row in db.execute(
-                select(RoomMember).where(
-                    RoomMember.room_id == room.id,
-                    RoomMember.role.in_(["owner", "moderator", "assistant"]),
-                )
-            ).scalars().all()
-        ]
-        hub.notify_users(
-            owner_ids,
-            {"type": "mic_request", "room_id": room.id, "user": user_public(user)},
-        )
-    return {"room": state}
-
-
-@router.get("/{room_id}/hands")
-def hand_requests(room_id: int, user: User = Depends(get_current_user), db: Session = Depends(get_db)):
-    room = require_room(db, room_id)
-    member = membership(db, room.id, user.id)
-    if room.owner_id != user.id and not user.is_admin:
-        require_member(db, room, user)
-        require_role(member, "assistant")
-    rows = db.execute(
-        select(RoomMember).where(RoomMember.room_id == room.id, RoomMember.hand_raised.is_(True))
-    ).scalars().all()
-    return {
-        "requests": [
-            {"user": user_public(db.get(User, row.user_id)), "seat_index": row.seat_index}
-            for row in rows
-        ]
-    }
-
-
-@router.post("/{room_id}/hands/{target_id}/approve")
-def approve_hand(
+@router.post("/{room_id}/members/{target_id}/unseat")
+def unseat_member(
     room_id: int,
     target_id: int,
     user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
+    """إنزال عضو من المقعد (المشرف) أو نزول المستخدم بنفسه."""
     room = require_room(db, room_id)
     actor = membership(db, room.id, user.id)
-    if room.owner_id != user.id and not user.is_admin:
-        require_member(db, room, user)
-        require_role(actor, "assistant")
+    if target_id != user.id:
+        if not is_room_admin(room, user):
+            require_member(db, room, user)
+            require_role(actor, "moderator")
     target = membership(db, room.id, target_id)
     if target is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "المستخدم ليس في الغرفة")
-    target.mic_granted = True
-    target.hand_raised = False
+    target.seat_index = None
+    target.mic_on = False
     db.commit()
-    create_notification(
-        db,
-        target_id,
-        "account",
-        "تمت الموافقة على المايك",
-        f"يمكنك الآن الجلوس على مقعد في {room.name}",
-        {"room_id": room.id},
-    )
-    hub.notify_user(target_id, {"type": "mic_granted", "room_id": room.id})
+    if target_id != user.id:
+        hub.notify_user(target_id, {"type": "unseated", "room_id": room.id})
     db.refresh(room)
-    return {"room": _broadcast(db, room)}
-
-
-@router.post("/{room_id}/hands/{target_id}/reject")
-def reject_hand(
-    room_id: int,
-    target_id: int,
-    user: User = Depends(get_current_user),
-    db: Session = Depends(get_db),
-):
-    room = require_room(db, room_id)
-    actor = membership(db, room.id, user.id)
-    if room.owner_id != user.id and not user.is_admin:
-        require_member(db, room, user)
-        require_role(actor, "assistant")
-    target = membership(db, room.id, target_id)
-    if target is None:
-        raise HTTPException(status.HTTP_404_NOT_FOUND, "المستخدم ليس في الغرفة")
-    target.hand_raised = False
-    target.mic_granted = False
-    db.commit()
-    hub.notify_user(target_id, {"type": "mic_rejected", "room_id": room.id})
-    db.refresh(room)
-    return {"room": _broadcast(db, room)}
+    return {"room": _broadcast(db, room, user)}
 
 
 @router.post("/{room_id}/members/{target_id}/mic")
@@ -448,10 +476,10 @@ def set_own_mic(
     user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    """Turn your own microphone on/off (a moderator may do it for anyone)."""
+    """فتح/كتم المايك: المستخدم لنفسه، والمشرف للآخرين. التحقق كله على الخادم."""
     room = require_room(db, room_id)
     actor = require_member(db, room, user)
-    if target_id != user.id and rank(actor) < 1:
+    if target_id != user.id and rank(actor) < 1 and not is_room_admin(room, user):
         raise HTTPException(status.HTTP_403_FORBIDDEN, "لا تملك الصلاحية لتحكم مايك الآخرين")
     target = membership(db, room.id, target_id)
     if target is None:
@@ -461,12 +489,10 @@ def set_own_mic(
             raise HTTPException(status.HTTP_400_BAD_REQUEST, "يجب الجلوس على مقعد أولاً")
         if target.muted_by_mod:
             raise HTTPException(status.HTTP_403_FORBIDDEN, "تم كتم المايك من قبل الإدارة")
-        if target_id == user.id and rank(target) == 0 and not target.mic_granted:
-            raise HTTPException(status.HTTP_403_FORBIDDEN, "لم يتم منحك إذن المايك بعد")
     target.mic_on = payload.value
     db.commit()
     db.refresh(room)
-    return {"room": _broadcast(db, room)}
+    return {"room": _broadcast(db, room, user)}
 
 
 @router.post("/{room_id}/members/{target_id}/mute")
@@ -479,13 +505,13 @@ def mute_member(
 ):
     room = require_room(db, room_id)
     actor = membership(db, room.id, user.id)
-    if room.owner_id != user.id and not user.is_admin:
+    if not is_room_admin(room, user):
         require_member(db, room, user)
-        require_role(actor, "assistant")
+        require_role(actor, "moderator")
     target = membership(db, room.id, target_id)
     if target is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "المستخدم ليس في الغرفة")
-    if target.user_id != user.id and rank(target) >= rank(actor) and room.owner_id != user.id:
+    if target.user_id != user.id and rank(target) >= rank(actor) and not is_room_admin(room, user):
         raise HTTPException(status.HTTP_403_FORBIDDEN, "لا يمكنك كتم من لديه صلاحية مساوية أو أعلى")
 
     target.muted_by_mod = payload.value
@@ -497,7 +523,7 @@ def mute_member(
         {"type": "muted", "room_id": room.id, "value": payload.value},
     )
     db.refresh(room)
-    return {"room": _broadcast(db, room)}
+    return {"room": _broadcast(db, room, user)}
 
 
 @router.post("/{room_id}/members/{target_id}/kick")
@@ -507,9 +533,10 @@ def kick_member(
     user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
+    """إخراج فوري من الغرفة بلا عقوبة دائمة (منفصل عن أنواع الطرد)."""
     room = require_room(db, room_id)
     actor = membership(db, room.id, user.id)
-    if room.owner_id != user.id and not user.is_admin:
+    if not is_room_admin(room, user):
         require_member(db, room, user)
         require_role(actor, "moderator")
     target = membership(db, room.id, target_id)
@@ -517,9 +544,11 @@ def kick_member(
         raise HTTPException(status.HTTP_404_NOT_FOUND, "المستخدم ليس في الغرفة")
     if room.owner_id == target_id:
         raise HTTPException(status.HTTP_400_BAD_REQUEST, "لا يمكن طرد مالك الغرفة")
-    if rank(target) >= rank(actor) and room.owner_id != user.id:
+    if rank(target) >= rank(actor) and not is_room_admin(room, user):
         raise HTTPException(status.HTTP_403_FORBIDDEN, "لا يمكنك طرد من لديه صلاحية مساوية أو أعلى")
 
+    target.seat_index = None
+    target.mic_on = False
     db.delete(target)
     db.add(
         RoomMessage(
@@ -532,33 +561,144 @@ def kick_member(
     db.commit()
     hub.notify_user(target_id, {"type": "kicked", "room_id": room.id})
     db.refresh(room)
-    return {"room": _broadcast(db, room)}
+    return {"room": _broadcast(db, room, user)}
+
+
+def _ban_message(ban: RoomBan) -> str:
+    label = BAN_DURATIONS.get(ban.duration, ("", "مدة محددة"))[1]
+    until = ban.expires_at.astimezone(dt.timezone.utc).strftime("%Y-%m-%d %H:%M")
+    return f"أنت مطرود من هذه الغرفة ({label}) حتى {until} بتوقيت غرينتش — لا يمكنك الدخول قبل ذلك"
+
+
+def _ban_payload(ban: Optional[RoomBan]) -> Optional[dict]:
+    if ban is None:
+        return None
+    return {
+        "duration": ban.duration,
+        "reason": ban.reason,
+        "starts_at": ban.created_at.isoformat(),
+        "expires_at": ban.expires_at.isoformat(),
+    }
+
+
+def _ban_public(ban: RoomBan, db: Session) -> dict:
+    target = db.get(User, ban.user_id)
+    actor = db.get(User, ban.banned_by) if ban.banned_by else None
+    return {
+        "user": user_public(target) if target is not None else None,
+        "user_id": ban.user_id,
+        "duration": ban.duration,
+        "duration_label": BAN_DURATIONS.get(ban.duration, ("", ban.duration))[1],
+        "reason": ban.reason,
+        "created_at": ban.created_at.isoformat(),
+        "expires_at": ban.expires_at.isoformat(),
+        "banned_by": user_public(actor) if actor is not None else None,
+        "active": ban.expires_at > utcnow(),
+    }
+
+
+@router.get("/{room_id}/bans")
+def room_bans(room_id: int, user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    """قائمة المحظورين: الاسم، السبب، بداية الحظر ونهايته (ساعة الخادم)."""
+    room = require_room(db, room_id)
+    require_ban_permission(db, room, user)
+    purge_expired_bans(db, room.id)
+    rows = (
+        db.execute(select(RoomBan).where(RoomBan.room_id == room.id).order_by(RoomBan.id.desc()))
+        .scalars()
+        .all()
+    )
+    return {"bans": [_ban_public(ban, db) for ban in rows]}
 
 
 @router.post("/{room_id}/members/{target_id}/ban")
 def ban_member(
     room_id: int,
     target_id: int,
+    payload: BanIn,
     user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
+    """طرد لمدة ساعتين أو 12 شهراً — يخرج فوراً ويُمنع من العودة حتى انتهاء المدة."""
     room = require_room(db, room_id)
-    actor = membership(db, room.id, user.id)
-    if room.owner_id != user.id and not user.is_admin:
-        require_member(db, room, user)
-        require_role(actor, "moderator")
-    if room.owner_id == target_id:
-        raise HTTPException(status.HTTP_400_BAD_REQUEST, "لا يمكن حظر مالك الغرفة")
-
-    if not is_banned(db, room.id, target_id):
-        db.add(RoomBan(room_id=room.id, user_id=target_id, banned_by=user.id))
-    target = membership(db, room.id, target_id)
-    if target is not None:
-        db.delete(target)
+    ban = ban_user(db, room, user, target_id, payload.duration, payload.reason)
+    db.add(
+        RoomMessage(
+            room_id=room.id,
+            user_id=user.id,
+            kind="system",
+            text=(
+                f"تم طرد {db.get(User, target_id).username} "
+                f"({BAN_DURATIONS[ban.duration][1]}){' — ' + ban.reason if ban.reason else ''}"
+            ),
+        )
+    )
     db.commit()
-    hub.notify_user(target_id, {"type": "banned", "room_id": room.id})
+    hub.notify_user(
+        target_id,
+        {
+            "type": "banned",
+            "room_id": room.id,
+            "expires_at": ban.expires_at.isoformat(),
+            "reason": ban.reason,
+            "duration": ban.duration,
+        },
+    )
     db.refresh(room)
-    return {"room": _broadcast(db, room)}
+    return {"room": _broadcast(db, room, user), "ban": _ban_public(ban, db)}
+
+
+@router.delete("/{room_id}/bans/{target_id}")
+def unban_member(
+    room_id: int,
+    target_id: int,
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """إلغاء الحظر يدوياً من مالك الغرفة (أو إدارة التطبيق)."""
+    room = require_room(db, room_id)
+    if not is_room_admin(room, user):
+        raise HTTPException(status.HTTP_403_FORBIDDEN, "إلغاء الحظر من صلاحيات مالك الغرفة")
+    ban = db.execute(
+        select(RoomBan).where(RoomBan.room_id == room.id, RoomBan.user_id == target_id)
+    ).scalar_one_or_none()
+    if ban is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "لا يوجد حظر على هذا المستخدم")
+    db.delete(ban)
+    db.commit()
+    hub.notify_user(target_id, {"type": "unbanned", "room_id": room.id})
+    return {"status": "unbanned", "room_id": room.id, "user_id": target_id}
+
+
+@router.post("/{room_id}/members/{target_id}/permissions")
+def set_member_permissions(
+    room_id: int,
+    target_id: int,
+    payload: PermissionIn,
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """المالك يمنح مشرفه صلاحية الطرد أو يسحبها."""
+    room = require_room(db, room_id)
+    if not is_room_admin(room, user):
+        raise HTTPException(status.HTTP_403_FORBIDDEN, "منح الصلاحيات من صلاحيات مالك الغرفة")
+    target = membership(db, room.id, target_id)
+    if target is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "المستخدم ليس في الغرفة")
+    if target.user_id == room.owner_id:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "مالك الغرفة لا يحتاج صلاحية طرد")
+    target.can_ban = payload.can_ban
+    db.commit()
+    create_notification(
+        db,
+        target_id,
+        "account",
+        "تحديث صلاحية الطرد",
+        ("تم منحك صلاحية الطرد" if payload.can_ban else "تم سحب صلاحية الطرد") + f" في {room.name}",
+        {"room_id": room.id},
+    )
+    db.refresh(room)
+    return {"room": _broadcast(db, room, user)}
 
 
 @router.post("/{room_id}/members/{target_id}/role")
@@ -570,14 +710,18 @@ def set_role(
     db: Session = Depends(get_db),
 ):
     room = require_room(db, room_id)
-    if room.owner_id != user.id and not user.is_admin:
+    if not is_room_admin(room, user):
         raise HTTPException(status.HTTP_403_FORBIDDEN, "تعيين المشرفين من صلاحيات مالك الغرفة")
     if payload.role not in ROOM_ROLES:
         raise HTTPException(status.HTTP_400_BAD_REQUEST, "صلاحية غير معروفة")
     target = membership(db, room.id, target_id)
     if target is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "المستخدم ليس في الغرفة")
+    if target.user_id == room.owner_id and payload.role != "owner":
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "لا يمكن تغيير صلاحية مالك الغرفة")
     target.role = payload.role
+    if payload.role != "moderator":
+        target.can_ban = False
     db.commit()
     create_notification(
         db,
@@ -588,7 +732,7 @@ def set_role(
         {"room_id": room.id, "role": payload.role},
     )
     db.refresh(room)
-    return {"room": _broadcast(db, room)}
+    return {"room": _broadcast(db, room, user)}
 
 
 @router.post("/{room_id}/owner")
@@ -599,21 +743,23 @@ def transfer_owner(
     db: Session = Depends(get_db),
 ):
     room = require_room(db, room_id)
-    if room.owner_id != user.id and not user.is_admin:
+    if not is_room_admin(room, user):
         raise HTTPException(status.HTTP_403_FORBIDDEN, "نقل الملكية من صلاحيات المالك")
     new_owner = membership(db, room.id, payload.user_id)
     if new_owner is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "المستخدم ليس في الغرفة")
+    if _owned_open_room(db, payload.user_id) is not None:
+        raise HTTPException(status.HTTP_409_CONFLICT, "هذا المستخدم يملك غرفة بالفعل")
 
     previous = membership(db, room.id, room.owner_id)
     if previous is not None:
         previous.role = "member"
+        previous.can_ban = False
     new_owner.role = "owner"
-    new_owner.mic_granted = True
     room.owner_id = payload.user_id
     db.commit()
     db.refresh(room)
-    return {"room": _broadcast(db, room)}
+    return {"room": _broadcast(db, room, user)}
 
 
 @router.post("/{room_id}/background")
@@ -625,7 +771,7 @@ def change_background(
 ):
     room = require_room(db, room_id)
     member = membership(db, room.id, user.id)
-    if room.owner_id != user.id and not user.is_admin:
+    if not is_room_admin(room, user):
         require_member(db, room, user)
         require_role(member, "moderator")
     background = str(payload.get("background", ""))
@@ -634,7 +780,7 @@ def change_background(
     room.background = background
     db.commit()
     db.refresh(room)
-    return {"room": _broadcast(db, room)}
+    return {"room": _broadcast(db, room, user)}
 
 
 @router.post("/{room_id}/invite")
@@ -726,22 +872,17 @@ def report_room(
 @router.get("/{room_id}/stats")
 def room_stats(room_id: int, user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     room = require_room(db, room_id)
-    seated = int(
-        db.execute(
-            select(func.count(RoomMember.id)).where(
-                RoomMember.room_id == room.id, RoomMember.seat_index.is_not(None)
-            )
-        ).scalar()
-        or 0
-    )
+    state = room_state(db, room, user)
     return {
-        "members": member_count(db, room.id),
-        "seated": seated,
+        "members": state["member_count"],
+        "seated": state["seated_count"],
+        "free_seats": state["free_seats"],
         "seats": room.seat_count,
-        "hands": int(
+        "likes": state["like_count"],
+        "bans": int(
             db.execute(
-                select(func.count(RoomMember.id)).where(
-                    RoomMember.room_id == room.id, RoomMember.hand_raised.is_(True)
+                select(func.count(RoomBan.id)).where(
+                    RoomBan.room_id == room.id, RoomBan.expires_at > utcnow()
                 )
             ).scalar()
             or 0

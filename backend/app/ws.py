@@ -15,7 +15,7 @@ from .games import service as game_service
 from .models import DirectMessage, RoomMember, RoomMessage, User, utcnow
 from .notifications import create_notification
 from .realtime import hub
-from .room_service import membership, room_state
+from .room_service import active_ban, membership, room_state
 from .security import decode_token
 from .serializers import message_public, user_public
 
@@ -23,13 +23,13 @@ log = logging.getLogger("app.ws")
 router = APIRouter(tags=["realtime"])
 
 
-def _room_snapshot(db, room_id: int) -> Optional[dict]:
+def _room_snapshot(db, room_id: int, viewer: Optional[User] = None) -> Optional[dict]:
     from .models import Room
 
     room = db.get(Room, room_id)
     if room is None:
         return None
-    return room_state(db, room)
+    return room_state(db, room, viewer)
 
 
 @router.websocket("/ws")
@@ -71,11 +71,15 @@ async def websocket_endpoint(websocket: WebSocket, token: str = Query(default=""
                 if membership(db, room_id, user.id) is None:
                     await websocket.send_json({"type": "error", "message": "لست عضواً في هذه الغرفة"})
                     continue
+                ban = active_ban(db, room_id, user.id)
+                if ban is not None:
+                    await websocket.send_json({"type": "banned", "room_id": room_id, "expires_at": ban.expires_at.isoformat()})
+                    continue
                 if joined_room and joined_room != room_id:
                     await hub.leave_room(joined_room, user.id, websocket)
                 joined_room = room_id
                 await hub.join_room(room_id, user.id, websocket)
-                snapshot = _room_snapshot(db, room_id)
+                snapshot = _room_snapshot(db, room_id, user)
                 if snapshot:
                     await websocket.send_json({"type": "room_state", "room": snapshot})
                 await hub.push_room(
@@ -88,14 +92,14 @@ async def websocket_endpoint(websocket: WebSocket, token: str = Query(default=""
                 room_id = int(payload.get("room_id", joined_room or 0))
                 if room_id:
                     await hub.leave_room(room_id, user.id, websocket)
-                    snapshot = _room_snapshot(db, room_id)
+                    snapshot = _room_snapshot(db, room_id, user)
                     if snapshot:
                         await hub.push_room(room_id, {"type": "room_state", "room": snapshot})
                 joined_room = None
 
             elif kind == "room_state":
                 room_id = int(payload.get("room_id", 0))
-                snapshot = _room_snapshot(db, room_id)
+                snapshot = _room_snapshot(db, room_id, user)
                 if snapshot:
                     await websocket.send_json({"type": "room_state", "room": snapshot})
 
@@ -113,34 +117,20 @@ async def websocket_endpoint(websocket: WebSocket, token: str = Query(default=""
                     {"type": "chat", "room_id": room_id, "message": message_public(message, user)},
                 )
 
-            elif kind == "hand":
-                room_id = int(payload.get("room_id", 0))
-                raised = bool(payload.get("value", True))
-                member = membership(db, room_id, user.id)
-                if member is None:
-                    continue
-                member.hand_raised = raised
-                db.commit()
-                snapshot = _room_snapshot(db, room_id)
-                if snapshot:
-                    await hub.push_room(room_id, {"type": "room_state", "room": snapshot})
-
             elif kind == "mic":
                 room_id = int(payload.get("room_id", 0))
                 member = membership(db, room_id, user.id)
                 if member is None:
                     continue
                 wanted = bool(payload.get("value", True))
-                if wanted and (member.seat_index is None or member.muted_by_mod or (
-                    member.role == "member" and not member.mic_granted
-                )):
+                if wanted and (member.seat_index is None or member.muted_by_mod):
                     await websocket.send_json(
                         {"type": "error", "message": "لا يمكن تشغيل المايك بهذه الحالة"}
                     )
                     continue
                 member.mic_on = wanted
                 db.commit()
-                snapshot = _room_snapshot(db, room_id)
+                snapshot = _room_snapshot(db, room_id, user)
                 if snapshot:
                     await hub.push_room(room_id, {"type": "room_state", "room": snapshot})
 
@@ -179,9 +169,19 @@ async def websocket_endpoint(websocket: WebSocket, token: str = Query(default=""
 
             elif kind in {"webrtc_offer", "webrtc_answer", "webrtc_ice", "rtc_state", "typing"}:
                 target = int(payload.get("to", 0))
-                if target and target != user.id:
-                    message = {**payload, "from": user.id}
-                    await hub.push_user(target, message)
+                if not target or target == user.id:
+                    continue
+                if kind == "typing":
+                    # مؤشر الكتابة في المحادثة الخاصة، لا علاقة له بالصوت.
+                    await hub.push_user(target, {**payload, "from": user.id})
+                    continue
+                # إشارات الصوت تُمرَّر فقط بين أعضاء نفس الغرفة الصوتية.
+                if not joined_room or target not in hub.room_user_ids(joined_room):
+                    await websocket.send_json(
+                        {"type": "error", "message": "إشارة الصوت مسموحة داخل الغرفة فقط"}
+                    )
+                    continue
+                await hub.push_user(target, {**payload, "from": user.id})
 
             elif kind == "dm":
                 target = int(payload.get("to", 0))
@@ -217,7 +217,7 @@ async def websocket_endpoint(websocket: WebSocket, token: str = Query(default=""
     finally:
         await hub.unregister(user.id, websocket)
         if joined_room:
-            snapshot = _room_snapshot(db, joined_room)
+            snapshot = _room_snapshot(db, joined_room, user)
             if snapshot:
                 await hub.push_room(joined_room, {"type": "room_state", "room": snapshot})
         remaining = bool(hub.user_sockets.get(user.id))

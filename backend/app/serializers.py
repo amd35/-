@@ -116,16 +116,22 @@ def member_public(member: Any, user: Any) -> dict[str, Any]:
         "role": member.role,
         "seat_index": member.seat_index,
         "mic_on": bool(member.mic_on),
-        "hand_raised": bool(member.hand_raised),
-        "mic_granted": bool(member.mic_granted),
         "muted_by_mod": bool(member.muted_by_mod),
+        "can_ban": bool(member.can_ban),
         "joined_at": iso(member.joined_at),
     }
 
 
-def room_public(room: Any, owner: Any, member_count: int) -> dict[str, Any]:
+def room_public(
+    room: Any,
+    owner: Any,
+    member_count: int,
+    like_count: int = 0,
+    liked_by_me: bool = False,
+) -> dict[str, Any]:
     return {
         "id": room.id,
+        "number": room.id,
         "name": room.name,
         "description": room.description,
         "image_url": room.image_url,
@@ -140,6 +146,8 @@ def room_public(room: Any, owner: Any, member_count: int) -> dict[str, Any]:
         "locked_seats": room.locked_seats or [],
         "owner": user_public(owner),
         "member_count": member_count,
+        "like_count": like_count,
+        "liked_by_me": liked_by_me,
         "status": room.status,
         "created_at": iso(room.created_at),
     }

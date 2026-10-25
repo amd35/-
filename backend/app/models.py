@@ -6,10 +6,12 @@ from sqlalchemy import (
     Column,
     DateTime,
     ForeignKey,
+    Index,
     Integer,
     String,
     Text,
     UniqueConstraint,
+    text,
 )
 
 from .db import Base
@@ -97,6 +99,11 @@ class VerificationCode(Base):
 
 class Room(Base):
     __tablename__ = "rooms"
+    # غرفة واحدة فعّالة لكل مستخدم: القيد على مستوى قاعدة البيانات (فهرس جزئي على
+    # الغرف المفتوحة فقط، فتبقى الغرف المغلقة القديمة محفوظة ببياناتها).
+    __table_args__ = (
+        Index("uq_room_owner_open", "owner_id", unique=True, postgresql_where=text("status = 'open'")),
+    )
 
     id = Column(Integer, primary_key=True)
     name = Column(String(64), nullable=False)
@@ -104,7 +111,8 @@ class Room(Base):
     image_url = Column(String(512), nullable=False, default="")
     background = Column(String(64), nullable=False, default="sunset")
     rules = Column(Text, nullable=False, default="")
-    seat_count = Column(Integer, nullable=False, default=20)
+    # منصة صوتية واحدة بـ 12 مقعداً (app.room_service.ROOM_SEATS).
+    seat_count = Column(Integer, nullable=False, default=12)
     is_private = Column(Boolean, nullable=False, default=False)
     password_hash = Column(String(255), nullable=True)
     gifts_enabled = Column(Boolean, nullable=False, default=True)
@@ -130,13 +138,27 @@ class RoomMember(Base):
     role = Column(String(16), nullable=False, default="member")  # owner|moderator|assistant|member
     seat_index = Column(Integer, nullable=True)
     mic_on = Column(Boolean, nullable=False, default=False)
-    hand_raised = Column(Boolean, nullable=False, default=False)
-    mic_granted = Column(Boolean, nullable=False, default=False)
     muted_by_mod = Column(Boolean, nullable=False, default=False)
+    # صلاحية الطرد التي يمنحها مالك الغرفة لمشرفه (المشرف لا يطرد بدونها).
+    can_ban = Column(Boolean, nullable=False, default=False)
     joined_at = Column(DateTime(timezone=True), nullable=False, default=utcnow)
 
 
+class RoomLike(Base):
+    """إعجاب واحد لكل مستخدم بكل غرفة (القيد يمنع التكرار من نفس الحساب)."""
+
+    __tablename__ = "room_likes"
+    __table_args__ = (UniqueConstraint("room_id", "user_id", name="uq_room_like"),)
+
+    id = Column(Integer, primary_key=True)
+    room_id = Column(ForeignKey("rooms.id", ondelete="CASCADE"), nullable=False, index=True)
+    user_id = Column(ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    created_at = Column(DateTime(timezone=True), nullable=False, default=utcnow)
+
+
 class RoomBan(Base):
+    """حظر مؤقّت بمدة محددة: ساعتان أو 12 شهراً، وينتهي تلقائياً حسب توقيت الخادم."""
+
     __tablename__ = "room_bans"
     __table_args__ = (UniqueConstraint("room_id", "user_id", name="uq_room_ban"),)
 
@@ -144,6 +166,9 @@ class RoomBan(Base):
     room_id = Column(ForeignKey("rooms.id", ondelete="CASCADE"), nullable=False, index=True)
     user_id = Column(ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
     banned_by = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
+    duration = Column(String(8), nullable=False, default="2h")  # 2h|12mo
+    reason = Column(String(200), nullable=False, default="")
+    expires_at = Column(DateTime(timezone=True), nullable=False, index=True)
     created_at = Column(DateTime(timezone=True), nullable=False, default=utcnow)
 
 
