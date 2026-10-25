@@ -7,6 +7,7 @@ with a free licence (shown per file); the licence travels with the file.
 | --- | --- | --- | --- | --- |
 | coin | Monnaie de Bactriane, Eucratide I, pile.jpg | Public domain | | https://commons.wikimedia.org/wiki/File:Monnaie_de_Bactriane,_Eucratide_I,_pile.jpg |
 | gem | Brillanten.jpg | CC BY-SA 3.0 | Mario Sarto | https://commons.wikimedia.org/wiki/File:Brillanten.jpg |
+| gold | Gold Ingots on white background.jpg | Public domain | Szaaman | https://commons.wikimedia.org/wiki/File:Gold_Ingots_on_white_background.jpg |
 | trophy | Cyclone Cup trophy.png | CC BY-SA 4.0 | BlueHypercane761 | https://commons.wikimedia.org/wiki/File:Cyclone_Cup_trophy.png |
 | crown | Crown Queens Bavaria Schatzkammer Residenz Munich.jpg | CC0 | Jebulon | https://commons.wikimedia.org/wiki/File:Crown_Queens_Bavaria_Schatzkammer_Residenz_Munich.jpg |
 | friends | DSC 7455 A lively group of young women posing and smiling together outside a brightly lit bar at night with colorful neon signs and festive decorations in the background.jpg | CC BY-SA 4.0 | PattayaPatrol | https://commons.wikimedia.org/wiki/File:DSC_7455_A_lively_group_of_young_women_posing_and_smiling_together_outside_a_brightly_lit_bar_at_night_with_colorful_neon_signs_and_festive_decorations_in_the_background.jpg |

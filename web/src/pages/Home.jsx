@@ -166,10 +166,10 @@ export default function Home() {
               <PhotoIcon name="coin" size={15} /> {wallet.coins} {t('coins')}
             </span>
             <span className="chip chip-gold">
-              <PhotoIcon name="gem" size={15} /> {wallet.gold} {t('gold')}
+              <PhotoIcon name="gold" size={15} /> {wallet.gold} {t('gold')}
             </span>
-            <span className="chip chip-gems">
-              <PhotoIcon name="star" size={15} /> {wallet.gems ?? 0} {t('gems')}
+            <span className="chip chip-diamonds">
+              <PhotoIcon name="gem" size={15} /> {wallet.diamonds ?? 0} {t('diamonds')}
             </span>
           </div>
           <div className="panel-sub">

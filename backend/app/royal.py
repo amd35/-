@@ -1,7 +1,7 @@
 """نظام رويال: نقاط تُكتسب من الشحن فقط، ومستويات عتباتها قابلة للتعديل.
 
 Royal points are their own counter on the member (never mixed with the coins /
-gold / gems wallet). They only move through :func:`add_points`, which writes an
+gold / diamonds wallet). They only move through :func:`add_points`, which writes an
 append-only ``royal_point_entries`` row with a unique ``ref`` — so a repeated
 payment or a replayed admin action can never grant the same points twice.
 
@@ -48,14 +48,14 @@ GRID_PRIVILEGES = [
 ]
 
 # المستويات الخمسة وشكل تاج كل مستوى (لون الوهج والحجر).
-# العتبات مبدئية ومتوافقة مع سلّم حزم الجواهر المطلوب (7 → 700 نقطة للحزمة)،
-# ويعدّلها المشرف من لوحة الإدارة متى شاء.
+# العتبات الافتراضية المطلوبة: أول مستوى يفتح عند 7000 نقطة (والمستوى الأخير 35000)،
+# ويعدّلها المشرف من لوحة الإدارة متى شاء — لا عتبة مكتوبة في الواجهة.
 _LEVEL_STYLES = [
-    (1, "رويال 1", "Royal 1", 0, "#45d2ba", "#7ff2df"),
-    (2, "رويال 2", "Royal 2", 100, "#9fd8ff", "#4a90e2"),
-    (3, "رويال 3", "Royal 3", 500, "#a78bfa", "#7c5cff"),
-    (4, "رويال 4", "Royal 4", 2000, "#ff8fa3", "#e2374f"),
-    (5, "رويال 5", "Royal 5", 7000, "#f4cc44", "#ffd76a"),
+    (1, "رويال 1", "Royal 1", 7000, "#45d2ba", "#7ff2df"),
+    (2, "رويال 2", "Royal 2", 14000, "#9fd8ff", "#4a90e2"),
+    (3, "رويال 3", "Royal 3", 21000, "#a78bfa", "#7c5cff"),
+    (4, "رويال 4", "Royal 4", 28000, "#ff8fa3", "#e2374f"),
+    (5, "رويال 5", "Royal 5", 35000, "#f4cc44", "#ffd76a"),
 ]
 
 

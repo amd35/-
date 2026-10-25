@@ -93,7 +93,7 @@ export default function Finance() {
                 <td>{order.id}</td>
                 <td className="muted">{order.username}</td>
                 <td>
-                  {order.amount} {order.currency === 'coins' ? '🪙' : '🏆'}
+                  {order.amount} {order.currency === 'coins' ? '🪙' : order.currency === 'gold' ? '🏆' : '💎'}
                 </td>
                 <td>
                   {order.price_amount} {order.price_currency}

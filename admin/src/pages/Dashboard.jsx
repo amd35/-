@@ -208,7 +208,9 @@ export default function Dashboard() {
           <div className="stat">
             <span>إجمالي الأرصدة الموجودة</span>
             <strong>{number(wallet.circulating.coins)}</strong>
-            <span className="muted">كوين · {number(wallet.circulating.gold)} ذهب</span>
+            <span className="muted">
+              كوين · {number(wallet.circulating.gold)} ذهب · {number(wallet.circulating.diamonds)} ماس
+            </span>
           </div>
         </div>
 

@@ -126,6 +126,10 @@ button {
   color: #ffe9a8;
 }
 
+.chip-diamonds {
+  color: #cfe8ff;
+}
+
 .icon-button {
   position: relative;
   display: grid;

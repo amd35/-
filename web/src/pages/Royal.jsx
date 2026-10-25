@@ -237,7 +237,8 @@ export default function Royal() {
             <div className="card glass" key={pack.id} data-testid={`royal-pack-${pack.id}`}>
               <div className="row-between">
                 <strong>
-                  <PhotoIcon name="gem" size={15} /> {pack.amount.toLocaleString('en')} {t('gems')}
+                  <PhotoIcon name={pack.kind === 'diamonds' ? 'gem' : 'gold'} size={15} />{' '}
+                  {pack.amount.toLocaleString('en')} {t(pack.kind === 'diamonds' ? 'diamonds' : 'gold')}
                 </strong>
                 {pack.badge ? <span className="badge-pill">{pack.badge}</span> : null}
               </div>
@@ -261,8 +262,13 @@ export default function Royal() {
             </div>
           ))}
         </div>
-        <p className="chip chip-coins" style={{ marginTop: 10 }} data-testid="royal-gems">
-          <PhotoIcon name="gem" size={15} /> {wallet.gems ?? 0} {t('gems')}
+        <p className="row wrap" style={{ marginTop: 10 }} data-testid="royal-balances">
+          <span className="chip chip-gold">
+            <PhotoIcon name="gold" size={15} /> {wallet.gold} {t('gold')}
+          </span>
+          <span className="chip chip-diamonds">
+            <PhotoIcon name="gem" size={15} /> {wallet.diamonds ?? 0} {t('diamonds')}
+          </span>
         </p>
         {data?.payment ? (
           <p className={data.payment.configured ? 'muted' : 'notice'} data-testid="royal-payment-status">

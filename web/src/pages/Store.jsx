@@ -121,7 +121,7 @@ export default function Store() {
           <PhotoIcon name="coin" size={15} /> {balances.coins}
         </span>
         <span className="chip chip-gold" data-testid="store-balance-gold">
-          <PhotoIcon name="gem" size={15} /> {balances.gold}
+          <PhotoIcon name="gold" size={15} /> {balances.gold}
         </span>
       </div>
 
@@ -204,7 +204,7 @@ export default function Store() {
                         disabled={busy === `${item.id}-gold`}
                         onClick={() => buy(item, 'gold')}
                       >
-                        <PhotoIcon name="gem" size={14} /> {item.price_gold}
+                        <PhotoIcon name="gold" size={14} /> {item.price_gold}
                       </button>
                     ) : null}
                   </div>

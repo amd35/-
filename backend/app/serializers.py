@@ -94,7 +94,7 @@ def user_private(user: Any) -> dict[str, Any]:
 
 
 def wallet_public(wallet: Any) -> dict[str, int]:
-    return {"coins": wallet.coins, "gold": wallet.gold, "gems": wallet.gems}
+    return {"coins": wallet.coins, "gold": wallet.gold, "diamonds": wallet.diamonds}
 
 
 def ledger_public(entry: Any) -> dict[str, Any]:

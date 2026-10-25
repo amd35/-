@@ -129,7 +129,7 @@ class _RoyalSheetState extends State<RoyalSheet> {
                 ),
               ),
           const Divider(height: 22),
-          const Text('حزم الجواهر ونقاط رويال', style: TextStyle(fontWeight: FontWeight.bold)),
+          const Text('حزم الشحن — ذهب أو ماس + نقاط رويال', style: TextStyle(fontWeight: FontWeight.bold)),
           const SizedBox(height: 6),
           for (final raw in packages)
             if (raw is Map<String, dynamic>)
@@ -141,7 +141,9 @@ class _RoyalSheetState extends State<RoyalSheet> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text('${raw['amount']} جوهرة · +${raw['royal_points']} نقطة رويال'),
+                          Text(
+                            '${raw['amount']} ${raw['kind'] == 'diamonds' ? 'ماس' : 'ذهب'} · +${raw['royal_points']} نقطة رويال',
+                          ),
                           Text(
                             '${raw['price_iqd']} IQD',
                             style: const TextStyle(color: AppColors.muted, fontSize: 12),

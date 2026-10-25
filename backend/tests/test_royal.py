@@ -9,11 +9,11 @@ from app.security import hash_password
 
 
 @pytest.fixture()
-def gems_pack(client):
-    """أصغر حزمة جواهر من البذور الحقيقية (400 جوهرة / 7 نقاط رويال)."""
+def diamonds_pack(client):
+    """أصغر حزمة شحن من البذور الحقيقية (400 وحدة / 7 نقاط رويال)."""
     db = SessionLocal()
     try:
-        pack = db.query(StorePack).filter(StorePack.kind == "gems").order_by(StorePack.sort).first()
+        pack = db.query(StorePack).filter(StorePack.kind == "diamonds").order_by(StorePack.sort).first()
         assert pack is not None, "حزم الجواهر لم تُبذر"
         return {
             "id": pack.id,
@@ -47,34 +47,34 @@ def test_royal_overview_lists_five_levels_from_the_server(client, make_user):
     user = make_user("royaloverview")
     payload = client.get("/api/royal", headers=auth(user["token"])).json()
     assert [tier["level"] for tier in payload["tiers"]] == [1, 2, 3, 4, 5]
-    assert payload["status"]["level"] == 1
+    assert payload["status"]["level"] == 0  # أول مستوى يفتح عند 7000 نقطة
     assert payload["status"]["points"] == 0
     assert payload["status"]["points_to_next"] > 0
     # الامتيازات حقيقية وتكبر مع المستوى، ولكل مستوى تاجه (لونه) من الخادم.
     assert all(tier["privileges"] for tier in payload["tiers"])
     assert len(payload["tiers"][4]["privileges"]) > len(payload["tiers"][0]["privileges"])
     assert all(tier["accent"].startswith("#") for tier in payload["tiers"])
-    # حزم الجواهر ونقاطها من قاعدة البيانات، لا أرقام ثابتة في الواجهة.
-    assert payload["packages"] and all(pack["kind"] == "gems" for pack in payload["packages"])
+    # حزم الشحن (ذهب وماس) ونقاطها من قاعدة البيانات، لا أرقام ثابتة في الواجهة.
+    assert payload["packages"] and {pack["kind"] for pack in payload["packages"]} <= {"gold", "diamonds"}
     assert all(pack["royal_points"] > 0 for pack in payload["packages"])
 
 
 def test_royal_points_are_credited_once_after_the_order_is_confirmed(
-    client, make_user, admin_token, gems_pack
+    client, make_user, admin_token, diamonds_pack
 ):
-    user = make_user("royalgems")
+    user = make_user("royaldiamonds")
     purchase = client.post(
-        f"/api/store/packs/{gems_pack['id']}/purchase",
+        f"/api/store/packs/{diamonds_pack['id']}/purchase",
         json={"price_currency": "IQD", "idempotency_key": "royal-order-one"},
         headers=auth(user["token"]),
     )
     assert purchase.status_code == 201, purchase.text
     order = purchase.json()["order"]
-    assert order["royal_points"] == gems_pack["royal_points"]
+    assert order["royal_points"] == diamonds_pack["royal_points"]
 
     # قبل تأكيد الدفع على الخادم: لا جواهر ولا نقاط رويال.
     before = client.get("/api/auth/me", headers=auth(user["token"])).json()
-    assert before["wallet"]["gems"] == 0
+    assert before["wallet"]["diamonds"] == 0
     assert before["user"]["royal_points"] == 0
 
     approved = client.post(
@@ -85,8 +85,8 @@ def test_royal_points_are_credited_once_after_the_order_is_confirmed(
     assert approved.status_code == 200, approved.text
 
     after = client.get("/api/auth/me", headers=auth(user["token"])).json()
-    assert after["wallet"]["gems"] == gems_pack["amount"]
-    assert after["user"]["royal_points"] == gems_pack["royal_points"]
+    assert after["wallet"]["diamonds"] == diamonds_pack["amount"]
+    assert after["user"]["royal_points"] == diamonds_pack["royal_points"]
 
     # إعادة تأكيد الطلب نفسه لا تضيف رصيداً ولا نقاطاً مرة ثانية.
     replay = client.post(
@@ -94,11 +94,11 @@ def test_royal_points_are_credited_once_after_the_order_is_confirmed(
     )
     assert replay.status_code == 400
     again = client.get("/api/auth/me", headers=auth(user["token"])).json()
-    assert again["wallet"]["gems"] == gems_pack["amount"]
-    assert again["user"]["royal_points"] == gems_pack["royal_points"]
+    assert again["wallet"]["diamonds"] == diamonds_pack["amount"]
+    assert again["user"]["royal_points"] == diamonds_pack["royal_points"]
 
 
-def test_level_follows_the_admin_threshold_not_the_points(client, make_user, admin_token, gems_pack):
+def test_level_follows_the_admin_threshold_not_the_points(client, make_user, admin_token, diamonds_pack):
     user = make_user("royalthreshold")
     overview = client.get("/api/royal", headers=auth(user["token"])).json()
     level_two = next(tier for tier in overview["tiers"] if tier["level"] == 2)
@@ -106,21 +106,21 @@ def test_level_follows_the_admin_threshold_not_the_points(client, make_user, adm
     # المشرف يخفض عتبة المستوى الثاني إلى نقاط الباقة نفسها.
     patched = client.patch(
         "/api/admin/royal/tiers/2",
-        json={"required_points": gems_pack["royal_points"]},
+        json={"required_points": diamonds_pack["royal_points"]},
         headers=auth(admin_token),
     )
     assert patched.status_code == 200, patched.text
-    assert patched.json()["tier"]["required_points"] == gems_pack["royal_points"]
+    assert patched.json()["tier"]["required_points"] == diamonds_pack["royal_points"]
 
     order = client.post(
-        f"/api/store/packs/{gems_pack['id']}/purchase",
+        f"/api/store/packs/{diamonds_pack['id']}/purchase",
         json={"price_currency": "IQD", "idempotency_key": "royal-threshold-order"},
         headers=auth(user["token"]),
     ).json()["order"]
     client.post(f"/api/admin/orders/{order['id']}/approve", json={}, headers=auth(admin_token))
 
     me = client.get("/api/auth/me", headers=auth(user["token"])).json()
-    assert me["user"]["royal_points"] == gems_pack["royal_points"]
+    assert me["user"]["royal_points"] == diamonds_pack["royal_points"]
     assert me["user"]["royal_level"] == 2
     assert me["user"]["royal_name"] == level_two["name_ar"]
     assert level_two["name_ar"] in me["user"]["badges"]
@@ -132,7 +132,8 @@ def test_level_follows_the_admin_threshold_not_the_points(client, make_user, adm
         headers=auth(admin_token),
     )
     assert restored.status_code == 200
-    assert client.get("/api/auth/me", headers=auth(user["token"])).json()["user"]["royal_level"] == 1
+    # بعد إرجاع العتبة: 7 نقاط لا تفتح أول مستوى (7000 نقطة افتراضياً).
+    assert client.get("/api/auth/me", headers=auth(user["token"])).json()["user"]["royal_level"] == 0
 
 
 def test_privileges_and_thresholds_are_editable_from_the_admin_panel(client, make_user, admin_token):

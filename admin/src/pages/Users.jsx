@@ -157,6 +157,7 @@ export default function Users({ admin }) {
               <select value={adjust.currency} onChange={(event) => setAdjust({ ...adjust, currency: event.target.value })}>
                 <option value="coins">كوين</option>
                 <option value="gold">ذهب</option>
+                <option value="diamonds">ماس</option>
               </select>
             </div>
             <div>

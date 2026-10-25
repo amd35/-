@@ -196,7 +196,7 @@ export default function Profile() {
             <PhotoIcon name="coin" size={15} /> {wallet.coins}
           </span>
           <span className="chip chip-gold">
-            <PhotoIcon name="gem" size={15} /> {wallet.gold}
+            <PhotoIcon name="gold" size={15} /> {wallet.gold}
           </span>
           <span className="badge-pill" data-testid="profile-royal">
             <PhotoIcon name="crown" size={14} /> {user.royal_name || `${t('royal')} ${user.royal_level}`}
@@ -281,7 +281,11 @@ export default function Profile() {
             </span>
             <span className={entry.amount >= 0 ? 'amount-in' : 'amount-out'}>
               {entry.amount >= 0 ? '+' : ''}
-              {entry.amount} <PhotoIcon name={entry.currency === 'coins' ? 'coin' : 'gem'} size={13} />
+              {entry.amount}{' '}
+              <PhotoIcon
+                name={entry.currency === 'coins' ? 'coin' : entry.currency === 'gold' ? 'gold' : 'gem'}
+                size={13}
+              />
             </span>
           </div>
         ))}

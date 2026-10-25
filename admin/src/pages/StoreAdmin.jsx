@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from 'react'
 import { api } from '../api.js'
 
 const EMPTY = {
-  kind: 'coins',
+  kind: 'gold',
   name: '',
   amount: 500,
   bonus: 0,
@@ -139,9 +139,8 @@ export default function StoreAdmin() {
           <div className="field">
             <label>النوع</label>
             <select value={draft.kind} onChange={(event) => setDraft({ ...draft, kind: event.target.value })}>
-              <option value="coins">كوين</option>
-              <option value="gold">ذهب</option>
-              <option value="gems">جوهرة (حزمة رويال)</option>
+              <option value="gold">ذهب (حزمة رويال)</option>
+              <option value="diamonds">ماس (حزمة رويال)</option>
             </select>
           </div>
           <div className="field">

@@ -5,7 +5,8 @@ from conftest import auth
 def test_payments_are_never_assumed(client, make_user, admin_token):
     buyer = make_user("buyer")
     packs = client.get("/api/store", headers=auth(buyer["token"])).json()["packs"]
-    pack = packs[0]
+    # الشحن صار بالذهب أو الماس فقط، والكوين يُكتسب داخل التطبيق لا بالشحن.
+    pack = next(pack for pack in packs if pack["kind"] == "diamonds")
 
     response = client.post(
         f"/api/store/packs/{pack['id']}/purchase",
@@ -18,23 +19,28 @@ def test_payments_are_never_assumed(client, make_user, admin_token):
     assert response.json()["payment"]["configured"] is False
 
     # No provider keys -> no credit, no checkout, and the webhook refuses.
-    assert client.get("/api/auth/me", headers=auth(buyer["token"])).json()["wallet"]["coins"] == 500
+    before = client.get("/api/auth/me", headers=auth(buyer["token"])).json()["wallet"]
+    assert before["coins"] == 500  # مكافأة الترحيب فقط
+    assert before["diamonds"] == 0
     assert client.post(f"/api/payments/orders/{order['id']}/checkout", headers=auth(buyer["token"])).status_code == 503
     assert (
         client.post("/api/payments/webhook/stripe", content=b"{}", headers={"stripe-signature": "fake"}).status_code
         == 503
     )
-    assert client.get("/api/auth/me", headers=auth(buyer["token"])).json()["wallet"]["coins"] == 500
+    after_attempts = client.get("/api/auth/me", headers=auth(buyer["token"])).json()["wallet"]
+    assert after_attempts["coins"] == 500 and after_attempts["diamonds"] == 0
 
     # A verified administrator approval credits once, and only once.
     approved = client.post(
         f"/api/admin/orders/{order['id']}/approve", json={"note": "تحويل يدوي مؤكد"}, headers=auth(admin_token)
     )
     assert approved.status_code == 200
-    assert client.get("/api/auth/me", headers=auth(buyer["token"])).json()["wallet"]["coins"] == 500 + pack["total"]
+    credited = client.get("/api/auth/me", headers=auth(buyer["token"])).json()["wallet"]
+    assert credited["diamonds"] == pack["total"]
+    assert credited["coins"] == 500
     again = client.post(f"/api/admin/orders/{order['id']}/approve", json={}, headers=auth(admin_token))
     assert again.status_code == 400
-    assert client.get("/api/auth/me", headers=auth(buyer["token"])).json()["wallet"]["coins"] == 500 + pack["total"]
+    assert client.get("/api/auth/me", headers=auth(buyer["token"])).json()["wallet"]["diamonds"] == pack["total"]
 
 
 def test_admin_rights_are_enforced_on_the_server(client, make_user, admin_token):
@@ -111,7 +117,8 @@ def test_old_crown_membership_is_gone(client, make_user):
     assert client.post("/api/wallet/vip", json={"idempotency_key": "vip-one"}, headers=auth(user["token"])).status_code == 404
     me = client.get("/api/auth/me", headers=auth(user["token"])).json()
     assert "vip" not in me["user"] and "vip_until" not in me["user"]
-    assert me["user"]["royal_level"] >= 1
+    # العضو الجديد بلا مستوى رويال بعد: أول مستوى يفتح عند 7000 نقطة.
+    assert me["user"]["royal_level"] == 0
 
 
 def test_websocket_chat_presence_and_signalling(client, make_user):

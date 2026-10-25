@@ -7,6 +7,7 @@
  */
 const ICONS = {
   coin: 'coin.jpg',
+  gold: 'gold.jpg',
   gem: 'gem.jpg',
   trophy: 'trophy.png',
   crown: 'crown.jpg',

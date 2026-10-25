@@ -5,7 +5,7 @@ const AuthContext = createContext(null)
 
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null)
-  const [wallet, setWallet] = useState({ coins: 0, gold: 0 })
+  const [wallet, setWallet] = useState({ coins: 0, gold: 0, diamonds: 0 })
   const [meta, setMeta] = useState(null)
   const [loading, setLoading] = useState(Boolean(getToken()))
   const [socket, setSocket] = useState(null)

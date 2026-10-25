@@ -61,7 +61,8 @@ class Wallet(Base):
     user_id = Column(ForeignKey("users.id", ondelete="CASCADE"), unique=True, nullable=False)
     coins = Column(Integer, nullable=False, default=0)
     gold = Column(Integer, nullable=False, default=0)
-    gems = Column(Integer, nullable=False, default=0)
+    # عملة الشحن الثانية بعد حذف «الجوهرة»: الماس (باقات الشحن تمنح ذهباً أو ماساً).
+    diamonds = Column(Integer, nullable=False, default=0)
     updated_at = Column(DateTime(timezone=True), nullable=False, default=utcnow, onupdate=utcnow)
 
 
@@ -72,7 +73,7 @@ class LedgerEntry(Base):
 
     id = Column(Integer, primary_key=True)
     user_id = Column(ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
-    currency = Column(String(8), nullable=False)  # coins|gold
+    currency = Column(String(8), nullable=False)  # coins|gold|diamonds
     amount = Column(Integer, nullable=False)  # signed
     balance_after = Column(Integer, nullable=False, default=0)
     kind = Column(String(32), nullable=False)  # reward|gift_sent|gift_received|transfer_in|transfer_out|recharge|withdrawal|admin_adjust|purchase
@@ -251,7 +252,7 @@ class StorePack(Base):
     __tablename__ = "store_packs"
 
     id = Column(Integer, primary_key=True)
-    kind = Column(String(8), nullable=False)  # coins|gold|gems
+    kind = Column(String(8), nullable=False)  # gold|diamonds
     name = Column(String(64), nullable=False)
     amount = Column(Integer, nullable=False)
     bonus = Column(Integer, nullable=False, default=0)
@@ -341,7 +342,7 @@ class RechargeOrder(Base):
     id = Column(Integer, primary_key=True)
     user_id = Column(ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
     pack_id = Column(ForeignKey("store_packs.id", ondelete="SET NULL"), nullable=True)
-    currency = Column(String(8), nullable=False)  # coins|gold|gems
+    currency = Column(String(8), nullable=False)  # gold|diamonds
     amount = Column(Integer, nullable=False)
     # نسخة من نقاط رويال الباقة وقت الشراء: لا تتغيّر لو عدّل المشرف الباقة لاحقاً.
     royal_points = Column(Integer, nullable=False, default=0)

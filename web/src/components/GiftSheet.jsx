@@ -78,7 +78,7 @@ export default function GiftSheet({ room, members = [], initialReceiverId = null
             data-testid="gift-currency-gold"
             onClick={() => setCurrency('gold')}
           >
-            <PhotoIcon name="gem" size={16} /> {t('gold')}
+            <PhotoIcon name="gold" size={16} /> {t('gold')}
           </button>
           <span className="chip">{t('balance')}: {balance}</span>
         </div>
@@ -110,7 +110,7 @@ export default function GiftSheet({ room, members = [], initialReceiverId = null
               <span>{gift.name}</span>
               <span className="gift-price">
                 {currency === 'coins' ? gift.price_coins : gift.price_gold}{' '}
-                <PhotoIcon name={currency === 'coins' ? 'coin' : 'gem'} size={13} />
+                <PhotoIcon name={currency === 'coins' ? 'coin' : 'gold'} size={13} />
               </span>
             </button>
           ))}

@@ -1,4 +1,4 @@
-"""نظام رويال: حالة العضو، المستويات الخمسة، وحزم الجواهر التي تمنح النقاط.
+"""نظام رويال: حالة العضو، المستويات الخمسة، وحزم الشحن (ذهب أو ماس) التي تمنح النقاط.
 
 Read-only here: royal points only move when a recharge order is confirmed on
 the server (see :func:`app.economy.credit_recharge_order`) or when an
@@ -21,11 +21,11 @@ router = APIRouter(prefix="/api/royal", tags=["royal"])
 
 @router.get("")
 def royal_overview(user: User = Depends(get_current_user), db: Session = Depends(get_db)):
-    """المستويات (بما فيها المقفلة) + تقدّم العضو + حزم الجواهر ونقاطها."""
+    """المستويات (بما فيها المقفلة) + تقدّم العضو + كل حزم الشحن التي تمنح نقاط رويال."""
     packages = (
         db.execute(
             select(StorePack)
-            .where(StorePack.kind == "gems", StorePack.active.is_(True))
+            .where(StorePack.active.is_(True), StorePack.royal_points > 0)
             .order_by(StorePack.sort, StorePack.id)
         )
         .scalars()

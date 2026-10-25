@@ -36,7 +36,8 @@ export default function Dashboard() {
 
   const tiles = [
     { key: 'coins', label: s.coins, value: wallet.coins, icon: 'coin' },
-    { key: 'gold', label: s.gold, value: wallet.gold, icon: 'gem' },
+    { key: 'gold', label: s.gold, value: wallet.gold, icon: 'gold' },
+    { key: 'diamonds', label: t('diamonds'), value: wallet.diamonds, icon: 'gem' },
     { key: 'level', label: s.level, value: user.level, icon: 'star' },
     { key: 'friends', label: s.friendsCount, value: data ? data.friends.length : '—', icon: 'friends' },
     { key: 'rooms', label: s.myRooms, value: data ? data.rooms.length : '—', icon: 'mic' },

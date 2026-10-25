@@ -84,7 +84,7 @@ export default function Layout() {
           </button>
           <button type="button" className="currency-pill currency-gold" data-testid="balance-gold" onClick={openRecharge} title={t('recharge')}>
             <span className="coin-icon">
-              <PhotoIcon name="gem" size={16} />
+              <PhotoIcon name="gold" size={16} />
             </span>
             <span className="currency-value">{wallet.gold}</span>
             <span className="currency-plus">+</span>

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { api } from '../lib/api.js'
 import PhotoIcon from '../components/PhotoIcon.jsx'
@@ -6,6 +6,13 @@ import { useAuth } from '../lib/store.jsx'
 import { useI18n } from '../lib/i18n.jsx'
 
 const STATUS_LABEL = { pending: 'pending', paid: 'paid', failed: 'failed', cancelled: 'cancelled' }
+const CURRENCY_LABEL = { coins: 'كوين', gold: 'ذهب', diamonds: 'ماس' }
+
+// تبويبان داخل المتجر نفسه: شحن بالذهب وشحن بالماس، وكل باقة تمنح نقاط رويال.
+const RECHARGE_KINDS = [
+  { key: 'gold', icon: 'gold' },
+  { key: 'diamonds', icon: 'gem' },
+]
 
 /** Dedicated recharge page: every real pack the server offers, plus order history. */
 export default function Recharge() {
@@ -14,6 +21,7 @@ export default function Recharge() {
   const navigate = useNavigate()
   const [store, setStore] = useState(null)
   const [orders, setOrders] = useState([])
+  const [tab, setTab] = useState('gold')
   const [message, setMessage] = useState('')
   const [error, setError] = useState('')
   const [busy, setBusy] = useState('')
@@ -51,14 +59,15 @@ export default function Recharge() {
   }
 
   const packs = store?.packs || []
-  const groups = [
-    { key: 'coins', icon: 'coin', label: t('coins') },
-    { key: 'gold', icon: 'gem', label: t('gold') },
-    // حزم الجواهر هي حزم رويال: تمنح جواهر + نقاط رويال (تظهر في صفحة رويال أيضاً).
-    { key: 'gems', icon: 'star', label: t('gems') },
-  ]
-    .map((group) => ({ ...group, packs: packs.filter((pack) => pack.kind === group.key) }))
-    .filter((group) => group.packs.length)
+  const tabs = useMemo(
+    () =>
+      RECHARGE_KINDS.map((kind) => ({
+        ...kind,
+        packs: packs.filter((pack) => pack.kind === kind.key),
+      })).filter((kind) => kind.packs.length),
+    [packs],
+  )
+  const active = tabs.find((kind) => kind.key === tab) || tabs[0] || null
 
   return (
     <div data-testid="recharge-page">
@@ -74,30 +83,45 @@ export default function Recharge() {
         </button>
         <span className="store-title">{t('recharge')}</span>
         <div className="topbar-spacer" />
-        <span className="chip chip-coins" data-testid="recharge-balance-coins">
-          <PhotoIcon name="coin" size={15} /> {wallet.coins}
-        </span>
         <span className="chip chip-gold" data-testid="recharge-balance-gold">
-          <PhotoIcon name="gem" size={15} /> {wallet.gold}
+          <PhotoIcon name="gold" size={15} /> {wallet.gold}
+        </span>
+        <span className="chip chip-diamonds" data-testid="recharge-balance-diamonds">
+          <PhotoIcon name="gem" size={15} /> {wallet.diamonds ?? 0}
         </span>
       </div>
 
       {store === null && !error ? <p className="muted">…</p> : null}
 
-      {groups.map((group) => (
-        <section key={group.key} data-testid={`recharge-group-${group.key}`}>
+      {/* التبويبان: شحن بالذهب / شحن بالماس */}
+      <div className="subnav">
+        {tabs.map((kind) => (
+          <button
+            key={kind.key}
+            type="button"
+            className={`subnav-item${kind.key === active?.key ? ' subnav-item-active' : ''}`}
+            data-testid={`recharge-tab-${kind.key}`}
+            onClick={() => setTab(kind.key)}
+          >
+            <PhotoIcon name={kind.icon} size={16} /> {t(kind.key)}
+          </button>
+        ))}
+      </div>
+
+      {active ? (
+        <section key={active.key} data-testid={`recharge-group-${active.key}`}>
           <div className="ribbon">
-            <PhotoIcon name={group.icon} size={17} /> {group.label}
+            <PhotoIcon name={active.icon} size={17} /> {t(active.key)}
           </div>
           <div className="grid-packs">
-            {group.packs.map((pack) => (
+            {active.packs.map((pack) => (
               <div className="card glass" key={pack.id} data-testid={`pack-${pack.id}`}>
                 <div className="row-between">
                   <strong>{pack.name}</strong>
                   {pack.badge ? <span className="badge-pill">{pack.badge}</span> : null}
                 </div>
                 <div className="muted" style={{ marginTop: 6 }}>
-                  <PhotoIcon name={pack.kind === 'coins' ? 'coin' : 'gem'} size={15} /> {pack.amount}
+                  <PhotoIcon name={active.icon} size={15} /> {pack.amount}
                   {pack.bonus ? ` + ${pack.bonus}` : ''}
                 </div>
                 {pack.royal_points ? (
@@ -125,7 +149,7 @@ export default function Recharge() {
             ))}
           </div>
         </section>
-      ))}
+      ) : null}
 
       {store ? (
         <p className={store.payment.configured ? 'muted' : 'notice'} data-testid="payment-status" style={{ marginTop: 12 }}>
@@ -139,7 +163,7 @@ export default function Recharge() {
         {orders.map((order) => (
           <div className="ledger-row" key={order.id} data-testid="order-row">
             <span>
-              #{order.id} · {order.amount} {order.currency === 'coins' ? 'كوين' : 'ذهب'}
+              #{order.id} · {order.amount} {CURRENCY_LABEL[order.currency] || order.currency}
             </span>
             <span className={`status-pill status-${STATUS_LABEL[order.status] || 'pending'}`}>
               {t(STATUS_LABEL[order.status] || 'pending')}

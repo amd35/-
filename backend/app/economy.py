@@ -28,10 +28,10 @@ from .models import (
 )
 from .settings_store import get_setting
 
-CURRENCIES = ("coins", "gold", "gems")
+CURRENCIES = ("coins", "gold", "diamonds")
 
 # كل عملة تحمل اسم عمودها في جدول المحافظ، واسمها العربي في الرسائل.
-CURRENCY_LABELS = {"coins": "كوين", "gold": "ذهب", "gems": "جوهرة"}
+CURRENCY_LABELS = {"coins": "كوين", "gold": "ذهب", "diamonds": "ماس"}
 
 
 def _field(currency: str) -> str:
@@ -54,7 +54,7 @@ def get_wallet(db: Session, user_id: int, lock: bool = False) -> Wallet:
         statement = statement.with_for_update()
     wallet = db.execute(statement).scalar_one_or_none()
     if wallet is None:
-        wallet = Wallet(user_id=user_id, coins=0, gold=0, gems=0)
+        wallet = Wallet(user_id=user_id, coins=0, gold=0, diamonds=0)
         db.add(wallet)
         db.flush()
     return wallet
@@ -240,7 +240,7 @@ def send_gift(
 def credit_recharge_order(db: Session, order: RechargeOrder, note: str = "") -> Optional[LedgerEntry]:
     """Credit a paid order exactly once (the ledger ref makes it idempotent).
 
-    A gems pack also carries royal points; both movements happen in the same
+    A gold or diamonds pack also carries royal points; both movements happen in the same
     transaction and each carries its own unique ref, so a repeated webhook can
     never double-credit them.
     """

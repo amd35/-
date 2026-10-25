@@ -145,7 +145,7 @@ class GiftPatch(BaseModel):
 
 
 class PackIn(BaseModel):
-    kind: str  # coins|gold|gems
+    kind: str  # gold|diamonds
     name: str
     amount: int
     bonus: int = 0
@@ -280,11 +280,11 @@ def stats(user: User = Depends(get_admin_user), db: Session = Depends(get_db)):
         .order_by(LedgerEntry.id.desc())
         .limit(10)
     ).all()
-    circulating_coins, circulating_gold, circulating_gems = db.execute(
+    circulating_coins, circulating_gold, circulating_diamonds = db.execute(
         select(
             func.coalesce(func.sum(Wallet.coins), 0),
             func.coalesce(func.sum(Wallet.gold), 0),
-            func.coalesce(func.sum(Wallet.gems), 0),
+            func.coalesce(func.sum(Wallet.diamonds), 0),
         )
     ).one()
     games_waiting = int(db.execute(select(func.count(GameRoom.id)).where(GameRoom.status == "waiting")).scalar() or 0)
@@ -366,7 +366,7 @@ def stats(user: User = Depends(get_admin_user), db: Session = Depends(get_db)):
             "circulating": {
                 "coins": int(circulating_coins),
                 "gold": int(circulating_gold),
-                "gems": int(circulating_gems),
+                "diamonds": int(circulating_diamonds),
             },
             "recent": [dict(ledger_public(entry), username=username) for entry, username in recent_movements],
         },
@@ -705,11 +705,11 @@ def update_pack(
 
 @router.get("/royal")
 def admin_royal(actor: User = Depends(get_admin_user), db: Session = Depends(get_db)):
-    """مستويات رويال الخمسة (العتبات والامتيازات) + حزم الجواهر ونقاطها."""
+    """مستويات رويال الخمسة (العتبات والامتيازات) + كل حزم الشحن التي تمنح نقاطاً."""
     require_permission(actor, "settings")
     packages = (
         db.execute(
-            select(StorePack).where(StorePack.kind == "gems").order_by(StorePack.sort, StorePack.id)
+            select(StorePack).where(StorePack.royal_points > 0).order_by(StorePack.sort, StorePack.id)
         )
         .scalars()
         .all()
