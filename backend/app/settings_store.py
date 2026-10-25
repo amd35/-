@@ -16,14 +16,6 @@ DEFAULTS: dict[str, Any] = {
     "withdrawal_min_coins": 50000,
     "withdrawal_fee_percent": 10,
     "welcome_bonus_coins": 500,
-    "vip_price_usd_cents": 999,
-    "vip_price_coins": 5000,
-    "vip_days": 30,
-    "vip_benefits": [
-        "شارة VIP في الملف الشخصي والغرفة",
-        "أولوية في مقاعد المايك",
-        "حد أعلى للهدايا اليومية",
-    ],
     "ads": [
         {
             "id": "ad_welcome",
@@ -88,9 +80,6 @@ def public_settings(db: Session) -> dict[str, Any]:
         "exchange_rate_usd_iqd": values["exchange_rate_usd_iqd"],
         "ads": values["ads"],
         "offers": values["offers"],
-        "vip_price_usd_cents": values["vip_price_usd_cents"],
-        "vip_price_coins": values["vip_price_coins"],
-        "vip_benefits": values["vip_benefits"],
         "withdrawal_enabled": values["withdrawal_enabled"],
         "withdrawal_min_coins": values["withdrawal_min_coins"],
         "withdrawal_fee_percent": values["withdrawal_fee_percent"],

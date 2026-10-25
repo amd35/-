@@ -6,7 +6,7 @@ import { useAuth } from '../lib/store.jsx'
 import { useI18n } from '../lib/i18n.jsx'
 
 export default function Home() {
-  const { wallet, setWallet, user, refresh } = useAuth()
+  const { wallet, user } = useAuth()
   const { t } = useI18n()
   const navigate = useNavigate()
   const [store, setStore] = useState(null)
@@ -27,22 +27,6 @@ export default function Home() {
   useEffect(() => {
     load()
   }, [load])
-
-  const buyVip = async () => {
-    setBusy('vip')
-    setError('')
-    setMessage('')
-    try {
-      const result = await api.post('/api/wallet/vip', { idempotency_key: window.crypto.randomUUID() })
-      setWallet(result.wallet)
-      setMessage(`تم تفعيل VIP حتى ${new Date(result.vip_until).toLocaleDateString('ar')}`)
-      await refresh()
-    } catch (err) {
-      setError(err.message)
-    } finally {
-      setBusy('')
-    }
-  }
 
   const ads = store?.ads || []
   const offers = store?.offers || []
@@ -138,24 +122,35 @@ export default function Home() {
         </div>
       </article>
 
-      <article className="panel" data-testid="vip-card">
+      <article className="panel" data-testid="royal-card">
         <div className="panel-icon">
           <PhotoIcon name="crown" size={28} />
         </div>
         <div className="panel-body">
-          <div className="panel-title">{t('vip')}</div>
+          <div className="panel-title">
+            {t('royal')} {store?.royal?.level ? `· ${store.royal.level}` : ''}
+          </div>
+          <div className="panel-sub" data-testid="royal-summary">
+            {user.royal_name || `${t('royal')} ${user.royal_level}`} · {user.royal_points} {t('royalPoints')} ·{' '}
+            {t('pointsToNext')} {store?.royal?.points_to_next ?? 0}
+          </div>
           <ul className="panel-list">
-            {(store?.vip?.benefits || []).slice(0, 3).map((benefit) => (
-              <li key={benefit}>{benefit}</li>
-            ))}
+            {(store?.royal?.tier?.privileges || [])
+              .filter((perk) => perk.featured)
+              .slice(0, 3)
+              .map((perk) => (
+                <li key={perk.key}>{perk.title_ar}</li>
+              ))}
           </ul>
         </div>
         <div className="panel-side">
-          <span className="chip chip-coins">
-            {store?.vip?.price_coins ?? '—'} <PhotoIcon name="coin" size={15} />
-          </span>
-          <button type="button" className="btn btn-primary" data-testid="buy-vip" disabled={busy === 'vip'} onClick={buyVip}>
-            {t('buyVip')}
+          <button
+            type="button"
+            className="btn btn-primary"
+            data-testid="open-royal"
+            onClick={() => navigate('/royal')}
+          >
+            {t('openRoyal')}
           </button>
         </div>
       </article>
@@ -173,9 +168,12 @@ export default function Home() {
             <span className="chip chip-gold">
               <PhotoIcon name="gem" size={15} /> {wallet.gold} {t('gold')}
             </span>
+            <span className="chip chip-gems">
+              <PhotoIcon name="star" size={15} /> {wallet.gems ?? 0} {t('gems')}
+            </span>
           </div>
           <div className="panel-sub">
-            {user.vip ? `VIP — ${t('level')} ${user.level}` : `${t('level')} ${user.level} · ${user.xp} ${t('xp')}`}
+            {`${t('level')} ${user.level} · ${user.xp} ${t('xp')} · ${t('royal')} ${user.royal_level}`}
           </div>
         </div>
         <div className="panel-side">

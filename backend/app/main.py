@@ -21,6 +21,7 @@ from .routers import (
     notifications,
     payments,
     rooms,
+    royal,
     store,
     support,
     users,
@@ -82,6 +83,7 @@ app.include_router(users.router)
 app.include_router(rooms.router)
 app.include_router(gifts.router)
 app.include_router(wallet.router)
+app.include_router(royal.router)
 app.include_router(store.router)
 app.include_router(support.router)
 app.include_router(friends.router)

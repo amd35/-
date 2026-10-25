@@ -9,6 +9,7 @@ import sys
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from . import royal
 from .config import settings
 from .economy import grant_reward, get_wallet
 from .models import AppSetting, Gift, Room, RoomMember, RoomMessage, StoreItem, StorePack, User
@@ -32,14 +33,24 @@ GIFTS = [
     ("نجمة ذهبية", "Golden Star", "luxury", "🌟", 20000, 100, "both", 12),
 ]
 
+# (النوع، الاسم، الكمية، المكافأة، نقاط رويال، السعر IQD، السعر بالسنت، الشارة، الترتيب)
+# حزم الجواهر هي باقات رويال: كل باقة تمنح جواهر + نقاط رويال، وكلها قابلة للتعديل من
+# لوحة الإدارة (الأسعار هنا باقات مبدئية فقط).
 PACKS = [
-    ("coins", "500 كوين", 500, 0, 5000, 399, "", 1),
-    ("coins", "1,200 كوين", 1200, 200, 10000, 799, "الأكثر رواجاً", 2),
-    ("coins", "2,500 كوين", 2500, 500, 19000, 1499, "", 3),
-    ("coins", "6,500 كوين", 6500, 1500, 45000, 3499, "قيمة مميزة", 4),
-    ("coins", "13,000 كوين", 13000, 4000, 85000, 6999, "الأفضل", 5),
-    ("gold", "100 ذهب", 100, 0, 25000, 1999, "", 6),
-    ("gold", "500 ذهب", 500, 50, 110000, 8999, "قيمة مميزة", 7),
+    ("coins", "500 كوين", 500, 0, 0, 5000, 399, "", 1),
+    ("coins", "1,200 كوين", 1200, 200, 0, 10000, 799, "الأكثر رواجاً", 2),
+    ("coins", "2,500 كوين", 2500, 500, 0, 19000, 1499, "", 3),
+    ("coins", "6,500 كوين", 6500, 1500, 0, 45000, 3499, "قيمة مميزة", 4),
+    ("coins", "13,000 كوين", 13000, 4000, 0, 85000, 6999, "الأفضل", 5),
+    ("gold", "100 ذهب", 100, 0, 0, 25000, 1999, "", 6),
+    ("gold", "500 ذهب", 500, 50, 0, 110000, 8999, "قيمة مميزة", 7),
+    ("gems", "400 جوهرة", 400, 0, 7, 1320, 100, "", 11),
+    ("gems", "1,800 جوهرة", 1800, 0, 14, 6600, 500, "", 12),
+    ("gems", "3,800 جوهرة", 3800, 0, 28, 13200, 1000, "الأكثر رواجاً", 13),
+    ("gems", "8,000 جوهرة", 8000, 0, 60, 26400, 2000, "", 14),
+    ("gems", "21,000 جوهرة", 21000, 0, 150, 66000, 5000, "قيمة مميزة", 15),
+    ("gems", "43,000 جوهرة", 43000, 0, 300, 132000, 10000, "الأفضل", 16),
+    ("gems", "53,000 جوهرة", 53000, 0, 700, 120000, 9091, "باقة خاصة", 17),
 ]
 
 # Cosmetics sold inside the app for coins/gold. ``accent``/``pips`` draw the dice
@@ -64,6 +75,8 @@ def seed(db: Session) -> None:
     _seed_settings(db)
     _seed_room(db)
     db.commit()
+    # مستويات رويال الخمسة: تُنشأ مرة واحدة وتُدار بعدها من لوحة الإدارة.
+    royal.ensure_tiers(db)
 
 
 # AppSetting key holding a hash of the ADMIN_PASSWORD value last applied to the
@@ -154,7 +167,7 @@ def _seed_gifts(db: Session) -> None:
 
 
 def _seed_packs(db: Session) -> None:
-    for kind, name, amount, bonus, iqd, usd_cents, badge, sort in PACKS:
+    for kind, name, amount, bonus, royal_points, iqd, usd_cents, badge, sort in PACKS:
         found = db.execute(select(StorePack).where(StorePack.name == name, StorePack.kind == kind)).scalar_one_or_none()
         if found is not None:
             continue
@@ -164,6 +177,7 @@ def _seed_packs(db: Session) -> None:
                 name=name,
                 amount=amount,
                 bonus=bonus,
+                royal_points=royal_points,
                 price_iqd=iqd,
                 price_usd_cents=usd_cents,
                 badge=badge,
@@ -198,8 +212,7 @@ def _seed_store_items(db: Session) -> None:
 
 def _seed_settings(db: Session) -> None:
     defaults = dict(DEFAULTS)
-    defaults["vip_price_coins"] = get_setting(db, "vip_price_coins", 5000)
-    for key in ("exchange_rate_usd_iqd", "ads", "offers", "vip_price_coins", "vip_days", "games_enabled"):
+    for key in ("exchange_rate_usd_iqd", "ads", "offers", "games_enabled"):
         if db.get(AppSetting, key) is None:
             set_setting(db, key, defaults[key])
     db.commit()

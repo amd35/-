@@ -105,22 +105,13 @@ def test_withdrawal_flow_and_refund(client, make_user, admin_token):
     client.patch("/api/admin/settings", json={"settings": {"withdrawal_enabled": False}}, headers=auth(admin_token))
 
 
-def test_vip_is_granted_only_after_server_confirmation(client, make_user, admin_token):
-    user = make_user("vipuser")
-    assert client.post("/api/wallet/vip", json={"idempotency_key": "vip-one"}, headers=auth(user["token"])).status_code == 400
-    client.post(
-        f"/api/admin/users/{user['user']['id']}/wallet",
-        json={"currency": "coins", "amount": 6000, "note": "رصيد اختبار VIP"},
-        headers=auth(admin_token),
-    )
-    bought = client.post("/api/wallet/vip", json={"idempotency_key": "vip-one"}, headers=auth(user["token"]))
-    assert bought.status_code == 201, bought.text
-    assert bought.json()["wallet"]["coins"] == 6500 - 5000
-    assert bought.json()["user"]["vip"] is True
-
-    replay = client.post("/api/wallet/vip", json={"idempotency_key": "vip-one"}, headers=auth(user["token"]))
-    assert replay.json()["already"] is True
-    assert replay.json()["wallet"]["coins"] == 1500
+def test_old_crown_membership_is_gone(client, make_user):
+    """نظام التاج القديم (عضوية VIP) أُزيل: مساره لم يعد موجوداً ولا حقوله في الاستجابة."""
+    user = make_user("oldcrown")
+    assert client.post("/api/wallet/vip", json={"idempotency_key": "vip-one"}, headers=auth(user["token"])).status_code == 404
+    me = client.get("/api/auth/me", headers=auth(user["token"])).json()
+    assert "vip" not in me["user"] and "vip_until" not in me["user"]
+    assert me["user"]["royal_level"] >= 1
 
 
 def test_websocket_chat_presence_and_signalling(client, make_user):

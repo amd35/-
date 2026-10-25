@@ -2,6 +2,8 @@
 import datetime as dt
 from typing import Any
 
+from . import royal
+
 LEVEL_STEP = 500
 
 
@@ -35,8 +37,10 @@ def badges_for(user: Any, level: int) -> list[str]:
         badges.append("نجم الغرف")
     if level >= 20:
         badges.append("أسطورة")
-    if user.vip_until and user.vip_until > dt.datetime.now(dt.timezone.utc):
-        badges.append("VIP")
+    royal_tier = royal.level_from_points(user.royal_points or 0)
+    if royal_tier and royal_tier["level"] > 1:
+        # شعار رويال: شارة المستوى الحقيقي من نظام رويال (لا شارة قديمة).
+        badges.append(royal_tier["name_ar"])
     if user.is_admin:
         badges.append("الإدارة")
     return badges
@@ -48,7 +52,7 @@ def iso(value: dt.datetime | None) -> str | None:
 
 def user_public(user: Any, online_override: bool | None = None) -> dict[str, Any]:
     level = level_for_xp(user.xp or 0)
-    vip = bool(user.vip_until and user.vip_until > dt.datetime.now(dt.timezone.utc))
+    royal_tier = royal.level_from_points(user.royal_points or 0)
     return {
         "id": user.id,
         "username": user.username,
@@ -62,8 +66,9 @@ def user_public(user: Any, online_override: bool | None = None) -> dict[str, Any
         "xp": user.xp or 0,
         "xp_into_level": xp_into_level(user.xp or 0),
         "next_level_xp": next_level_xp(user.xp or 0),
-        "vip": vip,
-        "vip_until": iso(user.vip_until),
+        "royal_points": user.royal_points or 0,
+        "royal_level": royal_tier["level"] if royal_tier else 0,
+        "royal_name": royal_tier["name_ar"] if royal_tier else "",
         "badges": badges_for(user, level),
         "is_admin": bool(user.is_admin),
         "admin_role": user.admin_role,
@@ -89,7 +94,7 @@ def user_private(user: Any) -> dict[str, Any]:
 
 
 def wallet_public(wallet: Any) -> dict[str, int]:
-    return {"coins": wallet.coins, "gold": wallet.gold}
+    return {"coins": wallet.coins, "gold": wallet.gold, "gems": wallet.gems}
 
 
 def ledger_public(entry: Any) -> dict[str, Any]:
@@ -198,6 +203,7 @@ def order_public(order: Any) -> dict[str, Any]:
         "pack_id": order.pack_id,
         "currency": order.currency,
         "amount": order.amount,
+        "royal_points": order.royal_points or 0,
         "price_amount": order.price_amount,
         "price_currency": order.price_currency,
         "provider": order.provider,
@@ -234,6 +240,7 @@ def pack_public(pack: Any) -> dict[str, Any]:
         "amount": pack.amount,
         "bonus": pack.bonus,
         "total": pack.amount + pack.bonus,
+        "royal_points": pack.royal_points or 0,
         "price_iqd": pack.price_iqd,
         "price_usd_cents": pack.price_usd_cents,
         "badge": pack.badge,

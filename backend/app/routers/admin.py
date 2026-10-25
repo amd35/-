@@ -12,9 +12,10 @@ from pydantic import BaseModel, Field
 from sqlalchemy import case, func, or_, select
 from sqlalchemy.orm import Session
 
+from .. import royal
 from ..config import settings
 from ..db import get_db
-from ..economy import admin_adjust, credit_recharge_order, get_wallet, settle_withdraw_request
+from ..economy import CURRENCIES, admin_adjust, credit_recharge_order, get_wallet, settle_withdraw_request
 from ..models import (
     AppSetting,
     AuditLog,
@@ -28,6 +29,7 @@ from ..models import (
     Report,
     Room,
     RoomMember,
+    RoyalTier,
     StorePack,
     User,
     Wallet,
@@ -87,15 +89,25 @@ class UserPatch(BaseModel):
     status: Optional[str] = None
     is_admin: Optional[bool] = None
     admin_role: Optional[str] = None
-    vip_days: Optional[int] = None
     display_name: Optional[str] = None
     note: str = ""
 
 
 class WalletPatch(BaseModel):
+    # "royal" ليست عملة محفظة: تعديلها يحرّك نقاط رويال عبر سجلها الخاص.
     currency: str = "coins"
     amount: int
     note: str = Field(min_length=2, max_length=200)
+
+
+class RoyalTierPatch(BaseModel):
+    name_ar: Optional[str] = Field(default=None, max_length=32)
+    name_en: Optional[str] = Field(default=None, max_length=32)
+    required_points: Optional[int] = Field(default=None, ge=0, le=10_000_000)
+    accent: Optional[str] = Field(default=None, max_length=16)
+    jewel: Optional[str] = Field(default=None, max_length=16)
+    privileges: Optional[list] = None
+    active: Optional[bool] = None
 
 
 class RoomPatch(BaseModel):
@@ -133,10 +145,11 @@ class GiftPatch(BaseModel):
 
 
 class PackIn(BaseModel):
-    kind: str
+    kind: str  # coins|gold|gems
     name: str
     amount: int
     bonus: int = 0
+    royal_points: int = Field(default=0, ge=0, le=1_000_000)
     price_iqd: int = 0
     price_usd_cents: int = 0
     badge: str = ""
@@ -148,6 +161,7 @@ class PackPatch(BaseModel):
     name: Optional[str] = None
     amount: Optional[int] = None
     bonus: Optional[int] = None
+    royal_points: Optional[int] = Field(default=None, ge=0, le=1_000_000)
     price_iqd: Optional[int] = None
     price_usd_cents: Optional[int] = None
     badge: Optional[str] = None
@@ -169,7 +183,7 @@ class GameSettingsPatch(BaseModel):
 class BroadcastIn(BaseModel):
     title: str = Field(min_length=2, max_length=120)
     body: str = Field(default="", max_length=500)
-    segment: str = "all"  # all|online|vip|admins
+    segment: str = "all"  # all|online|royal|admins
 
 
 class ReportPatch(BaseModel):
@@ -232,7 +246,7 @@ def stats(user: User = Depends(get_admin_user), db: Session = Depends(get_db)):
     }
 
     # Wallet flow over the recent window, split per currency and movement kind.
-    flow = {currency: {"in": 0, "out": 0, "net": 0, "entries": 0} for currency in ("coins", "gold")}
+    flow = {currency: {"in": 0, "out": 0, "net": 0, "entries": 0} for currency in CURRENCIES}
     for currency, credited, debited, entries in db.execute(
         select(
             LedgerEntry.currency,
@@ -266,8 +280,12 @@ def stats(user: User = Depends(get_admin_user), db: Session = Depends(get_db)):
         .order_by(LedgerEntry.id.desc())
         .limit(10)
     ).all()
-    circulating_coins, circulating_gold = db.execute(
-        select(func.coalesce(func.sum(Wallet.coins), 0), func.coalesce(func.sum(Wallet.gold), 0))
+    circulating_coins, circulating_gold, circulating_gems = db.execute(
+        select(
+            func.coalesce(func.sum(Wallet.coins), 0),
+            func.coalesce(func.sum(Wallet.gold), 0),
+            func.coalesce(func.sum(Wallet.gems), 0),
+        )
     ).one()
     games_waiting = int(db.execute(select(func.count(GameRoom.id)).where(GameRoom.status == "waiting")).scalar() or 0)
     games_playing = int(db.execute(select(func.count(GameRoom.id)).where(GameRoom.status == "playing")).scalar() or 0)
@@ -282,10 +300,19 @@ def stats(user: User = Depends(get_admin_user), db: Session = Depends(get_db)):
                 db.execute(select(func.count(User.id)).where(User.created_at >= day_start)).scalar() or 0
             ),
             "online": int(db.execute(select(func.count(User.id)).where(User.online.is_(True))).scalar() or 0),
-            "vip": int(
-                db.execute(select(func.count(User.id)).where(User.vip_until.is_not(None), User.vip_until > utcnow())).scalar()
-                or 0
+            # أعضاء رويال: من تجاوز المستوى الأول فعلياً (نقاط رويال > 0).
+            "royal": int(
+                db.execute(select(func.count(User.id)).where(User.royal_points > 0)).scalar() or 0
             ),
+            "royal_levels": {
+                str(tier.level): int(
+                    db.execute(
+                        select(func.count(User.id)).where(User.royal_points >= tier.required_points)
+                    ).scalar()
+                    or 0
+                )
+                for tier in royal.cached_tiers(db)
+            },
         },
         "activity": {
             "active_15m": int(
@@ -336,7 +363,11 @@ def stats(user: User = Depends(get_admin_user), db: Session = Depends(get_db)):
             "since": iso(flow_since),
             "flow": flow,
             "by_kind": by_kind,
-            "circulating": {"coins": int(circulating_coins), "gold": int(circulating_gold)},
+            "circulating": {
+                "coins": int(circulating_coins),
+                "gold": int(circulating_gold),
+                "gems": int(circulating_gems),
+            },
             "recent": [dict(ledger_public(entry), username=username) for entry, username in recent_movements],
         },
         "orders": {
@@ -422,14 +453,6 @@ def update_user(
         target.display_name = payload.display_name.strip()[:64]
         audit(db, actor, "user.display_name", "user", target.id, {"value": target.display_name})
 
-    if payload.vip_days is not None:
-        require_permission(actor, "users_sensitive")
-        import datetime as dt
-
-        base = target.vip_until if target.vip_until and target.vip_until > utcnow() else utcnow()
-        target.vip_until = base + dt.timedelta(days=payload.vip_days)
-        audit(db, actor, "user.vip", "user", target.id, {"days": payload.vip_days})
-
     if payload.is_admin is not None or payload.admin_role is not None:
         require_permission(actor, "admin_staff")
         if actor.admin_role != "owner":
@@ -468,10 +491,28 @@ def adjust_wallet(
     target = db.get(User, user_id)
     if target is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "المستخدم غير موجود")
-    if payload.currency not in {"coins", "gold"}:
+    if payload.currency not in CURRENCIES and payload.currency != "royal":
         raise HTTPException(status.HTTP_400_BAD_REQUEST, "العملة غير معروفة")
     if payload.amount == 0:
         raise HTTPException(status.HTTP_400_BAD_REQUEST, "حدد مبلغاً غير صفري")
+
+    if payload.currency == "royal":
+        # نقاط رويال لها سجلها الخاص: لا تُخلط مع أرصدة المحفظة.
+        royal.add_points(db, target.id, payload.amount, kind="admin_adjust", note=payload.note)
+        audit(
+            db,
+            actor,
+            "royal.adjust",
+            "user",
+            target.id,
+            {"points": payload.amount, "note": payload.note},
+        )
+        db.commit()
+        return {
+            "entry": None,
+            "royal": royal.status_for(db, target),
+            "user": user_public(target),
+        }
 
     entry = admin_adjust(db, target, payload.currency, payload.amount, payload.note)
     audit(
@@ -500,7 +541,7 @@ def ledger(
 ):
     require_permission(actor, "ledger")
     statement = select(LedgerEntry)
-    if currency in {"coins", "gold"}:
+    if currency in CURRENCIES:
         statement = statement.where(LedgerEntry.currency == currency)
     if kind:
         statement = statement.where(LedgerEntry.kind == kind)
@@ -633,7 +674,7 @@ def admin_packs(actor: User = Depends(get_admin_user), db: Session = Depends(get
 @router.post("/packs", status_code=status.HTTP_201_CREATED)
 def create_pack(payload: PackIn, actor: User = Depends(get_admin_user), db: Session = Depends(get_db)):
     require_permission(actor, "store")
-    if payload.kind not in {"coins", "gold"}:
+    if payload.kind not in CURRENCIES:
         raise HTTPException(status.HTTP_400_BAD_REQUEST, "النوع غير معروف")
     pack = StorePack(**payload.model_dump())
     db.add(pack)
@@ -660,6 +701,48 @@ def update_pack(
     audit(db, actor, "pack.update", "pack", pack.id, changes)
     db.commit()
     return {"pack": pack_public(pack)}
+
+
+@router.get("/royal")
+def admin_royal(actor: User = Depends(get_admin_user), db: Session = Depends(get_db)):
+    """مستويات رويال الخمسة (العتبات والامتيازات) + حزم الجواهر ونقاطها."""
+    require_permission(actor, "settings")
+    packages = (
+        db.execute(
+            select(StorePack).where(StorePack.kind == "gems").order_by(StorePack.sort, StorePack.id)
+        )
+        .scalars()
+        .all()
+    )
+    return {
+        "tiers": [royal.tier_public(tier) for tier in royal.tiers(db)],
+        "packages": [pack_public(pack) for pack in packages],
+    }
+
+
+@router.patch("/royal/tiers/{level}")
+def update_royal_tier(
+    level: int,
+    payload: RoyalTierPatch,
+    actor: User = Depends(get_admin_user),
+    db: Session = Depends(get_db),
+):
+    """تعديل عتبة مستوى أو امتيازاته — قواعد الترقية مستقلة عن النقاط المكتسبة."""
+    require_permission(actor, "settings")
+    tier = db.execute(select(RoyalTier).where(RoyalTier.level == level)).scalar_one_or_none()
+    if tier is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "المستوى غير موجود")
+    changes = payload.model_dump(exclude_none=True)
+    if "privileges" in changes:
+        changes["privileges"] = royal.normalize_privileges(changes["privileges"])
+    for field, value in changes.items():
+        setattr(tier, field, value)
+    audit(db, actor, "royal.tier.update", "royal_tier", level, changes)
+    db.commit()
+    db.refresh(tier)
+    # العتبات الجديدة تُطبَّق فوراً على كل قراءة (لا انتظار انتهاء الذاكرة المؤقتة).
+    rows = royal.refresh(db)
+    return {"tier": royal.tier_public(tier), "tiers": [royal.tier_public(row) for row in rows]}
 
 
 @router.get("/orders")
@@ -825,8 +908,8 @@ def broadcast(payload: BroadcastIn, actor: User = Depends(get_admin_user), db: S
     statement = select(User).where(User.status == "active")
     if payload.segment == "online":
         statement = statement.where(User.online.is_(True))
-    elif payload.segment == "vip":
-        statement = statement.where(User.vip_until.is_not(None), User.vip_until > utcnow())
+    elif payload.segment == "royal":
+        statement = statement.where(User.royal_points > 0)
     elif payload.segment == "admins":
         statement = statement.where(User.is_admin.is_(True))
     else:

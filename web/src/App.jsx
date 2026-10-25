@@ -9,6 +9,7 @@ import Rooms from './pages/Rooms.jsx'
 import Room from './pages/Room.jsx'
 import Friends from './pages/Friends.jsx'
 import Profile from './pages/Profile.jsx'
+import Royal from './pages/Royal.jsx'
 import Store from './pages/Store.jsx'
 import Recharge from './pages/Recharge.jsx'
 import ActivityLog from './pages/ActivityLog.jsx'
@@ -53,6 +54,7 @@ export default function App() {
           <Route path="/rooms/:roomId" element={<Room />} />
           <Route path="/friends" element={<Friends />} />
           <Route path="/profile" element={<Profile />} />
+          <Route path="/royal" element={<Royal />} />
           <Route path="/store" element={<Store />} />
           <Route path="/recharge" element={<Recharge />} />
           <Route path="/dashboard" element={<Dashboard />} />

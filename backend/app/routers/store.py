@@ -11,14 +11,14 @@ from pydantic import BaseModel, Field
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from .. import inventory
+from .. import inventory, royal
 from ..config import settings
 from ..db import get_db
 from ..economy import get_wallet, purchase_item
 from ..models import RechargeOrder, StorePack, User
 from ..security import get_current_user
 from ..serializers import item_public, ledger_public, order_public, pack_public, wallet_public
-from ..settings_store import all_settings, get_setting
+from ..settings_store import all_settings
 from .wallet import _payment_status
 
 router = APIRouter(prefix="/api/store", tags=["store"])
@@ -48,11 +48,8 @@ def store(db: Session = Depends(get_db), user: User = Depends(get_current_user))
         "exchange_rate_usd_iqd": values["exchange_rate_usd_iqd"],
         "supported_currencies": values["supported_currencies"],
         "currency_default": values["currency_default"],
-        "vip": {
-            "price_coins": int(get_setting(db, "vip_price_coins", 5000)),
-            "days": int(get_setting(db, "vip_days", 30)),
-            "benefits": values["vip_benefits"],
-        },
+        # نظام رويال هو نظام المستويات الوحيد الآن (لا عضوية تاج/VIP قديمة).
+        "royal": royal.status_for(db, user),
         "payment": _payment_status(),
     }
 
@@ -81,6 +78,7 @@ def purchase(
         pack_id=pack.id,
         currency=pack.kind,
         amount=pack.amount + pack.bonus,
+        royal_points=pack.royal_points or 0,
         price_amount=price_amount,
         price_currency=price_currency,
         provider="stripe",

@@ -7,7 +7,7 @@ carry a unique ``ref`` so a repeated request can never move money twice.
 import uuid
 from typing import Iterable, Optional
 
-from . import inventory
+from . import inventory, royal
 
 from fastapi import HTTPException, status
 from sqlalchemy import select
@@ -28,17 +28,20 @@ from .models import (
 )
 from .settings_store import get_setting
 
-CURRENCIES = ("coins", "gold")
+CURRENCIES = ("coins", "gold", "gems")
+
+# كل عملة تحمل اسم عمودها في جدول المحافظ، واسمها العربي في الرسائل.
+CURRENCY_LABELS = {"coins": "كوين", "gold": "ذهب", "gems": "جوهرة"}
 
 
 def _field(currency: str) -> str:
     if currency not in CURRENCIES:
         raise HTTPException(status.HTTP_400_BAD_REQUEST, f"Unknown currency: {currency}")
-    return "coins" if currency == "coins" else "gold"
+    return currency
 
 
 def insufficient(currency: str, needed: int, available: int) -> HTTPException:
-    label = "كوين" if currency == "coins" else "ذهب"
+    label = CURRENCY_LABELS.get(currency, currency)
     return HTTPException(
         status.HTTP_400_BAD_REQUEST,
         f"الرصيد غير كافٍ من {label}: المطلوب {needed} والمتوفر {available}",
@@ -51,7 +54,7 @@ def get_wallet(db: Session, user_id: int, lock: bool = False) -> Wallet:
         statement = statement.with_for_update()
     wallet = db.execute(statement).scalar_one_or_none()
     if wallet is None:
-        wallet = Wallet(user_id=user_id, coins=0, gold=0)
+        wallet = Wallet(user_id=user_id, coins=0, gold=0, gems=0)
         db.add(wallet)
         db.flush()
     return wallet
@@ -235,7 +238,12 @@ def send_gift(
 
 
 def credit_recharge_order(db: Session, order: RechargeOrder, note: str = "") -> Optional[LedgerEntry]:
-    """Credit a paid order exactly once (the ledger ref makes it idempotent)."""
+    """Credit a paid order exactly once (the ledger ref makes it idempotent).
+
+    A gems pack also carries royal points; both movements happen in the same
+    transaction and each carries its own unique ref, so a repeated webhook can
+    never double-credit them.
+    """
     reference = f"order:{order.id}"
     existing = db.execute(select(LedgerEntry).where(LedgerEntry.ref == reference)).scalar_one_or_none()
     if existing is not None:
@@ -254,6 +262,15 @@ def credit_recharge_order(db: Session, order: RechargeOrder, note: str = "") -> 
         ref=reference,
         note=note or f"شحن الطلب #{order.id}",
     )
+    if order.royal_points:
+        royal.add_points(
+            db,
+            order.user_id,
+            order.royal_points,
+            ref=f"order:{order.id}:royal",
+            kind="recharge",
+            note=note or f"نقاط رويال للطلب #{order.id}",
+        )
     order.status = "paid"
     db.commit()
     return entry

@@ -1,4 +1,4 @@
-"""Wallet: balances, ledger, transfers, recharge orders, withdrawals, VIP."""
+"""Wallet: balances, ledger, transfers, recharge orders and withdrawals."""
 import uuid
 from typing import Optional
 
@@ -7,15 +7,17 @@ from pydantic import BaseModel, Field
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from .. import royal
 from ..config import settings
 from ..db import get_db
 from ..economy import (
+    CURRENCIES,
     create_withdraw_request,
     get_wallet,
     settle_withdraw_request,
     transfer as ledger_transfer,
 )
-from ..models import LedgerEntry, RechargeOrder, StorePack, User, WithdrawRequest, utcnow
+from ..models import LedgerEntry, RechargeOrder, StorePack, User, WithdrawRequest
 from ..notifications import create_notification
 from ..security import get_current_user
 from ..serializers import ledger_public, order_public, user_public, wallet_public, withdrawal_public
@@ -49,10 +51,6 @@ class WithdrawIn(BaseModel):
     idempotency_key: Optional[str] = Field(default=None, max_length=96)
 
 
-class VipIn(BaseModel):
-    idempotency_key: Optional[str] = Field(default=None, max_length=96)
-
-
 @router.get("")
 def wallet(user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     wallet_row = get_wallet(db, user.id)
@@ -63,16 +61,11 @@ def wallet(user: User = Depends(get_current_user), db: Session = Depends(get_db)
         .scalars()
         .all()
     )
-    vip_price = int(get_setting(db, "vip_price_coins", 5000))
     return {
         "wallet": wallet_public(wallet_row),
         "recent": [ledger_public(entry) for entry in recent],
-        "vip": {
-            "active": bool(user.vip_until and user.vip_until > utcnow()),
-            "until": user.vip_until.isoformat() if user.vip_until else None,
-            "price_coins": vip_price,
-            "days": int(get_setting(db, "vip_days", 30)),
-        },
+        # نظام رويال بديل نظام التاج القديم: المستوى والنقاط من الخادم فقط.
+        "royal": royal.status_for(db, user),
         "withdrawal": {
             "enabled": bool(get_setting(db, "withdrawal_enabled", False)),
             "minimum": int(get_setting(db, "withdrawal_min_coins", 50000)),
@@ -92,7 +85,7 @@ def ledger(
     db: Session = Depends(get_db),
 ):
     statement = select(LedgerEntry).where(LedgerEntry.user_id == user.id)
-    if currency in {"coins", "gold"}:
+    if currency in CURRENCIES:
         statement = statement.where(LedgerEntry.currency == currency)
     if kind:
         statement = statement.where(LedgerEntry.kind == kind)
@@ -146,7 +139,7 @@ def create_recharge_order(
         price_currency = payload.price_currency if payload.price_currency in {"IQD", "USD"} else "IQD"
         price_amount = pack.price_iqd if price_currency == "IQD" else pack.price_usd_cents
     else:
-        if payload.currency not in {"coins", "gold"} or not payload.amount or payload.amount <= 0:
+        if payload.currency not in CURRENCIES or not payload.amount or payload.amount <= 0:
             raise HTTPException(status.HTTP_400_BAD_REQUEST, "حدد الباقة أو الكمية والعملة")
         currency = payload.currency
         amount = payload.amount
@@ -260,43 +253,3 @@ def cancel_withdrawal(request_id: int, user: User = Depends(get_current_user), d
         raise HTTPException(status.HTTP_404_NOT_FOUND, "الطلب غير موجود")
     settle_withdraw_request(db, request, approve=False, note="إلغاء من المستخدم")
     return {"request": withdrawal_public(request), "wallet": wallet_public(get_wallet(db, user.id))}
-
-
-@router.post("/vip", status_code=status.HTTP_201_CREATED)
-def buy_vip(
-    payload: VipIn,
-    user: User = Depends(get_current_user),
-    db: Session = Depends(get_db),
-):
-    """VIP is granted only after the server confirms the coin payment."""
-    import datetime as dt
-
-    from ..economy import _move, _locked_wallets  # local import keeps the public API small
-
-    price = int(get_setting(db, "vip_price_coins", 5000))
-    days = int(get_setting(db, "vip_days", 30))
-    key = payload.idempotency_key or uuid.uuid4().hex
-    reference = f"vip:{user.id}:{key}"
-    existing = db.execute(select(LedgerEntry).where(LedgerEntry.ref == reference)).scalar_one_or_none()
-    if existing is not None:
-        return {"wallet": wallet_public(get_wallet(db, user.id)), "already": True}
-
-    wallets = _locked_wallets(db, [user.id])
-    _move(db, wallets[user.id], "coins", -price, "purchase", ref=reference, note=f"عضوية VIP لمدة {days} يوماً")
-    base = user.vip_until if user.vip_until and user.vip_until > utcnow() else utcnow()
-    user.vip_until = base + dt.timedelta(days=days)
-    db.commit()
-    create_notification(
-        db,
-        user.id,
-        "account",
-        "تم تفعيل عضوية VIP",
-        f"عضويتك فعّالة حتى {user.vip_until.date().isoformat()}",
-        {"vip_until": user.vip_until.isoformat()},
-    )
-    db.commit()
-    return {
-        "wallet": wallet_public(get_wallet(db, user.id)),
-        "vip_until": user.vip_until.isoformat(),
-        "user": user_public(user),
-    }

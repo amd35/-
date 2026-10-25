@@ -42,7 +42,9 @@ class User(Base):
     phone_verified = Column(Boolean, nullable=False, default=False)
     online = Column(Boolean, nullable=False, default=False)
     xp = Column(Integer, nullable=False, default=0)
-    vip_until = Column(DateTime(timezone=True), nullable=True)
+    # نقاط رويال: تُكتسب من الشحن فقط عبر سجل royal_point_entries،
+    # والمستوى الحالي يُشتق منها مقابل عتبات royal_tiers القابلة للتعديل.
+    royal_points = Column(Integer, nullable=False, default=0)
 
     notif_prefs = Column(JSON, nullable=False, default=dict)
     privacy = Column(JSON, nullable=False, default=dict)
@@ -59,6 +61,7 @@ class Wallet(Base):
     user_id = Column(ForeignKey("users.id", ondelete="CASCADE"), unique=True, nullable=False)
     coins = Column(Integer, nullable=False, default=0)
     gold = Column(Integer, nullable=False, default=0)
+    gems = Column(Integer, nullable=False, default=0)
     updated_at = Column(DateTime(timezone=True), nullable=False, default=utcnow, onupdate=utcnow)
 
 
@@ -248,10 +251,12 @@ class StorePack(Base):
     __tablename__ = "store_packs"
 
     id = Column(Integer, primary_key=True)
-    kind = Column(String(8), nullable=False)  # coins|gold
+    kind = Column(String(8), nullable=False)  # coins|gold|gems
     name = Column(String(64), nullable=False)
     amount = Column(Integer, nullable=False)
     bonus = Column(Integer, nullable=False, default=0)
+    # نقاط رويال التي تمنحها الباقة عند تأكيد الدفع على الخادم.
+    royal_points = Column(Integer, nullable=False, default=0)
     price_iqd = Column(Integer, nullable=False, default=0)
     price_usd_cents = Column(Integer, nullable=False, default=0)
     badge = Column(String(32), nullable=False, default="")
@@ -291,14 +296,55 @@ class UserItem(Base):
     created_at = Column(DateTime(timezone=True), nullable=False, default=utcnow)
 
 
+class RoyalTier(Base):
+    """A Royal level: its name, the points it needs and the privileges it unlocks.
+
+    Editable from the admin panel. Upgrade rules live here (``required_points``)
+    and stay independent from the royal points a member earned by recharging.
+    """
+
+    __tablename__ = "royal_tiers"
+
+    id = Column(Integer, primary_key=True)
+    level = Column(Integer, unique=True, nullable=False, index=True)
+    name_ar = Column(String(32), nullable=False, default="")
+    name_en = Column(String(32), nullable=False, default="")
+    required_points = Column(Integer, nullable=False, default=0)
+    accent = Column(String(16), nullable=False, default="#f4cc44")
+    jewel = Column(String(16), nullable=False, default="#45d2ba")
+    privileges = Column(JSON, nullable=False, default=list)
+    active = Column(Boolean, nullable=False, default=True)
+
+
+class RoyalPointEntry(Base):
+    """Append-only log of royal points — the source of truth for the level.
+
+    ``ref`` is unique, so a repeated payment or a replayed admin action can
+    never grant the same points twice.
+    """
+
+    __tablename__ = "royal_point_entries"
+
+    id = Column(Integer, primary_key=True)
+    user_id = Column(ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    points = Column(Integer, nullable=False)  # signed
+    balance_after = Column(Integer, nullable=False, default=0)
+    kind = Column(String(32), nullable=False, default="recharge")  # recharge|admin_adjust
+    ref = Column(String(96), nullable=True, unique=True)
+    note = Column(String(255), nullable=False, default="")
+    created_at = Column(DateTime(timezone=True), nullable=False, default=utcnow, index=True)
+
+
 class RechargeOrder(Base):
     __tablename__ = "recharge_orders"
 
     id = Column(Integer, primary_key=True)
     user_id = Column(ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
     pack_id = Column(ForeignKey("store_packs.id", ondelete="SET NULL"), nullable=True)
-    currency = Column(String(8), nullable=False)  # coins|gold
+    currency = Column(String(8), nullable=False)  # coins|gold|gems
     amount = Column(Integer, nullable=False)
+    # نسخة من نقاط رويال الباقة وقت الشراء: لا تتغيّر لو عدّل المشرف الباقة لاحقاً.
+    royal_points = Column(Integer, nullable=False, default=0)
     price_amount = Column(Integer, nullable=False)
     price_currency = Column(String(8), nullable=False, default="IQD")
     provider = Column(String(24), nullable=False, default="stripe")
