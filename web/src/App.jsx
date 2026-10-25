@@ -9,6 +9,7 @@ import Room from './pages/Room.jsx'
 import Friends from './pages/Friends.jsx'
 import Profile from './pages/Profile.jsx'
 import Store from './pages/Store.jsx'
+import Recharge from './pages/Recharge.jsx'
 import { useAuth } from './lib/store.jsx'
 
 function Protected({ children }) {
@@ -37,6 +38,7 @@ export default function App() {
         <Route path="/friends" element={<Friends />} />
         <Route path="/profile" element={<Profile />} />
         <Route path="/store" element={<Store />} />
+        <Route path="/recharge" element={<Recharge />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Route>
     </Routes>

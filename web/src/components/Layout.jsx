@@ -54,11 +54,8 @@ export default function Layout() {
   const navigate = useNavigate()
   const [showNotifications, setShowNotifications] = useState(false)
 
-  // The "+" on each balance goes to the real recharge packs (no fake flow).
-  const openRecharge = () => {
-    if (window.location.pathname !== '/') navigate('/')
-    window.setTimeout(() => document.getElementById('packs')?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 80)
-  }
+  // The "+" on each balance opens the recharge page with every real pack (no fake flow).
+  const openRecharge = () => navigate('/recharge')
 
   const tabs = [
     { to: '/', icon: '🏠', label: t('home') },

@@ -1,15 +1,14 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { api } from '../lib/api.js'
 import { useAuth } from '../lib/store.jsx'
 import { useI18n } from '../lib/i18n.jsx'
 
-const STATUS_LABEL = { pending: 'pending', paid: 'paid', failed: 'failed', cancelled: 'cancelled' }
-
 export default function Home() {
   const { wallet, setWallet, user, refresh } = useAuth()
   const { t } = useI18n()
+  const navigate = useNavigate()
   const [store, setStore] = useState(null)
-  const [orders, setOrders] = useState([])
   const [message, setMessage] = useState('')
   const [error, setError] = useState('')
   const [busy, setBusy] = useState('')
@@ -18,9 +17,7 @@ export default function Home() {
 
   const load = useCallback(async () => {
     try {
-      const [storeData, orderData] = await Promise.all([api.get('/api/store'), api.get('/api/store/purchases')])
-      setStore(storeData)
-      setOrders(orderData.orders)
+      setStore(await api.get('/api/store'))
     } catch (err) {
       setError(err.message)
     }
@@ -29,22 +26,6 @@ export default function Home() {
   useEffect(() => {
     load()
   }, [load])
-
-  const buyPack = async (pack) => {
-    setBusy(`pack-${pack.id}`)
-    setError('')
-    setMessage('')
-    try {
-      const result = await api.post(`/api/store/packs/${pack.id}/purchase`, { price_currency: store.currency_default || 'IQD' })
-      setOrders((previous) => [result.order, ...previous])
-      setMessage(result.payment.message)
-      await load()
-    } catch (err) {
-      setError(err.message)
-    } finally {
-      setBusy('')
-    }
-  }
 
   const buyVip = async () => {
     setBusy('vip')
@@ -184,62 +165,17 @@ export default function Home() {
             {user.vip ? `VIP — ${t('level')} ${user.level}` : `${t('level')} ${user.level} · ${user.xp} ${t('xp')}`}
           </div>
         </div>
+        <div className="panel-side">
+          <button
+            type="button"
+            className="btn btn-primary"
+            data-testid="open-recharge"
+            onClick={() => navigate('/recharge')}
+          >
+            {t('recharge')}
+          </button>
+        </div>
       </article>
-
-      <h2 className="section-title" id="packs">
-        {t('packs')}
-      </h2>
-      <div className="grid-packs">
-        {(store?.packs || []).map((pack) => (
-          <div className="card glass" key={pack.id} data-testid={`pack-${pack.id}`}>
-            <div className="row-between">
-              <strong>{pack.name}</strong>
-              {pack.badge ? <span className="badge-pill">{pack.badge}</span> : null}
-            </div>
-            <div className="muted" style={{ marginTop: 6 }}>
-              {pack.kind === 'coins' ? '🪙' : '💎'} {pack.amount}
-              {pack.bonus ? ` + ${pack.bonus}` : ''}
-            </div>
-            <div className="row-between" style={{ marginTop: 10 }}>
-              <span className="chip chip-gold">
-                {store?.currency_default === 'USD'
-                  ? `$${(pack.price_usd_cents / 100).toFixed(2)}`
-                  : `${pack.price_iqd.toLocaleString('en')} IQD`}
-              </span>
-              <button
-                type="button"
-                className="btn btn-primary"
-                data-testid={`buy-pack-${pack.id}`}
-                disabled={busy === `pack-${pack.id}`}
-                onClick={() => buyPack(pack)}
-              >
-                {t('recharge')}
-              </button>
-            </div>
-          </div>
-        ))}
-      </div>
-
-      {store ? (
-        <p className={store.payment.configured ? 'muted' : 'notice'} data-testid="payment-status" style={{ marginTop: 12 }}>
-          {store.payment.message}
-        </p>
-      ) : null}
-
-      <h2 className="section-title">{t('history')}</h2>
-      <div className="card glass">
-        {orders.length === 0 ? <p className="muted">—</p> : null}
-        {orders.map((order) => (
-          <div className="ledger-row" key={order.id} data-testid="order-row">
-            <span>
-              #{order.id} · {order.amount} {order.currency === 'coins' ? 'كوين' : 'ذهب'}
-            </span>
-            <span className={`status-pill status-${STATUS_LABEL[order.status] || 'pending'}`}>
-              {t(STATUS_LABEL[order.status] || 'pending')}
-            </span>
-          </div>
-        ))}
-      </div>
 
       {message ? (
         <p className="success-text" data-testid="home-message">
