@@ -14,6 +14,7 @@ from ..models import Block, Follow, Friendship, Room, RoomMember, User
 from ..security import get_current_user, hash_password, verify_password
 from ..serializers import user_private, user_public
 from .auth import auth_payload
+from .follows import follow_counts
 
 router = APIRouter(prefix="/api/users", tags=["users"])
 
@@ -197,8 +198,16 @@ def get_user(user_id: int, user: User = Depends(get_current_user), db: Session =
     if target is None or target.status == "deleted":
         raise HTTPException(status.HTTP_404_NOT_FOUND, "المستخدم غير موجود")
     payload = user_public(target)
+    counts = follow_counts(db, target.id)
+    payload["following"] = bool(
+        db.execute(
+            select(Follow.id).where(Follow.user_id == user.id, Follow.followed_user_id == target.id)
+        ).first()
+    )
     payload["stats"] = {
         "friends": friend_count(db, target.id),
+        "followers": counts["followers"],
+        "following": counts["following"],
         "rooms_created": int(
             db.execute(select(func.count(Room.id)).where(Room.owner_id == target.id)).scalar() or 0
         ),

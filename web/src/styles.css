@@ -4994,3 +4994,728 @@ body[data-surface='chats'] .app-shell > button.btn {
     font-size: 11px;
   }
 }
+
+/* =====================================================================
+   26) الصفحة الرئيسية بترتيب التصميم: الشريط العلوي (تبويبات الغرف · الملف ·
+   البحث)، الشريط الدوّار، لوحات الترتيب الثلاث، صف الدول، ثم شبكة البطاقات
+   الكبيرة — الهوية الداكنة (عنابي/ذهبي/أحمر) وشبكة الأعلام والأبطال.
+   تصميم فقط: لا بيانات ولا تغيير في الأصناف أو الوظائف.
+   ===================================================================== */
+
+/* خلفية القسم: عنابي داكن مع توهج ذهبي علوي ووهج أحمر سفلي.
+   الصورة الفوتوغرافية مخفّضة الإضاءة بشدة ومسحة العنابي تغطيها، فلا يظهر
+   لونها الأصلي (شفق أخضر/أزرق) داخل هوية الصفحة العنابية الذهبية. */
+body[data-surface='home'] {
+  --surface-image: url('/img/bg/aurora.jpg');
+  --surface-focus: 50% 36%;
+  --surface-dim: 0.58;
+  --surface-tint: rgba(28, 6, 9, 0.9);
+  --surface-warm: rgba(212, 175, 55, 0.28);
+  --surface-cool: rgba(139, 0, 0, 0.45);
+  --stars-size: 420px 420px;
+  background-image:
+    radial-gradient(120% 58% at 50% -12%, rgba(212, 175, 55, 0.2), rgba(212, 175, 55, 0) 58%),
+    linear-gradient(180deg, #2a0b10 0%, #180607 54%, #0b0304 100%);
+}
+
+/* داخل الرئيسية: الشريط العلوي للتصميم وشريط تنقل الصفحة بدل كروم التطبيق */
+body[data-surface='home'] .topbar,
+body[data-surface='home'] .tabs {
+  display: none;
+}
+
+body[data-surface='home'] .app-shell {
+  padding: 10px 12px 104px;
+}
+
+/* زر الخروج العام لا يحمله تصميم الصفحة؛ يبقى في قائمة الملف الشخصي وبقية الصفحات. */
+body[data-surface='home'] .app-shell > button.btn {
+  display: none;
+}
+
+.home-screen {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* --- الشريط العلوي: التبويبات ثم صورة الحساب وزر البحث --- */
+.home-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.home-tabs {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+
+.home-tab {
+  padding: 7px 12px;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.36);
+  border: 1px solid rgba(212, 175, 55, 0.26);
+  color: #d9c3ad;
+  font-size: 12px;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.home-tab.is-active {
+  background: linear-gradient(180deg, rgba(94, 26, 32, 0.95), rgba(30, 10, 12, 0.95));
+  border-color: rgba(244, 204, 68, 0.55);
+  color: #f7d977;
+}
+
+/* زر «غرفتي» بلمسة المايك: تدرّج برتقالي → أحمر كما في التصميم */
+.home-tab-mine {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: linear-gradient(180deg, #f6b45a, #b81f26);
+  border-color: rgba(255, 214, 150, 0.7);
+  color: #2a1206;
+  box-shadow: 0 10px 18px -12px rgba(0, 0, 0, 0.95), inset 0 1px 0 rgba(255, 255, 255, 0.42);
+}
+
+.home-bar-btn {
+  flex: none;
+  width: 38px;
+  height: 38px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.42);
+  border: 1px solid rgba(212, 175, 55, 0.34);
+}
+
+.home-bar-avatar {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  border: 1px solid rgba(244, 204, 68, 0.55);
+  background: rgba(0, 0, 0, 0.36);
+}
+
+.home-bar-avatar .avatar,
+.home-bar-btn .photo-icon {
+  border-radius: 50%;
+}
+
+/* --- الشريط الدوّار: شريحة لكل غرفة حقيقية --- */
+.home-hero {
+  position: relative;
+  padding: 6px;
+  border-radius: 20px;
+  border: 1px solid rgba(212, 175, 55, 0.45);
+  background: linear-gradient(180deg, rgba(52, 14, 18, 0.96), rgba(14, 5, 6, 0.98));
+  box-shadow: 0 22px 40px -26px rgba(0, 0, 0, 0.95), inset 0 0 0 1px rgba(255, 233, 166, 0.14);
+  overflow: hidden;
+}
+
+.home-hero-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  padding: 28px 14px;
+  text-align: center;
+}
+
+.home-hero-track {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  scrollbar-width: none;
+  border-radius: 15px;
+}
+
+.home-hero-track::-webkit-scrollbar {
+  display: none;
+}
+
+.home-slide {
+  position: relative;
+  flex: 0 0 100%;
+  min-width: 100%;
+  min-height: 214px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 14px 12px 12px;
+  border-radius: 14px;
+  border: 1px solid rgba(212, 175, 55, 0.34);
+  background-color: #2b0d11;
+  background-image: linear-gradient(180deg, rgba(43, 13, 17, 0.9), rgba(12, 4, 5, 0.94));
+  background-size: cover;
+  background-position: center;
+  scroll-snap-align: center;
+  overflow: hidden;
+}
+
+/* طبقة تباين خفيفة حتى تبقى الأسماء والشعار واضحة فوق أي صورة */
+.home-slide::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(64% 52% at 50% 34%, rgba(255, 196, 96, 0.16), rgba(0, 0, 0, 0) 70%),
+    linear-gradient(180deg, rgba(10, 3, 4, 0.12), rgba(10, 3, 4, 0.66));
+}
+
+.home-slide-stage {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  margin-top: 4px;
+}
+
+.home-slide-person {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  background: none;
+  border: 0;
+  padding: 0;
+  cursor: pointer;
+}
+
+.home-slide-person .avatar {
+  border: 2px solid rgba(244, 204, 68, 0.72);
+  box-shadow: 0 0 0 3px rgba(0, 0, 0, 0.5), 0 12px 20px -14px rgba(0, 0, 0, 0.95);
+}
+
+.home-slide-person-name {
+  max-width: 94px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 11px;
+  font-weight: 800;
+  color: #f4e3c4;
+  text-shadow: 0 2px 6px rgba(0, 0, 0, 0.85);
+}
+
+.home-slide-empty-ring {
+  width: 54px;
+  height: 54px;
+  border-radius: 50%;
+  border: 1px dashed rgba(244, 204, 68, 0.5);
+  background: rgba(0, 0, 0, 0.34);
+}
+
+.home-slide-crest {
+  flex: none;
+  width: 84px;
+  height: 84px;
+  display: grid;
+  place-items: center;
+  border: 0;
+  border-radius: 50%;
+  cursor: pointer;
+  background: radial-gradient(circle at 34% 28%, #fff7d6 0%, #d4af37 44%, #8b0000 100%);
+  box-shadow:
+    0 0 0 3px rgba(90, 54, 14, 0.9),
+    0 0 0 6px rgba(212, 175, 55, 0.34),
+    0 18px 28px -16px rgba(0, 0, 0, 0.95);
+}
+
+.home-crest {
+  font-size: 26px;
+  font-weight: 900;
+  letter-spacing: 1px;
+  color: #4a1108;
+  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.45);
+}
+
+.home-slide-caption {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 8px 10px;
+  border-radius: 12px;
+  border: 1px solid rgba(212, 175, 55, 0.3);
+  background: rgba(10, 3, 4, 0.55);
+  color: #fff;
+  cursor: pointer;
+}
+
+.home-slide-name {
+  font-size: 14px;
+  font-weight: 900;
+}
+
+.home-slide-meta {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11px;
+  font-weight: 700;
+  color: #dcc7a4;
+}
+
+.home-slide-sep {
+  opacity: 0.6;
+}
+
+.home-hero-dots {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 6px;
+  padding: 9px 0 3px;
+}
+
+.home-hero-dot {
+  width: 7px;
+  height: 7px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.28);
+}
+
+.home-hero-dot.is-active {
+  width: 20px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #f7d977, #d4af37);
+}
+
+/* --- لوحات الترتيب الثلاث --- */
+.home-ranks {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.home-rank {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px 8px;
+  border-radius: 16px;
+  border: 1px solid rgba(212, 175, 55, 0.42);
+  background: linear-gradient(180deg, rgba(58, 16, 20, 0.95), rgba(15, 5, 6, 0.97));
+  box-shadow: inset 0 0 0 1px rgba(255, 233, 166, 0.12), 0 18px 30px -24px rgba(0, 0, 0, 0.95);
+}
+
+/* الإطار الذهبي المزدوج داخل البطاقة (المظهر المزخرف) */
+.home-rank::before {
+  content: '';
+  position: absolute;
+  inset: 3px;
+  border-radius: 13px;
+  border: 1px solid rgba(212, 175, 55, 0.22);
+  pointer-events: none;
+}
+
+.home-rank-head {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  font-size: 10.5px;
+  font-weight: 900;
+  color: #f7d977;
+  text-align: center;
+}
+
+.home-rank-list {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 7px;
+}
+
+.home-rank-user {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  padding: 0;
+  border: 0;
+  background: none;
+  cursor: pointer;
+}
+
+.home-rank-user .avatar {
+  border: 2px solid rgba(244, 204, 68, 0.7);
+  box-shadow: 0 0 0 2px rgba(0, 0, 0, 0.55);
+}
+
+.home-rank-badge {
+  padding: 1px 7px;
+  border-radius: 999px;
+  background: linear-gradient(180deg, #f7d977, #c79a24);
+  color: #0f0500;
+  font-size: 9px;
+  font-weight: 900;
+  letter-spacing: 0.4px;
+}
+
+.home-rank-empty,
+.home-tile-empty {
+  color: #b9a696;
+  font-size: 12px;
+}
+
+/* --- صف الدول: زر التصفية في أقصى اليسار ثم الأعلام --- */
+.home-flags {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.home-flags-filter {
+  flex: none;
+  width: 40px;
+  height: 30px;
+  display: grid;
+  place-items: center;
+  border-radius: 10px;
+  border: 1px solid rgba(212, 175, 55, 0.45);
+  background: linear-gradient(180deg, rgba(58, 16, 20, 0.95), rgba(15, 5, 6, 0.97));
+  color: #f0dca6;
+}
+
+.home-flags-filter.is-on {
+  border-color: rgba(244, 204, 68, 0.85);
+  color: #f7d977;
+  box-shadow: 0 0 0 1px rgba(244, 204, 68, 0.35);
+}
+
+.home-flags-scroll {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  scrollbar-width: none;
+  padding: 2px;
+}
+
+.home-flags-scroll::-webkit-scrollbar {
+  display: none;
+}
+
+.home-flag {
+  flex: none;
+  width: 42px;
+  height: 30px;
+  padding: 0;
+  border-radius: 8px;
+  overflow: hidden;
+  border: 1px solid rgba(212, 175, 55, 0.42);
+  background: rgba(0, 0, 0, 0.35);
+  box-shadow: 0 10px 16px -12px rgba(0, 0, 0, 0.95);
+}
+
+.home-flag img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.home-flag.is-active {
+  border-color: #f7d977;
+  box-shadow: 0 0 0 2px rgba(244, 204, 68, 0.45);
+}
+
+/* دولة بلا أعضاء بعد: تبقى ظاهرة عند «كل الدول» لكنها أخفت قليلاً */
+.home-flag.is-empty {
+  opacity: 0.62;
+  filter: saturate(0.75);
+}
+
+.home-flags-note {
+  align-self: center;
+  font-size: 12px;
+  color: #d9c3ad;
+  white-space: nowrap;
+}
+
+/* --- شبكة البطاقات الكبيرة (2×2) --- */
+.home-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.home-tile {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  aspect-ratio: 1 / 0.95;
+  min-height: 176px;
+  border-radius: 18px;
+  overflow: hidden;
+  border: 1px solid rgba(212, 175, 55, 0.45);
+  background: #1b0709;
+  box-shadow: inset 0 0 0 1px rgba(255, 233, 166, 0.12), 0 20px 30px -24px rgba(0, 0, 0, 0.95);
+}
+
+.home-tile-media {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  filter: saturate(1.03) brightness(0.74);
+}
+
+/* تعتيم سفلي خفيف حتى يبقى النص مقروءاً فوق الصورة */
+.home-tile::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(180deg, rgba(10, 3, 4, 0.08) 18%, rgba(10, 3, 4, 0.86) 100%);
+}
+
+.home-tile-body {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 10px;
+}
+
+.home-tile-name {
+  font-size: 13px;
+  font-weight: 900;
+  color: #fff;
+  text-shadow: 0 2px 10px rgba(0, 0, 0, 0.85);
+}
+
+.home-tile-sub {
+  font-size: 11px;
+  font-weight: 700;
+  color: #e4cda6;
+}
+
+.home-tile-flag {
+  position: absolute;
+  top: 8px;
+  inset-inline-end: 8px;
+  z-index: 2;
+  width: 30px;
+  height: 21px;
+  object-fit: cover;
+  border-radius: 5px;
+  border: 1px solid rgba(244, 204, 68, 0.6);
+  box-shadow: 0 8px 14px -10px rgba(0, 0, 0, 0.95);
+}
+
+.home-tile-flag.is-inline {
+  position: static;
+}
+
+.home-tile-avatars {
+  display: flex;
+  align-items: center;
+}
+
+.home-tile-avatar {
+  padding: 0;
+  margin-inline-start: -8px;
+  border: 0;
+  background: none;
+  cursor: pointer;
+}
+
+.home-tile-avatar:first-child {
+  margin-inline-start: 0;
+}
+
+.home-tile-avatar .avatar {
+  border: 2px solid rgba(244, 204, 68, 0.65);
+  box-shadow: 0 0 0 2px rgba(0, 0, 0, 0.6);
+}
+
+.home-tile-more {
+  margin-inline-start: 6px;
+  font-size: 11px;
+  font-weight: 900;
+  color: #d9c3ad;
+}
+
+.home-tile-cta {
+  align-self: flex-start;
+  padding: 7px 14px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 233, 166, 0.7);
+  background: linear-gradient(180deg, #f7d977, #c79a24);
+  color: #2b1a05;
+  font-size: 12px;
+  font-weight: 900;
+  box-shadow: 0 12px 20px -14px rgba(0, 0, 0, 0.95), inset 0 1px 0 rgba(255, 255, 255, 0.5);
+}
+
+/* البطاقة الرابعة: خدمة العملاء — الشعار ورقم المستخدم الحقيقي وزر الدعم */
+.home-tile-support-row {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.home-tile-brand {
+  font-size: 15px;
+  font-weight: 900;
+  letter-spacing: 0.5px;
+  color: #ffe9a6;
+  text-shadow: 0 2px 10px rgba(0, 0, 0, 0.85);
+}
+
+.home-tile-id {
+  font-size: 11px;
+  font-weight: 800;
+  color: #f0e2c8;
+}
+
+/* البطاقة الثالثة: لوحة داكنة مزخرفة لصور الأعضاء الأكثر متابعة */
+.home-tile-collage {
+  justify-content: space-between;
+  background: linear-gradient(160deg, rgba(58, 16, 20, 0.96), rgba(10, 3, 4, 0.98));
+}
+
+.home-tile-collage-grid {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  justify-items: center;
+  padding: 12px 10px 0;
+}
+
+/* --- بطاقة العضو (لوحة الملف المصغّرة) --- */
+.user-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.user-card .avatar {
+  border: 2px solid rgba(244, 204, 68, 0.6);
+}
+
+.user-card-text {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+
+.user-card-name {
+  font-size: 16px;
+  font-weight: 900;
+  color: #fff;
+}
+
+.user-card-id {
+  font-size: 12px;
+  color: #cbb6a6;
+}
+
+.user-card-meta {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11.5px;
+  color: #e4cda6;
+}
+
+.user-card-flag {
+  width: 22px;
+  height: 15px;
+  object-fit: cover;
+  border-radius: 4px;
+}
+
+.user-card-stats {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.user-card-stat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 8px 4px;
+  border-radius: 12px;
+  border: 1px solid rgba(212, 175, 55, 0.24);
+  background: rgba(0, 0, 0, 0.35);
+}
+
+.user-card-stat strong {
+  font-size: 15px;
+  color: #f7d977;
+}
+
+.user-card-stat span {
+  font-size: 10.5px;
+  color: #cbb6a6;
+}
+
+.user-card-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.user-card-level {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  margin-inline-start: auto;
+  font-size: 11px;
+  color: #d9c3ad;
+}
+
+@media (max-width: 400px) {
+  .home-tab {
+    padding: 6px 9px;
+    font-size: 11px;
+  }
+
+  .home-rank-badge {
+    padding: 1px 5px;
+    font-size: 8px;
+  }
+
+  .home-slide-crest {
+    width: 72px;
+    height: 72px;
+  }
+
+  .home-crest {
+    font-size: 22px;
+  }
+
+  .home-tile {
+    min-height: 160px;
+  }
+}

@@ -18,6 +18,7 @@ from .routers import (
     friends,
     games,
     gifts,
+    home,
     meta,
     notifications,
     payments,
@@ -79,6 +80,7 @@ app.add_middleware(
 )
 
 app.include_router(meta.router)
+app.include_router(home.router)
 app.include_router(auth.router)
 app.include_router(users.router)
 app.include_router(rooms.router)

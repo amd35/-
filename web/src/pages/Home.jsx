@@ -1,200 +1,165 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
-import { api } from '../lib/api.js'
+import { useCallback, useEffect, useMemo, useState } from 'react'
+import { Link, useNavigate } from 'react-router-dom'
+import Avatar from '../components/Avatar.jsx'
+import HomeCountries from '../components/HomeCountries.jsx'
+import HomeHero from '../components/HomeHero.jsx'
+import HomeRankings from '../components/HomeRankings.jsx'
+import HomeTiles from '../components/HomeTiles.jsx'
+import PageNav from '../components/PageNav.jsx'
 import PhotoIcon from '../components/PhotoIcon.jsx'
+import UserSheet from '../components/UserSheet.jsx'
+import { api } from '../lib/api.js'
 import { useAuth } from '../lib/store.jsx'
 import { useI18n } from '../lib/i18n.jsx'
 
+/**
+ * الصفحة الرئيسية بترتيب التصميم: الشريط العلوي (بحث · الملف · تبويبات الغرف)،
+ * الشريط الدوّار، لوحات الترتيب الثلاث، صف الدول، ثم شبكة البطاقات الكبيرة.
+ * كل شيء من `/api/home` (طلب واحد) — لا رقم ولا اسم ولا صورة وهمية.
+ */
 export default function Home() {
-  const { wallet, user } = useAuth()
+  const { user } = useAuth()
   const { t } = useI18n()
   const navigate = useNavigate()
-  const [store, setStore] = useState(null)
-  const [message, setMessage] = useState('')
+  const [tab, setTab] = useState('popular')
+  const [country, setCountry] = useState('')
+  const [showAllCountries, setShowAllCountries] = useState(true)
+  const [data, setData] = useState(null)
   const [error, setError] = useState('')
-  const [busy, setBusy] = useState('')
-  const [promoIndex, setPromoIndex] = useState(0)
-  const trackRef = useRef(null)
+  const [sheetUserId, setSheetUserId] = useState(null)
 
   const load = useCallback(async () => {
     try {
-      setStore(await api.get('/api/store'))
+      setData(await api.get(`/api/home?tab=${tab}`))
+      setError('')
     } catch (err) {
       setError(err.message)
     }
-  }, [])
+  }, [tab])
 
   useEffect(() => {
     load()
   }, [load])
 
-  const ads = store?.ads || []
-  const offers = store?.offers || []
-  const xpInto = user.xp_into_level ?? 0
-  const xpNext = user.next_level_xp ?? 0
-  const xpPercent = xpNext ? Math.min(100, Math.round((xpInto / xpNext) * 100)) : 0
+  const countryCounts = useMemo(
+    () => Object.fromEntries((data?.countries || []).map((row) => [row.code, row.count])),
+    [data],
+  )
 
-  // Keeps the pagination dots in sync with the carousel (works in RTL and LTR).
-  const onTrackScroll = () => {
-    const track = trackRef.current
-    if (!track || !track.children.length) return
-    const bounds = track.getBoundingClientRect()
-    const center = bounds.left + bounds.width / 2
-    let nearest = 0
-    let best = Number.POSITIVE_INFINITY
-    Array.from(track.children).forEach((child, index) => {
-      const childBounds = child.getBoundingClientRect()
-      const distance = Math.abs(childBounds.left + childBounds.width / 2 - center)
-      if (distance < best) {
-        best = distance
-        nearest = index
-      }
-    })
-    setPromoIndex(nearest)
+  // تصفية الدولة تُطبَّق على الغرف (بجنسية مالك الغرفة) وعلى الأعضاء الجدد.
+  const rooms = useMemo(() => {
+    const list = data?.rooms || []
+    if (!country) return list
+    return list.filter((room) => (room.owner?.country || '').toUpperCase() === country)
+  }, [data, country])
+
+  const newUsers = useMemo(() => {
+    const list = data?.new_users || []
+    if (!country) return list
+    return list.filter((member) => (member.country || '').toUpperCase() === country)
+  }, [data, country])
+
+  const topUsers = data?.top_users || []
+
+  const activityRoom = useMemo(() => {
+    if (!data) return null
+    if (country) return rooms[0] || null
+    return data.activity_room || null
+  }, [data, country, rooms])
+
+  const openRoom = (room) => navigate(`/rooms/${room.id}`)
+
+  // بطاقة العضو تُفتح بمعرّفه الحقيقي (لا الكائن كامل).
+  const openUser = (member) => setSheetUserId(member.id)
+
+  const openMyRoom = () => {
+    if (data?.my_room_id) navigate(`/rooms/${data.my_room_id}`)
+    else navigate('/rooms')
   }
 
-  const goToPromo = (index) => {
-    trackRef.current?.children[index]?.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' })
+  const toggleShowAllCountries = () => {
+    const next = !showAllCountries
+    setShowAllCountries(next)
+    if (!next && country && !countryCounts[country]) setCountry('')
   }
 
   return (
-    <div>
-      {ads.length ? (
-        <section className="carousel" aria-label="promotions">
-          <div className="carousel-track" ref={trackRef} onScroll={onTrackScroll}>
-            {ads.map((ad) => (
-              <article className="panel carousel-slide" key={ad.id} data-testid="ad-card">
-                <div className="panel-icon">
-                  <PhotoIcon name="party" size={28} />
-                </div>
-                <div className="panel-body">
-                  <div className="panel-title">{ad.title}</div>
-                  <div className="panel-sub">{ad.body}</div>
-                </div>
-              </article>
-            ))}
-          </div>
-          {ads.length > 1 ? (
-            <div className="carousel-dots">
-              {ads.map((ad, index) => (
-                <button
-                  key={ad.id}
-                  type="button"
-                  className={`carousel-dot${index === promoIndex ? ' carousel-dot-active' : ''}`}
-                  aria-label={`slide-${index + 1}`}
-                  onClick={() => goToPromo(index)}
-                />
-              ))}
-            </div>
-          ) : null}
-        </section>
-      ) : null}
-
-      {offers.map((offer) => (
-        <article className="panel" key={offer.id}>
-          <div className="panel-icon">
-            <PhotoIcon name="megaphone" size={28} />
-          </div>
-          <div className="panel-body">
-            <div className="panel-title">{offer.title}</div>
-            <div className="panel-sub">{offer.body}</div>
-          </div>
-        </article>
-      ))}
-
-      <article className="panel" data-testid="reward-tower">
-        <div className="panel-icon">
-          <PhotoIcon name="trophy" size={28} />
-        </div>
-        <div className="panel-body">
-          <div className="panel-title">{t('rewardTower')}</div>
-          <div className="progress-label">
-            <span>
-              {t('level')} {user.level}
-            </span>
-            <span data-testid="xp-progress-label">
-              {xpInto}/{xpNext}
-            </span>
-          </div>
-          <div className="progress">
-            <div className="progress-fill" style={{ width: `${xpPercent}%` }} data-testid="xp-progress" />
-          </div>
-        </div>
-      </article>
-
-      <article className="panel" data-testid="royal-card">
-        <div className="panel-icon">
-          <PhotoIcon name="crown" size={28} />
-        </div>
-        <div className="panel-body">
-          <div className="panel-title">
-            {t('royal')} {store?.royal?.level ? `· ${store.royal.level}` : ''}
-          </div>
-          <div className="panel-sub" data-testid="royal-summary">
-            {user.royal_name || `${t('royal')} ${user.royal_level}`} · {user.royal_points} {t('royalPoints')} ·{' '}
-            {t('pointsToNext')} {store?.royal?.points_to_next ?? 0}
-          </div>
-          <ul className="panel-list">
-            {(store?.royal?.tier?.privileges || [])
-              .filter((perk) => perk.featured)
-              .slice(0, 3)
-              .map((perk) => (
-                <li key={perk.key}>{perk.title_ar}</li>
-              ))}
-          </ul>
-        </div>
-        <div className="panel-side">
+    <div className="home-screen" data-testid="home-page">
+      <header className="home-bar">
+        <nav className="home-tabs">
+          <button type="button" className="home-tab home-tab-mine" onClick={openMyRoom} data-testid="home-my-room">
+            <PhotoIcon name="mic" size={15} />
+            {t('myRoom')}
+          </button>
           <button
             type="button"
-            className="btn btn-primary"
-            data-testid="open-royal"
-            onClick={() => navigate('/royal')}
+            className={`home-tab${tab === 'popular' ? ' is-active' : ''}`}
+            onClick={() => setTab('popular')}
+            data-testid="home-tab-popular"
           >
-            {t('openRoyal')}
+            {t('homePopularRooms')}
           </button>
-        </div>
-      </article>
-
-      <article className="panel">
-        <div className="panel-icon">
-          <PhotoIcon name="wallet" size={28} />
-        </div>
-        <div className="panel-body">
-          <div className="panel-title">{t('balance')}</div>
-          <div className="row wrap" style={{ marginTop: 6 }}>
-            <span className="chip chip-gold">
-              <PhotoIcon name="gold" size={15} /> {wallet.gold} {t('gold')}
-            </span>
-            <span className="chip chip-diamonds">
-              <PhotoIcon name="gem" size={15} /> {wallet.diamonds ?? 0} {t('diamonds')}
-            </span>
-          </div>
-          <div className="panel-sub">
-            {`${t('level')} ${user.level} · ${user.xp} ${t('xp')} · ${t('royal')} ${user.royal_level}`}
-          </div>
-        </div>
-        <div className="panel-side">
           <button
             type="button"
-            className="btn btn-primary"
-            data-testid="open-recharge"
-            onClick={() => navigate('/recharge')}
+            className={`home-tab${tab === 'visited' ? ' is-active' : ''}`}
+            onClick={() => setTab('visited')}
+            data-testid="home-tab-visited"
           >
-            {t('recharge')}
+            {t('homeVisitedRooms')}
           </button>
-        </div>
-      </article>
+        </nav>
+        <span className="topbar-spacer" />
+        <Link className="home-bar-avatar" to="/profile" data-testid="home-profile" aria-label={t('profile')}>
+          <Avatar user={user} size={34} />
+        </Link>
+        <button
+          type="button"
+          className="home-bar-btn"
+          onClick={() => navigate('/search')}
+          aria-label={t('search')}
+          data-testid="home-search"
+        >
+          <PhotoIcon name="search" size={20} />
+        </button>
+      </header>
 
-      {message ? (
-        <p className="success-text" data-testid="home-message">
-          {message}
-        </p>
+      {!data && !error ? <p className="muted">{t('loading')}</p> : null}
+
+      {data ? (
+        <>
+          <HomeHero rooms={rooms} onOpenRoom={openRoom} onOpenUser={openUser} onCreate={() => navigate('/rooms')} />
+
+          <HomeRankings rankings={data.rankings} onOpenUser={openUser} />
+
+          <HomeCountries
+            counts={countryCounts}
+            selected={country}
+            onSelect={setCountry}
+            showAll={showAllCountries}
+            onToggleShowAll={toggleShowAllCountries}
+          />
+
+          <HomeTiles
+            activityRoom={activityRoom}
+            newUsers={newUsers}
+            topUsers={topUsers}
+            user={user}
+            country={country}
+            onOpenUser={openUser}
+            onOpenRoom={openRoom}
+          />
+        </>
       ) : null}
+
       {error ? (
         <p className="error-text" data-testid="home-error">
           {error}
         </p>
       ) : null}
+
+      <PageNav testIdPrefix="home-nav" />
+
+      {sheetUserId ? <UserSheet userId={sheetUserId} onClose={() => setSheetUserId(null)} /> : null}
     </div>
   )
 }
