@@ -3,6 +3,7 @@ import datetime as dt
 import logging
 import random
 import re
+import secrets
 from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Request, status
@@ -15,8 +16,9 @@ from ..config import settings
 from ..db import get_db
 from ..economy import get_wallet, grant_reward
 from ..mailer import send_email
-from ..models import User, VerificationCode, utcnow
+from ..models import Follow, Room, RoomMember, User, VerificationCode, utcnow
 from ..notifications import create_notification
+from ..realtime import hub
 from ..security import (
     create_access_token,
     get_current_user,
@@ -62,6 +64,13 @@ class CodeConfirmIn(BaseModel):
 class PasswordChangeIn(BaseModel):
     current_password: str
     new_password: str = Field(min_length=6, max_length=128)
+
+
+class AccountDeleteIn(BaseModel):
+    """تأكيد حذف الحساب من داخل التطبيق: كلمة المرور + موافقة صريحة."""
+
+    password: str
+    confirm: bool = False
 
 
 class ResetRequestIn(BaseModel):
@@ -341,3 +350,52 @@ def change_password(
     db.commit()
     log.info("User %s changed their password", user.id)
     return {"status": "password_updated"}
+
+
+@router.delete("/account")
+def delete_account(
+    payload: AccountDeleteIn,
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """حذف الحساب من داخل التطبيق (مطلب المتاجر، بلا مراسلة الفريق).
+
+    حذف ناعم يحفظ سلامة السجلات المالية: يُمنع الدخول فورًا (`status = deleted`)
+    وتُمحى البيانات الشخصية، ويُخرج صاحبه من غرفه، ويُغلق ما يملكه من غرفة مفتوحة.
+    يبقى صف المحفظة وسجلها للمراجعة المالية، وحساب الإدارة لا يُحذف من التطبيق
+    حتى لا يُقفل الوصول إلى اللوحة.
+    """
+    rate_limit(f"account-delete:{user.id}", 5, 900)
+    if not payload.confirm:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "يجب تأكيد الحذف أولًا")
+    if not verify_password(payload.password, user.password_hash):
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "كلمة المرور غير صحيحة")
+    if user.is_admin:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "حساب الإدارة لا يُحذف من التطبيق")
+
+    # إغلاق غرفته المفتوحة (قيد واحد لكل مالك) وإبلاغ من فيها.
+    owned = db.execute(select(Room).where(Room.owner_id == user.id, Room.status == "open")).scalars().all()
+    for room in owned:
+        room.status = "closed"
+        hub.notify_room(room.id, {"type": "room_deleted", "room_id": room.id})
+
+    # إخراجه من كل غرفة ومن كل متابعة (في الاتجاهين) فلا يبقى في أي قائمة.
+    for member in db.execute(select(RoomMember).where(RoomMember.user_id == user.id)).scalars().all():
+        db.delete(member)
+    follows = select(Follow).where(or_(Follow.user_id == user.id, Follow.followed_user_id == user.id))
+    for row in db.execute(follows).scalars().all():
+        db.delete(row)
+
+    # البيانات الشخصية تُزال، وكلمة المرور تُستبدل بقيمة عشوائية فلا تعمل القديمة.
+    user.status = "deleted"
+    user.display_name = "مستخدم محذوف"
+    user.bio = ""
+    user.avatar_url = ""
+    user.email = None
+    user.phone = None
+    user.online = False
+    user.password_hash = hash_password(secrets.token_urlsafe(32))
+    user.last_seen_at = utcnow()
+    db.commit()
+    log.info("User %s deleted their own account", user.id)
+    return {"status": "deleted"}

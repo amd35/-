@@ -19,6 +19,9 @@ export default function Settings() {
   const [alwaysOn, setAlwaysOn] = useState([])
   const [message, setMessage] = useState('')
   const [error, setError] = useState('')
+  const [deletePassword, setDeletePassword] = useState('')
+  const [deleteConfirmed, setDeleteConfirmed] = useState(false)
+  const [deleting, setDeleting] = useState(false)
 
   const { data, error: loadError, loading, reload } = useRemote(() => api.get('/api/notifications/preferences'))
 
@@ -42,6 +45,22 @@ export default function Settings() {
   }
 
   const labels = NOTIF_LABELS[lang] || NOTIF_LABELS.ar
+  const canDelete = deleteConfirmed && deletePassword.length > 0 && !deleting
+
+  // حذف الحساب من داخل التطبيق: كلمة المرور + تأكيد صريح، ثم خروج كامل.
+  const submitDelete = async () => {
+    if (!canDelete) return
+    setError('')
+    setDeleting(true)
+    try {
+      await api.del('/api/auth/account', { password: deletePassword, confirm: true })
+      await logout()
+      navigate('/login')
+    } catch (err) {
+      setError(err.message)
+      setDeleting(false)
+    }
+  }
   const groups = [
     {
       key: 'app',
@@ -198,6 +217,46 @@ export default function Settings() {
           }}
         >
           {s.logout}
+        </button>
+      </div>
+
+      <div className="card glass">
+        <h3 className="section-title" style={{ marginTop: 0 }}>
+          {s.deleteSection}
+        </h3>
+        <p className="muted" style={{ margin: '0 0 10px' }}>
+          {s.deleteHint}
+        </p>
+        <div className="field">
+          <input
+            type="password"
+            value={deletePassword}
+            placeholder={t('password')}
+            aria-label={t('password')}
+            autoComplete="current-password"
+            data-testid="settings-delete-password"
+            onChange={(event) => setDeletePassword(event.target.value)}
+          />
+        </div>
+        <label className="row" style={{ gap: 8, padding: '6px 0' }}>
+          <input
+            type="checkbox"
+            style={{ width: 18 }}
+            checked={deleteConfirmed}
+            data-testid="settings-delete-confirm"
+            onChange={(event) => setDeleteConfirmed(event.target.checked)}
+          />
+          <span>{s.deleteConfirm}</span>
+        </label>
+        <button
+          type="button"
+          className="btn btn-danger"
+          style={{ marginTop: 10 }}
+          disabled={!canDelete}
+          data-testid="settings-delete-submit"
+          onClick={submitDelete}
+        >
+          {deleting ? t('loading') : s.deleteSubmit}
         </button>
       </div>
     </div>

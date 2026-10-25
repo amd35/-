@@ -43,6 +43,49 @@ def test_duplicate_accounts_and_bad_password(client, make_user):
     assert bad.status_code == 401
 
 
+def test_account_deletion_from_the_app(client, make_user):
+    """حذف الحساب من داخل التطبيق: كلمة المرور والتأكيد مطلوبان، والدخول يُمنع بعده."""
+    data = make_user("deleteme")
+    headers = auth(data["token"])
+    user_id = data["user"]["id"]
+
+    # بلا تأكيد أو بكلمة مرور خاطئة لا يُحذف شيء.
+    no_confirm = client.request(
+        "DELETE", "/api/auth/account", json={"password": "secret123", "confirm": False}, headers=headers
+    )
+    assert no_confirm.status_code == 400
+    bad_password = client.request(
+        "DELETE", "/api/auth/account", json={"password": "wrong-one", "confirm": True}, headers=headers
+    )
+    assert bad_password.status_code == 400
+    assert client.get("/api/auth/me", headers=headers).status_code == 200
+
+    # مع التأكيد وكلمة المرور الصحيحة يُغلق الحساب فوراً.
+    deleted = client.request(
+        "DELETE", "/api/auth/account", json={"password": "secret123", "confirm": True}, headers=headers
+    )
+    assert deleted.status_code == 200 and deleted.json()["status"] == "deleted"
+    assert client.get("/api/auth/me", headers=headers).status_code == 401
+    assert client.post("/api/auth/login", json={"identifier": "deleteme", "password": "secret123"}).status_code == 401
+
+    # لا تبقى بطاقته الشخصية متاحة لغيره.
+    viewer = make_user("deleteviewer")
+    assert client.get(f"/api/users/{user_id}", headers=auth(viewer["token"])).status_code == 404
+
+
+def test_admin_account_cannot_be_deleted_from_the_app(client):
+    """حساب الإدارة مستثنى حتى لا يُقفل الوصول إلى لوحة الإدارة."""
+    login = client.post("/api/auth/login", json={"identifier": "admin", "password": "admin-test-pass"})
+    assert login.status_code == 200, login.text
+    response = client.request(
+        "DELETE",
+        "/api/auth/account",
+        json={"password": "admin-test-pass", "confirm": True},
+        headers=auth(login.json()["token"]),
+    )
+    assert response.status_code == 400
+
+
 def test_avatar_upload_rules(client, make_user):
     token = make_user("avataruser")["token"]
     ok = client.post(

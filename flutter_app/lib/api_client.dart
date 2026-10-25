@@ -65,8 +65,9 @@ class ApiClient {
         await http.patch(_uri(path), headers: _headers, body: jsonEncode(body ?? const <String, dynamic>{})),
       );
 
-  Future<Map<String, dynamic>> delete(String path) async =>
-      _decode(await http.delete(_uri(path), headers: _headers));
+  Future<Map<String, dynamic>> delete(String path, [Object? body]) async => _decode(
+        await http.delete(_uri(path), headers: _headers, body: jsonEncode(body ?? const <String, dynamic>{})),
+      );
 
   // --- accounts ---------------------------------------------------------
   Future<Map<String, dynamic>> login(String identifier, String password) =>
@@ -89,6 +90,10 @@ class ApiClient {
 
   Future<Map<String, dynamic>> me() => get('/api/auth/me');
   Future<Map<String, dynamic>> logout() => post('/api/auth/logout');
+
+  /// حذف الحساب من داخل التطبيق (نفس مسار الويب: كلمة المرور + تأكيد صريح).
+  Future<Map<String, dynamic>> deleteAccount(String password) =>
+      delete('/api/auth/account', {'password': password, 'confirm': true});
   Future<Map<String, dynamic>> meta() => get('/api/meta/public');
 
   // --- wallet, store, gifts --------------------------------------------

@@ -471,6 +471,50 @@ class _ProfileSheetState extends State<ProfileSheet> {
     }
   }
 
+  /// حذف الحساب من داخل التطبيق: كلمة المرور للتأكيد، ثم خروج كامل.
+  Future<void> _deleteAccount() async {
+    final state = AppScope.of(context);
+    final controller = TextEditingController();
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('حذف الحساب'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text('يُغلق حسابك نهائياً: تُزال بياناتك الشخصية ويُمنع الدخول إليه. اكتب كلمة المرور للتأكيد.'),
+            const SizedBox(height: 10),
+            TextField(
+              controller: controller,
+              obscureText: true,
+              decoration: const InputDecoration(labelText: 'كلمة المرور'),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(dialogContext, false), child: const Text('إلغاء')),
+          TextButton(onPressed: () => Navigator.pop(dialogContext, true), child: const Text('حذف نهائي')),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) {
+      controller.dispose();
+      return;
+    }
+    setState(() => _busy = true);
+    try {
+      await state.api.deleteAccount(controller.text);
+      await state.logout();
+      if (mounted) Navigator.pop(context);
+    } on ApiException catch (err) {
+      setState(() => _message = err.message);
+    } finally {
+      if (mounted) setState(() => _busy = false);
+      controller.dispose();
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final state = AppScope.of(context);
@@ -517,6 +561,13 @@ class _ProfileSheetState extends State<ProfileSheet> {
               await state.logout();
               if (context.mounted) Navigator.pop(context);
             },
+          ),
+          ListTile(
+            contentPadding: EdgeInsets.zero,
+            title: const Text('حذف الحساب'),
+            subtitle: const Text('إغلاق الحساب نهائياً من داخل التطبيق'),
+            trailing: const Icon(Icons.delete_forever_outlined),
+            onTap: _busy ? null : _deleteAccount,
           ),
         ],
       ),
