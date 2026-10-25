@@ -66,6 +66,32 @@ def seed(db: Session) -> None:
     db.commit()
 
 
+# AppSetting key holding a hash of the ADMIN_PASSWORD value last applied to the
+# bootstrap account. It is what lets a password changed from inside the admin
+# panel survive a restart: the environment value only overrides it when the
+# secret itself changes.
+ENV_PASSWORD_KEY = "_admin_password_env_hash"
+
+
+def _sync_env_password(db: Session, admin: User) -> bool:
+    """Apply ADMIN_PASSWORD to the bootstrap account when the secret value changed.
+
+    The marker stores a hash of the value last applied, so restarting the API no
+    longer overwrites a password the administrator changed from the panel, while
+    setting a new ADMIN_PASSWORD in the secrets dashboard still does (that is the
+    documented way to recover a lost password).
+    """
+    if not settings.admin_password:
+        return False
+    marker = get_setting(db, ENV_PASSWORD_KEY, None)
+    if isinstance(marker, str) and verify_password(settings.admin_password, marker):
+        return False
+    admin.password_hash = hash_password(settings.admin_password)
+    set_setting(db, ENV_PASSWORD_KEY, hash_password(settings.admin_password))
+    log.warning("Password of the bootstrap administrator '%s' synced with ADMIN_PASSWORD", admin.username)
+    return True
+
+
 def _seed_admin(db: Session) -> None:
     existing = db.execute(select(User).where(User.username == settings.admin_username)).scalar_one_or_none()
     if existing is not None:
@@ -74,11 +100,7 @@ def _seed_admin(db: Session) -> None:
             existing.is_admin = True
             existing.admin_role = "owner"
             changed = True
-        # ADMIN_PASSWORD is authoritative for the bootstrap account: setting it
-        # in the secrets dashboard and restarting applies it here.
-        if settings.admin_password and not verify_password(settings.admin_password, existing.password_hash):
-            existing.password_hash = hash_password(settings.admin_password)
-            log.warning("Password of the bootstrap administrator '%s' synced with ADMIN_PASSWORD", existing.username)
+        if _sync_env_password(db, existing):
             changed = True
         if changed:
             db.commit()
@@ -105,6 +127,7 @@ def _seed_admin(db: Session) -> None:
     db.add(admin)
     db.flush()
     get_wallet(db, admin.id)
+    set_setting(db, ENV_PASSWORD_KEY, hash_password(settings.admin_password))
     db.commit()
     log.info("Administrator account '%s' created", admin.username)
 

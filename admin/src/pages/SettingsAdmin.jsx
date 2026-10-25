@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
 import { api } from '../api.js'
+import PasswordPanel from '../components/PasswordPanel.jsx'
 
 const NUMERIC = [
   'exchange_rate_usd_iqd',
@@ -80,6 +81,8 @@ export default function SettingsAdmin() {
       <h1>الإعدادات</h1>
       {message ? <p className="success">{message}</p> : null}
       {error ? <p className="error" data-testid="admin-settings-error">{error}</p> : null}
+
+      <PasswordPanel />
 
       <form className="panel" onSubmit={save} data-testid="admin-settings-form">
         <h2>العملات والأسعار</h2>

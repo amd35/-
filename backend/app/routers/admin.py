@@ -809,7 +809,8 @@ def patch_settings(payload: SettingsPatch, actor: User = Depends(get_admin_user)
     require_permission(actor, "settings")
     applied = {}
     for key, value in payload.settings.items():
-        if key not in DEFAULTS and db.get(AppSetting, key) is None:
+        if key.startswith("_") or (key not in DEFAULTS and db.get(AppSetting, key) is None):
+            # Underscored keys are internal bookkeeping, never operator settings.
             raise HTTPException(status.HTTP_400_BAD_REQUEST, f"إعداد غير معروف: {key}")
         set_setting(db, key, value)
         applied[key] = value

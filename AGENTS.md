@@ -29,8 +29,11 @@
 ## بيانات البيئة
 - الأسرار: `/.env.base44-defaults` (قيم مؤقتة، مُلتزَمة) ثم `/run/base44/app.env` (أسرار المنصة، الأخيرة تفوز).
   لا تضع أبدًا أي مفتاح حقيقي في ملفات المستودع أو في `environment:` داخل Compose.
-- حساب الإدارة يُنشأ من `ADMIN_USERNAME`/`ADMIN_PASSWORD`؛ تغيير `ADMIN_PASSWORD` وإعادة التشغيل
-  يحدّث كلمة مروره (`seed._seed_admin`).
+- حساب الإدارة يُنشأ من `ADMIN_USERNAME`/`ADMIN_PASSWORD` (اسم المستخدم `admin`). تغيير كلمة المرور
+  من داخل اللوحة (`POST /api/auth/password/change`، نموذج «كلمة مرور حسابي» في صفحة الإعدادات)
+  يبقى فعّالاً بعد إعادة التشغيل، لأن `seed._sync_env_password` يطبّق `ADMIN_PASSWORD` فقط عندما
+  تتغيّر قيمة السر نفسها — العلامة `_admin_password_env_hash` في `app_settings` مخفية عن
+  `/api/admin/settings` ولا تُكتب عبر اللوحة.
 - بذور البيانات idempotent: لا تُكرر الصفوف ولا تُلغي تعديلات الإدارة.
 
 ## الهوية البصرية

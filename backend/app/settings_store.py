@@ -71,6 +71,10 @@ def set_setting(db: Session, key: str, value: Any) -> AppSetting:
 def all_settings(db: Session) -> dict[str, Any]:
     merged = dict(DEFAULTS)
     for row in db.query(AppSetting).all():
+        if row.key.startswith("_"):
+            # Internal bookkeeping (e.g. the admin-password marker), not an
+            # operator-editable setting: never listed or written through the panel.
+            continue
         merged[row.key] = row.value
     return merged
 

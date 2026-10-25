@@ -59,6 +59,11 @@ class CodeConfirmIn(BaseModel):
     code: str
 
 
+class PasswordChangeIn(BaseModel):
+    current_password: str
+    new_password: str = Field(min_length=6, max_length=128)
+
+
 class ResetRequestIn(BaseModel):
     identifier: str
 
@@ -313,3 +318,26 @@ def reset_confirm(payload: ResetConfirmIn, db: Session = Depends(get_db)):
     user.password_hash = hash_password(payload.new_password)
     db.commit()
     return {"status": "password_updated", "settings": {"mail_configured": settings.mail_configured}}
+
+
+@router.post("/password/change")
+def change_password(
+    payload: PasswordChangeIn,
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Change the signed-in account's password (used by the admin panel).
+
+    The bootstrap administrator keeps this password across restarts: the seed
+    only re-applies the ADMIN_PASSWORD secret when its value changed
+    (see ``seed._sync_env_password``).
+    """
+    rate_limit(f"password-change:{user.id}", 10, 900)
+    if not verify_password(payload.current_password, user.password_hash):
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "كلمة المرور الحالية غير صحيحة")
+    if verify_password(payload.new_password, user.password_hash):
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "كلمة المرور الجديدة مطابقة للحالية")
+    user.password_hash = hash_password(payload.new_password)
+    db.commit()
+    log.info("User %s changed their password", user.id)
+    return {"status": "password_updated"}
