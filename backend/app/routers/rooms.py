@@ -12,6 +12,7 @@ from ..db import get_db
 from ..models import Report, Room, RoomBan, RoomLike, RoomMember, RoomMessage, User, utcnow
 from ..notifications import create_notification
 from ..realtime import hub
+from ..room_backgrounds import DEFAULT_BACKGROUND, is_available, library
 from ..room_service import (
     BAN_DURATIONS,
     ROOM_SEATS,
@@ -34,7 +35,6 @@ from ..serializers import message_public, room_public, user_public
 
 router = APIRouter(prefix="/api/rooms", tags=["rooms"])
 
-BACKGROUNDS = ["sunset", "night", "desert", "sea", "royal", "aurora"]
 ROOM_ROLES = {"moderator", "assistant", "member"}
 
 
@@ -42,7 +42,7 @@ class RoomIn(BaseModel):
     name: str = Field(min_length=2, max_length=64)
     description: str = ""
     image_url: str = ""
-    background: str = "sunset"
+    background: str = DEFAULT_BACKGROUND
     is_private: bool = False
     password: Optional[str] = Field(default=None, max_length=64)
     rules: str = ""
@@ -169,7 +169,7 @@ def create_room(payload: RoomIn, user: User = Depends(get_current_user), db: Ses
             status.HTTP_409_CONFLICT,
             f"لديك غرفة بالفعل ({existing.name}) — احذفها أولاً لإنشاء غرفة أخرى",
         )
-    background = payload.background if payload.background in BACKGROUNDS else "sunset"
+    background = payload.background if is_available(payload.background) else DEFAULT_BACKGROUND
     room = Room(
         name=payload.name.strip(),
         description=payload.description.strip()[:500],
@@ -203,6 +203,15 @@ def create_room(payload: RoomIn, user: User = Depends(get_current_user), db: Ses
     db.commit()
     db.refresh(room)
     return {"room": room_state(db, room, user)}
+
+
+@router.get("/backgrounds")
+def list_backgrounds(user: User = Depends(get_current_user)):
+    """مكتبة الخلفيات: 20 صورة فوتوغرافية حقيقية تليها ثيمات التدرّج القديمة.
+
+    مُعلَنة قبل `/{room_id}` حتى لا يلتقطها مسار الغرفة، والواجهة تبني منها شبكة المنتقي.
+    """
+    return {"backgrounds": library(), "default": DEFAULT_BACKGROUND}
 
 
 @router.get("/{room_id}")
@@ -244,7 +253,7 @@ def update_room(
         require_role(member, "moderator")
 
     data = payload.model_dump(exclude_none=True)
-    if "background" in data and data["background"] not in BACKGROUNDS:
+    if "background" in data and not is_available(data["background"]):
         raise HTTPException(status.HTTP_400_BAD_REQUEST, "الخلفية غير متاحة")
     if "status" in data:
         if data["status"] not in {"open", "closed"}:
@@ -775,7 +784,7 @@ def change_background(
         require_member(db, room, user)
         require_role(member, "moderator")
     background = str(payload.get("background", ""))
-    if background not in BACKGROUNDS:
+    if not is_available(background):
         raise HTTPException(status.HTTP_400_BAD_REQUEST, "الخلفية غير متاحة")
     room.background = background
     db.commit()

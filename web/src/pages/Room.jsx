@@ -5,6 +5,7 @@ import ChatPanel from '../components/ChatPanel.jsx'
 import GiftSheet from '../components/GiftSheet.jsx'
 import MemberSheet from '../components/MemberSheet.jsx'
 import RoomBanPanel from '../components/RoomBanPanel.jsx'
+import RoomBackgroundSheet from '../components/RoomBackgroundSheet.jsx'
 import RoomMemberList from '../components/RoomMemberList.jsx'
 import PhotoIcon, { giftIconName } from '../components/PhotoIcon.jsx'
 import { api } from '../lib/api.js'
@@ -12,7 +13,6 @@ import { useAuth, useSocketEvent } from '../lib/store.jsx'
 import { useI18n } from '../lib/i18n.jsx'
 import { useVoiceRoom } from '../lib/voice.js'
 
-const BACKGROUNDS = ['sunset', 'night', 'desert', 'sea', 'royal', 'aurora']
 const ROLE_LABEL = { owner: 'مالك', moderator: 'مشرف', assistant: 'مساعد', member: 'عضو' }
 
 function RemoteAudio({ stream }) {
@@ -30,7 +30,7 @@ export default function Room() {
   const { roomId } = useParams()
   const navigate = useNavigate()
   const { user, send, subscribe, meta } = useAuth()
-  const { t } = useI18n()
+  const { lang, t } = useI18n()
   const [room, setRoom] = useState(null)
   const [ban, setBan] = useState(null)
   const [messages, setMessages] = useState([])
@@ -40,6 +40,7 @@ export default function Room() {
   const [memberSheet, setMemberSheet] = useState(null)
   const [giftTarget, setGiftTarget] = useState(null)
   const [showBans, setShowBans] = useState(false)
+  const [showBackgrounds, setShowBackgrounds] = useState(false)
   const [floats, setFloats] = useState([])
   const joining = useRef(false)
 
@@ -260,13 +261,12 @@ export default function Room() {
     }
   }
 
-  const changeBackground = async (background) => {
-    try {
-      const data = await api.post(`/api/rooms/${roomNumber}/background`, { background })
-      setRoom(data.room)
-    } catch (err) {
-      setError(err.message)
-    }
+  // تغيير الخلفية: المالك فقط يرى الزر، والخادم يحفظها ويبثّها لكل من في الغرفة.
+  const applyBackground = async (background) => {
+    const data = await api.post(`/api/rooms/${roomNumber}/background`, { background })
+    setRoom(data.room)
+    setShowBackgrounds(false)
+    setNotice(t('backgroundApplied'))
   }
 
   if (!room) {
@@ -283,10 +283,16 @@ export default function Room() {
   const micCount = seated.filter((member) => member.mic_on).length
   const connectedPeers = Object.values(peerStates).filter((state) => state === 'connected').length
   const canBan = myRole === 'owner' || (myRole === 'moderator' && Boolean(myMember?.can_ban))
+  const backgroundName = (lang === 'en' ? room.background_name_en : room.background_name_ar) || room.background
 
   return (
     <div className="room-screen">
-      <div className={`room-background bg-${room.background}`}>
+      <div
+        className={`room-background${room.background_url ? ' room-background-photo' : ` bg-${room.background}`}`}
+        data-testid="room-background"
+        data-background={room.background}
+        style={room.background_url ? { '--room-photo': `url(${room.background_url})` } : undefined}
+      >
         <div className="room-header">
           <span className="room-mark">
             <PhotoIcon name="mic" size={22} />
@@ -404,20 +410,15 @@ export default function Room() {
           </p>
         ) : null}
 
-        {myRank >= 1 ? (
+        {/* إعدادات خلفية الغرفة: زر المالك يفتح منتقي الخلفيات العشرين */}
+        {myRole === 'owner' ? (
           <div className="row wrap" style={{ marginTop: 12 }}>
-            <span className="muted">الخلفية:</span>
-            {BACKGROUNDS.map((background) => (
-              <button
-                key={background}
-                type="button"
-                className={`auth-tab${room.background === background ? ' auth-tab-active' : ''}`}
-                style={{ flex: '0 0 auto', padding: '6px 10px' }}
-                onClick={() => changeBackground(background)}
-              >
-                {background}
-              </button>
-            ))}
+            <button type="button" className="btn" data-testid="open-backgrounds" onClick={() => setShowBackgrounds(true)}>
+              <PhotoIcon name="palette" size={16} /> {t('roomBackgrounds')}
+            </button>
+            <span className="muted" data-testid="room-background-name">
+              {backgroundName}
+            </span>
           </div>
         ) : null}
 
@@ -427,6 +428,10 @@ export default function Room() {
           </button>
         ) : null}
       </div>
+
+      {showBackgrounds && myRole === 'owner' ? (
+        <RoomBackgroundSheet room={room} onClose={() => setShowBackgrounds(false)} onApply={applyBackground} />
+      ) : null}
 
       {showBans && canBan ? <RoomBanPanel room={room} onUnban={unban} canUnban={myRole === 'owner'} /> : null}
 

@@ -4,13 +4,12 @@ import { api } from '../lib/api.js'
 import PhotoIcon from '../components/PhotoIcon.jsx'
 import { useI18n } from '../lib/i18n.jsx'
 
-const BACKGROUNDS = ['sunset', 'night', 'desert', 'sea', 'royal', 'aurora']
-
 const emptyRoom = {
   name: '',
   description: '',
   image_url: '',
-  background: 'sunset',
+  // الخلفية الافتراضية تأتي من `/api/rooms/backgrounds` (لا قيمة ثابتة في الواجهة).
+  background: '',
   is_private: false,
   password: '',
   gifts_enabled: true,
@@ -19,9 +18,10 @@ const emptyRoom = {
 }
 
 export default function Rooms() {
-  const { t } = useI18n()
+  const { lang, t } = useI18n()
   const navigate = useNavigate()
   const [rooms, setRooms] = useState([])
+  const [backgrounds, setBackgrounds] = useState([])
   const [myRoomId, setMyRoomId] = useState(null)
   const [loaded, setLoaded] = useState(false)
   const [query, setQuery] = useState('')
@@ -46,6 +46,17 @@ export default function Rooms() {
   useEffect(() => {
     load()
   }, [load])
+
+  // مكتبة الخلفيات من الخادم: 20 صورة فوتوغرافية حقيقية + ثيمات التدرّج القديمة.
+  useEffect(() => {
+    api
+      .get('/api/rooms/backgrounds')
+      .then((data) => {
+        setBackgrounds(data.backgrounds || [])
+        setForm((previous) => (previous.background ? previous : { ...previous, background: data.default }))
+      })
+      .catch(() => {})
+  }, [])
 
   const join = async (room, roomPassword) => {
     setError('')
@@ -199,9 +210,9 @@ export default function Rooms() {
                 value={form.background}
                 onChange={(event) => setForm({ ...form, background: event.target.value })}
               >
-                {BACKGROUNDS.map((background) => (
-                  <option key={background} value={background}>
-                    {background}
+                {backgrounds.map((item) => (
+                  <option key={item.slug} value={item.slug}>
+                    {lang === 'en' ? item.name_en : item.name_ar}
                   </option>
                 ))}
               </select>

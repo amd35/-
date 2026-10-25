@@ -4,10 +4,20 @@ import PhotoIcon from '../components/PhotoIcon.jsx'
 import { api } from '../lib/api.js'
 import { useRemote } from '../lib/hooks.js'
 import { BACKGROUND_LABELS, usePageText } from '../lib/pageText.js'
+import { useI18n } from '../lib/i18n.jsx'
 
 /** Grouped browsing: store items, gifts, room backgrounds and games. */
 export default function Categories() {
   const s = usePageText()
+  const { lang } = useI18n()
+
+  // اسم الخلفية يأتي من الخادم مع كل غرفة (`background_name_ar/en`)،
+  // والقاموس القديم يبقى احتياطاً لثيمات التدرّج.
+  const backgroundLabel = (rooms, slug) =>
+    (lang === 'en' ? rooms[0]?.background_name_en : rooms[0]?.background_name_ar) ||
+    BACKGROUND_LABELS[lang]?.[slug] ||
+    BACKGROUND_LABELS.ar[slug] ||
+    slug
 
   const { data, error, loading } = useRemote(async () => {
     const [cosmetics, gifts, rooms, catalog] = await Promise.all([
@@ -99,7 +109,7 @@ export default function Categories() {
       {backgrounds.map(([background, rooms]) => (
         <div className="card glass" key={background} data-testid={`category-bg-${background}`}>
           <div className="row-between">
-            <strong>{BACKGROUND_LABELS.ar[background] || background}</strong>
+            <strong>{backgroundLabel(rooms, background)}</strong>
             <span className="chip">
               {rooms.length} {s.items}
             </span>

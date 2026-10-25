@@ -7,7 +7,8 @@ import { useAuth } from '../lib/store.jsx'
 import { BACKGROUND_LABELS, usePageText } from '../lib/pageText.js'
 import { useI18n } from '../lib/i18n.jsx'
 
-// Same allow-list the server validates against (app/routers/rooms.py).
+// قائمة احتياطية فقط حتى تصل مكتبة الخادم (`/api/rooms/backgrounds`).
+// الخلفيات نفسها (20 صورة فوتوغرافية) تأتي من `app/room_backgrounds.py`.
 const BACKGROUNDS = ['sunset', 'night', 'desert', 'sea', 'royal', 'aurora']
 
 /** Create a voice room, or edit one you own when opened as /entry-form?id=<room>. */
@@ -23,7 +24,7 @@ export default function EntryForm() {
   const [form, setForm] = useState({
     name: '',
     description: '',
-    background: 'sunset',
+    background: '',
     seat_count: 20,
     is_private: false,
     password: '',
@@ -40,13 +41,25 @@ export default function EntryForm() {
     [editId],
   )
 
+  // مكتبة الخلفيات من الخادم، والقائمة الاحتياطية أعلاه عند تعذّر الطلب فقط.
+  const backgroundLibrary = useRemote(async () => api.get('/api/rooms/backgrounds'), [])
+  const backgroundOptions = backgroundLibrary.data?.backgrounds?.length
+    ? backgroundLibrary.data.backgrounds.map((item) => ({ slug: item.slug, label: lang === 'en' ? item.name_en : item.name_ar }))
+    : BACKGROUNDS.map((key) => ({ slug: key, label: labels[key] || key }))
+
+  useEffect(() => {
+    if (!form.background && backgroundLibrary.data?.default) {
+      setForm((previous) => ({ ...previous, background: backgroundLibrary.data.default }))
+    }
+  }, [backgroundLibrary.data, form.background])
+
   useEffect(() => {
     const room = existing.data
     if (!room) return
     setForm({
       name: room.name || '',
       description: room.description || '',
-      background: room.background || 'sunset',
+      background: room.background || '',
       seat_count: room.seat_count || 20,
       is_private: Boolean(room.is_private),
       password: '',
@@ -138,9 +151,9 @@ export default function EntryForm() {
               data-testid="entry-background"
               onChange={(event) => field('background', event.target.value)}
             >
-              {BACKGROUNDS.map((key) => (
-                <option key={key} value={key}>
-                  {labels[key] || key}
+              {backgroundOptions.map((option) => (
+                <option key={option.slug} value={option.slug}>
+                  {option.label}
                 </option>
               ))}
             </select>

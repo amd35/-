@@ -3469,3 +3469,250 @@ body.surface-swap::before {
     flex-wrap: wrap;
   }
 }
+
+/* =====================================================================
+   21) خلفيات الغرف الفوتوغرافية ومنتقي الخلفيات
+   ---------------------------------------------------------------------
+   الصورة خلفية حقيقية حادّة بلا أي ضبابية، فوقها طبقة تباين خفيفة داخل
+   خلفية العنصر نفسه (لا طبقة منفصلة)، فتبقى الأسماء والمقاعد وأزرار
+   التحكم مقروءة وقابلة للضغط كما هي.
+   ===================================================================== */
+.room-background-photo {
+  background-image:
+    linear-gradient(180deg, rgba(4, 6, 11, 0.68) 0%, rgba(4, 6, 11, 0.44) 42%, rgba(4, 6, 11, 0.8) 100%),
+    var(--room-photo);
+  background-size: cover, cover;
+  background-position: center center, center center;
+  background-repeat: no-repeat, no-repeat;
+}
+
+.room-bg-sheet {
+  width: min(600px, 100%);
+}
+
+.room-bg-preview {
+  position: relative;
+  display: flex;
+  align-items: flex-end;
+  min-height: 158px;
+  padding: 10px;
+  border-radius: 18px;
+  overflow: hidden;
+  border: 1px solid var(--room-gold-soft, rgba(244, 204, 68, 0.35));
+  background-size: cover;
+  background-position: center center;
+  background-repeat: no-repeat;
+  box-shadow:
+    inset 0 -44px 60px -32px rgba(0, 0, 0, 0.85),
+    0 18px 30px -20px rgba(0, 0, 0, 0.8);
+}
+
+.room-bg-preview-name {
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: rgba(6, 8, 12, 0.74);
+  color: var(--gold);
+  font-weight: 800;
+  font-size: 13px;
+}
+
+.room-bg-preview-chip {
+  position: absolute;
+  top: 10px;
+  inset-inline-end: 10px;
+  padding: 3px 9px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+  color: #0d0f14;
+  background: linear-gradient(180deg, #ffe08a, #d79a1c);
+}
+
+.room-bg-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(92px, 1fr));
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.room-bg-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  padding: 0;
+  overflow: hidden;
+  cursor: pointer;
+  border-radius: 14px;
+  border: 1px solid rgba(244, 204, 68, 0.28);
+  background: rgba(6, 8, 12, 0.75);
+  color: var(--text);
+  transition: transform 140ms var(--ease-soft), box-shadow 140ms ease, border-color 140ms ease;
+}
+
+.room-bg-card img,
+.room-bg-theme {
+  display: block;
+  width: 100%;
+  height: 64px;
+  object-fit: cover;
+}
+
+.room-bg-card-name {
+  padding: 5px 6px 6px;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1.25;
+  text-align: center;
+}
+
+.room-bg-card-selected {
+  border-color: var(--gold);
+  box-shadow:
+    0 0 0 2px rgba(244, 204, 68, 0.55),
+    0 14px 24px -16px rgba(0, 0, 0, 0.9);
+  transform: translateY(-1px);
+}
+
+.room-bg-check {
+  position: absolute;
+  top: 5px;
+  inset-inline-end: 5px;
+  display: grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: linear-gradient(180deg, #ffe08a, #d79a1c);
+  border: 1px solid rgba(255, 255, 255, 0.6);
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.45);
+}
+
+/* زرا «تطبيق الخلفية» و«إلغاء» يبقيان في متناول الإصبع أثناء التمرير على الهاتف */
+.room-bg-actions {
+  position: sticky;
+  bottom: 0;
+  display: flex;
+  gap: 8px;
+  margin-top: 14px;
+  padding: 10px 0 2px;
+  background: linear-gradient(180deg, rgba(18, 87, 77, 0), rgba(18, 87, 77, 0.94) 45%);
+}
+
+.room-bg-actions .btn {
+  flex: 1 1 0;
+}
+
+/* =====================================================================
+   22) غرفة الصوت الشفافة: المقاعد والمايكات والتحكم زجاجية شفافة لتظهر
+   صورة خلفية الغرفة بوضوح. تصميم فقط: لا بنية ولا وظائف ولا نصوص.
+   ===================================================================== */
+
+/* 1) الصورة نفسها أوضح: طبقة تباين أخفّ من الأعلى والأسفل */
+.room-background-photo {
+  background-image:
+    linear-gradient(180deg, rgba(4, 6, 11, 0.4) 0%, rgba(4, 6, 11, 0.18) 38%, rgba(4, 6, 11, 0.55) 100%),
+    var(--room-photo);
+}
+
+/* 1ب) الثيمات المتدرّجة (bg-*) تظهر فعلاً داخل الغرفة: القاعدة العامة للقسم 21 كانت تلغيها
+   فتبدو كل الغرف لوحاً أسود واحداً بلا خلفية مميّزة. */
+.room-background.bg-sunset {
+  background: linear-gradient(170deg, #d35400, #4a235a);
+}
+
+.room-background.bg-night {
+  background: linear-gradient(170deg, #181b4a, #0a0c1e);
+}
+
+.room-background.bg-desert {
+  background: linear-gradient(170deg, #c48b2d, #5a3714);
+}
+
+.room-background.bg-sea {
+  background: linear-gradient(170deg, #167894, #0c2d46);
+}
+
+.room-background.bg-royal {
+  background: linear-gradient(170deg, #6a1b9a, #230c3c);
+}
+
+.room-background.bg-aurora {
+  background: linear-gradient(170deg, #00b09b, #1c285a);
+}
+
+/* 2) رأس الغرفة زجاج شفاف بدل الصندوق المعتم */
+.room-header {
+  background-image: none;
+  background: linear-gradient(180deg, rgba(8, 10, 14, 0.44), rgba(8, 10, 14, 0.28));
+  border-color: var(--room-gold-soft);
+  backdrop-filter: blur(10px);
+  box-shadow: 0 12px 24px -20px rgba(0, 0, 0, 0.9), inset 0 1px 0 rgba(255, 255, 255, 0.14);
+}
+
+/* 3) شرائح الإحصاءات تبقى مقروءة فوق الصورة بلا صناديق ثقيلة */
+.room-stats span {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: rgba(8, 10, 14, 0.42);
+  border: 1px solid var(--room-gold-soft);
+}
+
+/* 4) شبكة المقاعد: أقرب وأقصر وبلا صناديق معتمة */
+.seat-grid {
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.seat {
+  background-image: none;
+  background: linear-gradient(180deg, rgba(8, 10, 14, 0.26), rgba(8, 10, 14, 0.48));
+  border-color: rgba(244, 204, 68, 0.3);
+  min-height: 94px;
+  padding: 7px 4px;
+}
+
+.seat-empty {
+  background: rgba(8, 10, 14, 0.16);
+  border-color: rgba(244, 204, 68, 0.26);
+  opacity: 1;
+}
+
+.seat-taken {
+  background: linear-gradient(180deg, rgba(8, 10, 14, 0.32), rgba(8, 10, 14, 0.54));
+}
+
+.seat-avatar {
+  width: 38px;
+  height: 38px;
+  background: rgba(8, 10, 14, 0.42);
+}
+
+/* 5) ظل خفيف على النصوص الصغيرة ليقرأها المستخدم فوق أي صورة */
+.seat-name,
+.seat-number,
+.room-background .muted {
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.85);
+}
+
+/* 6) أزرار التحكم الثانوية زجاجية شفافة (زر المايك الأساسي يبقى بارزاً) */
+.room-background .btn:not(.btn-primary):not(.btn-danger) {
+  background: rgba(8, 10, 14, 0.4);
+  border-color: var(--room-gold-soft);
+  color: var(--room-gold);
+  backdrop-filter: blur(10px);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.12);
+}
+
+/* 7) بطاقات الغرفة (الأعضاء/القوانين/الدردشة) شفافة بدل الصناديق المعتمة */
+.room-screen > .card.glass {
+  background: rgba(6, 30, 27, 0.42);
+  border-color: rgba(255, 255, 255, 0.14);
+}
+
+.room-screen .member-row {
+  background: rgba(8, 12, 16, 0.34);
+  border-color: rgba(244, 204, 68, 0.2);
+}

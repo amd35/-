@@ -2,7 +2,7 @@
 import datetime as dt
 from typing import Any
 
-from . import royal
+from . import room_backgrounds, royal
 
 LEVEL_STEP = 500
 
@@ -135,7 +135,8 @@ def room_public(
         "name": room.name,
         "description": room.description,
         "image_url": room.image_url,
-        "background": room.background,
+        # الخلفية: المعرّف + نوعها (صورة فوتوغرافية أو ثيم قديم) + رابط الصورة واسمها.
+        **room_backgrounds.public(room.background),
         "rules": room.rules,
         "seat_count": room.seat_count,
         "is_private": bool(room.is_private),
