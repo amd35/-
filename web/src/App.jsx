@@ -1,5 +1,6 @@
 import { Navigate, Route, Routes } from 'react-router-dom'
 import Layout from './components/Layout.jsx'
+import SurfaceTheme from './components/SurfaceTheme.jsx'
 import Auth from './pages/Auth.jsx'
 import Home from './pages/Home.jsx'
 import Games from './pages/Games.jsx'
@@ -33,38 +34,42 @@ function Protected({ children }) {
 
 export default function App() {
   return (
-    <Routes>
-      <Route path="/login" element={<Auth />} />
-      <Route
-        element={
-          <Protected>
-            <Layout />
-          </Protected>
-        }
-      >
-        <Route path="/" element={<Home />} />
-        <Route path="/games" element={<Games />} />
-        <Route path="/games/:gameId" element={<GameTable />} />
-        <Route path="/rooms" element={<Rooms />} />
-        <Route path="/rooms/:roomId" element={<Room />} />
-        <Route path="/friends" element={<Friends />} />
-        <Route path="/profile" element={<Profile />} />
-        <Route path="/store" element={<Store />} />
-        <Route path="/recharge" element={<Recharge />} />
-        <Route path="/dashboard" element={<Dashboard />} />
-        <Route path="/data-management" element={<DataManagement />} />
-        <Route path="/item-details" element={<ItemDetails />} />
-        <Route path="/entry-form" element={<EntryForm />} />
-        <Route path="/settings" element={<Settings />} />
-        <Route path="/help" element={<Help />} />
-        <Route path="/activity-log" element={<ActivityLog />} />
-        <Route path="/system-status" element={<SystemStatus />} />
-        <Route path="/notifications" element={<Notifications />} />
-        <Route path="/contact" element={<Contact />} />
-        <Route path="/search" element={<Search />} />
-        <Route path="/categories" element={<Categories />} />
-        <Route path="*" element={<Navigate to="/" replace />} />
-      </Route>
-    </Routes>
+    <>
+      {/* يضبط السطح الفوتوغرافي للقسم الحالي على <body> (تصميم فقط). */}
+      <SurfaceTheme />
+      <Routes>
+        <Route path="/login" element={<Auth />} />
+        <Route
+          element={
+            <Protected>
+              <Layout />
+            </Protected>
+          }
+        >
+          <Route path="/" element={<Home />} />
+          <Route path="/games" element={<Games />} />
+          <Route path="/games/:gameId" element={<GameTable />} />
+          <Route path="/rooms" element={<Rooms />} />
+          <Route path="/rooms/:roomId" element={<Room />} />
+          <Route path="/friends" element={<Friends />} />
+          <Route path="/profile" element={<Profile />} />
+          <Route path="/store" element={<Store />} />
+          <Route path="/recharge" element={<Recharge />} />
+          <Route path="/dashboard" element={<Dashboard />} />
+          <Route path="/data-management" element={<DataManagement />} />
+          <Route path="/item-details" element={<ItemDetails />} />
+          <Route path="/entry-form" element={<EntryForm />} />
+          <Route path="/settings" element={<Settings />} />
+          <Route path="/help" element={<Help />} />
+          <Route path="/activity-log" element={<ActivityLog />} />
+          <Route path="/system-status" element={<SystemStatus />} />
+          <Route path="/notifications" element={<Notifications />} />
+          <Route path="/contact" element={<Contact />} />
+          <Route path="/search" element={<Search />} />
+          <Route path="/categories" element={<Categories />} />
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Route>
+      </Routes>
+    </>
   )
 }
