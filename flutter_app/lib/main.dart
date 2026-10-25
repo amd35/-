@@ -42,7 +42,7 @@ class _TonVoiceAppState extends State<TonVoiceApp> {
     return AppScope(
       state: state,
       child: MaterialApp(
-        title: 'TON Voice',
+        title: 'يلا لوهان',
         debugShowCheckedModeBanner: false,
         theme: buildTheme(),
         locale: const Locale('ar'),

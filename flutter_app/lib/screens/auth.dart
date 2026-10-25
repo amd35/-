@@ -84,7 +84,7 @@ class _AuthScreenState extends State<AuthScreen> {
               ),
               const SizedBox(height: 12),
               const Center(
-                child: Text('TON Voice', style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
+                child: Text('يلا لوهان', style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
               ),
               const Center(
                 child: Text('غرف صوتية · ألعاب · هدايا', style: TextStyle(color: AppColors.muted)),

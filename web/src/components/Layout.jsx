@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Link, NavLink, Outlet, useNavigate } from 'react-router-dom'
 import Avatar from './Avatar.jsx'
+import BrandEmblem from './BrandEmblem.jsx'
 import PhotoIcon from './PhotoIcon.jsx'
 import { useAuth } from '../lib/store.jsx'
 import { useI18n } from '../lib/i18n.jsx'
@@ -71,7 +72,9 @@ export default function Layout() {
       <div className="app-shell">
         <header className="topbar glass">
           <Link className="brand" to="/">
-            <span className="brand-mark">T</span>
+            <span className="brand-mark">
+              <BrandEmblem size="100%" />
+            </span>
             <span>{t('appName')}</span>
           </Link>
           <div className="topbar-spacer" />

@@ -30,7 +30,7 @@ class _HomeShellState extends State<HomeShell> {
         child: Scaffold(
           backgroundColor: Colors.transparent,
           appBar: AppBar(
-            title: const Text('TON Voice'),
+            title: const Text('يلا لوهان'),
             actions: [
               _Chip(label: '💎 ${state.diamonds}', color: AppColors.gold),
               const SizedBox(width: 6),

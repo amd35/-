@@ -2,21 +2,25 @@ import { useCallback, useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import AddFriendSheet from '../components/AddFriendSheet.jsx'
 import Avatar from '../components/Avatar.jsx'
+import BrandEmblem from '../components/BrandEmblem.jsx'
 import PageNav from '../components/PageNav.jsx'
 import PhotoIcon from '../components/PhotoIcon.jsx'
 import { api } from '../lib/api.js'
 import { useI18n } from '../lib/i18n.jsx'
+import { useSocketEvent } from '../lib/store.jsx'
 
 /**
  * صفحة «المحادثات» بترتيب التصميم: هيدر الصفحة (زر إضافة صديق · العنوان والوصف ·
- * شعار)، شريط البحث، صف الدعم الفني، ثم المحتوى الحقيقي (نتائج البحث، طلبات
- * الصداقة، الأصدقاء، المحادثة الخاصة)، وشريط تنقل الصفحة في الأسفل.
+ * شعار التطبيق)، شريط البحث، صف الدعم الفني، ثم المحتوى الحقيقي: أحدث المحادثات
+ * (`/api/messages/threads`)، نتائج البحث، طلبات الصداقة، الأصدقاء، ثم المحادثة
+ * الخاصة (إرسال + حظر + إبلاغ)، وشريط تنقل الصفحة في الأسفل.
  * كل الأرقام والأسماء من `/api/*` — لا بيانات وهمية ولا أزرار شكلية.
  */
 export default function Friends() {
-  const { t } = useI18n()
+  const { t, lang } = useI18n()
   const [friends, setFriends] = useState([])
   const [requests, setRequests] = useState({ incoming: [], outgoing: [] })
+  const [threads, setThreads] = useState([])
   const [results, setResults] = useState([])
   const [query, setQuery] = useState('')
   const [error, setError] = useState('')
@@ -36,9 +40,31 @@ export default function Friends() {
     }
   }, [])
 
+  // أحدث المحادثات (آخر رسالة + عدد غير المقروء) — تُشتق على الخادم من جدول الرسائل.
+  const loadThreads = useCallback(async () => {
+    try {
+      const data = await api.get('/api/messages/threads')
+      setThreads(data.threads)
+    } catch (err) {
+      setError(err.message)
+    }
+  }, [])
+
   useEffect(() => {
     load()
-  }, [load])
+    loadThreads()
+  }, [load, loadThreads])
+
+  // رسالة مباشرة جديدة تصل عبر WebSocket → تحديث قائمة المحادثات فوراً.
+  useSocketEvent('dm', loadThreads)
+
+  // وقت آخر رسالة بحسب لغة الواجهة.
+  const timeOf = (value) => {
+    const date = new Date(value)
+    return Number.isNaN(date.getTime())
+      ? ''
+      : date.toLocaleTimeString(lang === 'ar' ? 'ar-IQ' : 'en-GB', { hour: '2-digit', minute: '2-digit' })
+  }
 
   const search = async (event) => {
     event.preventDefault()
@@ -56,6 +82,8 @@ export default function Friends() {
       const data = await api.get(`/api/messages/${other.id}`)
       setConversation(data.user)
       setMessages(data.messages)
+      // الخادم يعلّم الرسائل مقروءة عند الفتح → أعِد جلب المحادثات لإخفاء عدّاد غير المقروء.
+      await loadThreads()
     } catch (err) {
       setError(err.message)
     }
@@ -68,6 +96,7 @@ export default function Friends() {
       const message = await api.post(`/api/messages/${conversation.id}`, { text: text.trim() })
       setMessages((previous) => [...previous, { ...message, mine: true }])
       setText('')
+      await loadThreads()
     } catch (err) {
       setError(err.message)
     }
@@ -105,6 +134,30 @@ export default function Friends() {
     }
   }
 
+  // حظر العضو وإغلاق محادثته — نفس مسار صفحة الملف الشخصي (`POST /api/blocks`).
+  const blockUser = async (target) => {
+    setError('')
+    try {
+      await api.post('/api/blocks', { user_id: target.id })
+      setNotice(t('userBlocked'))
+      setConversation(null)
+      await loadThreads()
+    } catch (err) {
+      setError(err.message)
+    }
+  }
+
+  // إبلاغ عن العضو — يصل إلى لوحة الإدارة (`POST /api/reports`).
+  const reportUser = async (target) => {
+    setError('')
+    try {
+      await api.post('/api/reports', { target_type: 'user', target_id: target.id, reason: t('reportReason') })
+      setNotice(t('reportSent'))
+    } catch (err) {
+      setError(err.message)
+    }
+  }
+
   return (
     <div className="chats-screen" data-testid="friends-page">
       <header className="chats-head">
@@ -121,7 +174,7 @@ export default function Friends() {
           <p className="chats-subtitle">{t('chatsSubtitle')}</p>
         </div>
         <span className="chats-logo" aria-hidden="true">
-          T
+          <BrandEmblem size="100%" />
         </span>
       </header>
 
@@ -185,6 +238,35 @@ export default function Friends() {
         </div>
       ) : null}
 
+      <h2 className="section-title">
+        {t('latestChats')} ({threads.length})
+      </h2>
+      <div className="chats-card" data-testid="chats-threads">
+        {threads.length === 0 ? <p className="muted">{t('noChats')}</p> : null}
+        {threads.map((thread) => (
+          <button
+            type="button"
+            className="chats-row chats-thread"
+            key={thread.user.id}
+            data-testid={`thread-${thread.user.id}`}
+            onClick={() => openConversation(thread.user)}
+          >
+            <Avatar user={thread.user} size={40} />
+            <div className="chats-row-text">
+              <strong className="chats-row-name">{thread.user.display_name || thread.user.username}</strong>
+              <span className="chats-row-meta">{thread.last_message.text}</span>
+            </div>
+            <span className="topbar-spacer" />
+            <span className="chats-row-meta">{timeOf(thread.last_message.created_at)}</span>
+            {thread.unread ? (
+              <span className="chats-unread" data-testid={`thread-unread-${thread.user.id}`}>
+                {thread.unread}
+              </span>
+            ) : null}
+          </button>
+        ))}
+      </div>
+
       <h2 className="section-title">{t('requests')}</h2>
       <div className="chats-card" data-testid="friend-requests">
         {requests.incoming.length === 0 && requests.outgoing.length === 0 ? <p className="muted">—</p> : null}
@@ -247,9 +329,22 @@ export default function Friends() {
         <div className="chats-card" data-testid="conversation">
           <div className="row-between">
             <strong>{conversation.display_name || conversation.username}</strong>
-            <button type="button" className="btn" onClick={() => setConversation(null)}>
-              إغلاق
-            </button>
+            <div className="row">
+              <button
+                type="button"
+                className="btn btn-danger"
+                onClick={() => blockUser(conversation)}
+                data-testid="conversation-block"
+              >
+                {t('block')}
+              </button>
+              <button type="button" className="btn" onClick={() => reportUser(conversation)} data-testid="conversation-report">
+                {t('report')}
+              </button>
+              <button type="button" className="btn" onClick={() => setConversation(null)}>
+                إغلاق
+              </button>
+            </div>
           </div>
           <div className="chat-log">
             {messages.map((message) => (

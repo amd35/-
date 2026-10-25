@@ -53,7 +53,7 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(
-    title="TON Voice API",
+    title="يلا لوهان API",
     version="0.1.0",
     description="Backend for the social voice-room application (accounts, rooms, gifts, wallet, admin).",
     lifespan=lifespan,

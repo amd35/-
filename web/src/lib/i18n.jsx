@@ -2,7 +2,7 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useState } 
 
 const DICT = {
   ar: {
-    appName: 'TON Voice',
+    appName: 'يلا لوهان',
     home: 'الرئيسية',
     rewardTower: 'برج المكافآت',
     all: 'الكل',
@@ -191,6 +191,11 @@ const DICT = {
     follow: 'متابعة',
     unfollow: 'إلغاء المتابعة',
     chatsSubtitle: 'تواصل خاص وآمن',
+    latestChats: 'أحدث المحادثات',
+    noChats: 'لا توجد محادثات بعد.',
+    reportReason: 'إساءة',
+    reportSent: 'تم إرسال البلاغ إلى الإدارة.',
+    userBlocked: 'تم حظر العضو وإغلاق محادثته.',
     searchByName: 'ابحث بالاسم',
     searchNameOrId: 'الاسم أو رقم المستخدم',
     addFriendSubtitle: 'ابحث بالاسم أو برقم المستخدم، أو اختر من المقترحين.',
@@ -218,7 +223,7 @@ const DICT = {
     memberCard: 'بطاقة العضو',
   },
   en: {
-    appName: 'TON Voice',
+    appName: 'يلا لوهان',
     home: 'Home',
     rewardTower: 'Rewards tower',
     all: 'All',
@@ -407,6 +412,11 @@ const DICT = {
     follow: 'Follow',
     unfollow: 'Unfollow',
     chatsSubtitle: 'Private and secure chats',
+    latestChats: 'Recent chats',
+    noChats: 'No chats yet.',
+    reportReason: 'Abuse',
+    reportSent: 'Report sent to the admin.',
+    userBlocked: 'Member blocked and the chat closed.',
     searchByName: 'Search by name',
     searchNameOrId: 'Name or user ID',
     addFriendSubtitle: 'Search by name or user ID, or pick from the suggestions.',

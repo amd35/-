@@ -13,7 +13,7 @@ def _bool(name: str, default: str = "0") -> bool:
 
 class Settings:
     def __init__(self) -> None:
-        self.app_name = os.getenv("APP_NAME", "TON Voice")
+        self.app_name = os.getenv("APP_NAME", "يلا لوهان")
         self.secret_key = os.getenv("SECRET_KEY", "insecure-development-key")
         self.access_token_days = int(os.getenv("ACCESS_TOKEN_DAYS", "30"))
         self.database_url = os.getenv(

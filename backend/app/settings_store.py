@@ -6,7 +6,7 @@ from sqlalchemy.orm import Session
 from .models import AppSetting
 
 DEFAULTS: dict[str, Any] = {
-    "app_name": "TON Voice",
+    "app_name": "يلا لوهان",
     "currency_default": "IQD",
     "supported_currencies": ["IQD", "USD"],
     "exchange_rate_usd_iqd": 1320,

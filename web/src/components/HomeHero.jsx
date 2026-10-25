@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import Avatar from './Avatar.jsx'
+import BrandEmblem from './BrandEmblem.jsx'
 import PhotoIcon from './PhotoIcon.jsx'
 import { useI18n } from '../lib/i18n.jsx'
 
@@ -98,7 +99,9 @@ export default function HomeHero({ rooms, onOpenRoom, onOpenUser, onCreate }) {
                 data-testid={`home-slide-open-${room.id}`}
                 aria-label={room.name}
               >
-                <span className="home-crest">CP</span>
+                <span className="home-crest">
+                  <BrandEmblem size={52} />
+                </span>
               </button>
               <MemberSlot member={room.members?.[1]} onOpenUser={onOpenUser} />
             </div>

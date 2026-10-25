@@ -91,15 +91,14 @@ button {
   font-weight: 700;
 }
 
+/* صندوق الشعار: الشكل واللون يرسمهما SVG داخله (BrandEmblem) — هنا الحجم والظل فقط. */
 .brand-mark {
   display: grid;
   place-items: center;
+  flex: none;
   width: 34px;
   height: 34px;
-  border-radius: 12px;
-  background: linear-gradient(140deg, var(--gold), #e08a2a);
-  color: #2b1533;
-  font-weight: 900;
+  filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.5));
 }
 
 .topbar-spacer {
@@ -1044,10 +1043,6 @@ textarea:focus {
 .brand-mark {
   width: 36px;
   height: 36px;
-  border-radius: 50%;
-  background: radial-gradient(circle at 35% 25%, #ffe9a8, #e2ab2c 70%);
-  color: #4a2f05;
-  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.4), inset 0 -3px 6px rgba(0, 0, 0, 0.2);
 }
 
 .topbar .brand span:last-child {
@@ -2001,14 +1996,7 @@ body::after {
 }
 
 .brand-mark {
-  background-image:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.75), rgba(255, 255, 255, 0) 55%),
-    radial-gradient(circle at 35% 25%, var(--gold-hi), var(--gold-2) 65%, var(--gold-3));
-  box-shadow:
-    0 6px 12px -4px rgba(0, 0, 0, 0.6),
-    0 0 0 1px rgba(255, 255, 255, 0.45),
-    inset 0 -3px 7px rgba(138, 92, 6, 0.4);
-  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.55);
+  filter: drop-shadow(0 6px 12px rgba(0, 0, 0, 0.6));
 }
 
 .currency-pill {
@@ -4693,18 +4681,14 @@ body[data-surface='chats'] .app-shell > button.btn {
   color: #e6d5c4;
 }
 
+/* شعار التطبيق في الهيدر: يرسمه BrandEmblem، والصندوق يحدّد حجمه فقط. */
 .chats-logo {
   display: grid;
   place-items: center;
+  flex: none;
   width: 42px;
   height: 42px;
-  border-radius: 14px;
-  background: linear-gradient(180deg, #f7d977, #a8791b);
-  border: 1px solid rgba(255, 233, 166, 0.55);
-  color: #2b1a05;
-  font-size: 18px;
-  font-weight: 900;
-  box-shadow: 0 10px 20px -12px rgba(0, 0, 0, 0.95), inset 0 1px 0 rgba(255, 255, 255, 0.4);
+  filter: drop-shadow(0 10px 16px rgba(0, 0, 0, 0.8));
 }
 
 /* --- شريط البحث --- */
@@ -4846,6 +4830,44 @@ body[data-surface='chats'] .app-shell > button.btn {
   padding: 7px 12px;
   font-size: 12px;
   border-radius: 10px;
+}
+
+/* صف أحدث المحادثات: زر كامل العرض يُفتح على الفرد، وعدّاد الرسائل غير المقروءة */
+.chats-thread {
+  width: 100%;
+  padding: 9px 2px;
+  background: none;
+  border: 0;
+  border-bottom: 1px solid rgba(212, 175, 55, 0.16);
+  border-radius: 0;
+  text-align: start;
+  color: inherit;
+  cursor: pointer;
+}
+
+.chats-thread:hover {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.chats-thread .chats-row-meta {
+  overflow: hidden;
+  max-width: 62%;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.chats-unread {
+  display: grid;
+  place-items: center;
+  min-width: 22px;
+  height: 22px;
+  padding: 0 6px;
+  border-radius: 999px;
+  background: linear-gradient(180deg, #f7d977, #c79a24);
+  color: #2b1a05;
+  font-size: 11px;
+  font-weight: 900;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.5);
 }
 
 /* --- لوحة إضافة صديق --- */

@@ -70,7 +70,7 @@ export default function App() {
           admin ? (
             <>
               <header className="topbar">
-                <strong>TON Voice — لوحة الإدارة</strong>
+                <strong>يلا لوهان — لوحة الإدارة</strong>
                 <span className="muted">{admin.user.username} · {admin.role}</span>
                 <div style={{ flex: 1 }} />
                 <button type="button" className="btn" onClick={logout}>

@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import BrandEmblem from '../components/BrandEmblem.jsx'
 import { api } from '../lib/api.js'
 import { useAuth } from '../lib/store.jsx'
 import { useI18n } from '../lib/i18n.jsx'
@@ -58,7 +59,9 @@ export default function Auth() {
     <div className="glass auth-screen">
       <div className="row-between">
         <div className="brand">
-          <span className="brand-mark">T</span>
+          <span className="brand-mark">
+            <BrandEmblem size="100%" />
+          </span>
           <strong>{t('appName')}</strong>
         </div>
         <button type="button" className="icon-button" onClick={() => setLang(lang === 'ar' ? 'en' : 'ar')}>
