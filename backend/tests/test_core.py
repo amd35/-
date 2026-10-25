@@ -9,7 +9,7 @@ PNG = bytes.fromhex(
 
 def test_registration_login_and_profile(client, make_user):
     data = make_user("alice")
-    assert data["wallet"]["diamonds"] == 500  # welcome bonus, written to the ledger
+    assert data["wallet"]["diamonds"] == 1000  # welcome bonus, written to the ledger
     token = data["token"]
 
     me = client.get("/api/auth/me", headers=auth(token))
@@ -29,7 +29,7 @@ def test_registration_login_and_profile(client, make_user):
     assert updated.json()["user"]["display_name"] == "بطل الغرفة"
 
     ledger = client.get("/api/wallet/ledger", headers=auth(token)).json()["entries"]
-    assert any(entry["kind"] == "reward" and entry["amount"] == 500 for entry in ledger)
+    assert any(entry["kind"] == "reward" and entry["amount"] == 1000 for entry in ledger)
 
 
 def test_duplicate_accounts_and_bad_password(client, make_user):
@@ -154,18 +154,18 @@ def test_gift_sending_is_idempotent(client, make_user):
     first = client.post("/api/gifts/send", json=body, headers=auth(sender["token"]))
     assert first.status_code == 201, first.text
     assert first.json()["created"] is True
-    assert first.json()["wallet"]["diamonds"] == 490
+    assert first.json()["wallet"]["diamonds"] == 990
 
     replay = client.post("/api/gifts/send", json=body, headers=auth(sender["token"]))
     assert replay.status_code == 201
     assert replay.json()["created"] is False
-    assert replay.json()["wallet"]["diamonds"] == 490  # never charged twice
+    assert replay.json()["wallet"]["diamonds"] == 990  # never charged twice
 
     entries = client.get("/api/wallet/ledger", headers=auth(sender["token"])).json()["entries"]
     assert sum(entry["amount"] for entry in entries if entry["kind"] == "gift_sent") == -10
 
     receiver_wallet = client.get("/api/auth/me", headers=auth(receiver["token"])).json()["wallet"]
-    assert receiver_wallet["diamonds"] == 506  # 500 welcome + 60% of 10
+    assert receiver_wallet["diamonds"] == 1006  # 1000 welcome + 60% of 10
 
     poor = client.post(
         "/api/gifts/send",
@@ -191,16 +191,16 @@ def test_transfers_are_atomic(client, make_user):
         headers=auth(sender["token"]),
     )
     assert sent.status_code == 201
-    assert sent.json()["wallet"]["diamonds"] == 300
-    assert client.get("/api/auth/me", headers=auth(receiver["token"])).json()["wallet"]["diamonds"] == 700
+    assert sent.json()["wallet"]["diamonds"] == 800
+    assert client.get("/api/auth/me", headers=auth(receiver["token"])).json()["wallet"]["diamonds"] == 1200
 
     replay = client.post(
         "/api/wallet/transfer",
         json={"to_username": "transferreceiver", "currency": "diamonds", "amount": 200, "idempotency_key": "tr-one"},
         headers=auth(sender["token"]),
     )
-    assert replay.json()["wallet"]["diamonds"] == 300
-    assert client.get("/api/auth/me", headers=auth(receiver["token"])).json()["wallet"]["diamonds"] == 700
+    assert replay.json()["wallet"]["diamonds"] == 800
+    assert client.get("/api/auth/me", headers=auth(receiver["token"])).json()["wallet"]["diamonds"] == 1200
 
     too_much = client.post(
         "/api/wallet/transfer",

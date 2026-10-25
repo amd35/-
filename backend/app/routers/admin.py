@@ -1036,7 +1036,7 @@ def admin_games(
         "settings": {
             "games_enabled": get_setting(db, "games_enabled", {}),
             "domino_target_score": get_setting(db, "domino_target_score", 100),
-            "game_win_reward_diamonds": get_setting(db, "game_win_reward_diamonds", 200),
+            "game_win_reward_diamonds": get_setting(db, "game_win_reward_diamonds", 500),
             "game_win_xp": get_setting(db, "game_win_xp", 50),
         },
         "stats": stats,

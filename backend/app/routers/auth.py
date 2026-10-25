@@ -168,7 +168,7 @@ def register(payload: RegisterIn, request: Request, db: Session = Depends(get_db
     db.flush()
     get_wallet(db, user.id)
 
-    bonus = int(get_setting(db, "welcome_bonus_diamonds", 500))
+    bonus = int(get_setting(db, "welcome_bonus_diamonds", 1000))
     if bonus > 0:
         grant_reward(db, user, "diamonds", bonus, "مكافأة الترحيب", ref=f"welcome:{user.id}")
 

@@ -15,7 +15,7 @@ DEFAULTS: dict[str, Any] = {
     "withdrawal_enabled": False,
     "withdrawal_min_diamonds": 50000,
     "withdrawal_fee_percent": 10,
-    "welcome_bonus_diamonds": 500,
+    "welcome_bonus_diamonds": 1000,
     "ads": [
         {
             "id": "ad_welcome",
@@ -35,7 +35,7 @@ DEFAULTS: dict[str, Any] = {
     ],
     "games_enabled": {"ludo": True, "domino": True},
     "domino_target_score": 100,
-    "game_win_reward_diamonds": 200,
+    "game_win_reward_diamonds": 500,
     "game_win_xp": 50,
     "maintenance": False,
 }

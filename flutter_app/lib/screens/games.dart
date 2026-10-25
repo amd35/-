@@ -83,7 +83,7 @@ class _GamesScreenState extends State<GamesScreen> {
                     const SizedBox(height: 6),
                     Text(
                       game['enabled'] == true
-                          ? 'متاحة · الحركات والنرد تتحقق على الخادم · مكافأة الفوز ${_catalog?['win_reward_diamonds'] ?? 200} ماس'
+                          ? 'متاحة · الحركات والنرد تتحقق على الخادم · مكافأة الفوز ${_catalog?['win_reward_diamonds'] ?? 500} ماس'
                           : 'معطّلة حالياً من لوحة الإدارة',
                       style: const TextStyle(color: AppColors.muted, fontSize: 12),
                     ),

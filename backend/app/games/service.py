@@ -316,7 +316,7 @@ def _finish(db: Session, room: GameRoom, winner_seat: int) -> None:
     winner_row = next((player for player, _ in rows if int(player.seat) == int(winner_seat)), None)
     if winner_row is not None:
         room.winner_id = winner_row.user_id
-    diamonds = int(get_setting(db, "game_win_reward_diamonds", 200))
+    diamonds = int(get_setting(db, "game_win_reward_diamonds", 500))
     xp_reward = int(get_setting(db, "game_win_xp", 50))
     for player, player_user in rows:
         if player.seat == winner_seat:

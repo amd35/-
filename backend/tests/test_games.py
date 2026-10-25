@@ -322,7 +322,7 @@ def test_ludo_win_pays_the_reward_once(client, make_user):
     assert finished.json()["room"]["status"] == "finished"
 
     after = client.get("/api/auth/me", headers=auth(winner["token"])).json()["wallet"]["diamonds"]
-    assert after - before == 200, "the winner is paid the configured reward"
+    assert after - before == 500, "the winner is paid the configured reward"
 
     db = SessionLocal()
     try:

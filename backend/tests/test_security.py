@@ -20,14 +20,14 @@ def test_payments_are_never_assumed(client, make_user, admin_token):
 
     # No provider keys -> no credit, no checkout, and the webhook refuses.
     before = client.get("/api/auth/me", headers=auth(buyer["token"])).json()["wallet"]
-    assert before["diamonds"] == 500  # مكافأة الترحيب فقط
+    assert before["diamonds"] == 1000  # مكافأة الترحيب فقط
     assert client.post(f"/api/payments/orders/{order['id']}/checkout", headers=auth(buyer["token"])).status_code == 503
     assert (
         client.post("/api/payments/webhook/stripe", content=b"{}", headers={"stripe-signature": "fake"}).status_code
         == 503
     )
     after_attempts = client.get("/api/auth/me", headers=auth(buyer["token"])).json()["wallet"]
-    assert after_attempts["diamonds"] == 500
+    assert after_attempts["diamonds"] == 1000
 
     # A verified administrator approval credits once, and only once.
     approved = client.post(
@@ -35,12 +35,12 @@ def test_payments_are_never_assumed(client, make_user, admin_token):
     )
     assert approved.status_code == 200
     credited = client.get("/api/auth/me", headers=auth(buyer["token"])).json()["wallet"]
-    assert credited["diamonds"] == 500 + pack["total"]  # مكافأة الترحيب + الباقة
+    assert credited["diamonds"] == 1000 + pack["total"]  # مكافأة الترحيب + الباقة
     again = client.post(f"/api/admin/orders/{order['id']}/approve", json={}, headers=auth(admin_token))
     assert again.status_code == 400
     assert (
         client.get("/api/auth/me", headers=auth(buyer["token"])).json()["wallet"]["diamonds"]
-        == 500 + pack["total"]
+        == 1000 + pack["total"]
     )
 
 
@@ -62,7 +62,7 @@ def test_admin_rights_are_enforced_on_the_server(client, make_user, admin_token)
         headers=auth(admin_token),
     )
     assert adjusted.status_code == 200
-    assert adjusted.json()["wallet"]["diamonds"] == 1500
+    assert adjusted.json()["wallet"]["diamonds"] == 2000
 
     logs = client.get("/api/admin/audit-logs", headers=auth(admin_token)).json()["logs"]
     assert any(entry["action"] == "wallet.adjust" and entry["actor_id"] for entry in logs)
@@ -102,13 +102,13 @@ def test_withdrawal_flow_and_refund(client, make_user, admin_token):
     assert created.status_code == 201, created.text
     request = created.json()["request"]
     assert request["fee"] == 6000 and request["net_amount"] == 54000
-    assert created.json()["wallet"]["diamonds"] == 100500 - 60000
+    assert created.json()["wallet"]["diamonds"] == 101000 - 60000
 
     rejected = client.post(
         f"/api/admin/withdrawals/{request['id']}/reject", json={"note": "بيانات مستفيد غير صحيحة"}, headers=auth(admin_token)
     )
     assert rejected.status_code == 200
-    assert client.get("/api/auth/me", headers=auth(user["token"])).json()["wallet"]["diamonds"] == 100500
+    assert client.get("/api/auth/me", headers=auth(user["token"])).json()["wallet"]["diamonds"] == 101000
     client.patch("/api/admin/settings", json={"settings": {"withdrawal_enabled": False}}, headers=auth(admin_token))
 
 
