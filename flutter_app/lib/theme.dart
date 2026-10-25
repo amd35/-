@@ -13,6 +13,10 @@ class AppColors {
   static const text = Color(0xFFFDF7EE);
   static const muted = Color(0xFFC9BCD0);
 
+  /// App-wide backdrop: a realistic photographic rooftop at sunset.
+  static const backdropUrl =
+      'https://media.base44.com/images/public/6addb0a6b0689d303ed3a495/736e4558e_generated_78ab64b8.png';
+
   static const sunset = LinearGradient(
     begin: Alignment.topCenter,
     end: Alignment.bottomCenter,
@@ -92,7 +96,8 @@ class GlassPanel extends StatelessWidget {
   }
 }
 
-/// App-wide background gradient.
+/// App-wide backdrop: the photographic background, or the room's own gradient
+/// colours when the room defines them.
 class SunsetScaffold extends StatelessWidget {
   const SunsetScaffold({super.key, required this.child, this.colors});
 
@@ -101,11 +106,33 @@ class SunsetScaffold extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(
-        gradient: colors == null ? AppColors.sunset : LinearGradient(colors: colors!, begin: Alignment.topCenter, end: Alignment.bottomCenter),
-      ),
-      child: child,
+    // A room with its own colours keeps its gradient; otherwise the photographic
+    // backdrop is used, with the sunset gradient as the offline fallback.
+    final roomGradient =
+        colors == null ? null : LinearGradient(colors: colors!, begin: Alignment.topCenter, end: Alignment.bottomCenter);
+    if (roomGradient != null) {
+      return Container(decoration: BoxDecoration(gradient: roomGradient), child: child);
+    }
+    return Stack(
+      fit: StackFit.expand,
+      children: [
+        const DecoratedBox(decoration: BoxDecoration(gradient: AppColors.sunset)),
+        Image.network(
+          AppColors.backdropUrl,
+          fit: BoxFit.cover,
+          errorBuilder: (_, __, ___) => const SizedBox.shrink(),
+        ),
+        const DecoratedBox(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+              colors: [Color(0xA8120C1A), Color(0x61120C1A), Color(0xB8120C1A)],
+            ),
+          ),
+        ),
+        child,
+      ],
     );
   }
 }

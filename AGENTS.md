@@ -28,6 +28,12 @@
   يحدّث كلمة مروره (`seed._seed_admin`).
 - بذور البيانات idempotent: لا تُكرر الصفوف ولا تُلغي تعديلات الإدارة.
 
+## هوية الخلفية
+- خلفية التطبيق صورة فوتوغرافية على مكتبة الأصول (`--app-backdrop` في `web/src/styles.css`
+  و`AppColors.backdropUrl` في `flutter_app/lib/theme.dart`). تُحمّل من الشبكة، وبدون إنترنت
+  يعود الويب إلى لون `--bg-1` وFlutter إلى تدرّج `AppColors.sunset`، فتبقى الواجهات مقروءة.
+- غرف الصوت تحتفظ بتدرّجاتها الخاصة (`bg-*` في الويب و`roomBackgrounds` في Flutter) ولا تستخدم الصورة.
+
 ## التحقق
 - اختبارات الـ Backend: `docker compose -f docker-compose.base44.yml exec -T api python -m pytest -q`
   (تحتاج خدمة `db` تعمل؛ تُنشئ قاعدة `app_test` تلقائيًا).
