@@ -403,7 +403,7 @@ def stats(user: User = Depends(get_admin_user), db: Session = Depends(get_db)):
         "service": {
             "mail_configured": settings.mail_configured,
             "payments_configured": settings.payments_configured,
-            "turn_configured": bool(settings.turn_url),
+            "turn_configured": settings.turn_configured,
         },
     }
 

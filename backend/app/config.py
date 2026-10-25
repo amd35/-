@@ -57,6 +57,11 @@ class Settings:
         self.turn_url = os.getenv("TURN_URL", "")
         self.turn_username = os.getenv("TURN_USERNAME", "")
         self.turn_credential = os.getenv("TURN_CREDENTIAL", "")
+        # Cloudflare TURN (free, nothing to run): the long lived key stays on the
+        # server and app/rtc.py mints short lived credentials for the clients.
+        self.turn_key_id = os.getenv("CLOUDFLARE_TURN_KEY_ID", "")
+        self.turn_key_api_token = os.getenv("CLOUDFLARE_TURN_API_TOKEN", "")
+        self.turn_credential_ttl = int(os.getenv("TURN_CREDENTIAL_TTL", "86400") or "86400")
 
         # Public URLs of the two web clients and the API, used in links and CORS.
         self.public_host_suffix = os.getenv("BASE44_PUBLIC_HOST_SUFFIX", "")
@@ -71,6 +76,11 @@ class Settings:
     @property
     def mail_configured(self) -> bool:
         return bool(self.smtp_host and self.smtp_user)
+
+    @property
+    def turn_configured(self) -> bool:
+        """True when clients are served a relay: a static TURN server or a TURN key."""
+        return bool(self.turn_url or self.turn_key_id)
 
     def ice_servers(self) -> list[dict]:
         servers: list[dict] = [{"urls": self.stun_url}]

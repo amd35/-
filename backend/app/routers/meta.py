@@ -5,6 +5,7 @@ from sqlalchemy.orm import Session
 
 from ..config import settings
 from ..db import get_db, healthy
+from ..rtc import provider_ice_servers
 from ..models import User
 from ..serializers import user_public
 from ..settings_store import public_settings
@@ -22,11 +23,11 @@ def meta_public(db: Session = Depends(get_db)) -> dict:
     payload = public_settings(db)
     payload.update(
         {
-            "ice_servers": settings.ice_servers(),
+            "ice_servers": [*settings.ice_servers(), *provider_ice_servers()],
             "languages": ["ar", "en"],
             "mail_configured": settings.mail_configured,
             "payments_configured": settings.payments_configured,
-            "turn_configured": bool(settings.turn_url),
+            "turn_configured": settings.turn_configured,
         }
     )
     return payload

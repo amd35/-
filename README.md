@@ -28,8 +28,11 @@ flutter_app/ تطبيق الأندرويد
 
 ### الاتصال الصوتي (Voice)
 - **WebRTC حقيقي** (شبكة mesh بين المشاركين) + **خادم إشارات على WebSocket** داخل الـ Backend.
-- خوادم ICE تأتي من `/api/meta/public`: STUN عام افتراضيًا، و TURN يُضاف تلقائيًا عند ضبط
-  `TURN_URL` / `TURN_USERNAME` / `TURN_CREDENTIAL`.
+- خوادم ICE تأتي من `/api/meta/public`: STUN عام افتراضيًا، و TURN يُضاف تلقائيًا بإحدى طريقتين:
+  خادم coturn خاص (`TURN_URL` / `TURN_USERNAME` / `TURN_CREDENTIAL`)، أو خدمة Cloudflare TURN
+  المجانية بلا خادم (`CLOUDFLARE_TURN_KEY_ID` / `CLOUDFLARE_TURN_API_TOKEN`) حيث يولّد
+  `backend/app/rtc.py` مفاتيح مؤقتة لكل عميل ويخزّنها حتى قرب انتهائها، وعند أي فشل من المزوّد
+  يبقى STUN فقط ولا يتأثر `/api/meta/public`.
 - صلاحية المايك تُفرض على الخادم: مقعد + عدم كتم الإدارة (لا يوجد رفع يد ولا موافقة).
 - إشارات الصوت (SDP/ICE) لا تُمرَّر إلا بين أعضاء نفس الغرفة الصوتية.
 
@@ -116,7 +119,8 @@ flutter build apk --release --dart-define=API_BASE_URL=https://api.your-domain.c
 2. **قاعدة البيانات**: PostgreSQL مُدارة + نسخ احتياطي يومي (`pg_dump`) واختبار استعادة دوري.
 3. **الويب ولوحة الإدارة**: `npm run build` ثم تقديم مخرجات `dist/` عبر Nginx،
    وتمرير `/api` و`/ws` إلى الـ API (نفس الأصل لتجنب مشاكل الجلسة و WebSocket).
-4. **TURN**: خادم coturn لضمان الصوت بين شبكات الجوال المختلفة.
+4. **TURN**: إمّا خادم coturn خاص وإمّا مفاتيح Cloudflare TURN (انظر قسم الأسرار) — لضمان الصوت
+   بين شبكات الجوال المختلفة.
 5. **HTTPS إلزامي** في الإنتاج: الكوكيز والـ WebSocket والتطبيق تعتمد عليه.
 
 ---
@@ -129,8 +133,16 @@ flutter build apk --release --dart-define=API_BASE_URL=https://api.your-domain.c
 | كلمة مرور حساب الإدارة | `ADMIN_PASSWORD` | نعم | — |
 | Stripe (دفع بالبطاقة) | `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET` | لا | عمولة لكل عملية (~2.9% + 0.30$) — **Stripe لا يدعم IQD**: الأسعار تُعرض بالدينار وتُحسب بالدولار حسب سعر الصرف في الإعدادات |
 | SMTP (رموز التحقق والاستعادة) | `SMTP_HOST`, `SMTP_USER`, `SMTP_PASSWORD` | لا | مجاني/مدفوع حسب المزود |
-| TURN (coturn) | `TURN_URL`, `TURN_USERNAME`, `TURN_CREDENTIAL` | لا | VPS صغير ~5$ شهريًا |
+| TURN — خادم coturn خاص | `TURN_URL`, `TURN_USERNAME`, `TURN_CREDENTIAL` | لا | VPS صغير ~5$ شهريًا |
+| TURN — خدمة Cloudflare | `CLOUDFLARE_TURN_KEY_ID`, `CLOUDFLARE_TURN_API_TOKEN` | لا | مجاني (بلا خادم، بمفاتيح مؤقتة) |
 | إشعارات فورية على الجهاز (FCM) | غير مهيأة | لا | مجاني |
+
+**تشغيل TURN عبر Cloudflare (مجاني وبلا خادم):** أنشئ TURN key من
+[لوحة Cloudflare Calls](https://dash.cloudflare.com/?to=/:account/calls)، ثم اضبط
+`CLOUDFLARE_TURN_KEY_ID` (معرّف المفتاح) و`CLOUDFLARE_TURN_API_TOKEN` (الرمز السري) في أسرار المنصة.
+الخادم يولّد مفاتيح مؤقتة (افتراضيًا 24 ساعة، تُضبط بـ `TURN_CREDENTIAL_TTL`) ويوزّعها على الويب
+وتطبيق Flutter معًا عبر `/api/meta/public` — دون أي تعديل في الواجهات. المفتاح الطويل العمر يبقى
+على الخادم ولا يوصل للعميل أبدًا.
 
 **بدون هذه المفاتيح**: التطبيق يعمل، لكن (أ) رمز التحقق ورمز الاستعادة يُكتبان في سجل الـ API
 بدل إرسال بريد، (ب) لا يُضاف رصيد تلقائيًا عند الشحن (يبقى الطلب `pending` ويمكن للإدارة
@@ -160,8 +172,9 @@ flutter build apk --release --dart-define=API_BASE_URL=https://api.your-domain.c
 ## 7. الصدق والتغطية (ما لم يُنفَّذ أو لم يُختبر)
 
 **نُفِّذ واختُبر فعليًا في هذه البيئة**
-- كل اختبارات الـ Backend تنجح: `49 passed` (تشمل غرفة واحدة لكل مستخدم، الانضمام المباشر،
-  12 مقعداً وامتلاءها، المايك، الإعجاب، وعقوبات الطرد ساعتين/12 شهراً وانتهاءها التلقائي).
+- كل اختبارات الـ Backend تنجح: `53 passed` (تشمل غرفة واحدة لكل مستخدم، الانضمام المباشر،
+  12 مقعداً وامتلاءها، المايك، الإعجاب، عقوبات الطرد ساعتين/12 شهراً وانتهاءها التلقائي،
+  ومفاتيح TURN المؤقتة: توليدها مرة واحدة، تخزينها مؤقتًا، والتراجع إلى STUN عند فشل المزوّد).
 - الويب ولوحة الإدارة يعملان من المصدر على المنفذين 3000 و3001، والـ API يعمل ويتصل بقاعدة البيانات.
 
 **نُفِّذ لكن لم يُختبر آليًا (يحتاج جهازك)**
