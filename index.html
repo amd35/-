@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#07080b" />
+  <title>غرفة الأصدقاء — صوت مباشر</title>
+  <link rel="stylesheet" href="./styles.css" />
+</head>
+<body>
+  <main class="app">
+    <header class="topbar">
+      <div class="room">
+        <h1 class="room-name">غرفة الأصدقاء</h1>
+        <p class="room-meta">
+          <span class="live-dot" aria-hidden="true"></span>
+          مباشر · <span id="room-count">5</span> مشاركين
+        </p>
+      </div>
+    </header>
+
+    <section class="stage" aria-label="المايكات">
+      <div class="stage-main" id="stage-main"></div>
+      <div class="stage-grid" id="stage-grid"></div>
+    </section>
+
+    <section class="chat" aria-label="الدردشة">
+      <div class="chat-head">
+        <h2>الدردشة</h2>
+        <span class="chat-hint" id="chat-hint"></span>
+      </div>
+      <div class="chat-list" id="chat-list" role="log" aria-live="polite"></div>
+      <form class="chat-form" id="chat-form">
+        <input id="chat-input" type="text" placeholder="اكتب رسالة…" autocomplete="off" aria-label="رسالة" />
+        <button type="submit" class="send">إرسال</button>
+      </form>
+    </section>
+
+    <nav class="controls" aria-label="أدوات الغرفة">
+      <div class="mic-wrap">
+        <button type="button" class="ctl ctl-mic" id="ctl-mic" data-status="off" aria-pressed="false"></button>
+        <div class="level" aria-hidden="true"><span id="level-fill"></span></div>
+      </div>
+      <button type="button" class="ctl ctl-square" id="ctl-more" aria-label="المزيد" title="المزيد"></button>
+    </nav>
+  </main>
+
+  <div class="sheet-backdrop" id="backdrop" hidden></div>
+
+  <section class="sheet" id="sheet-details" hidden aria-label="تفاصيل الغرفة">
+    <div class="sheet-grab" aria-hidden="true"></div>
+    <h3 class="sheet-title">تفاصيل الغرفة</h3>
+    <div class="rows">
+      <div class="row"><span>اسم الغرفة</span><b>غرفة الأصدقاء</b></div>
+      <div class="row"><span>الحالة</span><b>مباشر الآن</b></div>
+      <div class="row"><span>المضيف</span><b>سارة</b></div>
+      <div class="row"><span>عدد المشاركين</span><b id="details-count">5</b></div>
+      <div class="row"><span>الخصوصية</span><b>خاصة · بالدعوة</b></div>
+      <div class="row"><span>ميكروفونك</span><b id="details-mic">مغلق</b></div>
+    </div>
+    <button type="button" class="action" data-close>تم</button>
+  </section>
+
+  <section class="sheet" id="sheet-mic" hidden aria-label="اختيار الميكروفون">
+    <div class="sheet-grab" aria-hidden="true"></div>
+    <h3 class="sheet-title">اختيار الميكروفون</h3>
+    <p class="sheet-note" id="mic-note"></p>
+    <div class="device-list" id="device-list"></div>
+    <button type="button" class="action" id="btn-refresh-devices">تحديث قائمة الأجهزة</button>
+    <button type="button" class="action" data-close>إغلاق</button>
+  </section>
+
+  <section class="sheet" id="sheet-more" hidden aria-label="المزيد">
+    <div class="sheet-grab" aria-hidden="true"></div>
+    <h3 class="sheet-title">المزيد</h3>
+    <button type="button" class="action" id="btn-details">تفاصيل الغرفة</button>
+    <button type="button" class="action" id="btn-pick-mic">اختيار الميكروفون</button>
+    <button type="button" class="action" id="btn-invite">نسخ رابط الدعوة</button>
+    <button type="button" class="action action-danger" id="btn-leave">مغادرة الغرفة</button>
+    <button type="button" class="action" data-close>إغلاق</button>
+  </section>
+
+  <div class="toast" id="toast" role="status" hidden></div>
+  <script src="./app.js"></script>
+</body>
+</html>
