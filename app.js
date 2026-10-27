@@ -31,7 +31,7 @@ const state = {
     { id: "m1", name: "سارة", mine: false, text: "أهلاً بكم في الغرفة ✨", time: "18:02" },
     { id: "m2", name: "علي", mine: false, text: "الصوت واضح عندي", time: "18:03" },
   ],
-  mic: { status: "off", stream: null, ctx: null, analyser: null, buf: null, raf: null, deviceId: null, label: "" },
+  mic: { status: "off", stream: null, ctx: null, analyser: null, buf: null, raf: null, deviceId: null, label: "", smooth: 0 },
   devices: [],
 };
 
@@ -43,7 +43,10 @@ function tileHtml(p, size) {
   const muted = p.me ? state.mic.status !== "live" : p.muted;
   return (
     '<div class="tile ' + size + (p.me ? " me" : "") + '" data-id="' + p.id + '">' +
-      '<div class="ring"><div class="avatar">' + p.initial + "</div>" +
+      '<div class="ring">' +
+        '<span class="pulse pulse-a" aria-hidden="true"></span>' +
+        '<span class="pulse pulse-b" aria-hidden="true"></span>' +
+        '<div class="avatar">' + p.initial + "</div>" +
         (muted ? '<span class="muted-badge">' + ICONS.mute + "</span>" : "") +
       "</div>" +
       '<div class="tile-name">' + p.name + "</div>" +
@@ -111,7 +114,10 @@ function setMicStatus(status, label) {
     if (status === "live" && has) has.remove();
   }
   if (me) me.muted = status !== "live";
-  if (status !== "live") paintLevel(0);
+  if (status !== "live") {
+    state.mic.smooth = 0;
+    paintLevel(0);
+  }
   renderDevices();
 }
 
@@ -174,12 +180,25 @@ function loopLevel() {
 }
 
 function paintLevel(level) {
+  // تنعيم القيمة: صعود سريع مع الصوت وهبوط هادئ حتى يبدو النبض طبيعياً
+  const prev = state.mic.smooth;
+  const next = level > prev ? prev + (level - prev) * 0.6 : prev * 0.8 + level * 0.2;
+  const smooth = next < 0.005 ? 0 : next;
+  state.mic.smooth = smooth;
+
   const fill = $("#level-fill");
-  if (fill) fill.style.width = Math.round(level * 100) + "%";
+  if (fill) fill.style.width = Math.round(smooth * 100) + "%";
+
   const tile = myTile();
   if (!tile) return;
-  tile.style.setProperty("--level", level.toFixed(3));
-  tile.classList.toggle("speaking", level > 0.06);
+  const value = smooth.toFixed(3);
+  if (tile.dataset.level !== value) {
+    tile.dataset.level = value;
+    tile.style.setProperty("--level", value);
+    tile.style.setProperty("--pulse", value);
+  }
+  const speaking = smooth > 0.05;
+  if (tile.classList.contains("speaking") !== speaking) tile.classList.toggle("speaking", speaking);
 }
 
 function stopStream() {
