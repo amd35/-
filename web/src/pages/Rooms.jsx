@@ -84,7 +84,7 @@ export default function Rooms() {
 
   return (
     <div>
-      <div className="row-between">
+      <div className="row-between page-head">
         <h1 className="page-title">{t('rooms')}</h1>
         {myRoomId ? (
           <button type="button" className="btn btn-accent" data-testid="go-my-room" onClick={() => navigate(`/rooms/${myRoomId}`)}>

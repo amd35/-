@@ -51,7 +51,7 @@ function NotificationsDrawer({ onClose }) {
 }
 
 export default function Layout() {
-  const { user, wallet, unread, logout } = useAuth()
+  const { user, wallet, unread } = useAuth()
   const { t, lang, setLang } = useI18n()
   const navigate = useNavigate()
   const [showNotifications, setShowNotifications] = useState(false)
@@ -120,18 +120,6 @@ export default function Layout() {
         </header>
 
         <Outlet />
-
-        <button
-          type="button"
-          className="btn"
-          style={{ marginTop: 18 }}
-          onClick={async () => {
-            await logout()
-            navigate('/login')
-          }}
-        >
-          {t('logout')}
-        </button>
       </div>
 
       <nav className="tabs" aria-label="main">

@@ -5915,3 +5915,250 @@ body::before {
     inset 0 0 0 1px rgba(232, 196, 116, 0.16),
     inset 0 0 70px rgba(0, 0, 0, 0.5);
 }
+
+/* =====================================================================
+   30) تنسيق موحّد لكل الشاشات: شبكة واحدة، نوع واحد، ولوحات ذهبية واحدة.
+   تصميم فقط: لا يحمل بيانات ولا يغيّر البنية أو الأصناف أو النصوص.
+   كان المتجر والألعاب ورويال والشحن باللون التركوازي بينما الرئيسية والملف
+   عنّابيان؛ هذه الطبقة تجعل كل الشاشات على نفس الوجه والحدّ والإيقاع.
+   ===================================================================== */
+
+/* --- 30.1) لوحة الألوان: زجاج عنّابي على أونيكس وأحرف عاجية --- */
+:root {
+  --page-gutter: 14px;
+  --radius: 18px;
+  --glass: rgba(28, 12, 14, 0.8);
+  --glass-solid: rgba(18, 8, 10, 0.96);
+  --stroke: rgba(232, 196, 116, 0.22);
+  --text: #f8f0e6;
+  --muted: #cdb8ad;
+  --accent: #e8c47c;
+  --gold: #f0cd7a;
+  --card-face: linear-gradient(168deg, rgba(52, 24, 27, 0.9), rgba(15, 7, 8, 0.95));
+  --card-hair: rgba(232, 196, 116, 0.22);
+  --card-depth: 0 12px 26px rgba(0, 0, 0, 0.45), inset 0 1px 0 rgba(255, 222, 160, 0.14);
+}
+
+/* --- 30.2) اللوحات والبطاقات: نفس الوجه والحدّ والظل في كل شاشة --- */
+.glass,
+.card,
+.sheet,
+.panel,
+.store-bar {
+  background: var(--card-face);
+  border: 1px solid var(--card-hair);
+  border-radius: var(--radius);
+  box-shadow: var(--card-depth);
+  color: var(--text);
+  backdrop-filter: blur(10px) saturate(1.05);
+}
+
+/* بطاقات الغرفة تحفظ عمقها الأسود لكن بحدّ ذهبي مثل بقية اللوحات */
+.room-screen > .card.glass {
+  background: rgba(24, 10, 12, 0.74);
+  border-color: rgba(232, 196, 116, 0.2);
+}
+
+/* --- 30.3) الأزرار والرقائق: ذهب على أونيكس بدل التركوازي --- */
+.btn {
+  background: linear-gradient(180deg, rgba(66, 33, 34, 0.96), rgba(26, 12, 13, 0.98));
+  border-color: rgba(232, 196, 116, 0.26);
+  color: var(--text);
+}
+.btn-primary {
+  background: linear-gradient(180deg, #ffdf9b, #dda52f);
+  border-color: transparent;
+  color: #3a2207;
+}
+.btn-accent {
+  background: linear-gradient(180deg, #8a2b35, #4a1119);
+  color: #ffe7c4;
+}
+.btn-danger {
+  background: rgba(158, 34, 44, 0.34);
+  border-color: rgba(255, 138, 128, 0.45);
+  color: #ffd9d4;
+}
+.chip {
+  background: rgba(14, 6, 7, 0.78);
+  border-color: rgba(232, 196, 116, 0.2);
+}
+.icon-button {
+  background: rgba(14, 6, 7, 0.6);
+  border-color: rgba(232, 196, 116, 0.18);
+}
+
+/* --- 30.4) المتجر والرفوف والمرشّحات --- */
+.subnav {
+  background: rgba(12, 6, 7, 0.82);
+  border-color: var(--card-hair);
+  border-radius: 16px;
+}
+.subnav-item {
+  background: linear-gradient(180deg, rgba(64, 31, 32, 0.95), rgba(28, 13, 14, 0.98));
+  border-color: rgba(232, 196, 116, 0.22);
+  color: #f2e2d2;
+}
+.subnav-item-active {
+  background: linear-gradient(180deg, #ffdf9b, #d9a338);
+  border-color: transparent;
+  color: #3a2107;
+}
+.filter-pill {
+  background: rgba(12, 6, 7, 0.8);
+  border-color: rgba(232, 196, 116, 0.2);
+  color: #e4d2c3;
+}
+.filter-pill-active {
+  background: linear-gradient(180deg, #efc97c, #c08a2e);
+  border-color: transparent;
+  color: #2c1a06;
+}
+.shelf {
+  background: linear-gradient(180deg, rgba(60, 29, 31, 0.55), rgba(15, 7, 8, 0.88));
+  box-shadow: inset 0 -9px 0 rgba(0, 0, 0, 0.42), 0 12px 22px rgba(0, 0, 0, 0.34);
+}
+.shop-item {
+  background: linear-gradient(180deg, rgba(62, 32, 33, 0.94), rgba(26, 13, 14, 0.98));
+  border: 1px solid rgba(232, 196, 116, 0.24);
+  color: #f6e8d8;
+}
+.shop-item-label {
+  color: #f3e2d0;
+}
+.shop-item-price {
+  color: #ffd98a;
+}
+.shop-item-body {
+  background: radial-gradient(circle at 50% 42%, rgba(255, 216, 146, 0.2), rgba(255, 216, 146, 0) 70%);
+}
+
+/* --- 30.5) شريط التنقل السفلي: مقاس واحد ومساحة آمنة في كل الشاشات --- */
+.tabs,
+.page-nav {
+  padding: 9px var(--page-gutter) max(12px, env(safe-area-inset-bottom));
+  background: linear-gradient(to top, rgba(9, 4, 5, 0.97), rgba(9, 4, 5, 0.55));
+  border-top: 1px solid rgba(232, 196, 116, 0.16);
+}
+.tab,
+.page-nav-item {
+  gap: 3px;
+  border-radius: 14px;
+  font-size: 10.5px;
+  letter-spacing: 0.1px;
+}
+.tab-active,
+.page-nav-item.is-active {
+  background: linear-gradient(180deg, rgba(96, 26, 33, 0.85), rgba(30, 11, 13, 0.92));
+  border: 1px solid rgba(240, 205, 122, 0.42);
+  color: #ffd98a;
+}
+.app-shell {
+  padding: 12px var(--page-gutter) 104px;
+}
+
+/* --- 30.6) إيقاع واحد للعناوين والمسافات في كل الشاشات --- */
+.page-title {
+  margin: 6px 0 14px;
+  font-size: 22px;
+  line-height: 1.35;
+  letter-spacing: -0.2px;
+}
+.section-title {
+  margin: 18px 0 10px;
+  font-size: 14px;
+  letter-spacing: 0.2px;
+}
+.muted {
+  font-size: 13px;
+  line-height: 1.65;
+}
+.card {
+  padding: 16px;
+  margin-bottom: 12px;
+}
+.grid-two,
+.grid-packs,
+.stack {
+  gap: 12px;
+}
+.row-between {
+  gap: 12px;
+}
+
+/* --- 30.7) وضوح الصور: بلا تعتيم أو تصفير إضافي فوق الصور الحقيقية --- */
+body[data-surface] {
+  --surface-tint: rgba(24, 8, 9, 0.36);
+}
+body::before {
+  filter: saturate(1.08) contrast(1.07) brightness(var(--surface-dim));
+}
+.home-slide,
+.room-background-photo,
+.room-bg-preview {
+  background-size: cover;
+  background-position: center;
+}
+.shop-item-image,
+.perk-icon img,
+.photo-icon img {
+  image-rendering: auto;
+}
+
+/* --- 30.8) بقايا التركوازي: الشرائح والقوائم والحقول والشارات --- */
+.chip,
+.status-pill,
+.badge-pill {
+  background-image: none;
+  background: rgba(14, 6, 7, 0.8);
+  border-color: rgba(232, 196, 116, 0.24);
+}
+.badge-pill {
+  color: var(--gold);
+}
+.chip-gold {
+  color: #ffe6a8;
+}
+.status-paid {
+  color: #f2d79a;
+  border-color: rgba(240, 205, 122, 0.5);
+}
+.list-item,
+.ledger-row {
+  background: rgba(30, 14, 16, 0.6);
+  border-color: rgba(232, 196, 116, 0.16);
+}
+.overlay {
+  background: rgba(6, 3, 4, 0.78);
+}
+input,
+select,
+textarea {
+  background-image: none;
+  background: rgba(12, 6, 7, 0.72);
+  border-color: rgba(232, 196, 116, 0.18);
+}
+.btn-accent {
+  border-color: rgba(240, 205, 122, 0.32);
+  box-shadow: 0 4px 0 rgba(58, 17, 24, 0.9), 0 12px 22px -10px rgba(0, 0, 0, 0.7);
+}
+
+/* --- 30.9) رأس الصفحة: العنوان أولاً ثم زر الإجراء بعرض كامل على الجوال --- */
+.page-head {
+  align-items: center;
+  margin-bottom: 2px;
+}
+.page-head .page-title {
+  margin: 0;
+}
+@media (max-width: 560px) {
+  .page-head {
+    row-gap: 10px;
+  }
+  .page-head .page-title {
+    flex: 1 1 100%;
+  }
+  .page-head .btn {
+    flex: 1 1 100%;
+  }
+}
