@@ -1,5 +1,7 @@
 """Password hashing, access tokens and server-side permission checks."""
 import datetime as dt
+import math
+import threading
 import time
 from collections import defaultdict, deque
 from typing import Optional
@@ -84,21 +86,48 @@ def get_optional_user(
     return db.get(User, user_id) if user_id else None
 
 
-# --- very small in-process rate limiter (per worker; see README for Redis) ---
+# --- in-process sliding-window rate limiter (per worker; see README for Redis) ---
 
 _attempts: dict[str, deque] = defaultdict(deque)
+_attempts_lock = threading.Lock()
+_PRUNE_EVERY_SECONDS = 300.0
+_IDLE_BUCKET_SECONDS = 3600.0
+_next_prune = {"at": 0.0}
+
+
+def _prune_attempts(now: float) -> None:
+    """Drop idle buckets so one-off keys cannot grow the dict forever."""
+    for key, bucket in list(_attempts.items()):
+        if not bucket or now - bucket[-1] > _IDLE_BUCKET_SECONDS:
+            _attempts.pop(key, None)
 
 
 def rate_limit(key: str, limit: int, window_seconds: int) -> None:
+    """Allow at most `limit` calls per rolling window for one key.
+
+    Raises HTTP 429 with a Retry-After header once the window is full. Call it
+    before any wallet or side-effecting work so a rejected request costs nothing.
+    The lock is required: sync routes run in a thread pool, so without it two
+    concurrent requests could both read the last free slot and pass together.
+    """
     if settings.rate_limit_disabled:
         return
     now = time.monotonic()
-    bucket = _attempts[key]
-    while bucket and now - bucket[0] > window_seconds:
-        bucket.popleft()
-    if len(bucket) >= limit:
-        raise HTTPException(status.HTTP_429_TOO_MANY_REQUESTS, "Too many requests, try again later")
-    bucket.append(now)
+    with _attempts_lock:
+        if now >= _next_prune["at"]:
+            _prune_attempts(now)
+            _next_prune["at"] = now + _PRUNE_EVERY_SECONDS
+        bucket = _attempts[key]
+        while bucket and now - bucket[0] > window_seconds:
+            bucket.popleft()
+        if len(bucket) >= limit:
+            retry_after = max(1, math.ceil(window_seconds - (now - bucket[0])))
+            raise HTTPException(
+                status.HTTP_429_TOO_MANY_REQUESTS,
+                "Too many requests, try again later",
+                headers={"Retry-After": str(retry_after)},
+            )
+        bucket.append(now)
 
 
 def touch_user(db: Session, user: User) -> None:

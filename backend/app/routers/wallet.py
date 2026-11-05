@@ -101,10 +101,13 @@ def transfer(
     db: Session = Depends(get_db),
 ):
     # التحويل يحرّك رصيدًا بين عضوين: حدّ لكل عضو يمنع الحلقات الآلية بين حسابات متعاونة.
+    # 1) رشقة سريعة، 2) سقف خمس دقائق، 3) سقف لكل (مرسِل، مستلم) يقطع حلقة A↔B.
+    rate_limit(f"transfer-burst:{user.id}", limit=6, window_seconds=60)
     rate_limit(f"transfer:{user.id}", limit=20, window_seconds=300)
     recipient = db.execute(select(User).where(User.username == payload.to_username.strip())).scalar_one_or_none()
     if recipient is None or recipient.status != "active":
         raise HTTPException(status.HTTP_404_NOT_FOUND, "المستخدم غير موجود")
+    rate_limit(f"transfer-pair:{user.id}:{recipient.id}", limit=5, window_seconds=900)
     key = (payload.idempotency_key or idempotency_key or uuid.uuid4().hex).strip()
     entry = ledger_transfer(db, user, recipient, payload.currency, payload.amount, key)
     create_notification(

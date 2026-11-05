@@ -42,8 +42,17 @@ def send(
     user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    # كل هدية تخصم من المحفظة وتبثّ في الغرفة: حدّ لكل عضو يمنع الإغراق والتفريغ السريع.
+    # كل هدية تخصم من المحفظة وتبثّ في الغرفة: ثلاث طبقات قبل أي عمل على المحفظة.
+    # 1) رشقة سريعة لكل عضو، 2) سقف الدقيقة، 3) سقف لكل (مرسِل، هدف) يمنع إغراق
+    # عضو واحد أو استغلال هدايا الغرفة في حلقة بين حسابين متعاونين.
+    rate_limit(f"gift-burst:{user.id}", limit=10, window_seconds=10)
     rate_limit(f"gift-send:{user.id}", limit=60, window_seconds=60)
+    target = (
+        f"user:{payload.receiver_id}"
+        if payload.receiver_id is not None
+        else f"room:{payload.room_id}" if payload.room_id is not None else "none"
+    )
+    rate_limit(f"gift-target:{user.id}:{target}", limit=8, window_seconds=60)
     gift = db.get(Gift, payload.gift_id)
     if gift is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "الهدية غير موجودة")
