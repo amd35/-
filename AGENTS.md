@@ -149,6 +149,8 @@
 ## التحقق
 - اختبارات الـ Backend: `docker compose -f docker-compose.base44.yml exec -T api python -m pytest -q`
   (تحتاج خدمة `db` تعمل؛ تُنشئ قاعدة `app_test` تلقائيًا).
+- اختبارات التكامل (تسجيل → تعديل الملف وبطاقة العضو → إنشاء غرفة/انضمام/حذف) في
+  `backend/tests/test_integration_flows.py`، وتُشغَّل وحدها بإضافة مسار الملف إلى نفس الأمر.
 - فحص سريع: `curl -s localhost:8000/api/health` ثم `curl -s -o /dev/null -w '%{http_code}' localhost:3000/`.
 - لا يمكن اختبار الصوت أو بناء APK داخل هذه البيئة (لا مايك ولا Android SDK) — راجع قسم
   «الصدق والتغطية» في `README.md` قبل إعلان أي شيء مكتمل.
