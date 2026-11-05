@@ -18,7 +18,7 @@ import { useI18n } from '../lib/i18n.jsx'
  */
 export default function Profile() {
   const { user, wallet, refresh, unread, logout } = useAuth()
-  const { t } = useI18n()
+  const { t, lang } = useI18n()
   const [counts, setCounts] = useState({ followers: 0, following: 0 })
   const [friends, setFriends] = useState([])
   const [people, setPeople] = useState({ mode: 'followers', title: '', users: [] })
@@ -45,6 +45,19 @@ export default function Profile() {
   }, [load])
 
   const listTitle = (mode) => (mode === 'followers' ? t('followers') : t('following'))
+
+  // قيم الهوية الحقيقية: تاريخ الانضمام من `/api/auth/me`، والتوثيق من تفعيل
+  // البريد أو الهاتف، وتقدّم المستوى من نقاط الخبرة الفعلية.
+  const joinedAt = user.created_at ? new Date(user.created_at) : null
+  const joinedLabel =
+    joinedAt && !Number.isNaN(joinedAt.getTime())
+      ? joinedAt.toLocaleDateString(lang === 'en' ? 'en-GB' : 'ar-IQ', { year: 'numeric', month: 'long' })
+      : ''
+  const verified = Boolean(user.email_verified || user.phone_verified)
+  const levelProgress = Math.min(
+    100,
+    Math.round((user.xp_into_level / Math.max(user.next_level_xp, 1)) * 100),
+  )
 
   const openPeople = async (mode) => {
     setSheet('people')
@@ -120,39 +133,8 @@ export default function Profile() {
       </header>
 
       <section className="profile-identity" data-testid="profile-card">
-        <button
-          type="button"
-          className="profile-avatar"
-          onClick={() => setSheet('edit')}
-          aria-label={t('avatar')}
-          data-testid="profile-avatar"
-        >
-          <Avatar user={user} size={84} />
-        </button>
-        <div className="profile-identity-text">
-          <div className="profile-name-row">
-            <strong className="profile-name" data-testid="profile-name">
-              {user.display_name || user.username}
-            </strong>
-            {user.country ? <span className="profile-country">{user.country}</span> : null}
-          </div>
-          <button type="button" className="profile-id" onClick={copyId} data-testid="profile-id">
-            <span>ID: {user.id}</span>
-            <span className="profile-id-copy">{copied ? 'تم النسخ ✓' : 'نسخ'}</span>
-          </button>
-          <div className="profile-pills">
-            <span className="badge-pill" data-testid="profile-royal">
-              {user.royal_name || `${t('royal')} ${user.royal_level}`}
-            </span>
-            <span className="badge-pill" data-testid="profile-level-pill">
-              {t('level')} {user.level}
-            </span>
-            {user.badges.map((badge) => (
-              <span className="badge-pill" key={badge}>
-                {badge}
-              </span>
-            ))}
-          </div>
+        <div className="profile-cover" aria-hidden="true">
+          <span className="profile-cover-crest">{user.royal_name || t('royal')}</span>
         </div>
         <button
           type="button"
@@ -163,6 +145,75 @@ export default function Profile() {
         >
           ⋯
         </button>
+        <div className="profile-identity-main">
+          <button
+            type="button"
+            className="profile-avatar"
+            onClick={() => setSheet('edit')}
+            aria-label={t('avatar')}
+            data-testid="profile-avatar"
+          >
+            <Avatar user={user} size={84} />
+          </button>
+          <div className="profile-identity-text">
+            <div className="profile-name-row">
+              <strong className="profile-name" data-testid="profile-name">
+                {user.display_name || user.username}
+              </strong>
+              {verified ? (
+                <span className="profile-verified" data-testid="profile-verified">
+                  <PhotoIcon name="star" size={11} /> {t('verifiedAccount')}
+                </span>
+              ) : null}
+            </div>
+            <div className="profile-meta-row">
+              <button type="button" className="profile-id" onClick={copyId} data-testid="profile-id">
+                <span>ID: {user.id}</span>
+                <span className="profile-id-copy">{copied ? 'تم النسخ ✓' : 'نسخ'}</span>
+              </button>
+              {user.country ? <span className="profile-country">{user.country}</span> : null}
+              {joinedLabel ? (
+                <span className="profile-joined" data-testid="profile-joined">
+                  {t('memberSince')} {joinedLabel}
+                </span>
+              ) : null}
+            </div>
+            <button
+              type="button"
+              className="profile-bio"
+              onClick={() => setSheet('edit')}
+              data-testid="profile-bio-line"
+            >
+              {user.bio || t('addBio')}
+            </button>
+            <div className="profile-pills">
+              <span className="badge-pill" data-testid="profile-royal">
+                {user.royal_name || `${t('royal')} ${user.royal_level}`}
+              </span>
+              <span className="badge-pill" data-testid="profile-level-pill">
+                {t('level')} {user.level}
+              </span>
+              {user.badges.map((badge) => (
+                <span className="badge-pill" key={badge}>
+                  {badge}
+                </span>
+              ))}
+            </div>
+          </div>
+        </div>
+        <div className="profile-level-strip">
+          <div className="profile-level-head">
+            <span>
+              {t('level')} {user.level}
+            </span>
+            <span className="profile-level-xp" data-testid="profile-level-xp">
+              {user.xp_into_level} / {user.next_level_xp} {t('xp')}
+            </span>
+          </div>
+          <div className="progress profile-level-bar">
+            <div className="progress-fill" style={{ width: `${levelProgress}%` }} />
+          </div>
+        </div>
       </section>
 
       <section className="profile-stats" data-testid="profile-stats">
