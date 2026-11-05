@@ -1,0 +1,152 @@
+{
+ "marble": {
+  "src": "commons",
+  "title": "File:Stone Dice 17.JPG",
+  "url": "https://upload.wikimedia.org/wikipedia/commons/3/31/Stone_Dice_17.JPG",
+  "w": 1000,
+  "h": 570,
+  "license": "CC BY-SA 3.0",
+  "author": "",
+  "page": "https://commons.wikimedia.org/wiki/File:Stone_Dice_17.JPG"
+ },
+ "ivory": {
+  "src": "commons",
+  "title": "File:Dice MET 38.40.93(4).jpg",
+  "url": "https://upload.wikimedia.org/wikipedia/commons/d/db/Dice_MET_38.40.93%284%29.jpg",
+  "w": 1000,
+  "h": 1125,
+  "license": "CC0",
+  "author": "",
+  "page": "https://commons.wikimedia.org/wiki/File:Dice_MET_38.40.93(4).jpg"
+ },
+ "brass": {
+  "src": "openverse",
+  "title": "Metall dices",
+  "url": "https://live.staticflickr.com/17/19743893_477c70b96d_b.jpg",
+  "license": "by 2.0",
+  "author": "Dicemanic",
+  "page": "https://www.flickr.com/photos/22016736@N00/19743893"
+ },
+ "turquoise": {
+  "src": "commons",
+  "title": "File:6sided dice.jpg",
+  "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/a/a5/6sided_dice.jpg/1280px-6sided_dice.jpg",
+  "w": 1000,
+  "h": 689,
+  "license": "CC BY-SA 3.0",
+  "author": "<a href=\"//commons.wikimedia.org/wiki/User:Diacritica\" title=\"User:Diacritica\">Diacritica<",
+  "page": "https://commons.wikimedia.org/wiki/File:6sided_dice.jpg"
+ },
+ "midnight": {
+  "src": "commons",
+  "title": "File:Blackdice1.jpg",
+  "mime": "image/jpeg",
+  "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/b/b5/Blackdice1.jpg/1280px-Blackdice1.jpg",
+  "orig": "https://upload.wikimedia.org/wikipedia/commons/b/b5/Blackdice1.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+  "w": 1200,
+  "h": 797,
+  "license": "CC BY-SA 2.0",
+  "author": "",
+  "page": "https://commons.wikimedia.org/wiki/File:Blackdice1.jpg"
+ },
+ "ruby": {
+  "src": "commons",
+  "title": "File:Red Casino-Style Die.jpg",
+  "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/1/1f/Red_Casino-Style_Die.jpg/1280px-Red_Casino-Style_Die.jpg",
+  "w": 1000,
+  "h": 667,
+  "license": "CC BY-SA 4.0",
+  "author": "<a href=\"//commons.wikimedia.org/wiki/User:Anemonemma\" title=\"User:Anemonemma\">Anemonemma<",
+  "page": "https://commons.wikimedia.org/wiki/File:Red_Casino-Style_Die.jpg"
+ },
+ "emerald": {
+  "src": "openverse",
+  "title": "IronDie green metal dice",
+  "url": "https://live.staticflickr.com/5264/5628202959_74ee5d0b95_b.jpg",
+  "license": "by-sa 2.0",
+  "author": "8one6",
+  "page": "https://www.flickr.com/photos/56187283@N00/5628202959"
+ },
+ "alt_emerald": {
+  "src": "commons",
+  "title": "File:Casino dice (27370680161).jpg",
+  "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/5/59/Casino_dice_%2827370680161%29.jpg/1280px-Casino_dice_%2827370680161%29.jpg",
+  "w": 1000,
+  "h": 667,
+  "license": "CC BY-SA 2.0",
+  "author": "<a rel=\"nofollow\" class=\"external text\" href=\"https://www.flickr.com/people/54022106@N00\">",
+  "page": "https://commons.wikimedia.org/wiki/File:Casino_dice_(27370680161).jpg"
+ },
+ "alt_marble": {
+  "src": "commons",
+  "title": "File:Ancient Egypt Dice & Stone Lions (28305040402).jpg",
+  "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/2/24/Ancient_Egypt_Dice_%26_Stone_Lions_%2828305040402%29.jpg/1280px-Ancient_Egypt_Dice_%26_Stone_Lions_%2828305040402%29.jpg",
+  "w": 1000,
+  "h": 667,
+  "license": "CC0",
+  "author": "<a rel=\"nofollow\" class=\"external text\" href=\"https://www.flickr.com/people/101561334@N08\"",
+  "page": "https://commons.wikimedia.org/wiki/File:Ancient_Egypt_Dice_%26_Stone_Lions_(28305040402).jpg"
+ },
+ "alt_turquoise": {
+  "src": "commons",
+  "title": "File:6dice(cropped).jpg",
+  "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/8/8d/6dice%28cropped%29.jpg/1280px-6dice%28cropped%29.jpg",
+  "license": "CC BY-SA 3.0",
+  "author": "<a href=\"//commons.wikimedia.org/wiki/User:Diacritica\" title=\"User:Diacritica\">D",
+  "page": "https://commons.wikimedia.org/wiki/File:6dice(cropped).jpg"
+ },
+ "sunset": {
+  "src": "commons",
+  "title": "File:Montreal Skyline from Mont Royal golden hour.jpg",
+  "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/c/c7/Montreal_Skyline_from_Mont_Royal_golden_hour.jpg/1280px-Montreal_Skyline_from_Mont_Royal_golden_hour.jpg",
+  "w": 1000,
+  "h": 217,
+  "license": "CC0",
+  "author": "<bdi><a href=\"https://www.wikidata.org/wiki/Q115464159\" class=\"extiw\" title=\"d:Q115464159\"",
+  "page": "https://commons.wikimedia.org/wiki/File:Montreal_Skyline_from_Mont_Royal_golden_hour.jpg"
+ },
+ "night": {
+  "src": "commons",
+  "title": "File:Stars and Milky Way over Åbyfjorden 8.jpg",
+  "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/5/59/Stars_and_Milky_Way_over_%C3%85byfjorden_8.jpg/1280px-Stars_and_Milky_Way_over_%C3%85byfjorden_8.jpg",
+  "w": 1000,
+  "h": 563,
+  "license": "CC0",
+  "author": "<a href=\"//commons.wikimedia.org/wiki/User:W.carter\" title=\"User:W.carter\">W.carter</a>",
+  "page": "https://commons.wikimedia.org/wiki/File:Stars_and_Milky_Way_over_%C3%85byfjorden_8.jpg"
+ },
+ "desert": {
+  "src": "commons",
+  "title": "File:Climbing the Merzouga Dunes.jpg",
+  "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/2/2b/Climbing_the_Merzouga_Dunes.jpg/1280px-Climbing_the_Merzouga_Dunes.jpg",
+  "w": 1000,
+  "h": 1333,
+  "license": "CC0",
+  "author": "Mustang Joe",
+  "page": "https://commons.wikimedia.org/wiki/File:Climbing_the_Merzouga_Dunes.jpg"
+ },
+ "royal": {
+  "src": "commons",
+  "title": "File:Chateau Versailles Galerie des Glaces.jpg",
+  "mime": "image/jpeg",
+  "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/f/f1/Chateau_Versailles_Galerie_des_Glaces.jpg/1280px-Chateau_Versailles_Galerie_des_Glaces.jpg",
+  "orig": "https://upload.wikimedia.org/wikipedia/commons/f/f1/Chateau_Versailles_Galerie_des_Glaces.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+  "w": 1200,
+  "h": 797,
+  "license": "CC BY-SA 3.0",
+  "author": "<a href=\"//commons.wikimedia.org/wiki/User:Myrabella\" title=\"User:Myrabella\">Myr",
+  "page": "https://commons.wikimedia.org/wiki/File:Chateau_Versailles_Galerie_des_Glaces.jpg"
+ },
+ "aurora": {
+  "src": "commons",
+  "title": "File:Iceland Aurora 2.jpg",
+  "mime": "image/jpeg",
+  "url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/4/45/Iceland_Aurora_2.jpg/1280px-Iceland_Aurora_2.jpg",
+  "orig": "https://upload.wikimedia.org/wikipedia/commons/4/45/Iceland_Aurora_2.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+  "w": 1200,
+  "h": 795,
+  "license": "CC BY-SA 4.0",
+  "author": "<a href=\"//commons.wikimedia.org/wiki/User:Riding_with_Carl\" title=\"User:Riding ",
+  "page": "https://commons.wikimedia.org/wiki/File:Iceland_Aurora_2.jpg"
+ }
+}
