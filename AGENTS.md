@@ -151,6 +151,15 @@
   (تحتاج خدمة `db` تعمل؛ تُنشئ قاعدة `app_test` تلقائيًا).
 - اختبارات التكامل (تسجيل → تعديل الملف وبطاقة العضو → إنشاء غرفة/انضمام/حذف) في
   `backend/tests/test_integration_flows.py`، وتُشغَّل وحدها بإضافة مسار الملف إلى نفس الأمر.
+- اختبارات WebSocket الحقيقية (اتصال `ready` و`ping/pong`، بث الدردشة لكل أعضاء الغرفة،
+  عزل الغرف عن بعضها، توقف التسليم بعد `leave_room`، رفض غير الأعضاء، وأحداث الحضور/القطع)
+  في `backend/tests/test_ws_integration.py`. استخدم `TestClient.websocket_connect` مع
+  `ExitStack` لعدة عملاء في نفس الاختبار.
+- **احترس من تشغيل الاختبارات المنتهية بالمهلة**: أي `pytest` يُقتل خارج الحاوية يترك اتصالاً
+  «idle in transaction» على `app_test`، فيتعلّق `Base.metadata.drop_all` في بداية أي تشغيل تالٍ
+  بلا أي رسالة. شغّل الاختبارات بـ `timeout -k 5 200 python -m pytest …` داخل الحاوية، وإن
+  علِق التشغيل نظّف الاتصالات:
+  `docker compose -f docker-compose.base44.yml exec -T db psql -U app -d postgres -c "select pg_terminate_backend(pid) from pg_stat_activity where datname='app_test';"`
 - فحص سريع: `curl -s localhost:8000/api/health` ثم `curl -s -o /dev/null -w '%{http_code}' localhost:3000/`.
 - لا يمكن اختبار الصوت أو بناء APK داخل هذه البيئة (لا مايك ولا Android SDK) — راجع قسم
   «الصدق والتغطية» في `README.md` قبل إعلان أي شيء مكتمل.
