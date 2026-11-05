@@ -52,7 +52,7 @@ function NotificationsDrawer({ onClose }) {
 
 export default function Layout() {
   const { user, wallet, unread } = useAuth()
-  const { t, lang, setLang } = useI18n()
+  const { t } = useI18n()
   const navigate = useNavigate()
   const [showNotifications, setShowNotifications] = useState(false)
 
@@ -77,24 +77,23 @@ export default function Layout() {
             </span>
             <span>{t('appName')}</span>
           </Link>
-          <div className="topbar-spacer" />
-          <button type="button" className="currency-pill currency-diamonds" data-testid="balance-diamonds" onClick={openRecharge} title={t('recharge')}>
-            <span className="currency-icon">
-              <PhotoIcon name="gem" size={16} />
-            </span>
-            <span className="currency-value">{wallet.diamonds}</span>
-            <span className="currency-plus">+</span>
-          </button>
-          <button type="button" className="currency-pill currency-gold" data-testid="balance-gold" onClick={openRecharge} title={t('recharge')}>
-            <span className="currency-icon">
-              <PhotoIcon name="gold" size={16} />
-            </span>
-            <span className="currency-value">{wallet.gold}</span>
-            <span className="currency-plus">+</span>
-          </button>
-          <Link className="icon-button" to="/store" aria-label={t('store')} data-testid="cart-button">
-            <PhotoIcon name="cart" size={20} />
-          </Link>
+          {/* الأرصدة الحقيقية في كتلة واحدة؛ المتجر في شريط التنقل واللغة في الإعدادات. */}
+          <div className="wallet-cluster">
+            <button type="button" className="currency-pill currency-diamonds" data-testid="balance-diamonds" onClick={openRecharge} title={t('recharge')}>
+              <span className="currency-icon">
+                <PhotoIcon name="gem" size={15} />
+              </span>
+              <span className="currency-value">{wallet.diamonds}</span>
+              <span className="currency-plus">+</span>
+            </button>
+            <button type="button" className="currency-pill currency-gold" data-testid="balance-gold" onClick={openRecharge} title={t('recharge')}>
+              <span className="currency-icon">
+                <PhotoIcon name="gold" size={15} />
+              </span>
+              <span className="currency-value">{wallet.gold}</span>
+              <span className="currency-plus">+</span>
+            </button>
+          </div>
           <button
             type="button"
             className="icon-button"
@@ -105,17 +104,8 @@ export default function Layout() {
             <PhotoIcon name="bell" size={20} />
             {unread ? <span className="dot">{unread}</span> : null}
           </button>
-          <button
-            type="button"
-            className="icon-button"
-            data-testid="language-button"
-            onClick={() => setLang(lang === 'ar' ? 'en' : 'ar')}
-            aria-label={t('language')}
-          >
-            {lang === 'ar' ? 'EN' : 'ع'}
-          </button>
           <Link className="profile-chip" to="/profile" data-testid="profile-button" aria-label={t('profile')}>
-            <Avatar user={user} size={34} />
+            <Avatar user={user} size={32} />
           </Link>
         </header>
 
