@@ -25,6 +25,19 @@ services:
       - db_data:/var/lib/postgresql/data
     restart: on-failure
 
+  # Shared rate-limit counters (see backend/app/security.py). Counters are
+  # disposable, so nothing is persisted: a restart clears the windows.
+  redis:
+    image: redis:7-alpine
+    command: ["redis-server", "--save", "", "--appendonly", "no"]
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+      start_period: 5s
+    restart: on-failure
+
   migrate:
     build:
       context: ./backend
@@ -58,6 +71,8 @@ services:
       - /run/base44/app.env
     environment:
       DATABASE_URL: postgresql+psycopg://app:app_dev_password@db:5432/app
+      # Sliding-window counters are shared by every worker through Redis.
+      REDIS_URL: redis://redis:6379/0
       MEDIA_DIR: /data/media
       AUTO_CREATE_TABLES: "1"
       AUTO_SEED: "1"
@@ -87,6 +102,8 @@ services:
       - media:/data/media
     depends_on:
       db:
+        condition: service_healthy
+      redis:
         condition: service_healthy
       migrate:
         condition: service_completed_successfully

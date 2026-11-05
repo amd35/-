@@ -2,30 +2,64 @@
 
 الاختبارات كلها تعمل و`RATE_LIMIT_DISABLED=1` (انظر conftest)، لذلك يفعّل
 fixture `limiter` الحدّ محليًا ثم ينظّف الدلاء بعده فلا يتأثر أي اختبار آخر.
+العدّاد في الإنتاج مشترك عبر Redis؛ اختبارات المسارات هنا تعمل على العدّاد المحلي
+(البديل عند غياب Redis) بينما تختبر مجموعة `shared_counters` العدّاد المشترك نفسه.
 
 الحدود ثلاث طبقات لكل مسار: رشقة سريعة، سقف نافذة أطول، وسقف لكل (مرسِل، هدف).
 الاختبارات هنا تثبت كل طبقة على حدة وتتحقق من ترويسة `Retry-After` ومن أن العدّاد
 محصّن ضد الطلبات المتزامنة (المسارات المتزامنة تعمل في thread pool).
 """
+import os
+import time
+import uuid
 from concurrent.futures import ThreadPoolExecutor
 
 import pytest
+import redis
 from fastapi import HTTPException
 
 from app import security
 from conftest import auth
 
+# عدّاد مشترك حقيقي: نفس خدمة Redis في compose، على قاعدة منفصلة حتى لا تتقاطع
+# مفاتيح الاختبار مع عدّادات التطبيق.
+TEST_REDIS_URL = os.environ.get("REDIS_TEST_URL", "redis://redis:6379/15")
+
 
 @pytest.fixture()
-def limiter():
-    security._attempts.clear()
-    previous = security.settings.rate_limit_disabled
-    security.settings.rate_limit_disabled = False
+def limiter(monkeypatch):
+    """العدّاد المحلي فقط: اختبارات المسارات لا تحتاج خدمة Redis."""
+    monkeypatch.setattr(security.settings, "rate_limit_disabled", False)
+    monkeypatch.setattr(security.settings, "redis_url", "")
+    security.reset_rate_limits()
     try:
         yield security
     finally:
-        security.settings.rate_limit_disabled = previous
-        security._attempts.clear()
+        security.reset_rate_limits()
+
+
+@pytest.fixture()
+def shared_counters(monkeypatch):
+    """يشغّل العدّاد المشترك على Redis الحقيقي، ويُتخطّى إن لم تكن الخدمة متاحة."""
+    client = redis.Redis.from_url(
+        TEST_REDIS_URL,
+        decode_responses=True,
+        socket_connect_timeout=0.3,
+        socket_timeout=0.3,
+    )
+    try:
+        client.ping()
+    except redis.RedisError:
+        pytest.skip("Redis غير متاح: اختبار العدّاد المشترك يحتاج خدمة redis")
+    client.flushdb()
+    monkeypatch.setattr(security.settings, "rate_limit_disabled", False)
+    monkeypatch.setattr(security.settings, "redis_url", TEST_REDIS_URL)
+    security.reset_rate_limits()
+    try:
+        yield client
+    finally:
+        security.reset_rate_limits()
+        client.flushdb()
 
 
 # --- آلة الحدّ نفسها -------------------------------------------------------
@@ -204,3 +238,44 @@ def test_transfer_still_works_under_the_limit(client, make_user, limiter):
     assert ok.status_code == 201, ok.text
     assert ok.json()["wallet"]["diamonds"] == 1000 - 10
     assert ok.json()["recipient"]["id"] == friend["user"]["id"]
+
+
+# --- العدّاد المشترك عبر Redis (عدة عمليات/نسخ) -----------------------------
+
+
+def test_counter_is_shared_through_redis(shared_counters):
+    key = f"shared-{uuid.uuid4().hex}"
+    for _ in range(3):
+        security.rate_limit(key, limit=3, window_seconds=60)
+
+    with pytest.raises(HTTPException) as excinfo:
+        security.rate_limit(key, limit=3, window_seconds=60)
+    assert excinfo.value.status_code == 429
+    assert int(excinfo.value.headers["Retry-After"]) >= 1
+
+    # النافذة كُتبت في Redis لا في ذاكرة العملية: أي عامل آخر يقرأ نفس العدّاد.
+    assert shared_counters.zcard(f"{security._REDIS_KEY_PREFIX}{key}") == 3
+    assert key not in security._attempts
+
+
+def test_shared_counter_expires_with_the_window(shared_counters):
+    key = f"expire-{uuid.uuid4().hex}"
+    security.rate_limit(key, limit=1, window_seconds=1)
+    with pytest.raises(HTTPException):
+        security.rate_limit(key, limit=1, window_seconds=1)
+    time.sleep(1.2)
+    security.rate_limit(key, limit=1, window_seconds=1)
+
+
+def test_unreachable_redis_falls_back_to_local_counter(monkeypatch):
+    monkeypatch.setattr(security.settings, "rate_limit_disabled", False)
+    monkeypatch.setattr(security.settings, "redis_url", "redis://127.0.0.1:1/0")
+    security.reset_rate_limits()
+    try:
+        security.rate_limit("fallback", limit=1, window_seconds=60)
+        assert "fallback" in security._attempts
+        with pytest.raises(HTTPException) as excinfo:
+            security.rate_limit("fallback", limit=1, window_seconds=60)
+        assert excinfo.value.status_code == 429
+    finally:
+        security.reset_rate_limits()

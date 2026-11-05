@@ -32,6 +32,9 @@ class Settings:
         # Throttling is always on for real traffic; the test suite switches it
         # off so its fixtures are not counted as abuse.
         self.rate_limit_disabled = _bool("RATE_LIMIT_DISABLED")
+        # Shared rate-limit counters (Redis). Empty = count in-process only,
+        # which is correct for a single worker but not for several replicas.
+        self.redis_url = os.getenv("REDIS_URL", "")
 
         # Bootstrap administrator (seeded on first start).
         self.admin_email = os.getenv("ADMIN_EMAIL", "admin@example.com")
