@@ -6162,3 +6162,18 @@ textarea {
     flex: 1 1 100%;
   }
 }
+
+/* --- 30.10) بقايا الهوية الزمردية في الشريط والمقاعد: أحرف دافئة مثل بقية الشاشات --- */
+.tabs .tab:not(.tab-active),
+.page-nav .page-nav-item:not(.is-active) {
+  color: var(--muted);
+}
+
+/* اسم المقعد زر، وزر المتصفح يرث أسود افتراضيًا فيظهر غير مقروء فوق خلفية الغرفة */
+.room-screen .seat-name {
+  color: var(--text);
+}
+
+.room-screen .seat-empty .seat-name {
+  color: var(--muted);
+}
