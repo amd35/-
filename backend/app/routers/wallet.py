@@ -19,7 +19,7 @@ from ..economy import (
 )
 from ..models import LedgerEntry, RechargeOrder, StorePack, User, WithdrawRequest
 from ..notifications import create_notification
-from ..security import get_current_user
+from ..security import get_current_user, rate_limit
 from ..serializers import ledger_public, order_public, user_public, wallet_public, withdrawal_public
 from ..settings_store import get_setting
 
@@ -100,6 +100,8 @@ def transfer(
     user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
+    # التحويل يحرّك رصيدًا بين عضوين: حدّ لكل عضو يمنع الحلقات الآلية بين حسابات متعاونة.
+    rate_limit(f"transfer:{user.id}", limit=20, window_seconds=300)
     recipient = db.execute(select(User).where(User.username == payload.to_username.strip())).scalar_one_or_none()
     if recipient is None or recipient.status != "active":
         raise HTTPException(status.HTTP_404_NOT_FOUND, "المستخدم غير موجود")

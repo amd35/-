@@ -12,7 +12,7 @@ from ..models import Gift, GiftTransaction, Room, User
 from ..notifications import create_notification
 from ..realtime import hub
 from ..room_service import require_member, require_room
-from ..security import get_current_user
+from ..security import get_current_user, rate_limit
 from ..serializers import gift_public, user_public, wallet_public
 
 router = APIRouter(prefix="/api/gifts", tags=["gifts"])
@@ -42,6 +42,8 @@ def send(
     user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
+    # كل هدية تخصم من المحفظة وتبثّ في الغرفة: حدّ لكل عضو يمنع الإغراق والتفريغ السريع.
+    rate_limit(f"gift-send:{user.id}", limit=60, window_seconds=60)
     gift = db.get(Gift, payload.gift_id)
     if gift is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "الهدية غير موجودة")
