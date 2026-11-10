@@ -87,12 +87,23 @@ a { color: inherit; }
   background: linear-gradient(135deg, var(--gold-soft), var(--gold));
 }
 
-.nav-room {
-  font-size: 12.5px;
-  color: var(--gold);
+.room-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  padding: 11px 14px;
+  border-radius: 14px;
+  font-size: 13.5px;
+  font-weight: 700;
   text-decoration: none;
-  padding: 6px 2px 0;
+  color: #1a1405;
+  background: linear-gradient(135deg, var(--gold-soft), var(--gold) 65%, #a8842a);
+  box-shadow: 0 10px 24px rgba(212, 175, 55, 0.18);
 }
+
+.room-btn:hover { filter: brightness(1.06); }
+.room-btn-arrow { font-size: 15px; line-height: 1; }
 
 @media (min-width: 960px) {
   .shell { grid-template-columns: 236px minmax(0, 1fr); align-items: start; padding: 22px; gap: 22px; }

@@ -50,14 +50,14 @@ function renderSide(activeId) {
     '<div class="brand"><span class="brand-dot"></span><span>' +
     spaceName().replace(/[<>&]/g, "") +
     "</span></div>" +
+    '<a class="room-btn" href="/"><span class="room-btn-arrow" aria-hidden="true">←</span> العودة إلى الغرفة</a>' +
     '<nav class="nav">' +
     ROUTES.map(
       (route) =>
         '<a href="' + route.href + '" data-route="' + route.id + '"' +
         (route.id === activeId ? ' class="active"' : "") + ">" + route.label + "</a>"
     ).join("") +
-    "</nav>" +
-    '<a class="nav-room" href="/">← العودة إلى الغرفة</a>';
+    "</nav>";
 }
 
 function render(id) {
