@@ -334,7 +334,8 @@ function wire() {
     stopStream();
     setMicStatus("off");
     closeSheet();
-    toast("غادرت الغرفة");
+    // الخروج من الغرفة يعني الانتقال إلى الواجهة الرئيسية (لوحة التحكم)
+    location.href = "/dashboard/";
   });
 
   $("#chat-form").addEventListener("submit", (e) => {
