@@ -8,7 +8,7 @@ import analytics from "./pages/analytics.js";
 import profile from "./pages/profile.js";
 import settings from "./pages/settings.js";
 import faq from "./pages/faq.js";
-import { getDB } from "./store.js";
+import { getDB, hydrate } from "./store.js";
 
 const ROUTES = [
   { id: "dashboard", label: "لوحة التحكم", href: "/dashboard/", page: dashboard },
@@ -81,4 +81,5 @@ document.addEventListener("spa:navigate", (event) => go(event.detail));
 document.addEventListener("spa:refresh-nav", () => render(currentId()));
 window.addEventListener("popstate", () => render(currentId()));
 
+await hydrate();
 render(currentId());

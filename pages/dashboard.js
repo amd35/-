@@ -1,6 +1,6 @@
 "use strict";
 
-import { getDB, roomsPerDay } from "../store.js";
+import { getDB, roomsPerDay, isRemote } from "../store.js";
 import { barChart } from "../charts.js";
 import { escapeHtml, fmtDate, statusChip } from "../ui.js";
 
@@ -29,6 +29,12 @@ export default {
         .join("") || '<p class="empty">لا توجد غرف بعد — ابدأ بإضافة عنصر.</p>';
 
     root.innerHTML =
+      (isRemote()
+        ? ""
+        : '<section class="card"><div class="card-head"><h2>البيانات محفوظة في هذا المتصفح فقط</h2></div>' +
+          '<p class="hint">اربط قاعدة بيانات Supabase لتصبح البيانات دائمة وتظهر على أي جهاز.</p>' +
+          '<div class="actions-row"><a class="btn btn-gold" href="/settings/">ربط قاعدة البيانات</a></div>' +
+          "</section>") +
       '<div class="kpis">' +
         '<div class="kpi"><div class="kpi-value">' + db.rooms.length + '</div><div class="kpi-label">الغرف</div><div class="kpi-sub">إجمالي المسجّل</div></div>' +
         '<div class="kpi"><div class="kpi-value">' + members + '</div><div class="kpi-label">المشاركون</div><div class="kpi-sub">مجموع الحضور</div></div>' +
