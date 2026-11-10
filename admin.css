@@ -342,6 +342,33 @@ a { color: inherit; }
 .db-setup summary::-webkit-details-marker { display: none; }
 .db-steps { margin: 8px 0 0; padding-inline-start: 18px; font-size: 12px; line-height: 1.9; color: var(--muted); }
 
+/* ---------- المتجر ---------- */
+.store-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  padding: 11px 2px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.store-row:last-child { border-bottom: 0; }
+.store-main { flex: 1; min-width: 120px; }
+.store-name { font-size: 13.5px; font-weight: 600; word-break: break-word; }
+.store-sub { font-size: 11.5px; color: var(--muted); margin-top: 2px; }
+
+.store-field {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  font-size: 11px;
+  color: var(--muted);
+}
+
+.store-field .input { width: 76px; padding: 7px 9px; font-size: 12.5px; }
+.toolbar .store-input { flex: 0 0 92px; min-width: 76px; }
+.icon-btn.on { border-color: rgba(212, 175, 55, 0.45); color: var(--gold-soft); }
+
 /* ---------- الأنظمة ---------- */
 .sys-grid { display: grid; gap: 10px; grid-template-columns: repeat(auto-fill, minmax(145px, 1fr)); }
 .sys-card {

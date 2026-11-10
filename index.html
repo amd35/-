@@ -5,18 +5,20 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <meta name="theme-color" content="#07080b" />
   <title>غرفة الأصدقاء — صوت مباشر</title>
-  <link rel="stylesheet" href="./styles.css?v=2" />
+  <link rel="stylesheet" href="./styles.css?v=3" />
 </head>
 <body>
   <main class="app">
     <header class="topbar">
       <div class="room">
-        <h1 class="room-name">غرفة الأصدقاء</h1>
+        <h1 class="room-name" id="room-name">غرفة الأصدقاء</h1>
         <p class="room-meta">
           <span class="live-dot" aria-hidden="true"></span>
           مباشر · <span id="room-count">5</span> مشاركين
+          <span class="room-level" id="room-level">المستوى ١ · ٥ مايكات</span>
         </p>
       </div>
+      <button type="button" class="gear" id="btn-room-settings" aria-label="إعدادات الغرفة" title="إعدادات الغرفة">⚙</button>
     </header>
 
     <section class="stage" aria-label="المايكات">
@@ -41,6 +43,7 @@
         <button type="button" class="ctl ctl-mic" id="ctl-mic" data-status="off" aria-pressed="false"></button>
         <div class="level" aria-hidden="true"><span id="level-fill"></span></div>
       </div>
+      <button type="button" class="ctl ctl-square" id="ctl-hand" aria-pressed="false" aria-label="رفع اليد" title="رفع اليد">✋</button>
       <button type="button" class="ctl ctl-square" id="ctl-more" aria-label="المزيد" title="المزيد"></button>
     </nav>
   </main>
@@ -51,13 +54,43 @@
     <div class="sheet-grab" aria-hidden="true"></div>
     <h3 class="sheet-title">تفاصيل الغرفة</h3>
     <div class="rows">
-      <div class="row"><span>اسم الغرفة</span><b>غرفة الأصدقاء</b></div>
-      <div class="row"><span>الحالة</span><b>مباشر الآن</b></div>
+      <div class="row"><span>اسم الغرفة</span><b id="details-name">غرفة الأصدقاء</b></div>
+      <div class="row"><span>الحالة</span><b id="details-state">مباشر الآن</b></div>
       <div class="row"><span>المضيف</span><b>سارة</b></div>
       <div class="row"><span>عدد المشاركين</span><b id="details-count">5</b></div>
-      <div class="row"><span>الخصوصية</span><b>خاصة · بالدعوة</b></div>
+      <div class="row"><span>المقاعد</span><b id="details-capacity">5</b></div>
+      <div class="row"><span>المستوى</span><b id="details-level">المستوى ١</b></div>
+      <div class="row"><span>الخصوصية</span><b id="details-privacy">خاصة · بالدعوة</b></div>
       <div class="row"><span>ميكروفونك</span><b id="details-mic">مغلق</b></div>
     </div>
+    <button type="button" class="action" data-close>تم</button>
+  </section>
+
+  <section class="sheet" id="sheet-room" hidden aria-label="إعدادات الغرفة">
+    <div class="sheet-grab" aria-hidden="true"></div>
+    <h3 class="sheet-title">إعدادات الغرفة</h3>
+    <div class="rows">
+      <div class="row"><span>المستوى</span><b id="set-level">المستوى ١</b></div>
+      <div class="row"><span>عدد المايكات</span><b id="set-capacity">5</b></div>
+      <div class="row"><span>المقاعد الشاغرة</span><b id="set-free">0</b></div>
+      <div class="row"><span>الخصوصية</span><b id="set-privacy">خاصة</b></div>
+    </div>
+    <label class="switch-row">
+      <span>كتم الداخلين تلقائياً</span>
+      <button type="button" class="toggle" id="set-automute" aria-pressed="false">إيقاف</button>
+    </label>
+    <label class="switch-row">
+      <span>إشعارات الغرفة</span>
+      <button type="button" class="toggle" id="set-notify" aria-pressed="true">تشغيل</button>
+    </label>
+    <label class="switch-row">
+      <span>قفل الغرفة أمام الداخلين الجدد</span>
+      <button type="button" class="toggle" id="set-lock" aria-pressed="false">مفتوحة</button>
+    </label>
+    <button type="button" class="action" id="btn-privacy">تبديل الخصوصية</button>
+    <button type="button" class="action" id="btn-upgrade">ترقية مستوى الغرفة (مايكات أكثر)</button>
+    <input id="room-name-input" class="sheet-input" type="text" placeholder="اسم الغرفة الجديد…" aria-label="اسم الغرفة الجديد" />
+    <button type="button" class="action" id="btn-rename">حفظ اسم الغرفة</button>
     <button type="button" class="action" data-close>تم</button>
   </section>
 
@@ -74,14 +107,17 @@
     <div class="sheet-grab" aria-hidden="true"></div>
     <h3 class="sheet-title">المزيد</h3>
     <button type="button" class="action" id="btn-details">تفاصيل الغرفة</button>
+    <button type="button" class="action" id="btn-settings-more">إعدادات الغرفة</button>
     <button type="button" class="action" id="btn-pick-mic">اختيار الميكروفون</button>
     <button type="button" class="action" id="btn-invite">نسخ رابط الدعوة</button>
+    <button type="button" class="action" id="btn-mute-all">كتم الجميع</button>
+    <button type="button" class="action" id="btn-clear-chat">مسح الدردشة</button>
     <button type="button" class="action action-danger" id="btn-leave">مغادرة الغرفة</button>
     <a class="action" href="/dashboard/">لوحة التحكم</a>
     <button type="button" class="action" data-close>إغلاق</button>
   </section>
 
   <div class="toast" id="toast" role="status" hidden></div>
-  <script src="./app.js?v=2"></script>
+  <script src="./app.js?v=3"></script>
 </body>
 </html>

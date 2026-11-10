@@ -19,6 +19,39 @@ const MIC_LABELS = {
   error: { text: "تعذّر التشغيل", icon: "micOff" },
 };
 
+/* ---------- إعدادات الغرفة ---------- */
+
+const ROOM_KEY = "sawt.room.v1";
+const ROOM_LEVELS = [5, 10, 15, 20]; // مقاعد المايك لكل مستوى
+
+function loadRoom() {
+  const base = {
+    name: "غرفة الأصدقاء",
+    privacy: "خاصة",
+    level: 1,
+    autoMute: false,
+    notify: true,
+    locked: false,
+    hand: false,
+  };
+  try {
+    const raw = localStorage.getItem(ROOM_KEY);
+    return raw ? Object.assign(base, JSON.parse(raw)) : base;
+  } catch (err) {
+    return base;
+  }
+}
+
+function saveRoom() {
+  try {
+    localStorage.setItem(ROOM_KEY, JSON.stringify(state.room));
+  } catch (err) {
+    // التخزين غير متاح — تبقى الإعدادات لهذه الجلسة
+  }
+}
+
+const capacity = () => ROOM_LEVELS[Math.min(ROOM_LEVELS.length, Math.max(1, state.room.level)) - 1];
+
 const state = {
   participants: [
     { id: "host", name: "سارة", role: "المضيفة", initial: "س", muted: false, main: true },
@@ -33,6 +66,7 @@ const state = {
   ],
   mic: { status: "off", stream: null, ctx: null, analyser: null, buf: null, raf: null, deviceId: null, label: "", smooth: 0 },
   devices: [],
+  room: loadRoom(),
 };
 
 /* ---------- المسرح ---------- */
@@ -49,19 +83,81 @@ function tileHtml(p, size) {
         '<div class="avatar">' + p.initial + "</div>" +
         (muted ? '<span class="muted-badge">' + ICONS.mute + "</span>" : "") +
       "</div>" +
-      '<div class="tile-name">' + p.name + "</div>" +
+      '<div class="tile-name">' + p.name +
+        (p.me && state.room.hand ? ' <span class="hand-badge">✋</span>' : "") +
+        "</div>" +
       (p.role ? '<div class="tile-role">' + p.role + "</div>" : "") +
     "</div>"
   );
 }
 
+function emptyTile() {
+  return (
+    '<div class="tile small empty" aria-hidden="true">' +
+      '<div class="ring"><div class="avatar">+</div></div>' +
+      '<div class="tile-name">مقعد فارغ</div>' +
+    "</div>"
+  );
+}
+
 function renderStage() {
-  const main = state.participants.find((p) => p.main);
+  const main = state.participants.find((p) => p.main) || state.participants[0];
   const rest = state.participants.filter((p) => p !== main);
-  $("#stage-main").innerHTML = tileHtml(main, "main");
-  $("#stage-grid").innerHTML = rest.map((p) => tileHtml(p, "small")).join("");
+  const seats = capacity();
+  const empty = Math.max(0, seats - 1 - rest.length);
+  $("#stage-main").innerHTML = main ? tileHtml(main, "main") : "";
+  $("#stage-grid").innerHTML =
+    rest.map((p) => tileHtml(p, "small")).join("") + Array.from({ length: empty }, emptyTile).join("");
   $("#room-count").textContent = String(state.participants.length);
-  $("#details-count").textContent = String(state.participants.length);
+  paintRoom();
+}
+
+/* ---------- عرض حالة الغرفة وإعداداتها ---------- */
+
+function paintRoom() {
+  const level = state.room.level;
+  const seats = capacity();
+  const free = Math.max(0, seats - state.participants.length);
+  const set = (id, text) => {
+    const el = $("#" + id);
+    if (el) el.textContent = text;
+  };
+
+  set("room-name", state.room.name);
+  set("room-level", "المستوى " + level + " · " + seats + " مايكات");
+  document.title = state.room.name + " — صوت مباشر";
+
+  set("details-name", state.room.name);
+  set("details-state", state.room.locked ? "مقفلة · مباشر" : "مباشر الآن");
+  set("details-count", String(state.participants.length));
+  set("details-capacity", String(seats));
+  set("details-level", "المستوى " + level);
+  set("details-privacy", state.room.privacy + (state.room.locked ? " · مقفلة" : " · بالدعوة"));
+
+  set("set-level", "المستوى " + level);
+  set("set-capacity", String(seats));
+  set("set-free", String(free));
+  set("set-privacy", state.room.privacy);
+
+  const toggle = (id, on, onText, offText) => {
+    const btn = $("#" + id);
+    if (!btn) return;
+    btn.textContent = on ? onText : offText;
+    btn.setAttribute("aria-pressed", on ? "true" : "false");
+    btn.classList.toggle("on", on);
+  };
+  toggle("set-automute", state.room.autoMute, "تشغيل", "إيقاف");
+  toggle("set-notify", state.room.notify, "تشغيل", "إيقاف");
+  toggle("set-lock", state.room.locked, "مقفلة", "مفتوحة");
+
+  const nameInput = $("#room-name-input");
+  if (nameInput && document.activeElement !== nameInput) nameInput.value = state.room.name;
+
+  const hand = $("#ctl-hand");
+  if (hand) {
+    hand.setAttribute("aria-pressed", state.room.hand ? "true" : "false");
+    hand.classList.toggle("raised", state.room.hand);
+  }
 }
 
 /* ---------- الدردشة ---------- */
@@ -317,6 +413,88 @@ function wire() {
   $("#device-list").addEventListener("click", (e) => {
     const btn = e.target.closest(".device");
     if (btn) pickDevice(btn.dataset.device);
+  });
+
+  /* إعدادات الغرفة */
+  const openRoomSettings = () => {
+    openSheet("sheet-room");
+    paintRoom();
+  };
+  $("#btn-room-settings").addEventListener("click", openRoomSettings);
+  $("#btn-settings-more").addEventListener("click", openRoomSettings);
+
+  $("#ctl-hand").addEventListener("click", () => {
+    state.room.hand = !state.room.hand;
+    saveRoom();
+    renderStage();
+    toast(state.room.hand ? "تم رفع يدك — بانتظار الدور" : "تم إنزال يدك");
+  });
+
+  $("#btn-privacy").addEventListener("click", () => {
+    state.room.privacy = state.room.privacy === "خاصة" ? "عامة" : "خاصة";
+    saveRoom();
+    paintRoom();
+    toast("الخصوصية الآن: " + state.room.privacy);
+  });
+
+  $("#set-automute").addEventListener("click", () => {
+    state.room.autoMute = !state.room.autoMute;
+    saveRoom();
+    paintRoom();
+    toast(state.room.autoMute ? "سيُكتم الداخلون الجدد تلقائياً" : "أُلغي الكتم التلقائي");
+  });
+
+  $("#set-notify").addEventListener("click", () => {
+    state.room.notify = !state.room.notify;
+    saveRoom();
+    paintRoom();
+  });
+
+  $("#set-lock").addEventListener("click", () => {
+    state.room.locked = !state.room.locked;
+    saveRoom();
+    paintRoom();
+    toast(state.room.locked ? "الغرفة مقفلة أمام الداخلين الجدد" : "الغرفة مفتوحة الآن");
+  });
+
+  $("#btn-upgrade").addEventListener("click", () => {
+    if (state.room.level >= ROOM_LEVELS.length) {
+      toast("الغرفة بأعلى مستوى: 20 مايك");
+      return;
+    }
+    state.room.level += 1;
+    saveRoom();
+    renderStage();
+    toast("ترقّى المستوى إلى " + state.room.level + " — " + capacity() + " مايك");
+  });
+
+  $("#btn-rename").addEventListener("click", () => {
+    const value = $("#room-name-input").value.trim();
+    if (!value) return;
+    state.room.name = value;
+    saveRoom();
+    paintRoom();
+    toast("تم تحديث اسم الغرفة");
+  });
+
+  $("#btn-mute-all").addEventListener("click", () => {
+    stopStream();
+    setMicStatus("off");
+    state.participants.forEach((p) => {
+      p.muted = true;
+    });
+    state.room.hand = false;
+    saveRoom();
+    renderStage();
+    closeSheet();
+    toast("تم كتم جميع المشاركين");
+  });
+
+  $("#btn-clear-chat").addEventListener("click", () => {
+    state.messages = [];
+    renderChat();
+    closeSheet();
+    toast("تم مسح الدردشة");
   });
 
   $("#btn-invite").addEventListener("click", async () => {

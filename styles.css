@@ -83,11 +83,13 @@ body {
   gap: 16px;
   padding: 18px 12px;
   border-radius: 26px;
-  border: 1px solid var(--line);
-  background:
-    radial-gradient(80% 100% at 50% 0%, rgba(212, 175, 55, 0.1), transparent 72%),
-    var(--card);
-  box-shadow: var(--shadow), inset 0 1px 0 rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  /* شفاف: تظهر خلفية الصفحة من خلال كل عناصر الغرفة */
+  background: radial-gradient(80% 100% at 50% 0%, rgba(212, 175, 55, 0.08), transparent 72%);
+  backdrop-filter: blur(14px) saturate(125%);
+  -webkit-backdrop-filter: blur(14px) saturate(125%);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06);
+  overflow: auto;
 }
 
 .stage-main { display: flex; justify-content: center; }
@@ -159,9 +161,23 @@ body {
   place-items: center;
   font-weight: 700;
   color: var(--gold-soft);
-  background: radial-gradient(circle at 32% 26%, #2b303c, #12141a 70%);
+  background: radial-gradient(circle at 32% 26%, rgba(43, 48, 60, 0.5), rgba(18, 20, 26, 0.34) 72%);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  border: 1px solid rgba(255, 255, 255, 0.12);
   transition: box-shadow 90ms linear;
 }
+
+.tile.empty .ring { background: rgba(255, 255, 255, 0.14); }
+
+.tile.empty .avatar {
+  color: rgba(245, 242, 233, 0.4);
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px dashed rgba(255, 255, 255, 0.18);
+  font-size: 20px;
+}
+
+.tile.empty .tile-name { opacity: 0.6; }
 
 .tile.speaking .avatar {
   box-shadow:
@@ -215,9 +231,10 @@ body {
   grid-template-rows: auto minmax(0, 1fr) auto;
   min-height: 0;
   border-radius: 26px;
-  border: 1px solid var(--line);
-  background: var(--card);
-  box-shadow: var(--shadow);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(12, 14, 20, 0.24);
+  backdrop-filter: blur(16px) saturate(125%);
+  -webkit-backdrop-filter: blur(16px) saturate(125%);
   overflow: hidden;
 }
 
@@ -247,8 +264,10 @@ body {
   align-self: flex-start;
   padding: 8px 12px;
   border-radius: 16px;
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(255, 255, 255, 0.06);
+  background: rgba(255, 255, 255, 0.06);
+  backdrop-filter: blur(5px);
+  -webkit-backdrop-filter: blur(5px);
+  border: 1px solid rgba(255, 255, 255, 0.09);
   font-size: 13.5px;
   line-height: 1.55;
   word-break: break-word;
@@ -272,8 +291,10 @@ body {
   display: flex;
   gap: 8px;
   padding: 10px;
-  border-top: 1px solid rgba(255, 255, 255, 0.06);
-  background: rgba(0, 0, 0, 0.25);
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(0, 0, 0, 0.16);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
 }
 
 .chat-form input {
@@ -313,9 +334,11 @@ body {
 .mic-wrap { display: flex; flex-direction: column; align-items: center; }
 
 .ctl {
-  border: 1px solid var(--line);
+  border: 1px solid rgba(255, 255, 255, 0.12);
   border-radius: 18px;
-  background: var(--card);
+  background: rgba(255, 255, 255, 0.07);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
   color: var(--ink);
   font: inherit;
   font-size: 14px;
@@ -384,8 +407,10 @@ body {
   border-radius: 26px 26px 0 0;
   border: 1px solid var(--line);
   border-bottom: 0;
-  background: linear-gradient(180deg, #14161d, #0d0f14);
-  box-shadow: 0 -22px 55px rgba(0, 0, 0, 0.62);
+  background: linear-gradient(180deg, rgba(20, 22, 29, 0.88), rgba(13, 15, 20, 0.94));
+  backdrop-filter: blur(20px) saturate(125%);
+  -webkit-backdrop-filter: blur(20px) saturate(125%);
+  box-shadow: 0 -22px 55px rgba(0, 0, 0, 0.55);
   animation: sheet-in 0.24s ease;
 }
 
@@ -494,4 +519,86 @@ a.action { display: block; text-decoration: none; }
 
   .tile.main .ring { width: 132px; height: 132px; }
   .tile.main .avatar { font-size: 44px; }
+}
+
+/* ---------- إعدادات الغرفة والمستويات ---------- */
+
+.room-level {
+  font-size: 11px;
+  padding: 2px 8px;
+  border-radius: 99px;
+  border: 1px solid rgba(212, 175, 55, 0.35);
+  background: rgba(212, 175, 55, 0.1);
+  color: var(--gold-soft);
+  white-space: nowrap;
+}
+
+.gear {
+  width: 40px;
+  height: 40px;
+  border-radius: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.07);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  color: var(--ink);
+  font-size: 17px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.ctl-square.raised {
+  border-color: transparent;
+  color: #1a1405;
+  background: linear-gradient(135deg, rgba(243, 226, 164, 0.95), rgba(212, 175, 55, 0.9));
+  box-shadow: 0 12px 26px rgba(212, 175, 55, 0.22);
+}
+
+.hand-badge { font-size: 11px; }
+
+.switch-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 11px 2px;
+  font-size: 13.5px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.toggle {
+  min-width: 74px;
+  padding: 7px 12px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--muted);
+  font: inherit;
+  font-size: 12.5px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.toggle.on {
+  border-color: transparent;
+  color: #1a1405;
+  background: linear-gradient(135deg, var(--gold-soft), var(--gold) 70%, #a8842a);
+}
+
+.sheet-input {
+  width: 100%;
+  margin-bottom: 9px;
+  padding: 12px 14px;
+  border-radius: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--ink);
+  font: inherit;
+  font-size: 14px;
+}
+
+.sheet-input:focus {
+  outline: none;
+  border-color: rgba(212, 175, 55, 0.5);
+  box-shadow: 0 0 0 3px rgba(212, 175, 55, 0.12);
 }

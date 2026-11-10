@@ -9,6 +9,7 @@ import profile from "./pages/profile.js";
 import settings from "./pages/settings.js";
 import faq from "./pages/faq.js";
 import systems from "./pages/systems.js";
+import store from "./pages/store.js";
 import activityLog from "./pages/activity-log.js";
 import notifications from "./pages/notifications.js";
 import contact from "./pages/contact.js";
@@ -22,6 +23,7 @@ const ROUTES = [
   { id: "tasks", label: "المهام", href: "/tasks/", page: tasks },
   { id: "analytics", label: "التحليلات", href: "/analytics/", page: analytics },
   { id: "systems", label: "الأنظمة", href: "/systems/", page: systems },
+  { id: "store", label: "إدارة المتجر", href: "/store/", page: store },
   { id: "activity-log", label: "سجل النشاط", href: "/activity-log/", page: activityLog },
   { id: "notifications", label: "التنبيهات", href: "/notifications/", page: notifications },
   { id: "profile", label: "الملف الشخصي", href: "/profile/", page: profile },
@@ -58,6 +60,9 @@ function renderSide(activeId) {
         (route.id === activeId ? ' class="active"' : "") + ">" + route.label + "</a>"
     ).join("") +
     "</nav>";
+  // إبقاء الصفحة الحالية ظاهرة داخل الشريط الأفقي على الجوال
+  const active = side.querySelector(".nav a.active");
+  if (active) active.scrollIntoView({ block: "nearest", inline: "center" });
 }
 
 function render(id) {
