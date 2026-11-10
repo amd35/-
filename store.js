@@ -4,6 +4,7 @@ import * as remote from "./db.js";
 import { toast } from "./ui.js";
 
 const KEY = "sawt.db.v1";
+const ACTIVITY_LIMIT = 60;
 
 export const STATUS = {
   live: { label: "مباشر", tone: "live" },
@@ -16,6 +17,8 @@ const uid = () =>
     ? crypto.randomUUID()
     : Math.random().toString(36).slice(2, 10);
 const iso = (date) => date.toISOString().slice(0, 10);
+
+export const newId = uid;
 
 function dayBack(n) {
   const d = new Date();
@@ -49,6 +52,9 @@ function defaults() {
     tasks: seedTasks(),
     profile: { name: "أنت", email: "", bio: "", notifyEmail: true, notifyTasks: true },
     settings: { spaceName: "غرفة الأصدقاء", notifyRooms: true, notifyChat: true, autoMute: false },
+    activity: [],
+    messages: [],
+    systems: {},
   };
 }
 
@@ -72,6 +78,8 @@ const fromRoom = (room) => ({
 });
 
 const toTask = (row) => ({ id: row.id, text: row.text, done: !!row.done });
+
+const toActivity = (row) => ({ id: row.id, kind: row.kind || "info", text: row.text, at: row.created_at });
 
 const fromProfile = (row) => ({
   name: row.name || "أنت",
@@ -137,17 +145,22 @@ export async function hydrate() {
     return cache;
   }
   try {
-    const [rooms, tasks, profile, settings] = await Promise.all([
+    const [rooms, tasks, profile, settings, activity, systems] = await Promise.all([
       remote.select("rooms", "select=*&order=created_at.desc"),
       remote.select("tasks", "select=*&order=created_at.desc"),
       remote.select("app_profile", "select=*&id=eq.default&limit=1"),
       remote.select("app_settings", "select=*&id=eq.default&limit=1"),
+      remote.select("activity_log", "select=*&order=created_at.desc&limit=" + ACTIVITY_LIMIT),
+      remote.select("app_systems", "select=*"),
     ]);
     cache = {
       rooms: rooms.map(toRoom),
       tasks: tasks.map(toTask),
       profile: fromProfile(profile[0] || {}),
       settings: fromSettings(settings[0] || {}),
+      activity: activity.map(toActivity),
+      messages: [],
+      systems: systems.reduce((map, row) => Object.assign(map, { [row.id]: row.state }), {}),
     };
     lastError = "";
     writeLocal();
@@ -176,6 +189,7 @@ export async function connectSupabase(url, anonKey) {
   }
   await hydrate();
   if (lastError) throw new Error(lastError);
+  logActivity("db", "تم ربط قاعدة البيانات");
   return cache;
 }
 
@@ -183,14 +197,15 @@ export function disconnectSupabase() {
   remote.clearConfig();
   cache = readLocal();
   lastError = "";
+  logActivity("db", "تم قطع الاتصال بقاعدة البيانات");
   return cache;
 }
 
 /* ---------- قراءة وكتابة ---------- */
 
-function sync(promise) {
+function sync(run) {
   if (!remote.isConnected()) return;
-  promise.catch((err) => {
+  run().catch((err) => {
     lastError = err.message || String(err);
     toast("تعذّر الحفظ في قاعدة البيانات: " + lastError);
   });
@@ -203,20 +218,38 @@ function update(mutator) {
   return db;
 }
 
+function pushActivity(db, kind, text) {
+  const item = { id: uid(), kind, text, at: new Date().toISOString() };
+  db.activity = [item].concat(db.activity || []).slice(0, ACTIVITY_LIMIT);
+  sync(() => remote.insert("activity_log", [{ id: item.id, kind: kind, text: text, created_at: item.at }]));
+  return item;
+}
+
+export function logActivity(kind, text) {
+  return update((db) => pushActivity(db, kind, text));
+}
+
+export const listActivity = () => getDB().activity || [];
+
+export const listMessages = () => getDB().messages || [];
+
 export const listRooms = () => getDB().rooms;
 
 export function addRoom(room) {
   const row = Object.assign({ id: uid() }, fromRoom(room));
   return update((db) => {
     db.rooms.unshift(row);
-    sync(remote.insert("rooms", [row]));
+    pushActivity(db, "room", "أُضيفت غرفة «" + row.name + "»");
+    sync(() => remote.insert("rooms", [row]));
   });
 }
 
 export function deleteRoom(id) {
   return update((db) => {
-    db.rooms = db.rooms.filter((room) => room.id !== id);
-    sync(remote.remove("rooms", "id=eq." + id));
+    const room = db.rooms.find((item) => item.id === id);
+    db.rooms = db.rooms.filter((item) => item.id !== id);
+    pushActivity(db, "room-del", "حُذفت غرفة" + (room ? " «" + room.name + "»" : ""));
+    sync(() => remote.remove("rooms", "id=eq." + id));
   });
 }
 
@@ -226,7 +259,8 @@ export function addTask(text) {
   const row = { id: uid(), text: value, done: false };
   return update((db) => {
     db.tasks.unshift(row);
-    sync(remote.insert("tasks", [row]));
+    pushActivity(db, "task", "أُضيفت مهمة: " + value);
+    sync(() => remote.insert("tasks", [row]));
   });
 }
 
@@ -235,28 +269,61 @@ export function toggleTask(id) {
     const task = db.tasks.find((item) => item.id === id);
     if (!task) return;
     task.done = !task.done;
-    sync(remote.patch("tasks", "id=eq." + id, { done: task.done }));
+    pushActivity(db, "task", (task.done ? "أُنجزت المهمة: " : "أُعيد فتح المهمة: ") + task.text);
+    sync(() => remote.patch("tasks", "id=eq." + id, { done: task.done }));
   });
 }
 
 export function deleteTask(id) {
   return update((db) => {
-    db.tasks = db.tasks.filter((task) => task.id !== id);
-    sync(remote.remove("tasks", "id=eq." + id));
+    const task = db.tasks.find((item) => item.id === id);
+    db.tasks = db.tasks.filter((item) => item.id !== id);
+    pushActivity(db, "task", "حُذفت مهمة" + (task ? ": " + task.text : ""));
+    sync(() => remote.remove("tasks", "id=eq." + id));
   });
 }
 
 export function saveProfile(profile) {
   return update((db) => {
     db.profile = Object.assign({}, db.profile, profile);
-    sync(remote.upsert("app_profile", [toProfileRow(db.profile)]));
+    pushActivity(db, "profile", "حُدّث الملف الشخصي");
+    sync(() => remote.upsert("app_profile", [toProfileRow(db.profile)]));
   });
 }
 
 export function saveSettings(settings) {
   return update((db) => {
     db.settings = Object.assign({}, db.settings, settings);
-    sync(remote.upsert("app_settings", [toSettingsRow(db.settings)]));
+    pushActivity(db, "settings", "حُدّثت الإعدادات");
+    sync(() => remote.upsert("app_settings", [toSettingsRow(db.settings)]));
+  });
+}
+
+export function sendMessage(message) {
+  const row = {
+    id: uid(),
+    name: message.name,
+    email: message.email || "",
+    message: message.message,
+    created_at: new Date().toISOString(),
+  };
+  return update((db) => {
+    db.messages = [row].concat(db.messages || []).slice(0, 30);
+    pushActivity(db, "support", "أُرسلت رسالة دعم من " + row.name);
+    sync(() => remote.insert("contact_messages", [row]));
+  });
+}
+
+/* ---------- الأنظمة ---------- */
+
+export function getSystemState(id) {
+  return (getDB().systems || {})[id] || null;
+}
+
+export function saveSystemState(id, state) {
+  return update((db) => {
+    db.systems = Object.assign({}, db.systems, { [id]: state });
+    sync(() => remote.upsert("app_systems", [{ id: id, state: state, updated_at: new Date().toISOString() }]));
   });
 }
 
@@ -265,16 +332,19 @@ export function resetData() {
   writeLocal();
   if (remote.isConnected()) {
     sync(
-      (async () => {
+      async () => {
         await remote.remove("rooms", "id=not.is.null");
         await remote.remove("tasks", "id=not.is.null");
+        await remote.remove("activity_log", "id=not.is.null");
+        await remote.remove("app_systems", "id=not.is.null");
         await remote.insert("rooms", cache.rooms);
         await remote.insert("tasks", cache.tasks);
         await remote.upsert("app_profile", [toProfileRow(cache.profile)]);
         await remote.upsert("app_settings", [toSettingsRow(cache.settings)]);
-      })()
+      }
     );
   }
+  logActivity("reset", "تمت إعادة تعيين البيانات");
   return cache;
 }
 

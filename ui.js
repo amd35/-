@@ -28,6 +28,15 @@ export function fmtDate(value) {
   return parts.length === 3 ? parts[2] + "/" + parts[1] + "/" + parts[0] : value || "—";
 }
 
+export function fmtDateTime(value) {
+  const date = new Date(value);
+  if (isNaN(date.getTime())) return String(value || "—");
+  const two = (n) => String(n).padStart(2, "0");
+  return (
+    two(date.getDate()) + "/" + two(date.getMonth() + 1) + " · " + two(date.getHours()) + ":" + two(date.getMinutes())
+  );
+}
+
 export function statusChip(status) {
   const map = {
     live: { label: "مباشر", tone: "live" },

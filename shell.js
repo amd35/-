@@ -8,6 +8,11 @@ import analytics from "./pages/analytics.js";
 import profile from "./pages/profile.js";
 import settings from "./pages/settings.js";
 import faq from "./pages/faq.js";
+import systems from "./pages/systems.js";
+import activityLog from "./pages/activity-log.js";
+import notifications from "./pages/notifications.js";
+import contact from "./pages/contact.js";
+import help from "./pages/help.js";
 import { getDB, hydrate } from "./store.js";
 
 const ROUTES = [
@@ -16,8 +21,13 @@ const ROUTES = [
   { id: "add-item", label: "إضافة عنصر", href: "/add-item/", page: addItem },
   { id: "tasks", label: "المهام", href: "/tasks/", page: tasks },
   { id: "analytics", label: "التحليلات", href: "/analytics/", page: analytics },
+  { id: "systems", label: "الأنظمة", href: "/systems/", page: systems },
+  { id: "activity-log", label: "سجل النشاط", href: "/activity-log/", page: activityLog },
+  { id: "notifications", label: "التنبيهات", href: "/notifications/", page: notifications },
   { id: "profile", label: "الملف الشخصي", href: "/profile/", page: profile },
   { id: "settings", label: "الإعدادات", href: "/settings/", page: settings },
+  { id: "contact", label: "اتصل بنا", href: "/contact/", page: contact },
+  { id: "help", label: "مركز المساعدة", href: "/help/", page: help },
   { id: "faq", label: "الأسئلة الشائعة", href: "/faq/", page: faq },
 ];
 
