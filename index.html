@@ -4,120 +4,96 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <meta name="theme-color" content="#07080b" />
-  <title>غرفة الأصدقاء — صوت مباشر</title>
-  <link rel="stylesheet" href="./styles.css?v=3" />
+  <title>صوت — غرف وأصدقاء وألعاب</title>
+  <link rel="stylesheet" href="/app.css?v=1" />
 </head>
 <body>
-  <main class="app">
-    <header class="topbar">
-      <div class="room">
-        <h1 class="room-name" id="room-name">غرفة الأصدقاء</h1>
-        <p class="room-meta">
-          <span class="live-dot" aria-hidden="true"></span>
-          مباشر · <span id="room-count">5</span> مشاركين
-          <span class="room-level" id="room-level">المستوى ١ · ٥ مايكات</span>
-        </p>
+  <div class="glow" aria-hidden="true"></div>
+
+  <!-- تسجيل الدخول -->
+  <section class="gate" id="gate" hidden>
+    <div class="gate-inner">
+      <header class="gate-brand">
+        <h1 class="mark">صوت</h1>
+        <div class="rule" aria-hidden="true"><span></span></div>
+        <p class="tagline">غرف صوتية · أصدقاء · ألعاب</p>
+      </header>
+
+      <div class="panel">
+        <div class="mode-tabs" id="mode-tabs" role="tablist" aria-label="طريقة الدخول">
+          <button type="button" data-mode="login" aria-pressed="true">دخول</button>
+          <button type="button" data-mode="signup" aria-pressed="false">حساب جديد</button>
+        </div>
+
+        <div class="method-tabs" id="method-tabs" role="group" aria-label="الوسيلة">
+          <button type="button" data-method="email" aria-pressed="true">البريد</button>
+          <button type="button" data-method="phone" aria-pressed="false">الهاتف</button>
+          <button type="button" data-method="guest" aria-pressed="false">ضيف</button>
+        </div>
+
+        <form id="auth-form" novalidate autocomplete="on">
+          <label class="field" id="row-name" hidden>
+            <span class="label">الاسم</span>
+            <input id="in-name" type="text" autocomplete="name" placeholder="اسمك كما يظهر للأصدقاء" />
+          </label>
+
+          <label class="field" id="row-ident">
+            <span class="label" id="ident-label">البريد الإلكتروني</span>
+            <input id="in-ident" type="text" autocomplete="username" inputmode="email" placeholder="name@example.com" />
+          </label>
+
+          <label class="field" id="row-pass">
+            <span class="label">كلمة المرور</span>
+            <input id="in-pass" type="password" autocomplete="current-password" placeholder="٦ أحرف على الأقل" />
+          </label>
+
+          <p class="hint" id="auth-hint">أدخل بيانات حسابك للمتابعة.</p>
+          <p class="error" id="auth-error" role="alert" hidden></p>
+
+          <button class="btn-primary" id="auth-submit" type="submit">دخول</button>
+        </form>
       </div>
-      <button type="button" class="gear" id="btn-room-settings" aria-label="إعدادات الغرفة" title="إعدادات الغرفة">⚙</button>
+
+      <p class="gate-foot">كلمة المرور تُحفظ مشفّرة داخل قاعدة البيانات — لا تُرسل لأي جهة أخرى.</p>
+    </div>
+  </section>
+
+  <!-- التطبيق بعد الدخول -->
+  <div class="shell" id="shell" hidden>
+    <header class="app-head">
+      <div class="me">
+        <span class="me-avatar" id="me-avatar">•</span>
+        <span class="me-text">
+          <span class="me-hello" id="me-hello">أهلاً بك</span>
+          <strong class="me-name" id="me-name">…</strong>
+        </span>
+      </div>
+      <button type="button" class="head-btn" id="btn-refresh">تحديث</button>
     </header>
 
-    <section class="stage" aria-label="المايكات">
-      <div class="stage-main" id="stage-main"></div>
-      <div class="stage-grid" id="stage-grid"></div>
-    </section>
+    <main class="view" id="view"></main>
 
-    <section class="chat" aria-label="الدردشة">
-      <div class="chat-head">
-        <h2>الدردشة</h2>
-        <span class="chat-hint" id="chat-hint"></span>
-      </div>
-      <div class="chat-list" id="chat-list" role="log" aria-live="polite"></div>
-      <form class="chat-form" id="chat-form">
-        <input id="chat-input" type="text" placeholder="اكتب رسالة…" autocomplete="off" aria-label="رسالة" />
-        <button type="submit" class="send">إرسال</button>
-      </form>
-    </section>
-
-    <nav class="controls" aria-label="أدوات الغرفة">
-      <div class="mic-wrap">
-        <button type="button" class="ctl ctl-mic" id="ctl-mic" data-status="off" aria-pressed="false"></button>
-        <div class="level" aria-hidden="true"><span id="level-fill"></span></div>
-      </div>
-      <button type="button" class="ctl ctl-square" id="ctl-hand" aria-pressed="false" aria-label="رفع اليد" title="رفع اليد">✋</button>
-      <button type="button" class="ctl ctl-square" id="ctl-more" aria-label="المزيد" title="المزيد"></button>
+    <nav class="tabbar" id="tabbar" aria-label="الأقسام الرئيسية">
+      <a class="tab" href="#rooms" data-tab="rooms">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20V9.2A3.2 3.2 0 0 1 7.2 6h9.6A3.2 3.2 0 0 1 20 9.2V20"/><path d="M4 20h16"/><path d="M9.4 12.6a2.6 2.6 0 0 1 5.2 0"/><path d="M12 10.6v.1"/></svg>
+        <span>الغرف</span>
+      </a>
+      <a class="tab" href="#friends" data-tab="friends">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="9" r="3.2"/><path d="M3.6 19.4a5.4 5.4 0 0 1 10.8 0"/><path d="M16.2 6.4a3 3 0 0 1 0 5.8"/><path d="M17.4 14.4a5 5 0 0 1 3 4.6"/></svg>
+        <span>الأصدقاء</span>
+      </a>
+      <a class="tab" href="#games" data-tab="games">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="4" width="16" height="16" rx="4.4"/><circle cx="9" cy="9" r="1.15" fill="currentColor" stroke="none"/><circle cx="15" cy="15" r="1.15" fill="currentColor" stroke="none"/><circle cx="15" cy="9" r="1.15" fill="currentColor" stroke="none"/><circle cx="9" cy="15" r="1.15" fill="currentColor" stroke="none"/></svg>
+        <span>الألعاب</span>
+      </a>
+      <a class="tab" href="#account" data-tab="account">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8.4" r="3.4"/><path d="M5 19.6a7 7 0 0 1 14 0"/></svg>
+        <span>حسابي</span>
+      </a>
     </nav>
-  </main>
+  </div>
 
-  <div class="sheet-backdrop" id="backdrop" hidden></div>
-
-  <section class="sheet" id="sheet-details" hidden aria-label="تفاصيل الغرفة">
-    <div class="sheet-grab" aria-hidden="true"></div>
-    <h3 class="sheet-title">تفاصيل الغرفة</h3>
-    <div class="rows">
-      <div class="row"><span>اسم الغرفة</span><b id="details-name">غرفة الأصدقاء</b></div>
-      <div class="row"><span>الحالة</span><b id="details-state">مباشر الآن</b></div>
-      <div class="row"><span>المضيف</span><b>سارة</b></div>
-      <div class="row"><span>عدد المشاركين</span><b id="details-count">5</b></div>
-      <div class="row"><span>المقاعد</span><b id="details-capacity">5</b></div>
-      <div class="row"><span>المستوى</span><b id="details-level">المستوى ١</b></div>
-      <div class="row"><span>الخصوصية</span><b id="details-privacy">خاصة · بالدعوة</b></div>
-      <div class="row"><span>ميكروفونك</span><b id="details-mic">مغلق</b></div>
-    </div>
-    <button type="button" class="action" data-close>تم</button>
-  </section>
-
-  <section class="sheet" id="sheet-room" hidden aria-label="إعدادات الغرفة">
-    <div class="sheet-grab" aria-hidden="true"></div>
-    <h3 class="sheet-title">إعدادات الغرفة</h3>
-    <div class="rows">
-      <div class="row"><span>المستوى</span><b id="set-level">المستوى ١</b></div>
-      <div class="row"><span>عدد المايكات</span><b id="set-capacity">5</b></div>
-      <div class="row"><span>المقاعد الشاغرة</span><b id="set-free">0</b></div>
-      <div class="row"><span>الخصوصية</span><b id="set-privacy">خاصة</b></div>
-    </div>
-    <label class="switch-row">
-      <span>كتم الداخلين تلقائياً</span>
-      <button type="button" class="toggle" id="set-automute" aria-pressed="false">إيقاف</button>
-    </label>
-    <label class="switch-row">
-      <span>إشعارات الغرفة</span>
-      <button type="button" class="toggle" id="set-notify" aria-pressed="true">تشغيل</button>
-    </label>
-    <label class="switch-row">
-      <span>قفل الغرفة أمام الداخلين الجدد</span>
-      <button type="button" class="toggle" id="set-lock" aria-pressed="false">مفتوحة</button>
-    </label>
-    <button type="button" class="action" id="btn-privacy">تبديل الخصوصية</button>
-    <button type="button" class="action" id="btn-upgrade">ترقية مستوى الغرفة (مايكات أكثر)</button>
-    <input id="room-name-input" class="sheet-input" type="text" placeholder="اسم الغرفة الجديد…" aria-label="اسم الغرفة الجديد" />
-    <button type="button" class="action" id="btn-rename">حفظ اسم الغرفة</button>
-    <button type="button" class="action" data-close>تم</button>
-  </section>
-
-  <section class="sheet" id="sheet-mic" hidden aria-label="اختيار الميكروفون">
-    <div class="sheet-grab" aria-hidden="true"></div>
-    <h3 class="sheet-title">اختيار الميكروفون</h3>
-    <p class="sheet-note" id="mic-note"></p>
-    <div class="device-list" id="device-list"></div>
-    <button type="button" class="action" id="btn-refresh-devices">تحديث قائمة الأجهزة</button>
-    <button type="button" class="action" data-close>إغلاق</button>
-  </section>
-
-  <section class="sheet" id="sheet-more" hidden aria-label="المزيد">
-    <div class="sheet-grab" aria-hidden="true"></div>
-    <h3 class="sheet-title">المزيد</h3>
-    <button type="button" class="action" id="btn-details">تفاصيل الغرفة</button>
-    <button type="button" class="action" id="btn-settings-more">إعدادات الغرفة</button>
-    <button type="button" class="action" id="btn-pick-mic">اختيار الميكروفون</button>
-    <button type="button" class="action" id="btn-invite">نسخ رابط الدعوة</button>
-    <button type="button" class="action" id="btn-mute-all">كتم الجميع</button>
-    <button type="button" class="action" id="btn-clear-chat">مسح الدردشة</button>
-    <button type="button" class="action action-danger" id="btn-leave">مغادرة الغرفة</button>
-    <a class="action" href="/dashboard/">لوحة التحكم</a>
-    <button type="button" class="action" data-close>إغلاق</button>
-  </section>
-
-  <div class="toast" id="toast" role="status" hidden></div>
-  <script src="./app.js?v=3"></script>
+  <div class="toast" id="toast" hidden></div>
+  <script type="module" src="/app-shell.js?v=1"></script>
 </body>
 </html>

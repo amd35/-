@@ -1,5 +1,7 @@
 "use strict";
 
+import * as api from "/api.js";
+
 const $ = (sel, root = document) => root.querySelector(sel);
 
 const ICONS = {
@@ -26,9 +28,11 @@ const ROOM_LEVELS = [5, 10, 15, 20]; // مقاعد المايك لكل مستو�
 
 function loadRoom() {
   const base = {
-    name: "غرفة الأصدقاء",
+    name: "الغرفة",
+    topic: "",
     privacy: "خاصة",
     level: 1,
+    seats: 5,
     autoMute: false,
     notify: true,
     locked: false,
@@ -50,24 +54,79 @@ function saveRoom() {
   }
 }
 
-const capacity = () => ROOM_LEVELS[Math.min(ROOM_LEVELS.length, Math.max(1, state.room.level)) - 1];
+const capacity = () => Number(state.room.seats) || 5;
+
+const levelForSeats = (seats) => {
+  const index = ROOM_LEVELS.findIndex((value) => value >= seats);
+  return index === -1 ? ROOM_LEVELS.length : index + 1;
+};
 
 const state = {
-  participants: [
-    { id: "host", name: "سارة", role: "المضيفة", initial: "س", muted: false, main: true },
-    { id: "p2", name: "علي", initial: "ع", muted: true },
-    { id: "me", name: "أنت", initial: "أ", muted: true, me: true },
-    { id: "p4", name: "نور", initial: "ن", muted: false },
-    { id: "p5", name: "حسين", initial: "ح", muted: true },
-  ],
-  messages: [
-    { id: "m1", name: "سارة", mine: false, text: "أهلاً بكم في الغرفة ✨", time: "18:02" },
-    { id: "m2", name: "علي", mine: false, text: "الصوت واضح عندي", time: "18:03" },
-  ],
+  participants: [],
+  messages: [],
+  mutedAll: false,
   mic: { status: "off", stream: null, ctx: null, analyser: null, buf: null, raf: null, deviceId: null, label: "", smooth: 0 },
   devices: [],
   room: loadRoom(),
 };
+
+/* ---------- جلسة الغرفة الحقيقية ---------- */
+
+const session = api.getSession();
+const ROOM_ID = new URLSearchParams(location.search).get("room");
+const ME_ID = session ? session.user.id : null;
+
+const clock = (iso) =>
+  iso ? new Date(iso).toLocaleTimeString("ar-IQ", { hour: "2-digit", minute: "2-digit" }) : "";
+
+function mapMembers(members) {
+  return (members || []).map((member) => ({
+    id: member.id,
+    name: member.name,
+    initial: String(member.name || "•").trim().charAt(0),
+    muted: member.id === ME_ID ? state.mic.status !== "live" : state.mutedAll,
+    main: !!member.host,
+    role: member.host ? "المضيف" : "",
+    me: member.id === ME_ID,
+  }));
+}
+
+const mapMessage = (message) => ({
+  id: message.id,
+  name: message.name,
+  mine: !!message.mine,
+  text: message.text,
+  time: clock(message.created_at),
+});
+
+function applyRoom(data) {
+  state.room.name = data.room.name;
+  state.room.topic = data.room.topic || "";
+  state.room.seats = Number(data.room.seats) || 5;
+  state.room.level = levelForSeats(state.room.seats);
+  state.participants = mapMembers(data.members);
+  state.messages = (data.messages || []).map(mapMessage);
+}
+
+let roomSignature = "";
+
+async function syncRoom(force) {
+  const data = await api.getRoom(ROOM_ID);
+  const signature =
+    data.members.map((member) => member.id).join(",") +
+    "|" +
+    data.messages.length +
+    "|" +
+    data.room.name +
+    "|" +
+    data.room.seats;
+  if (!force && signature === roomSignature) return;
+  roomSignature = signature;
+  applyRoom(data);
+  renderStage();
+  renderChat();
+  paintRoom();
+}
 
 /* ---------- المسرح ---------- */
 
@@ -108,6 +167,7 @@ function renderStage() {
   $("#stage-main").innerHTML = main ? tileHtml(main, "main") : "";
   $("#stage-grid").innerHTML =
     rest.map((p) => tileHtml(p, "small")).join("") + Array.from({ length: empty }, emptyTile).join("");
+  if (main && main.me) myTile();
   $("#room-count").textContent = String(state.participants.length);
   paintRoom();
 }
@@ -164,31 +224,34 @@ function paintRoom() {
 
 function renderChat() {
   const list = $("#chat-list");
-  list.innerHTML = state.messages
-    .map(
-      (m) =>
-        '<div class="msg' + (m.mine ? " mine" : "") + '">' +
-        '<div class="meta"><span>' + m.name + "</span><span>" + m.time + "</span></div>" +
-        "<div>" + escapeHtml(m.text) + "</div></div>"
-    )
-    .join("");
+  list.innerHTML = state.messages.length
+    ? state.messages
+        .map(
+          (m) =>
+            '<div class="msg' + (m.mine ? " mine" : "") + '">' +
+            '<div class="meta"><span>' + escapeHtml(m.name) + "</span><span>" + m.time + "</span></div>" +
+            "<div>" + escapeHtml(m.text) + "</div></div>"
+        )
+        .join("")
+    : '<p class="chat-empty">لا رسائل بعد — ابدأ الحديث.</p>';
   list.scrollTop = list.scrollHeight;
   $("#chat-hint").textContent = state.messages.length + " رسالة";
 }
 
 function escapeHtml(text) {
-  return text.replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+  return String(text).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 }
 
-function now() {
-  return new Date().toLocaleTimeString("ar-IQ", { hour: "2-digit", minute: "2-digit" });
-}
-
-function sendMessage(text) {
+async function sendMessage(text) {
   const value = text.trim();
   if (!value) return;
-  state.messages.push({ id: "m" + Date.now(), name: "أنت", mine: true, text: value, time: now() });
-  renderChat();
+  try {
+    const saved = await api.say(ROOM_ID, value);
+    state.messages.push(mapMessage(saved));
+    renderChat();
+  } catch (err) {
+    toast(err.message || "تعذّر إرسال الرسالة");
+  }
 }
 
 /* ---------- الميكروفون الحقيقي ---------- */
@@ -457,48 +520,62 @@ function wire() {
     toast(state.room.locked ? "الغرفة مقفلة أمام الداخلين الجدد" : "الغرفة مفتوحة الآن");
   });
 
-  $("#btn-upgrade").addEventListener("click", () => {
-    if (state.room.level >= ROOM_LEVELS.length) {
-      toast("الغرفة بأعلى مستوى: 20 مايك");
+  $("#btn-upgrade").addEventListener("click", async () => {
+    const next = ROOM_LEVELS.find((value) => value > capacity());
+    if (!next) {
+      toast("الغرفة بأعلى مستوى: " + ROOM_LEVELS[ROOM_LEVELS.length - 1] + " مايك");
       return;
     }
-    state.room.level += 1;
-    saveRoom();
-    renderStage();
-    toast("ترقّى المستوى إلى " + state.room.level + " — " + capacity() + " مايك");
+    try {
+      await api.updateRoom(ROOM_ID, { seats: next });
+      state.room.seats = next;
+      state.room.level = levelForSeats(next);
+      saveRoom();
+      renderStage();
+      renderChat();
+      toast("ترقّى المستوى — " + next + " مايك");
+    } catch (err) {
+      toast(err.message || "تعذّر ترقية الغرفة");
+    }
   });
 
-  $("#btn-rename").addEventListener("click", () => {
+  $("#btn-rename").addEventListener("click", async () => {
     const value = $("#room-name-input").value.trim();
     if (!value) return;
-    state.room.name = value;
-    saveRoom();
-    paintRoom();
-    toast("تم تحديث اسم الغرفة");
+    try {
+      await api.updateRoom(ROOM_ID, { name: value });
+      state.room.name = value;
+      saveRoom();
+      paintRoom();
+      toast("تم تحديث اسم الغرفة");
+    } catch (err) {
+      toast(err.message || "تعذّر تحديث اسم الغرفة");
+    }
   });
 
   $("#btn-mute-all").addEventListener("click", () => {
     stopStream();
     setMicStatus("off");
-    state.participants.forEach((p) => {
-      p.muted = true;
-    });
-    state.room.hand = false;
-    saveRoom();
+    state.mutedAll = true;
     renderStage();
     closeSheet();
-    toast("تم كتم جميع المشاركين");
+    toast("تم كتم الأصوات الواردة في هذه الجلسة");
   });
 
-  $("#btn-clear-chat").addEventListener("click", () => {
-    state.messages = [];
-    renderChat();
-    closeSheet();
-    toast("تم مسح الدردشة");
+  $("#btn-clear-chat").addEventListener("click", async () => {
+    try {
+      await api.clearChat(ROOM_ID);
+      state.messages = [];
+      renderChat();
+      closeSheet();
+      toast("تم مسح الدردشة");
+    } catch (err) {
+      toast(err.message || "مسح الدردشة متاح للمضيف فقط");
+    }
   });
 
   $("#btn-invite").addEventListener("click", async () => {
-    const link = location.origin + "/?room=main";
+    const link = location.origin + "/room/?room=" + encodeURIComponent(ROOM_ID);
     try {
       await navigator.clipboard.writeText(link);
       toast("تم نسخ رابط الدعوة");
@@ -508,12 +585,16 @@ function wire() {
     closeSheet();
   });
 
-  $("#btn-leave").addEventListener("click", () => {
+  $("#btn-leave").addEventListener("click", async () => {
     stopStream();
     setMicStatus("off");
+    try {
+      await api.leaveRoom(ROOM_ID);
+    } catch (err) {
+      // الغرفة قد تكون أُغلقت — المتابعة إلى الرئيسية في كل الأحوال
+    }
     closeSheet();
-    // الخروج من الغرفة يعني الانتقال إلى الواجهة الرئيسية (لوحة التحكم)
-    location.href = "/dashboard/";
+    location.href = "/";
   });
 
   $("#chat-form").addEventListener("submit", (e) => {
@@ -524,8 +605,29 @@ function wire() {
   });
 }
 
-renderStage();
-renderChat();
-wire();
-setMicStatus("off");
-refreshDevices();
+/* ---------- الإقلاع ---------- */
+
+async function boot() {
+  if (!session || !ROOM_ID) {
+    location.replace("/");
+    return;
+  }
+
+  try {
+    await syncRoom(true);
+  } catch (err) {
+    location.replace("/");
+    return;
+  }
+
+  wire();
+  setMicStatus("off");
+  refreshDevices();
+
+  setInterval(() => {
+    if (document.hidden) return;
+    syncRoom(false).catch(() => {});
+  }, 5000);
+}
+
+boot();

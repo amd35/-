@@ -259,6 +259,14 @@ body {
   scrollbar-width: thin;
 }
 
+.chat-empty {
+  margin: auto;
+  padding: 14px 6px;
+  text-align: center;
+  font-size: 12.5px;
+  color: var(--muted);
+}
+
 .msg {
   max-width: 84%;
   align-self: flex-start;
