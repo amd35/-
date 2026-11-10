@@ -117,6 +117,7 @@ const toSettingsRow = (settings) => ({
 
 let cache = null;
 let lastError = "";
+let remoteReady = false;
 
 function readLocal() {
   try {
@@ -136,12 +137,13 @@ function writeLocal() {
   }
 }
 
-/** يُنفَّذ مرة عند الإقلاع: يجلب البيانات من Supabase إن كان متصلاً. */
+/** يُنفَّذ مرة عند الإقلاع: يجلب البيانات من قاعدة البيانات إن كانت متصلة. */
 export async function hydrate() {
   if (!remote.isConnected()) {
     cache = readLocal();
     writeLocal();
     lastError = "";
+    remoteReady = false;
     return cache;
   }
   try {
@@ -153,27 +155,47 @@ export async function hydrate() {
       remote.select("activity_log", "select=*&order=created_at.desc&limit=" + ACTIVITY_LIMIT),
       remote.select("app_systems", "select=*"),
     ]);
-    cache = {
-      rooms: rooms.map(toRoom),
-      tasks: tasks.map(toTask),
-      profile: fromProfile(profile[0] || {}),
-      settings: fromSettings(settings[0] || {}),
-      activity: activity.map(toActivity),
-      messages: [],
-      systems: systems.reduce((map, row) => Object.assign(map, { [row.id]: row.state }), {}),
-    };
+    const empty = !rooms.length && !tasks.length && !activity.length && !systems.length;
+    if (empty) {
+      // قاعدة بيانات جديدة: تُزرع ببيانات البداية مرة واحدة لتبدأ المساحة بعناصر حقيقية.
+      const seed = defaults();
+      const first = { id: uid(), kind: "db", text: "تم ربط قاعدة البيانات وتجهيز المساحة", at: new Date().toISOString() };
+      await Promise.all([
+        remote.insert("rooms", seed.rooms),
+        remote.insert("tasks", seed.tasks),
+        remote.insert("activity_log", [{ id: first.id, kind: first.kind, text: first.text, created_at: first.at }]),
+      ]);
+      cache = Object.assign({}, seed, {
+        profile: fromProfile(profile[0] || {}),
+        settings: fromSettings(settings[0] || {}),
+        activity: [first],
+      });
+    } else {
+      cache = {
+        rooms: rooms.map(toRoom),
+        tasks: tasks.map(toTask),
+        profile: fromProfile(profile[0] || {}),
+        settings: fromSettings(settings[0] || {}),
+        activity: activity.map(toActivity),
+        messages: [],
+        systems: systems.reduce((map, row) => Object.assign(map, { [row.id]: row.state }), {}),
+      };
+    }
     lastError = "";
+    remoteReady = true;
     writeLocal();
   } catch (err) {
     cache = readLocal();
     lastError = err.message || String(err);
+    remoteReady = false;
   }
   return cache;
 }
 
 export const getDB = () => cache || (cache = readLocal());
 
-export const isRemote = () => remote.isConnected();
+/** متصل فعلياً بقاعدة البيانات (لا يكفي وجود رابط محفوظ). */
+export const isRemote = () => remoteReady;
 
 export const syncError = () => lastError;
 
@@ -194,7 +216,8 @@ export async function connectSupabase(url, anonKey) {
 }
 
 export function disconnectSupabase() {
-  remote.clearConfig();
+  remote.disconnect();
+  remoteReady = false;
   cache = readLocal();
   lastError = "";
   logActivity("db", "تم قطع الاتصال بقاعدة البيانات");

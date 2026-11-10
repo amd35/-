@@ -1,6 +1,6 @@
 "use strict";
 
-import { listActivity, isRemote } from "../store.js";
+import { listActivity, isRemote, syncError } from "../store.js";
 import { escapeHtml, fmtDateTime } from "../ui.js";
 
 const ICONS = {
@@ -21,14 +21,18 @@ export default {
 
   render(root) {
     const items = listActivity();
+    const error = syncError();
+    const hint = error
+      ? "تعذّر الوصول إلى قاعدة البيانات (" + escapeHtml(error) + ") — المعروض من هذا المتصفح."
+      : isRemote()
+        ? "يُسجَّل النشاط في قاعدة البيانات ويظهر على كل الأجهزة."
+        : "يُسجَّل النشاط محلياً في هذا المتصفح حتى تربط قاعدة البيانات.";
 
     root.innerHTML =
       '<section class="card">' +
         '<div class="card-head"><h2>النشاط الأخير</h2>' +
         '<span class="chip">' + items.length + " حركة</span></div>" +
-        '<p class="hint">' +
-        (isRemote() ? "يُسجَّل النشاط في قاعدة البيانات ويظهر على كل الأجهزة." : "يُسجَّل النشاط محلياً في هذا المتصفح حتى تربط قاعدة البيانات.") +
-        "</p>" +
+        '<p class="hint">' + hint + "</p>" +
         '<div class="rows">' +
         (items
           .map(

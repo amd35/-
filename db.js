@@ -1,23 +1,29 @@
 "use strict";
 
 /**
- * اتصال مباشر بقاعدة بيانات Supabase (Postgres) من المتصفح عبر REST.
- * يُحفظ رابط المشروع والمفتاح العام (anon) فقط في localStorage،
- * أما بيانات التطبيق فتُقرأ وتُكتب في القاعدة نفسها.
+ * اتصال مباشر بقاعدة بيانات Postgres من المتصفح عبر واجهة REST متوافقة مع Supabase.
+ * يُستخدم الاتصال الافتراضي من db-config.js، ويمكن ربط مشروع Supabase خاص
+ * من صفحة الإعدادات فيُحفظ في localStorage ويحل محل الافتراضي.
  */
+
+import { defaultDb } from "./db-config.js";
 
 const CONFIG_KEY = "sawt.supabase.v1";
 
 const cleanUrl = (value) => String(value || "").trim().replace(/\/+$/, "");
 
 export function getConfig() {
+  let saved = null;
   try {
-    const cfg = JSON.parse(localStorage.getItem(CONFIG_KEY) || "null");
-    if (!cfg || !cfg.url || !cfg.anonKey) return null;
-    return { url: cleanUrl(cfg.url), anonKey: String(cfg.anonKey) };
+    saved = JSON.parse(localStorage.getItem(CONFIG_KEY) || "null");
   } catch (err) {
-    return null;
+    saved = null;
   }
+  if (saved && saved.off) return null;
+  if (saved && saved.url && saved.anonKey) {
+    return { url: cleanUrl(saved.url), anonKey: String(saved.anonKey).trim() };
+  }
+  return defaultDb();
 }
 
 export function saveConfig(url, anonKey) {
@@ -29,6 +35,11 @@ export function saveConfig(url, anonKey) {
 
 export function clearConfig() {
   localStorage.removeItem(CONFIG_KEY);
+}
+
+/** يوقف الاتصال الافتراضي حتى يربط المستخدم قاعدة بيانات خاصة به. */
+export function disconnect() {
+  localStorage.setItem(CONFIG_KEY, JSON.stringify({ off: true }));
 }
 
 export const isConnected = () => !!getConfig();
@@ -55,11 +66,11 @@ async function request(table, params, init) {
   if (!cfg) throw new Error("لا يوجد اتصال بقاعدة بيانات.");
 
   const options = init || {};
-  const headers = {
-    apikey: cfg.anonKey,
-    Authorization: "Bearer " + cfg.anonKey,
-    Accept: "application/json",
-  };
+  const headers = { Accept: "application/json" };
+  if (cfg.anonKey) {
+    headers.apikey = cfg.anonKey;
+    headers.Authorization = "Bearer " + cfg.anonKey;
+  }
   if (options.body) {
     headers["Content-Type"] = "application/json";
     headers.Prefer = "return=representation";

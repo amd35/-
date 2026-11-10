@@ -10,26 +10,8 @@ import {
 } from "../store.js";
 import { escapeHtml, toast } from "../ui.js";
 
-function dbCardHtml(connected) {
-  const head =
-    '<div class="card-head"><h2>قاعدة البيانات</h2>' +
-    '<span class="chip ' + (connected ? "live" : "sched") + '">' +
-    (connected ? "متصل · Supabase" : "محلي فقط") +
-    "</span></div>";
-
-  if (connected) {
-    return (
-      head +
-      '<p class="hint">كل الغرف والمهام والإعدادات تُحفظ الآن في قاعدة بيانات Supabase.</p>' +
-      '<div class="form-actions">' +
-      '<button type="button" class="btn btn-danger" id="db-disconnect">قطع الاتصال</button>' +
-      "</div>"
-    );
-  }
-
+function dbFormHtml() {
   return (
-    head +
-    '<p class="hint">البيانات حالياً داخل هذا المتصفح فقط. اربط مشروع Supabase لتُحفظ في قاعدة بيانات حقيقية.</p>' +
     '<div class="field"><label for="db-url">رابط المشروع (Project URL)</label>' +
     '<input id="db-url" class="input" dir="ltr" placeholder="https://xxxx.supabase.co" /></div>' +
     '<div class="field"><label for="db-key">المفتاح العام (anon key)</label>' +
@@ -45,6 +27,33 @@ function dbCardHtml(connected) {
     "<li>من SQL Editor نفّذ محتوى الملف supabase/schema.sql.</li>" +
     "<li>من Project Settings ← API انسخ Project URL و anon key والصقهما هنا.</li>" +
     "</ol></details>"
+  );
+}
+
+function dbCardHtml(connected) {
+  const head =
+    '<div class="card-head"><h2>قاعدة البيانات</h2>' +
+    '<span class="chip ' + (connected ? "live" : "sched") + '">' +
+    (connected ? "متصل" : "محلي فقط") +
+    "</span></div>";
+
+  if (connected) {
+    return (
+      head +
+      '<p class="hint">الأنظمة الخمسون وسجل النشاط وكل البيانات تُحفظ الآن في قاعدة البيانات وتظهر على كل الأجهزة.</p>' +
+      '<div class="form-actions">' +
+      '<button type="button" class="btn btn-danger" id="db-disconnect">قطع الاتصال</button>' +
+      "</div>" +
+      '<details class="db-setup"><summary>ربط مشروع Supabase خاص</summary>' +
+      dbFormHtml() +
+      "</details>"
+    );
+  }
+
+  return (
+    head +
+    '<p class="hint">البيانات حالياً داخل هذا المتصفح فقط. اربط مشروع Supabase لتُحفظ في قاعدة بيانات حقيقية.</p>' +
+    dbFormHtml()
   );
 }
 
@@ -76,37 +85,38 @@ export default {
         "</form>" +
       "</section>";
 
-    if (connected) {
-      root.querySelector("#db-disconnect").addEventListener("click", () => {
+    const disconnectButton = root.querySelector("#db-disconnect");
+    if (disconnectButton) {
+      disconnectButton.addEventListener("click", () => {
         disconnectSupabase();
         toast("تم قطع الاتصال — البيانات عادت للتخزين المحلي");
         refresh();
       });
-    } else {
-      root.querySelector("#db-connect").addEventListener("click", async (event) => {
-        const button = event.currentTarget;
-        const error = root.querySelector("#db-error");
-        const url = root.querySelector("#db-url").value.trim();
-        const anonKey = root.querySelector("#db-key").value.trim();
-        if (!url || !anonKey) {
-          error.hidden = false;
-          error.textContent = "أدخل رابط المشروع والمفتاح العام.";
-          return;
-        }
-        button.disabled = true;
-        button.textContent = "جارٍ الربط…";
-        try {
-          await connectSupabase(url, anonKey);
-          toast("تم الربط بقاعدة البيانات");
-          refresh();
-        } catch (err) {
-          button.disabled = false;
-          button.textContent = "ربط القاعدة";
-          error.hidden = false;
-          error.textContent = err.message || "تعذّر الربط بقاعدة البيانات.";
-        }
-      });
     }
+
+    root.querySelector("#db-connect").addEventListener("click", async (event) => {
+      const button = event.currentTarget;
+      const error = root.querySelector("#db-error");
+      const url = root.querySelector("#db-url").value.trim();
+      const anonKey = root.querySelector("#db-key").value.trim();
+      if (!url || !anonKey) {
+        error.hidden = false;
+        error.textContent = "أدخل رابط المشروع والمفتاح العام.";
+        return;
+      }
+      button.disabled = true;
+      button.textContent = "جارٍ الربط…";
+      try {
+        await connectSupabase(url, anonKey);
+        toast("تم الربط بقاعدة البيانات");
+        refresh();
+      } catch (err) {
+        button.disabled = false;
+        button.textContent = "ربط القاعدة";
+        error.hidden = false;
+        error.textContent = err.message || "تعذّر الربط بقاعدة البيانات.";
+      }
+    });
 
     root.querySelector("#settings-form").addEventListener("submit", (event) => {
       event.preventDefault();
