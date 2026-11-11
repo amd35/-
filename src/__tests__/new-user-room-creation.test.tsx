@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from '@testing-library/react'
+import { cleanup, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import App from '../App'
@@ -32,7 +32,13 @@ const EXISTING_ROOM: Room = {
   featured: false,
 }
 
-const CREATED_ROOM_ID = 21
+// معرّف رقمي فريد (integer) يُستخدم كرمز خاص لكل غرفة تُنشأ في الاختبارات.
+let roomIdCounter = 900000
+function nextRoomId(): number {
+  roomIdCounter += 1
+  return roomIdCounter
+}
+
 const NEW_ROOM_TITLE = 'غرفة اختبار'
 
 // نفس بيانات الإنشاء المستخدمة في اختبارات تدفق الغرفة.
@@ -49,8 +55,10 @@ function renderApp(path = '/') {
   const user = userEvent.setup()
   let rooms: Room[] = [EXISTING_ROOM]
 
+  // رمز الغرفة الخاص: معرّف رقمي فريد لكل غرفة تُنشأ.
+  const createdRoomId = nextRoomId()
   const createdRoom: Room = {
-    id: CREATED_ROOM_ID,
+    id: createdRoomId,
     ...NEW_ROOM_PAYLOAD,
     // الخادم يعيّن المضيف الافتراضي عندما لا يُرسل مع الطلب.
     host: 'المستخدم',
@@ -71,12 +79,12 @@ function renderApp(path = '/') {
       rooms = [createdRoom, ...rooms]
       return { status: 201, json: createdRoom }
     },
-    [`POST /api/rooms/${CREATED_ROOM_ID}/join`]: () => ({ json: createdRoom }),
-    [`POST /api/rooms/${CREATED_ROOM_ID}/leave`]: () => ({ json: createdRoom }),
+    [`POST /api/rooms/${createdRoomId}/join`]: () => ({ json: createdRoom }),
+    [`POST /api/rooms/${createdRoomId}/leave`]: () => ({ json: createdRoom }),
   })
 
   render(<App />)
-  return { calls, user, createdRoom }
+  return { calls, user, createdRoom, createdRoomId }
 }
 
 function countCalls(calls: { key: string }[], key: string) {
@@ -126,8 +134,11 @@ describe('مستخدم جديد ينشئ غرفة صوتية', () => {
     expect(card).toBeInTheDocument()
   })
 
-  it('يدخل الغرفة المنشأة ويفعّل المايك ثم يخرج منها', async () => {
-    const { calls, user } = renderApp()
+  it('يدخل الغرفة المنشأة عبر رمزها الرقمي ويفعّل المايك ثم يخرج منها', async () => {
+    const { calls, user, createdRoomId } = renderApp()
+
+    expect(Number.isInteger(createdRoomId)).toBe(true)
+    expect(createdRoomId).toBeGreaterThan(0)
 
     await createRoomThroughForm(user)
     await waitFor(() => expect(countCalls(calls, 'POST /api/rooms')).toBe(1))
@@ -136,7 +147,7 @@ describe('مستخدم جديد ينشئ غرفة صوتية', () => {
       '[data-testid="room-card"]',
     ) as HTMLElement | null
     expect(newCard).not.toBeNull()
-    expect(newCard?.getAttribute('data-room-id')).toBe(String(CREATED_ROOM_ID))
+    expect(newCard?.getAttribute('data-room-id')).toBe(String(createdRoomId))
 
     await user.click(newCard as HTMLElement)
 
@@ -144,7 +155,7 @@ describe('مستخدم جديد ينشئ غرفة صوتية', () => {
       await screen.findByRole('heading', { level: 2, name: NEW_ROOM_TITLE }),
     ).toBeInTheDocument()
     await waitFor(() =>
-      expect(countCalls(calls, `POST /api/rooms/${CREATED_ROOM_ID}/join`)).toBe(1),
+      expect(countCalls(calls, `POST /api/rooms/${createdRoomId}/join`)).toBe(1),
     )
 
     const mic = screen.getByTestId('mic-toggle')
@@ -157,8 +168,25 @@ describe('مستخدم جديد ينشئ غرفة صوتية', () => {
     await user.click(screen.getByRole('button', { name: 'خروج' }))
 
     await waitFor(() => expect(screen.queryByTestId('mic-toggle')).not.toBeInTheDocument())
-    expect(countCalls(calls, `POST /api/rooms/${CREATED_ROOM_ID}/leave`)).toBe(1)
+    expect(countCalls(calls, `POST /api/rooms/${createdRoomId}/leave`)).toBe(1)
+    expect(countCalls(calls, 'POST /api/rooms/1/join')).toBe(0)
     expect(await screen.findByTestId('create-room-link')).toBeInTheDocument()
+  })
+
+  it('يمنح كل غرفة منشأة معرّفاً رقمياً فريداً', async () => {
+    const first = renderApp()
+    await createRoomThroughForm(first.user)
+    await waitFor(() => expect(countCalls(first.calls, 'POST /api/rooms')).toBe(1))
+    cleanup()
+
+    const second = renderApp()
+    await createRoomThroughForm(second.user)
+    await waitFor(() => expect(countCalls(second.calls, 'POST /api/rooms')).toBe(1))
+
+    expect(Number.isInteger(first.createdRoomId)).toBe(true)
+    expect(Number.isInteger(second.createdRoomId)).toBe(true)
+    expect(first.createdRoomId).not.toBe(second.createdRoomId)
+    expect(second.createdRoomId).toBeGreaterThan(first.createdRoomId)
   })
 
   it('يحفظ المستخدم الجديد رمزه الجديد (@handle) في الملف الشخصي', async () => {
