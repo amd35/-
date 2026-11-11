@@ -14,7 +14,7 @@ export default function SeatGrid({ seats }: { seats: RoomSeat[] }) {
   return (
     <div
       data-testid="seat-grid"
-      className="glass-deep grid grid-cols-4 gap-x-2 gap-y-4 rounded-[1.75rem] p-3"
+      className="glass-deep grid w-full grid-cols-4 gap-x-1.5 gap-y-3 rounded-[1.25rem] p-2.5 sm:mx-auto sm:max-w-lg sm:gap-x-2.5 sm:gap-y-4 sm:rounded-[1.75rem] sm:p-3.5 lg:max-w-2xl lg:gap-x-4 lg:gap-y-5 lg:p-4"
     >
       {slots.map((index) => {
         const seat = index < seats.length ? seats[index] : null
@@ -24,7 +24,7 @@ export default function SeatGrid({ seats }: { seats: RoomSeat[] }) {
             key={index}
             data-testid="seat"
             data-state={seat ? 'occupied' : 'empty'}
-            className="flex flex-col items-center gap-1"
+            className="flex min-w-0 flex-col items-center gap-1"
           >
             {seat ? (
               <>
@@ -58,16 +58,16 @@ export default function SeatGrid({ seats }: { seats: RoomSeat[] }) {
                     )}
                   </span>
                 </div>
-                <span className="w-full truncate text-center text-[10px] text-slate-200">
+                <span className="w-full truncate text-center text-[10px] leading-tight text-slate-200 sm:text-[11px]">
                   {seat.name}
                 </span>
               </>
             ) : (
               <>
-                <span className="flex size-11 items-center justify-center rounded-full border border-dashed border-white/25 bg-white/[0.03] text-white/40">
+                <span className="flex size-10 items-center justify-center rounded-full border border-dashed border-white/25 bg-white/[0.03] text-white/40 sm:size-11">
                   <Mic size={15} />
                 </span>
-                <span className="text-[10px] text-slate-500">فارغ</span>
+                <span className="text-[10px] leading-tight text-slate-500 sm:text-[11px]">فارغ</span>
               </>
             )}
           </div>
