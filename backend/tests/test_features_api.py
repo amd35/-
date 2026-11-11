@@ -99,7 +99,7 @@ def test_profile_returns_all_expected_fields(client):
 
 def test_notifications_list_shape(client):
     items = client.get("/api/notifications").json()
-    assert items
+    assert isinstance(items, list)
     for item in items:
         assert {"id", "title", "body", "kind", "read", "created_at"} <= set(item)
 
@@ -219,7 +219,8 @@ def test_creating_room_adds_activity(client, new_room):
 
 def test_friends_status_ordering(client):
     friends = client.get("/api/friends").json()
-    assert friends
+    assert isinstance(friends, list)
+    # المتصلون أولًا؛ والقائمة فارغة عندما لا توجد بيانات حقيقية.
     online_flags = [friend["online"] for friend in friends]
     assert online_flags == sorted(online_flags, reverse=True)
 

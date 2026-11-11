@@ -24,7 +24,7 @@ from .models import (
     Task,
     now_iso,
 )
-from .seed import seed
+from .bootstrap import prepare_database
 
 GAMES = [
     {"key": "ludo", "name": "لودو", "players": "2 - 4", "accent": "#f59e0b"},
@@ -38,7 +38,7 @@ GAMES = [
 async def lifespan(_: FastAPI):
     for attempt in range(15):
         try:
-            seed()
+            prepare_database()
             break
         except OperationalError:
             if attempt == 14:

@@ -117,24 +117,29 @@ def test_missing_room_returns_404(client, action):
         ("ستاند", "ستاند"),
     ],
 )
-def test_search_returns_matching_rooms(client, query, expected_substring):
+def test_search_returns_matching_rooms(client, new_room, query, expected_substring):
+    room = new_room(title=f"{expected_substring} — {uuid.uuid4().hex[:6]}")
     rooms = client.get("/api/rooms", params={"q": query}).json()
-    assert rooms, f"لا نتائج للبحث {query}"
+    assert any(item["id"] == room["id"] for item in rooms), f"لا نتائج للبحث {query}"
     assert all(
-        expected_substring in room["title"] or expected_substring in room["host"] for room in rooms
+        expected_substring in item["title"] or expected_substring in item["host"] for item in rooms
     )
 
 
-def test_battle_filter_only_returns_battle_rooms(client):
+def test_battle_filter_only_returns_battle_rooms(client, new_room):
+    battle = new_room(title=title_for("battle"), is_battle=True, game="ludo")
+    new_room(title=title_for("normal"), is_battle=False)
     rooms = client.get("/api/rooms", params={"battle": True}).json()
-    assert rooms
-    assert all(room["is_battle"] for room in rooms)
+    assert any(item["id"] == battle["id"] for item in rooms)
+    assert all(item["is_battle"] for item in rooms)
 
 
-def test_non_battle_filter_excludes_battle_rooms(client):
+def test_non_battle_filter_excludes_battle_rooms(client, new_room):
+    plain = new_room(title=title_for("plain"), is_battle=False)
+    new_room(title=title_for("versus"), is_battle=True, game="ludo")
     rooms = client.get("/api/rooms", params={"battle": False}).json()
-    assert rooms
-    assert all(not room["is_battle"] for room in rooms)
+    assert any(item["id"] == plain["id"] for item in rooms)
+    assert all(not item["is_battle"] for item in rooms)
 
 
 def test_featured_filter_returns_featured_only(client):
@@ -143,12 +148,14 @@ def test_featured_filter_returns_featured_only(client):
 
 
 @pytest.mark.parametrize("query", ["zzz-no-room", "غرفة غير موجودة", "!!!", "  "])
-def test_search_without_matches(client, query):
+def test_search_without_matches(client, new_room, query):
+    room = new_room(title=title_for("search-empty"))
     rooms = client.get("/api/rooms", params={"q": query}).json()
     if query.strip() == "":
-        assert rooms
+        # بحث فارغ يعيد كل الغرف، ومنها الغرفة الحقيقية المُنشأة في الاختبار.
+        assert any(item["id"] == room["id"] for item in rooms)
     else:
-        assert rooms == [] or all(query in room["title"] for room in rooms)
+        assert all(item["id"] != room["id"] for item in rooms)
 
 
 def test_new_room_is_listed_immediately(client, new_room):
