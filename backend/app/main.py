@@ -3,7 +3,7 @@ import time
 from collections import Counter
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 from sqlalchemy import select
@@ -24,6 +24,7 @@ from .models import (
     now_iso,
 )
 from .bootstrap import prepare_database
+from .realtime import RoomHub
 
 GAMES = [
     {"key": "ludo", "name": "لودو", "players": "2 - 4", "accent": "#f59e0b"},
@@ -47,6 +48,9 @@ async def lifespan(_: FastAPI):
 
 
 app = FastAPI(title="يلا فون API", lifespan=lifespan)
+
+# حضور الغرف وإشارات المكالمة الصوتية (WebRTC) في الذاكرة.
+hub = RoomHub()
 
 app.add_middleware(
     CORSMiddleware,
@@ -268,6 +272,60 @@ def leave_room(room_id: int) -> dict:
         session.commit()
         session.refresh(found)
         return room_dict(found)
+
+
+@app.websocket("/api/ws/rooms/{room_id}")
+async def room_audio(
+    websocket: WebSocket, room_id: int, client_id: str, name: str = "مستخدم"
+) -> None:
+    """قناة المكالمة الصوتية: حضور الأعضاء وتبادل إشارات WebRTC والهدايا."""
+
+    with Session(engine) as session:
+        if session.get(Room, room_id) is None:
+            await websocket.close(code=4404)
+            return
+
+    await websocket.accept()
+    others = await hub.join(room_id, client_id, name[:60] or "مستخدم", websocket)
+    await websocket.send_json(
+        {"type": "welcome", "client_id": client_id, "peers": others}
+    )
+    try:
+        while True:
+            message = await websocket.receive_json()
+            kind = message.get("type")
+            if kind == "signal":
+                target = str(message.get("target") or "")
+                await hub.send_to(
+                    room_id,
+                    target,
+                    {
+                        "type": "signal",
+                        "from": client_id,
+                        "data": message.get("data"),
+                    },
+                )
+            elif kind == "state":
+                hub.set_state(
+                    room_id, client_id, mic=message.get("mic"), hand=message.get("hand")
+                )
+                await hub.broadcast(
+                    room_id, {"type": "presence", "peers": hub.peers(room_id)}
+                )
+            elif kind == "gift":
+                emoji = str(message.get("emoji") or "🌹")[:8]
+                await hub.broadcast(
+                    room_id,
+                    {
+                        "type": "gift",
+                        "from_name": hub.name_of(room_id, client_id),
+                        "emoji": emoji,
+                    },
+                )
+    except WebSocketDisconnect:
+        pass
+    finally:
+        await hub.leave(room_id, client_id)
 
 
 # --- friends -----------------------------------------------------------------

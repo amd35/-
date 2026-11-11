@@ -1,48 +1,65 @@
-import { Crown, Mic } from 'lucide-react'
+import { Crown, Hand, Mic, MicOff } from 'lucide-react'
 import Avatar from './Avatar'
-import type { Room } from '../lib/api'
+
+export type RoomSeat = { name: string; mic: boolean; hand: boolean; host: boolean }
 
 const COLUMNS = 4
 const ROWS = 8
 const SEATS = COLUMNS * ROWS
 
 /** شبكة المقاعد الأساسية للغرفة: 4 أعمدة × 8 صفوف = 32 مقعدًا. */
-export default function SeatGrid({ room }: { room: Room }) {
-  const taken = Math.min(room.seats_taken, SEATS)
-  const seats = Array.from({ length: SEATS }, (_, index) => index)
+export default function SeatGrid({ seats }: { seats: RoomSeat[] }) {
+  const slots = Array.from({ length: SEATS }, (_, index) => index)
 
   return (
     <div
       data-testid="seat-grid"
       className="glass-deep grid grid-cols-4 gap-x-2 gap-y-4 rounded-[1.75rem] p-3"
     >
-      {seats.map((index) => {
-        const occupied = index < taken
-        const name = index === 0 ? room.host : index === 1 ? 'أنت' : 'مستمع'
+      {slots.map((index) => {
+        const seat = index < seats.length ? seats[index] : null
 
         return (
           <div
             key={index}
             data-testid="seat"
-            data-state={occupied ? 'occupied' : 'empty'}
+            data-state={seat ? 'occupied' : 'empty'}
             className="flex flex-col items-center gap-1"
           >
-            {occupied ? (
+            {seat ? (
               <>
                 <div className="relative">
-                  <Avatar name={name} size={44} />
-                  {index === 0 && (
+                  <Avatar name={seat.name} size={44} />
+                  {seat.host && (
                     <Crown
                       size={14}
                       className="absolute -top-2 left-1/2 -translate-x-1/2 text-amber-300"
                     />
                   )}
-                  <span className="absolute -bottom-1 left-1/2 flex size-4 -translate-x-1/2 items-center justify-center rounded-full bg-emerald-500 ring-2 ring-[#0b0614]">
-                    <Mic size={9} className="text-white" />
+                  {seat.hand && (
+                    <span
+                      data-testid="seat-hand"
+                      className="absolute -top-2 right-0 flex size-4 items-center justify-center rounded-full bg-amber-300 text-[9px] text-[#1a0f27]"
+                    >
+                      <Hand size={9} />
+                    </span>
+                  )}
+                  <span
+                    data-testid="seat-mic"
+                    data-on={seat.mic ? 'true' : 'false'}
+                    className={`absolute -bottom-1 left-1/2 flex size-4 -translate-x-1/2 items-center justify-center rounded-full ring-2 ring-[#0b0614] ${
+                      seat.mic ? 'bg-emerald-500' : 'bg-slate-600'
+                    }`}
+                  >
+                    {seat.mic ? (
+                      <Mic size={9} className="text-white" />
+                    ) : (
+                      <MicOff size={9} className="text-white" />
+                    )}
                   </span>
                 </div>
                 <span className="w-full truncate text-center text-[10px] text-slate-200">
-                  {name}
+                  {seat.name}
                 </span>
               </>
             ) : (

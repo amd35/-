@@ -82,6 +82,19 @@ function countCalls(calls: Call[], key: string) {
   return calls.filter((call) => call.key === key).length
 }
 
+function stubMicrophone(permitted = true) {
+  const track = { kind: 'audio', enabled: false, stop: vi.fn() }
+  const stream = { getAudioTracks: () => [track], getTracks: () => [track] }
+  const getUserMedia = permitted
+    ? vi.fn().mockResolvedValue(stream)
+    : vi.fn().mockRejectedValue(new Error('denied'))
+  Object.defineProperty(navigator, 'mediaDevices', {
+    configurable: true,
+    value: { getUserMedia },
+  })
+  return { track, getUserMedia }
+}
+
 async function openRoom(user: UserEvent, room: Room) {
   await waitFor(() => expect(roomCards().length).toBeGreaterThan(0))
   await user.click(roomCard(room.id))
@@ -90,6 +103,7 @@ async function openRoom(user: UserEvent, room: Room) {
 
 afterEach(() => {
   vi.unstubAllGlobals()
+  stubMicrophone()
 })
 
 describe('تدفق دخول الغرف الصوتية وتفعيل المايك', () => {
@@ -116,9 +130,11 @@ describe('تدفق دخول الغرف الصوتية وتفعيل المايك'
 
   it('يبدأ المايك مطفأً، ويتحول إلى مفعّل عند الضغط دون أي طلب شبكة إضافي', async () => {
     const { calls, user } = renderApp()
+    stubMicrophone()
 
     await openRoom(user, ROOMS[0])
     await waitFor(() => expect(countCalls(calls, 'POST /api/rooms/1/join')).toBe(1))
+    await waitFor(() => expect(countCalls(calls, 'GET /api/me')).toBeGreaterThanOrEqual(2))
 
     const mic = screen.getByTestId('mic-toggle')
     expect(mic).toHaveAttribute('aria-pressed', 'false')
@@ -141,6 +157,31 @@ describe('تدفق دخول الغرف الصوتية وتفعيل المايك'
     expect(mic.querySelector('.lucide-mic-off')).not.toBeNull()
     expect(calls.length).toBe(callsBeforeMic)
     expect(countCalls(calls, 'POST /api/rooms/1/join')).toBe(1)
+  })
+
+  it('يبقى المايك مطفأً ويظهر تنبيه واضح عند رفض إذن المِيكروفون', async () => {
+    const { user } = renderApp()
+    stubMicrophone(false)
+
+    await openRoom(user, ROOMS[0])
+    await user.click(screen.getByTestId('mic-toggle'))
+
+    expect(await screen.findByTestId('mic-error')).toHaveTextContent('إذن المِيكروفون')
+    expect(screen.getByTestId('mic-toggle')).toHaveAttribute('aria-pressed', 'false')
+  })
+
+  it('يرسل حالة رفع اليد ويُظهر هدية الغرفة عند استلامها', async () => {
+    const { user } = renderApp()
+
+    await openRoom(user, ROOMS[0])
+    const hand = screen.getByTestId('raise-hand')
+    expect(hand).toHaveAttribute('aria-pressed', 'false')
+
+    await user.click(hand)
+    expect(hand).toHaveAttribute('aria-pressed', 'true')
+    expect(hand).toHaveTextContent('يدك مرفوعة')
+
+    await user.click(screen.getByTestId('gift-🌹'))
   })
 
   it('يغادر الغرفة عند الضغط على زر الخروج ويغلق شاشة الغرفة', async () => {
