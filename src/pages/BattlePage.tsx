@@ -33,7 +33,7 @@ export default function BattlePage({ onOpenRoom }: { onOpenRoom: (room: Room) =>
         <p className="mt-1 text-xs text-slate-400">العب مع أصحابك داخل غرفة صوتية واربح النقاط</p>
       </header>
 
-      <div className="relative mt-4 overflow-hidden rounded-3xl border border-amber-300/20 bg-gradient-to-l from-amber-500/20 via-fuchsia-600/15 to-transparent p-4">
+      <div className="photo-base photo-petals relative mt-4 overflow-hidden rounded-3xl border border-amber-300/20 p-4">
         <p className="flex items-center gap-1.5 text-[11px] font-bold text-amber-300">
           <Flame size={14} /> بطولة الأسبوع
         </p>

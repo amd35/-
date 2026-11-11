@@ -1,32 +1,44 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { ChevronRight, Crown, Headphones, Mic, MicOff, Share2, Sparkles, Users } from 'lucide-react'
 import Avatar from './Avatar'
-import type { Room } from '../lib/api'
+import { api, type Room } from '../lib/api'
 
 const SEAT_NAMES = ['أبو رعد', 'سارة', 'حسن', 'زينب', 'مصطفى', 'نور', 'مؤيد']
 
 export default function RoomOverlay({ room, onClose }: { room: Room; onClose: () => void }) {
   const [micOn, setMicOn] = useState(false)
   const [joined, setJoined] = useState(true)
+  const onCloseRef = useRef<() => void>(() => {})
+
+  useEffect(() => {
+    api.joinRoom(room.id).catch(() => undefined)
+  }, [room.id])
 
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') onClose()
+      if (event.key === 'Escape') onCloseRef.current?.()
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [onClose])
+  }, [])
+
+  function handleClose() {
+    api.leaveRoom(room.id).catch(() => undefined)
+    onClose()
+  }
+
+  onCloseRef.current = handleClose
 
   const seats = Array.from({ length: room.seats_total }, (_, index) => index)
 
   return (
-    <div className="fixed inset-0 z-50 flex flex-col bg-[#0a0613]">
-      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_80%_-10%,rgba(217,70,239,0.22),transparent_55%)]" />
+    <div className="photo-base photo-evening fixed inset-0 z-50 flex flex-col bg-[#0a0613]">
+      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_80%_-10%,rgba(244,114,182,0.28),transparent_55%)]" />
 
       <header className="relative flex items-center gap-2 px-4 pt-5 pb-3">
         <button
           type="button"
-          onClick={onClose}
+          onClick={handleClose}
           aria-label="رجوع"
           className="flex size-9 items-center justify-center rounded-full bg-white/10 text-white"
         >
@@ -104,10 +116,7 @@ export default function RoomOverlay({ room, onClose }: { room: Room; onClose: ()
           </p>
           <div className="mt-3 flex gap-2 text-2xl">
             {['🌹', '🦋', '💎', '🏆', '🚀'].map((gift) => (
-              <span
-                key={gift}
-                className="flex size-11 items-center justify-center rounded-xl bg-white/10"
-              >
+              <span key={gift} className="flex size-11 items-center justify-center rounded-xl bg-white/10">
                 {gift}
               </span>
             ))}
@@ -146,7 +155,7 @@ export default function RoomOverlay({ room, onClose }: { room: Room; onClose: ()
         </button>
         <button
           type="button"
-          onClick={onClose}
+          onClick={handleClose}
           className="rounded-full bg-rose-500/15 px-4 py-3 text-xs font-bold text-rose-300"
         >
           خروج

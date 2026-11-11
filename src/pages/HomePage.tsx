@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
+import { Link } from 'react-router-dom'
 import { Bell, Coins, Gem, Plus, Search } from 'lucide-react'
 import Avatar from '../components/Avatar'
 import RoomCard from '../components/RoomCard'
@@ -46,32 +47,37 @@ export default function HomePage({ onOpenRoom }: { onOpenRoom: (room: Room) => v
 
   return (
     <div>
-      <header className="flex items-center gap-3">
-        <Avatar name={me?.name ?? 'المستخدم'} size={44} online />
-        <div className="min-w-0 flex-1">
-          <p className="text-xs text-slate-400">أهلًا بعودتك</p>
-          <h1 className="truncate text-lg leading-tight font-black text-white">
-            {me?.name ?? '…'}
-          </h1>
+      <section className="photo-base photo-roses relative overflow-hidden rounded-3xl border border-white/10 p-4 shadow-lg shadow-rose-950/30">
+        <div className="relative flex items-center gap-3">
+          <Avatar name={me?.name ?? 'المستخدم'} size={44} online />
+          <div className="min-w-0 flex-1">
+            <p className="text-[11px] text-rose-100/80">أهلًا بعودتك</p>
+            <h1 className="truncate text-lg leading-tight font-black text-white">
+              {me?.name ?? '…'}
+            </h1>
+            <p className="mt-0.5 text-[10px] font-semibold tracking-wide text-rose-200/80">
+              يلا فون · غرف دردشة صوتية
+            </p>
+          </div>
+          <button
+            type="button"
+            aria-label="التنبيهات"
+            className="relative flex size-10 items-center justify-center rounded-full border border-white/15 bg-black/30 text-white backdrop-blur"
+          >
+            <Bell size={18} />
+            <span className="absolute top-2 left-2.5 size-2 rounded-full bg-rose-500" />
+          </button>
         </div>
-        <button
-          type="button"
-          aria-label="التنبيهات"
-          className="relative flex size-10 items-center justify-center rounded-full border border-white/10 bg-white/5 text-slate-200"
-        >
-          <Bell size={18} />
-          <span className="absolute top-2 left-2.5 size-2 rounded-full bg-rose-500" />
-        </button>
-      </header>
 
-      <div className="mt-4 flex items-center gap-2">
-        <span className="flex flex-1 items-center gap-1.5 rounded-2xl border border-amber-300/20 bg-amber-300/10 px-3 py-2 text-xs font-bold text-amber-200">
-          <Coins size={15} /> {(me?.coins ?? 0).toLocaleString('en-US')}
-        </span>
-        <span className="flex flex-1 items-center gap-1.5 rounded-2xl border border-cyan-300/20 bg-cyan-300/10 px-3 py-2 text-xs font-bold text-cyan-200">
-          <Gem size={15} /> {(me?.diamonds ?? 0).toLocaleString('en-US')}
-        </span>
-      </div>
+        <div className="relative mt-3 flex items-center gap-2">
+          <span className="flex flex-1 items-center gap-1.5 rounded-2xl border border-amber-300/25 bg-black/30 px-3 py-2 text-xs font-bold text-amber-200 backdrop-blur">
+            <Coins size={15} /> {(me?.coins ?? 0).toLocaleString('en-US')}
+          </span>
+          <span className="flex flex-1 items-center gap-1.5 rounded-2xl border border-cyan-300/25 bg-black/30 px-3 py-2 text-xs font-bold text-cyan-200 backdrop-blur">
+            <Gem size={15} /> {(me?.diamonds ?? 0).toLocaleString('en-US')}
+          </span>
+        </div>
+      </section>
 
       <div className="mt-4 flex items-center gap-2 rounded-2xl border border-white/10 bg-white/5 px-3 py-2.5">
         <Search size={17} className="text-slate-400" />
@@ -141,12 +147,13 @@ export default function HomePage({ onOpenRoom }: { onOpenRoom: (room: Room) => v
         </div>
       </section>
 
-      <button
-        type="button"
+      <Link
+        to="/add-item"
+        data-testid="create-room-link"
         className="mt-5 flex w-full items-center justify-center gap-2 rounded-2xl bg-gradient-to-l from-fuchsia-500 to-violet-600 py-3.5 text-sm font-black text-white shadow-lg shadow-fuchsia-900/40"
       >
         <Plus size={18} /> أنشئ غرفة جديدة
-      </button>
+      </Link>
     </div>
   )
 }

@@ -1,24 +1,39 @@
-import { useState } from 'react'
-import BottomNav, { type Tab } from './components/BottomNav'
-import RoomOverlay from './components/RoomOverlay'
-import BattlePage from './pages/BattlePage'
-import FriendsPage from './pages/FriendsPage'
-import HomePage from './pages/HomePage'
-import type { Room } from './lib/api'
+import { BrowserRouter, Route, Routes } from 'react-router-dom'
+import AppShell from './components/AppShell'
+import ActivityLogPage from './pages/ActivityLogPage'
+import AddItemPage from './pages/AddItemPage'
+import AnalyticsPage from './pages/AnalyticsPage'
+import ContactPage from './pages/ContactPage'
+import DashboardPage from './pages/DashboardPage'
+import DataListPage from './pages/DataListPage'
+import FaqPage from './pages/FaqPage'
+import HelpPage from './pages/HelpPage'
+import MainApp from './pages/MainApp'
+import NotificationsPage from './pages/NotificationsPage'
+import ProfilePage from './pages/ProfilePage'
+import SettingsPage from './pages/SettingsPage'
+import TasksPage from './pages/TasksPage'
 
 export default function App() {
-  const [tab, setTab] = useState<Tab>('home')
-  const [openRoom, setOpenRoom] = useState<Room | null>(null)
-  const [requestCount, setRequestCount] = useState(0)
-
   return (
-    <div className="mx-auto min-h-dvh w-full max-w-xl px-5 pt-6 pb-28">
-      {tab === 'home' && <HomePage onOpenRoom={setOpenRoom} />}
-      {tab === 'battle' && <BattlePage onOpenRoom={setOpenRoom} />}
-      {tab === 'friends' && <FriendsPage onCountChange={setRequestCount} />}
-
-      <BottomNav tab={tab} onChange={setTab} friendsBadge={requestCount} />
-      {openRoom && <RoomOverlay room={openRoom} onClose={() => setOpenRoom(null)} />}
-    </div>
+    <BrowserRouter>
+      <Routes>
+        <Route element={<AppShell />}>
+          <Route index element={<MainApp />} />
+          <Route path="/dashboard" element={<DashboardPage />} />
+          <Route path="/data-list" element={<DataListPage />} />
+          <Route path="/add-item" element={<AddItemPage />} />
+          <Route path="/analytics" element={<AnalyticsPage />} />
+          <Route path="/tasks" element={<TasksPage />} />
+          <Route path="/profile" element={<ProfilePage />} />
+          <Route path="/settings" element={<SettingsPage />} />
+          <Route path="/notifications" element={<NotificationsPage />} />
+          <Route path="/activity-log" element={<ActivityLogPage />} />
+          <Route path="/faq" element={<FaqPage />} />
+          <Route path="/help" element={<HelpPage />} />
+          <Route path="/contact" element={<ContactPage />} />
+        </Route>
+      </Routes>
+    </BrowserRouter>
   )
 }
