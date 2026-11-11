@@ -3,8 +3,6 @@ import { ChevronRight, Crown, Headphones, Mic, MicOff, Share2, Sparkles, Users }
 import Avatar from './Avatar'
 import { api, type Room } from '../lib/api'
 
-const SEAT_NAMES = ['أبو رعد', 'سارة', 'حسن', 'زينب', 'مصطفى', 'نور', 'مؤيد']
-
 export default function RoomOverlay({ room, onClose }: { room: Room; onClose: () => void }) {
   const [micOn, setMicOn] = useState(false)
   const [joined, setJoined] = useState(true)
@@ -63,7 +61,7 @@ export default function RoomOverlay({ room, onClose }: { room: Room; onClose: ()
         <div className="glass-deep grid grid-cols-4 gap-3 rounded-[1.75rem] p-4">
           {seats.map((index) => {
             const occupied = index < room.seats_taken
-            const name = index === 0 ? room.host : SEAT_NAMES[(index - 1) % SEAT_NAMES.length]
+            const name = index === 0 ? room.host : index === 1 ? 'أنت' : 'مستمع'
             return (
               <div key={index} className="flex flex-col items-center gap-1.5">
                 {occupied ? (
