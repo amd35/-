@@ -33,7 +33,8 @@ export default function RoomOverlay({ room, onClose }: { room: Room; onClose: ()
 
   return (
     <div className="photo-base photo-evening fixed inset-0 z-50 flex flex-col bg-[#0a0613]">
-      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_80%_-10%,rgba(244,114,182,0.28),transparent_55%)]" />
+      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_80%_-10%,rgba(244,114,182,0.32),transparent_55%)]" />
+      <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-[#0a0613]/65 via-transparent to-[#0a0613]/95" />
 
       <header className="relative flex items-center gap-2 px-4 pt-5 pb-3">
         <button
@@ -59,7 +60,7 @@ export default function RoomOverlay({ room, onClose }: { room: Room; onClose: ()
       </header>
 
       <div className="relative flex-1 overflow-y-auto px-4">
-        <div className="grid grid-cols-4 gap-3 rounded-3xl border border-white/10 bg-white/[0.04] p-4">
+        <div className="glass-deep grid grid-cols-4 gap-3 rounded-[1.75rem] p-4">
           {seats.map((index) => {
             const occupied = index < room.seats_taken
             const name = index === 0 ? room.host : SEAT_NAMES[(index - 1) % SEAT_NAMES.length]
@@ -110,13 +111,16 @@ export default function RoomOverlay({ room, onClose }: { room: Room; onClose: ()
           <span className="text-xs text-slate-400">{joined ? 'استمع الآن' : 'انضم'}</span>
         </button>
 
-        <div className="mt-4 rounded-2xl border border-white/10 bg-white/[0.03] p-4">
-          <p className="flex items-center gap-2 text-xs font-bold text-fuchsia-300">
-            <Sparkles size={14} /> الهدايا المدعومة
+        <div className="glass mt-4 rounded-3xl p-4">
+          <p className="flex items-center gap-2 text-xs font-bold text-blush-200">
+            <Sparkles size={14} className="text-amber-300" /> الهدايا المدعومة
           </p>
           <div className="mt-3 flex gap-2 text-2xl">
             {['🌹', '🦋', '💎', '🏆', '🚀'].map((gift) => (
-              <span key={gift} className="flex size-11 items-center justify-center rounded-xl bg-white/10">
+              <span
+                key={gift}
+                className="flex size-11 items-center justify-center rounded-xl border border-white/10 bg-white/10"
+              >
                 {gift}
               </span>
             ))}
@@ -148,7 +152,9 @@ export default function RoomOverlay({ room, onClose }: { room: Room; onClose: ()
           onClick={() => setMicOn((value) => !value)}
           aria-pressed={micOn}
           className={`flex size-16 items-center justify-center rounded-full text-white shadow-lg transition ${
-            micOn ? 'bg-emerald-500' : 'bg-fuchsia-600'
+            micOn
+              ? 'bg-emerald-500 shadow-[0_0_26px_-2px_rgba(16,185,129,0.7)]'
+              : 'bg-gradient-to-br from-rose-500 to-fuchsia-600 shadow-[0_0_26px_-2px_rgba(236,72,153,0.85)]'
           }`}
         >
           {micOn ? <Mic size={24} /> : <MicOff size={24} />}

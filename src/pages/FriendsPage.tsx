@@ -1,6 +1,18 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Check, Clock, Headphones, MessageCircle, Search, UserPlus, Users, X } from 'lucide-react'
+import {
+  Check,
+  Clock,
+  Headphones,
+  Heart,
+  MessageCircle,
+  Search,
+  UserPlus,
+  Users,
+  X,
+} from 'lucide-react'
 import Avatar from '../components/Avatar'
+import PageBackdrop from '../components/PageBackdrop'
+import { EmptyState, PageHeader } from '../components/ui'
 import { api, type Friend, type FriendRequest } from '../lib/api'
 
 type View = 'friends' | 'requests'
@@ -46,10 +58,10 @@ function FriendRow({ friend }: { friend: Friend }) {
     <li
       data-testid="friend-row"
       data-status={statusOf(friend)}
-      className={`flex items-center gap-3 rounded-2xl border p-3 transition ${
+      className={`flex items-center gap-3 rounded-3xl border p-3 backdrop-blur-md transition ${
         online
-          ? 'border-emerald-400/20 bg-emerald-400/[0.06]'
-          : 'border-white/10 bg-white/[0.03]'
+          ? 'border-emerald-300/25 bg-emerald-400/[0.08]'
+          : 'border-white/10 bg-white/[0.05]'
       }`}
     >
       <Avatar name={friend.name} size={46} online={online} />
@@ -130,61 +142,66 @@ export default function FriendsPage({
   const visibleOffline = offlineFriends.filter((friend) => term === '' || friend.name.includes(term))
 
   return (
-    <div>
-      <header className="flex items-end justify-between">
-        <div>
-          <h1 className="text-2xl font-black text-white">الأصدقاء</h1>
-          <p className="mt-1 text-xs text-slate-400" data-testid="friends-summary">
-            {friends?.length ?? 0} صديق · {onlineFriends.length} متصل الآن
-          </p>
-        </div>
-        <button
-          type="button"
-          aria-label="إضافة صديق"
-          className="flex size-10 items-center justify-center rounded-full bg-fuchsia-600 text-white shadow-lg shadow-fuchsia-900/40"
-        >
-          <UserPlus size={18} />
-        </button>
-      </header>
+    <PageBackdrop photo="couple">
+      <PageHeader
+        eyebrow="أحبّاؤك"
+        title="الأصدقاء"
+        subtitle={`${friends?.length ?? 0} صديق · ${onlineFriends.length} متصل الآن`}
+        action={
+          <button
+            type="button"
+            aria-label="إضافة صديق"
+            className="blush-glow flex size-10 items-center justify-center rounded-full bg-gradient-to-br from-rose-500 to-fuchsia-600 text-white transition active:scale-95"
+          >
+            <UserPlus size={18} />
+          </button>
+        }
+      />
+      <p className="sr-only" data-testid="friends-summary">
+        {friends?.length ?? 0} صديق · {onlineFriends.length} متصل الآن
+      </p>
 
-      <div className="mt-4 grid grid-cols-3 gap-2">
-        <div className="rounded-2xl border border-emerald-400/20 bg-emerald-400/10 px-2 py-2.5 text-center">
-          <p className="text-lg leading-none font-black text-emerald-300" data-testid="online-count">
+      <div className="grid grid-cols-3 gap-2">
+        <div className="rounded-2xl border border-emerald-300/25 bg-emerald-400/10 px-2 py-2.5 text-center backdrop-blur-md">
+          <p className="font-display text-lg leading-none font-bold text-emerald-200" data-testid="online-count">
             {onlineFriends.length}
           </p>
-          <p className="mt-1 text-[10px] font-semibold text-emerald-200/80">متصل</p>
+          <p className="mt-1 text-[10px] font-semibold text-emerald-200/70">متصل</p>
         </div>
-        <div className="rounded-2xl border border-fuchsia-400/20 bg-fuchsia-400/10 px-2 py-2.5 text-center">
-          <p className="text-lg leading-none font-black text-fuchsia-300" data-testid="in-room-count">
+        <div className="rounded-2xl border border-fuchsia-300/25 bg-fuchsia-400/12 px-2 py-2.5 text-center backdrop-blur-md">
+          <p className="font-display text-lg leading-none font-bold text-blush-200" data-testid="in-room-count">
             {inRoom}
           </p>
-          <p className="mt-1 text-[10px] font-semibold text-fuchsia-200/80">في غرفة</p>
+          <p className="mt-1 text-[10px] font-semibold text-blush-200/70">في غرفة</p>
         </div>
-        <div className="rounded-2xl border border-white/10 bg-white/5 px-2 py-2.5 text-center">
-          <p className="text-lg leading-none font-black text-slate-300" data-testid="offline-count">
+        <div className="rounded-2xl border border-white/10 bg-white/[0.06] px-2 py-2.5 text-center backdrop-blur-md">
+          <p className="font-display text-lg leading-none font-bold text-slate-200" data-testid="offline-count">
             {offlineFriends.length}
           </p>
           <p className="mt-1 text-[10px] font-semibold text-slate-400">غير متصل</p>
         </div>
       </div>
 
-      <div className="mt-4 flex items-center gap-2 rounded-2xl border border-white/10 bg-white/5 px-3 py-2.5">
-        <Search size={17} className="text-slate-400" />
+      <div className="glass mt-4 flex items-center gap-2 rounded-2xl px-3 py-2.5">
+        <Search size={17} className="text-blush-200/60" />
         <input
           value={query}
           onChange={(event) => setQuery(event.target.value)}
           placeholder="ابحث عن صديق"
           className="flex-1 bg-transparent text-sm text-white placeholder:text-slate-500 focus:outline-none"
         />
+        <Heart size={14} className="text-rose-300/70" />
       </div>
 
-      <div className="mt-3 grid grid-cols-2 gap-1 rounded-2xl bg-white/5 p-1">
+      <div className="glass mt-3 grid grid-cols-2 gap-1 rounded-2xl p-1">
         <button
           type="button"
           data-testid="friends-tab"
           onClick={() => setView('friends')}
           className={`rounded-xl py-2 text-xs font-bold transition ${
-            view === 'friends' ? 'bg-white/15 text-white' : 'text-slate-400'
+            view === 'friends'
+              ? 'bg-gradient-to-l from-rose-500 to-fuchsia-600 text-white shadow-[0_6px_18px_-8px_rgba(236,72,153,0.9)]'
+              : 'text-blush-200/60'
           }`}
         >
           الأصدقاء
@@ -194,7 +211,9 @@ export default function FriendsPage({
           data-testid="requests-tab"
           onClick={() => setView('requests')}
           className={`rounded-xl py-2 text-xs font-bold transition ${
-            view === 'requests' ? 'bg-white/15 text-white' : 'text-slate-400'
+            view === 'requests'
+              ? 'bg-gradient-to-l from-rose-500 to-fuchsia-600 text-white shadow-[0_6px_18px_-8px_rgba(236,72,153,0.9)]'
+              : 'text-blush-200/60'
           }`}
         >
           الطلبات {requests ? `(${requests.length})` : ''}
@@ -202,7 +221,7 @@ export default function FriendsPage({
       </div>
 
       {error && (
-        <p className="mt-4 rounded-2xl border border-red-500/30 bg-red-500/10 p-3 text-center text-xs text-red-200">
+        <p className="mt-4 rounded-2xl border border-red-400/30 bg-red-500/10 p-3 text-center text-xs text-red-200 backdrop-blur">
           {error}
         </p>
       )}
@@ -214,16 +233,15 @@ export default function FriendsPage({
           )}
 
           {friends !== null && visibleOnline.length === 0 && visibleOffline.length === 0 && (
-            <p className="rounded-2xl border border-white/10 bg-white/5 py-8 text-center text-xs text-slate-400">
-              لا يوجد صديق بهذا الاسم.
-            </p>
+            <EmptyState>لا يوجد صديق بهذا الاسم.</EmptyState>
           )}
 
           {visibleOnline.length > 0 && (
             <section>
-              <h2 className="mb-2 flex items-center gap-1.5 text-[11px] font-bold tracking-wide text-emerald-300">
-                <span className="size-1.5 rounded-full bg-emerald-400" /> متصلون الآن
-                <span className="text-slate-500">({visibleOnline.length})</span>
+              <h2 className="mb-2 flex items-center gap-1.5 text-[11px] font-bold tracking-wide text-emerald-200">
+                <span className="size-1.5 rounded-full bg-emerald-400 shadow-[0_0_8px_2px_rgba(52,211,153,0.5)]" />{' '}
+                متصلون الآن
+                <span className="text-emerald-200/50">({visibleOnline.length})</span>
               </h2>
               <ul className="space-y-2.5">
                 {visibleOnline.map((friend) => (
@@ -235,9 +253,9 @@ export default function FriendsPage({
 
           {visibleOffline.length > 0 && (
             <section className="mt-5">
-              <h2 className="mb-2 flex items-center gap-1.5 text-[11px] font-bold tracking-wide text-slate-400">
+              <h2 className="mb-2 flex items-center gap-1.5 text-[11px] font-bold tracking-wide text-blush-200/50">
                 <span className="size-1.5 rounded-full bg-slate-500" /> غير متصلين
-                <span className="text-slate-600">({visibleOffline.length})</span>
+                <span className="text-blush-200/30">({visibleOffline.length})</span>
               </h2>
               <ul className="space-y-2.5">
                 {visibleOffline.map((friend) => (
@@ -255,15 +273,15 @@ export default function FriendsPage({
             <li className="py-8 text-center text-xs text-slate-400">جارٍ التحميل…</li>
           )}
           {requests !== null && requests.length === 0 && (
-            <li className="rounded-2xl border border-white/10 bg-white/5 py-8 text-center text-xs text-slate-400">
-              لا توجد طلبات صداقة جديدة.
+            <li>
+              <EmptyState>لا توجد طلبات صداقة جديدة.</EmptyState>
             </li>
           )}
           {requests?.map((request) => (
             <li
               key={request.id}
               data-testid="request-row"
-              className="flex items-center gap-3 rounded-2xl border border-white/10 bg-white/[0.04] p-3"
+              className="flex items-center gap-3 rounded-3xl border border-white/10 bg-white/[0.06] p-3 backdrop-blur-md"
             >
               <Avatar name={request.name} size={44} />
               <div className="min-w-0 flex-1">
@@ -294,6 +312,6 @@ export default function FriendsPage({
           ))}
         </ul>
       )}
-    </div>
+    </PageBackdrop>
   )
 }

@@ -6,6 +6,12 @@ import FriendsPage from './FriendsPage'
 import HomePage from './HomePage'
 import type { Room } from '../lib/api'
 
+const BACKDROP: Record<Tab, 'roses' | 'petals' | 'couple'> = {
+  home: 'roses',
+  battle: 'petals',
+  friends: 'couple',
+}
+
 export default function MainApp() {
   const [tab, setTab] = useState<Tab>('home')
   const [openRoom, setOpenRoom] = useState<Room | null>(null)

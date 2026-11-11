@@ -5,6 +5,7 @@ import {
   Bell,
   BookOpen,
   CheckSquare,
+  Heart,
   HelpCircle,
   History,
   LayoutDashboard,
@@ -14,6 +15,7 @@ import {
   PlusCircle,
   Radio,
   Settings,
+  Sparkles,
   User,
   X,
 } from 'lucide-react'
@@ -40,30 +42,44 @@ export default function AppShell() {
   const current = NAV.find((item) => item.to === location.pathname)
 
   return (
-    <div className="mx-auto min-h-dvh w-full max-w-xl px-5 pt-5 pb-28">
-      <header className="photo-base photo-couple relative mb-4 overflow-hidden rounded-3xl border border-white/10 shadow-lg shadow-rose-950/30">
-        <div className="relative flex items-center gap-2 px-3 py-4">
+    <div className="mx-auto min-h-dvh w-full max-w-xl px-5 pt-4 pb-28">
+      <header className="relative z-20 mb-4">
+        <div className="glass-deep flex items-center gap-2 rounded-3xl px-3 py-2.5 shadow-lg shadow-rose-950/30">
           <button
             type="button"
             data-testid="menu-toggle"
             onClick={() => setOpen(true)}
             aria-label="القائمة"
-            className="flex size-10 items-center justify-center rounded-full border border-white/15 bg-black/30 text-white backdrop-blur"
+            className="flex size-10 items-center justify-center rounded-full border border-white/15 bg-white/5 text-white transition active:scale-95"
           >
             <Menu size={18} />
           </button>
-          <Link to="/" className="min-w-0 flex-1">
-            <p className="text-[10px] font-bold tracking-wide text-rose-200">يلا فون</p>
-            <p className="truncate text-sm font-black text-white">{current?.label ?? 'غرف الدردشة'}</p>
+
+          <Link to="/" className="flex min-w-0 flex-1 items-center gap-2.5">
+            <span className="relative flex size-10 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-rose-500 via-fuchsia-600 to-violet-600 text-white shadow-lg shadow-fuchsia-900/40">
+              <Heart size={17} fill="currentColor" />
+              <Sparkles size={9} className="absolute -top-1 -right-1 text-amber-200" />
+            </span>
+            <span className="min-w-0">
+              <span className="font-display block truncate text-lg leading-none font-bold text-romance-gradient">
+                يلا فون
+              </span>
+              <span className="mt-1 block truncate text-[10px] font-semibold tracking-wide text-blush-200/70">
+                {location.pathname === '/' ? 'غرف صوتية بلمسة رومانسية' : (current?.label ?? 'يلا فون')}
+              </span>
+            </span>
           </Link>
+
           <Link
             to="/notifications"
             aria-label="التنبيهات"
-            className="flex size-10 items-center justify-center rounded-full border border-white/15 bg-black/30 text-white backdrop-blur"
+            className="relative flex size-10 items-center justify-center rounded-full border border-white/15 bg-white/5 text-white transition active:scale-95"
           >
             <Bell size={17} />
+            <span className="absolute top-2.5 left-2.5 size-1.5 rounded-full bg-rose-400 shadow-[0_0_8px_2px_rgba(251,113,133,0.7)]" />
           </Link>
         </div>
+        <div className="hairline-gold mx-auto mt-2 h-px w-2/3 opacity-70" />
       </header>
 
       <Outlet />
@@ -74,11 +90,11 @@ export default function AppShell() {
             type="button"
             aria-label="إغلاق القائمة"
             onClick={() => setOpen(false)}
-            className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+            className="absolute inset-0 bg-black/65 backdrop-blur-sm"
           />
-          <aside className="relative ms-auto flex h-full w-72 flex-col border-s border-white/10 bg-[#0c0718] p-4">
+          <aside className="photo-base photo-couple relative ms-auto flex h-full w-72 flex-col border-s border-white/10 p-4">
             <div className="mb-4 flex items-center justify-between">
-              <p className="text-sm font-black text-white">يلا فون</p>
+              <p className="font-display text-lg font-bold text-romance-gradient">يلا فون</p>
               <button
                 type="button"
                 onClick={() => setOpen(false)}
@@ -88,7 +104,7 @@ export default function AppShell() {
                 <X size={16} />
               </button>
             </div>
-            <nav className="-mx-1 flex-1 space-y-1 overflow-y-auto px-1">
+            <nav className="no-scrollbar -mx-1 flex-1 space-y-1 overflow-y-auto px-1">
               {NAV.map(({ to, label, Icon }) => (
                 <NavLink
                   key={to}
@@ -99,8 +115,8 @@ export default function AppShell() {
                   className={({ isActive }) =>
                     `flex items-center gap-2.5 rounded-xl px-3 py-2.5 text-xs font-bold transition ${
                       isActive
-                        ? 'bg-fuchsia-500/15 text-fuchsia-300'
-                        : 'text-slate-300 hover:bg-white/5'
+                        ? 'border border-fuchsia-300/25 bg-fuchsia-500/20 text-blush-100'
+                        : 'text-slate-200 hover:bg-white/10'
                     }`
                   }
                 >
@@ -109,7 +125,7 @@ export default function AppShell() {
                 </NavLink>
               ))}
             </nav>
-            <p className="pt-3 text-[10px] text-slate-600">النسخة التجريبية 0.1</p>
+            <p className="pt-3 text-[10px] text-slate-400">النسخة التجريبية 0.1</p>
           </aside>
         </div>
       )}
