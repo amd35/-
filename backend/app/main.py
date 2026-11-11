@@ -2,86 +2,37 @@ import os
 import time
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from sqlalchemy import Integer, String, create_engine, select
+from sqlalchemy import select
 from sqlalchemy.exc import OperationalError
-from sqlalchemy.orm import DeclarativeBase, Mapped, Session, mapped_column
+from sqlalchemy.orm import Session
 
-DATABASE_URL = os.environ.get(
-    "DATABASE_URL", "postgresql+psycopg2://app:app@db:5432/appdb"
-)
+from .db import engine
+from .models import Friend, FriendRequest, Room
+from .seed import seed
 
-engine = create_engine(DATABASE_URL, pool_pre_ping=True)
-
-
-class Base(DeclarativeBase):
-    pass
-
-
-class Account(Base):
-    __tablename__ = "accounts"
-
-    id: Mapped[int] = mapped_column(Integer, primary_key=True)
-    name: Mapped[str] = mapped_column(String(120))
-    handle: Mapped[str] = mapped_column(String(120))
-    platform: Mapped[str] = mapped_column(String(40))
-    url: Mapped[str] = mapped_column(String(300))
-    description: Mapped[str | None] = mapped_column(String(300), nullable=True)
-
-
-SEED = [
-    {
-        "name": "الصفحة الرسمية",
-        "handle": "@official.page",
-        "platform": "facebook",
-        "url": "https://www.facebook.com/",
-        "description": "الإعلانات الرسمية",
-    },
-    {
-        "name": "الحساب الرسمي",
-        "handle": "@official",
-        "platform": "instagram",
-        "url": "https://www.instagram.com/",
-        "description": "الصور والقصص اليومية",
-    },
-    {
-        "name": "القناة الرسمية",
-        "handle": "@official",
-        "platform": "youtube",
-        "url": "https://www.youtube.com/",
-        "description": "الفيديوهات والتوضيحات",
-    },
-    {
-        "name": "قناة التليكرام",
-        "handle": "@official",
-        "platform": "telegram",
-        "url": "https://telegram.org/",
-        "description": "التنبيهات العاجلة",
-    },
-    {
-        "name": "الموقع الرسمي",
-        "handle": "official.site",
-        "platform": "website",
-        "url": "https://example.com/",
-        "description": "الخدمات والاستمارات",
-    },
+GAMES = [
+    {"key": "ludo", "name": "لودو", "players": "2 - 4", "accent": "#f59e0b"},
+    {"key": "domino", "name": "دومينو", "players": "2", "accent": "#22d3ee"},
+    {"key": "uno", "name": "أونو", "players": "2 - 6", "accent": "#ef4444"},
+    {"key": "billiards", "name": "بلياردو", "players": "2", "accent": "#a855f7"},
 ]
 
-
-def init_db() -> None:
-    Base.metadata.create_all(engine)
-    with Session(engine) as session:
-        if session.scalar(select(Account.id).limit(1)) is None:
-            session.add_all([Account(**row) for row in SEED])
-            session.commit()
+ME = {
+    "name": "المستخدم",
+    "handle": "@me",
+    "level": 15,
+    "coins": 2450,
+    "diamonds": 86,
+}
 
 
 @asynccontextmanager
 async def lifespan(_: FastAPI):
     for attempt in range(15):
         try:
-            init_db()
+            seed()
             break
         except OperationalError:
             if attempt == 14:
@@ -90,7 +41,7 @@ async def lifespan(_: FastAPI):
     yield
 
 
-app = FastAPI(title="Official Accounts API", lifespan=lifespan)
+app = FastAPI(title="صوتيات API", lifespan=lifespan)
 
 app.add_middleware(
     CORSMiddleware,
@@ -107,23 +58,81 @@ app.add_middleware(
 )
 
 
+def room_dict(room: Room) -> dict:
+    return {
+        "id": room.id,
+        "title": room.title,
+        "category": room.category,
+        "host": room.host,
+        "listeners": room.listeners,
+        "seats_taken": room.seats_taken,
+        "seats_total": room.seats_total,
+        "language": room.language,
+        "is_battle": room.is_battle,
+        "game": room.game,
+        "featured": room.featured,
+    }
+
+
 @app.get("/api/health")
 def health() -> dict[str, str]:
     return {"status": "ok"}
 
 
-@app.get("/api/accounts")
-def list_accounts() -> list[dict[str, str | int | None]]:
+@app.get("/api/me")
+def me() -> dict[str, str | int]:
+    return ME
+
+
+@app.get("/api/games")
+def games() -> list[dict[str, str]]:
+    return GAMES
+
+
+@app.get("/api/rooms")
+def rooms(battle: bool | None = None, featured: bool | None = None) -> list[dict]:
     with Session(engine) as session:
-        accounts = session.scalars(select(Account).order_by(Account.id)).all()
+        query = select(Room).order_by(Room.listeners.desc())
+        if battle is not None:
+            query = query.where(Room.is_battle.is_(battle))
+        if featured is not None:
+            query = query.where(Room.featured.is_(featured))
+        return [room_dict(room) for room in session.scalars(query).all()]
+
+
+@app.get("/api/rooms/{room_id}")
+def room(room_id: int) -> dict:
+    with Session(engine) as session:
+        found = session.get(Room, room_id)
+        if found is None:
+            raise HTTPException(status_code=404, detail="الغرفة غير موجودة")
+        data = room_dict(found)
+        data["listeners"] = found.listeners + 1
+        return data
+
+
+@app.get("/api/friends")
+def friends() -> list[dict]:
+    with Session(engine) as session:
+        rows = session.scalars(select(Friend).order_by(Friend.online.desc(), Friend.name)).all()
         return [
             {
-                "id": a.id,
-                "name": a.name,
-                "handle": a.handle,
-                "platform": a.platform,
-                "url": a.url,
-                "description": a.description,
+                "id": row.id,
+                "name": row.name,
+                "handle": row.handle,
+                "level": row.level,
+                "online": row.online,
+                "room": row.room,
             }
-            for a in accounts
+            for row in rows
+        ]
+
+
+@app.get("/api/friend-requests")
+def friend_requests() -> list[dict]:
+    with Session(engine) as session:
+        rows = session.scalars(select(FriendRequest).order_by(FriendRequest.id)).all()
+        return [
+            {"id": row.id, "name": row.name, "handle": row.handle, "mutual": row.mutual}
+            for row in rows
         ]

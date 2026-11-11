@@ -11,6 +11,9 @@ html {
 body {
   margin: 0;
   font-family: var(--font-sans);
-  background-color: #0b1020;
+  background-color: #07030f;
   color: #f8fafc;
+  background-image: radial-gradient(circle at 15% 0%, rgba(147, 51, 234, 0.18), transparent 45%),
+    radial-gradient(circle at 90% 12%, rgba(236, 72, 153, 0.12), transparent 40%);
+  background-attachment: fixed;
 }
