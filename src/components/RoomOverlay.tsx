@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
-import { ChevronRight, Crown, Headphones, Mic, MicOff, Share2, Sparkles, Users } from 'lucide-react'
+import { ChevronRight, Headphones, Mic, MicOff, Share2, Sparkles, Users } from 'lucide-react'
 import Avatar from './Avatar'
+import SeatGrid from './SeatGrid'
 import { api, type Room } from '../lib/api'
 
 export default function RoomOverlay({ room, onClose }: { room: Room; onClose: () => void }) {
@@ -27,12 +28,21 @@ export default function RoomOverlay({ room, onClose }: { room: Room; onClose: ()
 
   onCloseRef.current = handleClose
 
-  const seats = Array.from({ length: room.seats_total }, (_, index) => index)
-
   return (
-    <div className="photo-base photo-evening fixed inset-0 z-50 flex flex-col bg-[#0a0613]">
-      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_80%_-10%,rgba(244,114,182,0.32),transparent_55%)]" />
-      <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-[#0a0613]/65 via-transparent to-[#0a0613]/95" />
+    <div className="fixed inset-0 z-50 flex flex-col bg-[#07030f]">
+      {/* خلفية رومانسية مصوّرة + scrim داكن ثابت يضمن قراءة النصوص */}
+      <div
+        aria-hidden
+        data-testid="room-backdrop"
+        className="photo-base photo-couple pointer-events-none absolute inset-0"
+      />
+      <div
+        aria-hidden
+        data-testid="room-scrim"
+        className="pointer-events-none absolute inset-0 bg-[#07030f]/75"
+      />
+      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_78%_-12%,rgba(244,114,182,0.26),transparent_58%)]" />
+      <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-[#07030f]/40 via-transparent to-[#07030f]/95" />
 
       <header className="relative flex items-center gap-2 px-4 pt-5 pb-3">
         <button
@@ -58,40 +68,7 @@ export default function RoomOverlay({ room, onClose }: { room: Room; onClose: ()
       </header>
 
       <div className="relative flex-1 overflow-y-auto px-4">
-        <div className="glass-deep grid grid-cols-4 gap-3 rounded-[1.75rem] p-4">
-          {seats.map((index) => {
-            const occupied = index < room.seats_taken
-            const name = index === 0 ? room.host : index === 1 ? 'أنت' : 'مستمع'
-            return (
-              <div key={index} className="flex flex-col items-center gap-1.5">
-                {occupied ? (
-                  <>
-                    <div className="relative">
-                      <Avatar name={name} size={48} />
-                      {index === 0 && (
-                        <Crown
-                          size={16}
-                          className="absolute -top-2 left-1/2 -translate-x-1/2 text-amber-300"
-                        />
-                      )}
-                      <span className="absolute -bottom-1 left-1/2 flex size-4 -translate-x-1/2 items-center justify-center rounded-full bg-emerald-500 ring-2 ring-[#0a0613]">
-                        <Mic size={9} className="text-white" />
-                      </span>
-                    </div>
-                    <span className="w-full truncate text-center text-[10px] text-slate-300">{name}</span>
-                  </>
-                ) : (
-                  <>
-                    <span className="flex size-12 items-center justify-center rounded-full border border-dashed border-white/25 text-white/40">
-                      <Mic size={16} />
-                    </span>
-                    <span className="text-[10px] text-slate-500">فارغ</span>
-                  </>
-                )}
-              </div>
-            )
-          })}
-        </div>
+        <SeatGrid room={room} />
 
         <button
           type="button"
