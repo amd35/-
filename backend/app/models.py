@@ -1,6 +1,6 @@
 from datetime import datetime, timezone
 
-from sqlalchemy import Boolean, Float, Integer, String
+from sqlalchemy import Boolean, Integer, String
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
 
@@ -92,23 +92,6 @@ class Notification(Base):
     body: Mapped[str] = mapped_column(String(240))
     kind: Mapped[str] = mapped_column(String(30), default="info")
     read: Mapped[bool] = mapped_column(Boolean, default=False)
-    created_at: Mapped[str] = mapped_column(String(40), default=now_iso)
-
-
-class SystemEntry(Base):
-    __tablename__ = "systems"
-
-    id: Mapped[int] = mapped_column(Integer, primary_key=True)
-    code: Mapped[str] = mapped_column(String(12), unique=True, index=True)
-    name: Mapped[str] = mapped_column(String(120), index=True)
-    specialty: Mapped[str] = mapped_column(String(60), index=True)
-    vendor: Mapped[str] = mapped_column(String(80))
-    governorate: Mapped[str] = mapped_column(String(40))
-    status: Mapped[str] = mapped_column(String(20), index=True, default="يعمل")
-    version: Mapped[str] = mapped_column(String(20))
-    users: Mapped[int] = mapped_column(Integer, default=0)
-    uptime: Mapped[float] = mapped_column(Float, default=0.0)
-    description: Mapped[str] = mapped_column(String(400))
     created_at: Mapped[str] = mapped_column(String(40), default=now_iso)
 
 

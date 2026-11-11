@@ -48,29 +48,7 @@ export default function DashboardPage() {
             <StatTile label="أصدقاء متصلون" value={`${metrics.friends_online}/${metrics.friends_total}`} tone="emerald" />
             <StatTile label="مهام مفتوحة" value={metrics.tasks_open} />
             <StatTile label="مهام منجزة" value={metrics.tasks_done} />
-            <StatTile
-              label="أنظمة الكتالوج"
-              value={metrics.systems_total}
-              tone="fuchsia"
-              testId="metric-systems"
-            />
-            <StatTile label="أنظمة تعمل" value={metrics.systems_online} tone="emerald" />
-            <StatTile label="الاختصاصات" value={metrics.specialties_total} tone="amber" />
           </div>
-
-          <Link
-            to="/systems"
-            data-testid="systems-link"
-            className="glass mt-3 flex items-center justify-between gap-3 rounded-3xl p-4 transition hover:border-fuchsia-300/40"
-          >
-            <div>
-              <p className="text-xs font-bold text-white">دليل الأنظمة الشامل</p>
-              <p className="mt-0.5 text-[11px] text-blush-200/60">
-                {metrics.systems_total} نظامًا موزّعة على {metrics.specialties_total} اختصاصًا
-              </p>
-            </div>
-            <ArrowLeft size={16} className="shrink-0 text-fuchsia-300" />
-          </Link>
 
           <Card className="mt-3 flex items-center justify-between">
             <div>
