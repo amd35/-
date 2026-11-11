@@ -19,6 +19,7 @@ export type Friend = {
   level: number
   online: boolean
   room: string | null
+  last_seen: string | null
 }
 
 export type FriendRequest = {

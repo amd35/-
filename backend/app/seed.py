@@ -1,4 +1,4 @@
-from sqlalchemy import select
+from sqlalchemy import select, text
 from sqlalchemy.orm import Session
 
 from .db import engine
@@ -100,14 +100,78 @@ ROOMS = [
 ]
 
 FRIENDS = [
-    {"name": "كابتن علي", "handle": "@ali_battle", "level": 34, "online": True, "room": "معركة لودو — تحدي مفتوح"},
-    {"name": "سارة", "handle": "@sara", "level": 21, "online": True, "room": "قهوة الصباح"},
-    {"name": "حسن", "handle": "@hassan", "level": 12, "online": False, "room": None},
-    {"name": "زينب", "handle": "@zainab", "level": 27, "online": True, "room": "أونو — غرفة التحدي"},
-    {"name": "أمير النبط", "handle": "@amir", "level": 41, "online": False, "room": None},
-    {"name": "مصطفى", "handle": "@mustafa", "level": 18, "online": True, "room": "ستاند أب وضحك"},
-    {"name": "نور", "handle": "@noor", "level": 7, "online": False, "room": None},
-    {"name": "مؤيد", "handle": "@muayad", "level": 25, "online": True, "room": "بلياردو تحدي الليل"},
+    {
+        "name": "كابتن علي",
+        "handle": "@ali_battle",
+        "level": 34,
+        "online": True,
+        "room": "معركة لودو — تحدي مفتوح",
+        "last_seen": None,
+    },
+    {
+        "name": "سارة",
+        "handle": "@sara",
+        "level": 21,
+        "online": True,
+        "room": "قهوة الصباح",
+        "last_seen": None,
+    },
+    {
+        "name": "حسن",
+        "handle": "@hassan",
+        "level": 12,
+        "online": False,
+        "room": None,
+        "last_seen": "قبل 25 دقيقة",
+    },
+    {
+        "name": "زينب",
+        "handle": "@zainab",
+        "level": 27,
+        "online": True,
+        "room": "أونو — غرفة التحدي",
+        "last_seen": None,
+    },
+    {
+        "name": "أمير النبط",
+        "handle": "@amir",
+        "level": 41,
+        "online": False,
+        "room": None,
+        "last_seen": "أمس",
+    },
+    {
+        "name": "مصطفى",
+        "handle": "@mustafa",
+        "level": 18,
+        "online": True,
+        "room": "ستاند أب وضحك",
+        "last_seen": None,
+    },
+    {
+        "name": "نور",
+        "handle": "@noor",
+        "level": 7,
+        "online": False,
+        "room": None,
+        "last_seen": "قبل 3 أيام",
+    },
+    {
+        "name": "مؤيد",
+        "handle": "@muayad",
+        "level": 25,
+        "online": True,
+        "room": "بلياردو تحدي الليل",
+        "last_seen": None,
+    },
+    {
+        "name": "ليلى",
+        "handle": "@layla",
+        "level": 9,
+        "online": True,
+        "room": None,
+        "last_seen": None,
+    },
 ]
 
 REQUESTS = [
@@ -119,11 +183,29 @@ REQUESTS = [
 
 def seed() -> None:
     Base.metadata.create_all(engine)
+
+    # Column added after the first release; keep existing databases in sync.
+    with engine.begin() as connection:
+        connection.execute(
+            text("ALTER TABLE friends ADD COLUMN IF NOT EXISTS last_seen VARCHAR(40)")
+        )
+
     with Session(engine) as session:
         if session.scalar(select(Room.id).limit(1)) is None:
             session.add_all([Room(**row) for row in ROOMS])
-        if session.scalar(select(Friend.id).limit(1)) is None:
-            session.add_all([Friend(**row) for row in FRIENDS])
+
+        for row in FRIENDS:
+            friend = session.scalar(select(Friend).where(Friend.handle == row["handle"]))
+            if friend is None:
+                session.add(Friend(**row))
+                continue
+            friend.name = row["name"]
+            friend.level = row["level"]
+            friend.online = row["online"]
+            friend.room = row["room"]
+            friend.last_seen = row["last_seen"]
+
         if session.scalar(select(FriendRequest.id).limit(1)) is None:
             session.add_all([FriendRequest(**row) for row in REQUESTS])
+
         session.commit()

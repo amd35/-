@@ -1,9 +1,87 @@
-import { useEffect, useState } from 'react'
-import { Check, MessageCircle, Search, UserPlus, X } from 'lucide-react'
+import { useEffect, useMemo, useState } from 'react'
+import { Check, Clock, Headphones, MessageCircle, Search, UserPlus, Users, X } from 'lucide-react'
 import Avatar from '../components/Avatar'
 import { api, type Friend, type FriendRequest } from '../lib/api'
 
 type View = 'friends' | 'requests'
+
+function statusOf(friend: Friend): 'room' | 'online' | 'offline' {
+  if (!friend.online) return 'offline'
+  return friend.room ? 'room' : 'online'
+}
+
+function StatusPill({ friend }: { friend: Friend }) {
+  const status = statusOf(friend)
+
+  if (status === 'room') {
+    return (
+      <span className="flex min-w-0 items-center gap-1 rounded-full bg-fuchsia-500/15 px-2 py-0.5 text-[10px] font-bold text-fuchsia-300">
+        <Headphones size={11} className="shrink-0" />
+        <span className="truncate">في غرفة · {friend.room}</span>
+      </span>
+    )
+  }
+
+  if (status === 'online') {
+    return (
+      <span className="flex items-center gap-1 rounded-full bg-emerald-500/15 px-2 py-0.5 text-[10px] font-bold text-emerald-300">
+        <span className="size-1.5 rounded-full bg-emerald-400" />
+        متصل الآن
+      </span>
+    )
+  }
+
+  return (
+    <span className="flex items-center gap-1 rounded-full bg-white/5 px-2 py-0.5 text-[10px] font-semibold text-slate-400">
+      <Clock size={11} />
+      {friend.last_seen ? `آخر ظهور ${friend.last_seen}` : 'غير متصل'}
+    </span>
+  )
+}
+
+function FriendRow({ friend }: { friend: Friend }) {
+  const online = friend.online
+
+  return (
+    <li
+      data-testid="friend-row"
+      data-status={statusOf(friend)}
+      className={`flex items-center gap-3 rounded-2xl border p-3 transition ${
+        online
+          ? 'border-emerald-400/20 bg-emerald-400/[0.06]'
+          : 'border-white/10 bg-white/[0.03]'
+      }`}
+    >
+      <Avatar name={friend.name} size={46} online={online} />
+      <div className="min-w-0 flex-1">
+        <p className="flex items-center gap-1.5">
+          <span className={`truncate text-sm font-bold ${online ? 'text-white' : 'text-slate-300'}`}>
+            {friend.name}
+          </span>
+          <span className="shrink-0 rounded-full bg-white/10 px-1.5 py-0.5 text-[10px] font-semibold text-slate-300">
+            Lv {friend.level}
+          </span>
+        </p>
+        <p className="mt-0.5 truncate text-[10px] text-slate-500" dir="ltr">
+          {friend.handle}
+        </p>
+        <div className="mt-1.5 flex">
+          <StatusPill friend={friend} />
+        </div>
+      </div>
+      <button
+        type="button"
+        aria-label={`مراسلة ${friend.name}`}
+        disabled={!online}
+        className={`flex size-9 shrink-0 items-center justify-center rounded-full transition ${
+          online ? 'bg-fuchsia-600 text-white' : 'bg-white/5 text-slate-600'
+        }`}
+      >
+        <MessageCircle size={16} />
+      </button>
+    </li>
+  )
+}
 
 export default function FriendsPage({
   onCountChange,
@@ -37,28 +115,58 @@ export default function FriendsPage({
     onCountChange?.(next.length)
   }
 
-  const visibleFriends = (friends ?? []).filter(
-    (friend) => query.trim() === '' || friend.name.includes(query.trim()),
+  const onlineFriends = useMemo(
+    () => (friends ?? []).filter((friend) => friend.online),
+    [friends],
   )
-  const online = (friends ?? []).filter((friend) => friend.online).length
+  const offlineFriends = useMemo(
+    () => (friends ?? []).filter((friend) => !friend.online),
+    [friends],
+  )
+  const inRoom = onlineFriends.filter((friend) => friend.room).length
+
+  const term = query.trim()
+  const visibleOnline = onlineFriends.filter((friend) => term === '' || friend.name.includes(term))
+  const visibleOffline = offlineFriends.filter((friend) => term === '' || friend.name.includes(term))
 
   return (
     <div>
       <header className="flex items-end justify-between">
         <div>
           <h1 className="text-2xl font-black text-white">الأصدقاء</h1>
-          <p className="mt-1 text-xs text-slate-400">
-            {friends?.length ?? 0} صديق · {online} متصل الآن
+          <p className="mt-1 text-xs text-slate-400" data-testid="friends-summary">
+            {friends?.length ?? 0} صديق · {onlineFriends.length} متصل الآن
           </p>
         </div>
         <button
           type="button"
           aria-label="إضافة صديق"
-          className="flex size-10 items-center justify-center rounded-full bg-fuchsia-600 text-white"
+          className="flex size-10 items-center justify-center rounded-full bg-fuchsia-600 text-white shadow-lg shadow-fuchsia-900/40"
         >
           <UserPlus size={18} />
         </button>
       </header>
+
+      <div className="mt-4 grid grid-cols-3 gap-2">
+        <div className="rounded-2xl border border-emerald-400/20 bg-emerald-400/10 px-2 py-2.5 text-center">
+          <p className="text-lg leading-none font-black text-emerald-300" data-testid="online-count">
+            {onlineFriends.length}
+          </p>
+          <p className="mt-1 text-[10px] font-semibold text-emerald-200/80">متصل</p>
+        </div>
+        <div className="rounded-2xl border border-fuchsia-400/20 bg-fuchsia-400/10 px-2 py-2.5 text-center">
+          <p className="text-lg leading-none font-black text-fuchsia-300" data-testid="in-room-count">
+            {inRoom}
+          </p>
+          <p className="mt-1 text-[10px] font-semibold text-fuchsia-200/80">في غرفة</p>
+        </div>
+        <div className="rounded-2xl border border-white/10 bg-white/5 px-2 py-2.5 text-center">
+          <p className="text-lg leading-none font-black text-slate-300" data-testid="offline-count">
+            {offlineFriends.length}
+          </p>
+          <p className="mt-1 text-[10px] font-semibold text-slate-400">غير متصل</p>
+        </div>
+      </div>
 
       <div className="mt-4 flex items-center gap-2 rounded-2xl border border-white/10 bg-white/5 px-3 py-2.5">
         <Search size={17} className="text-slate-400" />
@@ -70,7 +178,7 @@ export default function FriendsPage({
         />
       </div>
 
-      <div className="mt-4 grid grid-cols-2 gap-1 rounded-2xl bg-white/5 p-1">
+      <div className="mt-3 grid grid-cols-2 gap-1 rounded-2xl bg-white/5 p-1">
         <button
           type="button"
           data-testid="friends-tab"
@@ -100,48 +208,45 @@ export default function FriendsPage({
       )}
 
       {view === 'friends' && (
-        <ul className="mt-4 space-y-2.5" data-testid="friends-list">
+        <div className="mt-4" data-testid="friends-list">
           {friends === null && !error && (
-            <li className="py-8 text-center text-xs text-slate-400">جارٍ التحميل…</li>
+            <p className="py-8 text-center text-xs text-slate-400">جارٍ تحميل الأصدقاء…</p>
           )}
-          {friends !== null && visibleFriends.length === 0 && (
-            <li className="rounded-2xl border border-white/10 bg-white/5 py-8 text-center text-xs text-slate-400">
+
+          {friends !== null && visibleOnline.length === 0 && visibleOffline.length === 0 && (
+            <p className="rounded-2xl border border-white/10 bg-white/5 py-8 text-center text-xs text-slate-400">
               لا يوجد صديق بهذا الاسم.
-            </li>
+            </p>
           )}
-          {visibleFriends.map((friend) => (
-            <li
-              key={friend.id}
-              data-testid="friend-row"
-              className="flex items-center gap-3 rounded-2xl border border-white/10 bg-white/[0.04] p-3"
-            >
-              <Avatar name={friend.name} size={44} online={friend.online} />
-              <div className="min-w-0 flex-1">
-                <p className="truncate text-sm font-bold text-white">
-                  {friend.name}
-                  <span className="ms-2 rounded-full bg-white/10 px-1.5 py-0.5 text-[10px] font-semibold text-slate-300">
-                    Lv {friend.level}
-                  </span>
-                </p>
-                <p className="mt-0.5 truncate text-[11px] text-slate-400">
-                  {friend.online ? (friend.room ? `في غرفة: ${friend.room}` : 'متصل الآن') : 'غير متصل'}
-                </p>
-              </div>
-              <button
-                type="button"
-                aria-label={`مراسلة ${friend.name}`}
-                className={`flex size-9 items-center justify-center rounded-full ${
-                  friend.online
-                    ? 'bg-fuchsia-600 text-white'
-                    : 'bg-white/5 text-slate-500'
-                }`}
-                disabled={!friend.online}
-              >
-                <MessageCircle size={16} />
-              </button>
-            </li>
-          ))}
-        </ul>
+
+          {visibleOnline.length > 0 && (
+            <section>
+              <h2 className="mb-2 flex items-center gap-1.5 text-[11px] font-bold tracking-wide text-emerald-300">
+                <span className="size-1.5 rounded-full bg-emerald-400" /> متصلون الآن
+                <span className="text-slate-500">({visibleOnline.length})</span>
+              </h2>
+              <ul className="space-y-2.5">
+                {visibleOnline.map((friend) => (
+                  <FriendRow key={friend.id} friend={friend} />
+                ))}
+              </ul>
+            </section>
+          )}
+
+          {visibleOffline.length > 0 && (
+            <section className="mt-5">
+              <h2 className="mb-2 flex items-center gap-1.5 text-[11px] font-bold tracking-wide text-slate-400">
+                <span className="size-1.5 rounded-full bg-slate-500" /> غير متصلين
+                <span className="text-slate-600">({visibleOffline.length})</span>
+              </h2>
+              <ul className="space-y-2.5">
+                {visibleOffline.map((friend) => (
+                  <FriendRow key={friend.id} friend={friend} />
+                ))}
+              </ul>
+            </section>
+          )}
+        </div>
       )}
 
       {view === 'requests' && (
@@ -163,8 +268,8 @@ export default function FriendsPage({
               <Avatar name={request.name} size={44} />
               <div className="min-w-0 flex-1">
                 <p className="truncate text-sm font-bold text-white">{request.name}</p>
-                <p className="mt-0.5 truncate text-[11px] text-slate-400">
-                  {request.handle} · {request.mutual} أصدقاء مشتركون
+                <p className="mt-0.5 flex items-center gap-1 truncate text-[11px] text-slate-400">
+                  <Users size={11} /> {request.mutual} أصدقاء مشتركون
                 </p>
               </div>
               <button

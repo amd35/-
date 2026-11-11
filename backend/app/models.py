@@ -31,6 +31,7 @@ class Friend(Base):
     level: Mapped[int] = mapped_column(Integer, default=1)
     online: Mapped[bool] = mapped_column(Boolean, default=False)
     room: Mapped[str | None] = mapped_column(String(120), nullable=True)
+    last_seen: Mapped[str | None] = mapped_column(String(40), nullable=True)
 
 
 class FriendRequest(Base):

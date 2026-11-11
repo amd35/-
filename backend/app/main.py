@@ -123,6 +123,7 @@ def friends() -> list[dict]:
                 "level": row.level,
                 "online": row.online,
                 "room": row.room,
+                "last_seen": row.last_seen,
             }
             for row in rows
         ]
