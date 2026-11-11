@@ -3,10 +3,10 @@ import time
 from collections import Counter
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
-from sqlalchemy import select, text
+from sqlalchemy import func, or_, select, text
 from sqlalchemy.exc import OperationalError
 from sqlalchemy.orm import Session
 
@@ -20,6 +20,7 @@ from .models import (
     Notification,
     Profile,
     Room,
+    SystemEntry,
     Task,
     now_iso,
 )
@@ -419,6 +420,103 @@ def contact(payload: ContactCreate) -> dict[str, str]:
     return {"status": "received"}
 
 
+# --- systems catalogue --------------------------------------------------------
+
+
+def system_payload(row: SystemEntry) -> dict:
+    return {
+        "id": row.id,
+        "code": row.code,
+        "name": row.name,
+        "specialty": row.specialty,
+        "vendor": row.vendor,
+        "governorate": row.governorate,
+        "status": row.status,
+        "version": row.version,
+        "users": row.users,
+        "uptime": row.uptime,
+        "description": row.description,
+        "created_at": row.created_at,
+    }
+
+
+@app.get("/api/systems/meta")
+def systems_meta() -> dict:
+    with Session(engine) as session:
+        specialty_rows = session.execute(
+            select(SystemEntry.specialty, func.count(SystemEntry.id))
+            .group_by(SystemEntry.specialty)
+            .order_by(SystemEntry.specialty)
+        ).all()
+        status_rows = session.execute(
+            select(SystemEntry.status, func.count(SystemEntry.id)).group_by(SystemEntry.status)
+        ).all()
+        total = session.scalar(select(func.count(SystemEntry.id))) or 0
+        users_total = session.scalar(select(func.sum(SystemEntry.users))) or 0
+        uptime_avg = session.scalar(select(func.avg(SystemEntry.uptime))) or 0.0
+
+    return {
+        "total": total,
+        "specialties_total": len(specialty_rows),
+        "users_total": int(users_total),
+        "uptime_avg": round(float(uptime_avg), 2),
+        "specialties": [{"name": name, "count": count} for name, count in specialty_rows],
+        "statuses": [{"name": name, "count": count} for name, count in status_rows],
+    }
+
+
+@app.get("/api/systems")
+def systems(
+    q: str = "",
+    specialty: str = "",
+    status: str = "",
+    page: int = Query(1, ge=1),
+    page_size: int = Query(20, ge=1, le=100),
+) -> dict:
+    with Session(engine) as session:
+        stmt = select(SystemEntry)
+        term = q.strip()
+        if term:
+            like = f"%{term}%"
+            stmt = stmt.where(
+                or_(
+                    SystemEntry.name.ilike(like),
+                    SystemEntry.specialty.ilike(like),
+                    SystemEntry.vendor.ilike(like),
+                    SystemEntry.code.ilike(like),
+                    SystemEntry.governorate.ilike(like),
+                )
+            )
+        if specialty:
+            stmt = stmt.where(SystemEntry.specialty == specialty)
+        if status:
+            stmt = stmt.where(SystemEntry.status == status)
+
+        total = session.scalar(select(func.count()).select_from(stmt.subquery())) or 0
+        rows = session.scalars(
+            stmt.order_by(SystemEntry.code)
+            .offset((page - 1) * page_size)
+            .limit(page_size)
+        ).all()
+
+    return {
+        "items": [system_payload(row) for row in rows],
+        "total": total,
+        "page": page,
+        "page_size": page_size,
+        "pages": (total + page_size - 1) // page_size,
+    }
+
+
+@app.get("/api/systems/{system_id}")
+def system_detail(system_id: int) -> dict:
+    with Session(engine) as session:
+        row = session.get(SystemEntry, system_id)
+    if row is None:
+        raise HTTPException(status_code=404, detail="النظام غير موجود")
+    return system_payload(row)
+
+
 # --- metrics -----------------------------------------------------------------
 
 
@@ -436,7 +534,21 @@ def metrics() -> dict:
         categories = Counter(row.category for row in rooms_rows)
         days = Counter(row.created_at[:10] for row in activity_rows)
 
+        systems_total = session.scalar(select(func.count(SystemEntry.id))) or 0
+        systems_online = (
+            session.scalar(
+                select(func.count(SystemEntry.id)).where(SystemEntry.status == "يعمل")
+            )
+            or 0
+        )
+        specialties_total = (
+            session.scalar(select(func.count(func.distinct(SystemEntry.specialty)))) or 0
+        )
+
         return {
+            "systems_total": systems_total,
+            "systems_online": systems_online,
+            "specialties_total": specialties_total,
             "rooms_total": len(rooms_rows),
             "battle_rooms": sum(1 for row in rooms_rows if row.is_battle),
             "listeners_total": sum(row.listeners for row in rooms_rows),

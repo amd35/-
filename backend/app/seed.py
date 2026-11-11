@@ -12,9 +12,11 @@ from .models import (
     Notification,
     Profile,
     Room,
+    SystemEntry,
     Task,
     now_iso,
 )
+from .systems_catalog import build_systems
 
 ROOMS = [
     {"title": "جلسة طرب وونسة", "category": "ونسة", "host": "أبو رعد", "listeners": 1284, "seats_taken": 8, "seats_total": 8, "featured": True},
@@ -138,5 +140,8 @@ def seed() -> None:
                     for action, detail, days in ACTIVITY
                 ]
             )
+
+        if session.scalar(select(SystemEntry.id).limit(1)) is None:
+            session.add_all([SystemEntry(**row) for row in build_systems()])
 
         session.commit()

@@ -73,7 +73,42 @@ export type Notification = {
   created_at: string
 }
 
+export type SystemEntry = {
+  id: number
+  code: string
+  name: string
+  specialty: string
+  vendor: string
+  governorate: string
+  status: 'يعمل' | 'تجريبي' | 'صيانة' | 'متوقف'
+  version: string
+  users: number
+  uptime: number
+  description: string
+  created_at: string
+}
+
+export type SystemsMeta = {
+  total: number
+  specialties_total: number
+  users_total: number
+  uptime_avg: number
+  specialties: { name: string; count: number }[]
+  statuses: { name: string; count: number }[]
+}
+
+export type SystemsPage = {
+  items: SystemEntry[]
+  total: number
+  page: number
+  page_size: number
+  pages: number
+}
+
 export type Metrics = {
+  systems_total: number
+  systems_online: number
+  specialties_total: number
   rooms_total: number
   battle_rooms: number
   listeners_total: number
@@ -120,6 +155,23 @@ export const api = {
 
   metrics: () => request<Metrics>('/api/metrics'),
   games: () => request<Game[]>('/api/games'),
+
+  systemsMeta: () => request<SystemsMeta>('/api/systems/meta'),
+  systems: (params: {
+    q?: string
+    specialty?: string
+    status?: string
+    page?: number
+    page_size?: number
+  }) => {
+    const search = new URLSearchParams()
+    if (params.q) search.set('q', params.q)
+    if (params.specialty) search.set('specialty', params.specialty)
+    if (params.status) search.set('status', params.status)
+    search.set('page', String(params.page ?? 1))
+    search.set('page_size', String(params.page_size ?? 24))
+    return request<SystemsPage>(`/api/systems?${search.toString()}`)
+  },
 
   rooms: (battle?: boolean) =>
     request<Room[]>(`/api/rooms${battle === undefined ? '' : `?battle=${battle}`}`),

@@ -12,6 +12,7 @@ import MainApp from './pages/MainApp'
 import NotificationsPage from './pages/NotificationsPage'
 import ProfilePage from './pages/ProfilePage'
 import SettingsPage from './pages/SettingsPage'
+import SystemsPage from './pages/SystemsPage'
 import TasksPage from './pages/TasksPage'
 
 export default function App() {
@@ -22,6 +23,7 @@ export default function App() {
           <Route index element={<MainApp />} />
           <Route path="/dashboard" element={<DashboardPage />} />
           <Route path="/data-list" element={<DataListPage />} />
+          <Route path="/systems" element={<SystemsPage />} />
           <Route path="/add-item" element={<AddItemPage />} />
           <Route path="/analytics" element={<AnalyticsPage />} />
           <Route path="/tasks" element={<TasksPage />} />
