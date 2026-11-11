@@ -1,3 +1,10 @@
+# Node / Python
+node_modules/
+dist/
+__pycache__/
+*.pyc
+.venv/
+
 # Built application files
 *.apk
 *.aar
