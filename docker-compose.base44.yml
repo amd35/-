@@ -1,0 +1,42 @@
+name: app
+
+services:
+  web:
+    image: node:22
+    working_dir: /workspace
+    labels:
+      base44.project: 'Nova Studio'
+      base44.kind: web
+      base44.port: '3000'
+    command:
+      [
+        'sh',
+        '-ec',
+        'npm install --no-audit --no-fund && exec npm run dev -- --host 0.0.0.0 --port 3000',
+      ]
+    ports:
+      - '3000:3000'
+    volumes:
+      - '${BASE44_PROJECT_ROOT:-.}:/workspace'
+      - 'web_node_modules:/workspace/node_modules'
+    environment:
+      - BASE44_PREVIEW_MODE
+      - BASE44_SANDBOX_HOST_DOMAIN
+      - __VITE_ADDITIONAL_SERVER_ALLOWED_HOSTS
+      - CI=true
+    healthcheck:
+      test:
+        [
+          'CMD',
+          'node',
+          '-e',
+          "fetch('http://127.0.0.1:3000/').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))",
+        ]
+      interval: 10s
+      timeout: 4s
+      retries: 6
+      start_period: 90s
+    restart: on-failure
+
+volumes:
+  web_node_modules:
