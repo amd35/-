@@ -79,6 +79,39 @@ keytool -genkey -v -keystore connectplus-release.jks -alias connectplus \
 ثم أضف `web/android/key.properties` (خارج git) و`signingConfigs` في
 `web/android/app/build.gradle` كما في توثيق Android الرسمي.
 
+## بناء APK داخل بيئة المعاينة (Docker)
+
+بيئة المعاينة لا تحتوي JDK/Android SDK على المضيف، لذا يُبنى الـ APK داخل حاوية مؤقتة (SDK محفوظ في
+volume حتى لا يُعاد تنزيله):
+
+```bash
+docker run -d --name apkbuild \
+  -v "$BASE44_PROJECT_ROOT/web:/workspace/web" \
+  -v android-sdk:/opt/android-sdk -v gradle-cache:/root/.gradle \
+  -w /workspace/web/android eclipse-temurin:21-jdk sleep infinity
+
+docker exec apkbuild sh -c 'apt-get update -qq && apt-get install -y -qq unzip curl zip'
+
+# مرة واحدة: أدوات SDK + المنصّة 36
+docker exec apkbuild sh -c 'mkdir -p /opt/android-sdk/cmdline-tools &&
+  curl -fsSL https://dl.google.com/android/repository/commandlinetools-linux-13114758_latest.zip -o /tmp/t.zip &&
+  unzip -q /tmp/t.zip -d /opt/android-sdk/cmdline-tools &&
+  mv /opt/android-sdk/cmdline-tools/cmdline-tools /opt/android-sdk/cmdline-tools/latest &&
+  yes | /opt/android-sdk/cmdline-tools/latest/bin/sdkmanager --licenses &&
+  /opt/android-sdk/cmdline-tools/latest/bin/sdkmanager "platform-tools" "platforms;android-36" "build-tools;36.0.0"'
+
+# البناء
+docker exec -e ANDROID_HOME=/opt/android-sdk -w /workspace/web/android apkbuild \
+  sh ./gradlew --no-daemon assembleDebug
+```
+
+- الناتج: `web/android/app/build/outputs/apk/debug/app-debug.apk` (موقّع بمفتاح debug — قابل للتثبيت
+  مباشرة على جهاز حقيقي بعد السماح بـ «تثبيت تطبيقات غير معروفة»).
+- `assembleRelease` ينتج `app-release-unsigned.apk` يحتاج توقيعك قبل التثبيت أو النشر.
+- **مهم**: `VITE_API_URL` يُدمج داخل الحزمة وقت البناء. نسخة الاختبار المبنية من بيئة المعاينة
+  تستخدم أصل المعاينة (`https://3000-<BASE44_PUBLIC_HOST_SUFFIX>`)، وهو يتغيّر عند إعادة إنشاء
+  البيئة — أعد `npm run sync:android` ثم البناء بعد أي تغيير، أو ابنِ على سيرفر منشور ثابت.
+
 ## الاختبار على محاكي مقابل سيرفر محلي
 
 - المحاكي يصل إلى جهازك عبر `10.0.2.2`، لذا يمكن بناء نسخة تجريبية بـ

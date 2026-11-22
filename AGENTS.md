@@ -40,7 +40,9 @@
 - `web/src/lib/native.ts` (dynamic imports, no-op in a browser): status bar, splash, Android back button.
 - Manifest permissions: CAMERA/RECORD_AUDIO for WebRTC, POST_NOTIFICATIONS. Cleartext HTTP is blocked except
   `10.0.2.2`/`localhost` (`res/xml/network_security_config.xml`).
-- No JDK/Android SDK in the sandbox, so the APK cannot be built here — build steps live in `docs/ANDROID.md`.
+- The host has no JDK/Android SDK, but an APK can be built in a throwaway `eclipse-temurin:21-jdk` container
+  with the SDK kept in the `android-sdk` volume — exact commands in `docs/ANDROID.md`. Debug APKs are signed
+  with the debug key and installable; release builds need the user's own keystore.
 
 ## Preview specifics
 - `web/vite.config.ts` adds the sandbox host wildcard and the public preview host to `allowedHosts`
