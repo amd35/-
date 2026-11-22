@@ -439,6 +439,7 @@ export default function Room() {
           <GiftAnimation gift={playing.gift} className="room-gift-flash-art" />
           <span className="room-gift-flash-label">
             {playing.name} 🎁 {playing.gift.name}
+            {(playing.gift.quantity ?? 1) > 1 ? ` × ${playing.gift.quantity}` : ''}
           </span>
         </div>
       ) : null}

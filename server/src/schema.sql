@@ -568,6 +568,8 @@ CREATE TABLE IF NOT EXISTS gift_sends (
   created_at timestamptz NOT NULL DEFAULT now(),
   CHECK (sender_id <> recipient_id)
 );
+-- How many copies of the same gift one send contains (1 by default).
+ALTER TABLE gift_sends ADD COLUMN IF NOT EXISTS quantity integer NOT NULL DEFAULT 1;
 CREATE INDEX IF NOT EXISTS gift_sends_sender_idx ON gift_sends (sender_id, created_at DESC);
 CREATE INDEX IF NOT EXISTS gift_sends_recipient_idx ON gift_sends (recipient_id, created_at DESC);
 CREATE INDEX IF NOT EXISTS gift_sends_conversation_idx ON gift_sends (conversation_id, created_at DESC);

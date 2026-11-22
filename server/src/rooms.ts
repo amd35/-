@@ -331,6 +331,7 @@ export interface RoomMessageRow {
   gift_send_id: string | null;
   gift_coins: string | null;
   gift_recipient_coins: string | null;
+  gift_quantity: number | null;
   gift_send_name: string | null;
   gift_slug: string | null;
   gift_name: string | null;
@@ -365,6 +366,7 @@ export function serializeRoomMessage(row: RoomMessageRow) {
           rarity: row.gift_rarity || 'common',
           price: Number(row.gift_coins ?? 0),
           recipientCoins: Number(row.gift_recipient_coins ?? 0),
+          quantity: Number(row.gift_quantity ?? 1),
         }
       : null,
   };
@@ -374,6 +376,7 @@ const ROOM_MESSAGE_SELECT = `
   SELECT rm.id, rm.room_id, rm.user_id, rm.body, rm.type, rm.created_at, rm.is_announcement,
          u.display_name, u.username, u.avatar_url, ${RANK_FIELDS},
          gs.id AS gift_send_id, gs.coins AS gift_coins, gs.recipient_coins AS gift_recipient_coins,
+         gs.quantity AS gift_quantity,
          gs.gift_name AS gift_send_name, g.slug AS gift_slug, g.name AS gift_name,
          g.name_en AS gift_name_en, g.design AS gift_design, g.video_url AS gift_video_url,
          g.cover_url AS gift_cover_url, g.rarity AS gift_rarity

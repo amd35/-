@@ -164,6 +164,8 @@ router.post(
       throw new HttpError(400, 'Gift and recipient are required', 'invalid_gift');
     }
     if (requestId.length < 8) throw new HttpError(400, 'Missing request id', 'invalid_request');
+    // One send can carry several copies of the same gift (1 … 2000).
+    const quantity = Math.min(2000, Math.max(1, Math.trunc(Number(req.body?.quantity) || 1)));
     if (recipientId === me) throw new HttpError(400, 'You cannot gift yourself', 'invalid_recipient');
 
     const outcome = await tx(async (c) => {
@@ -187,15 +189,15 @@ router.post(
           : Number(gift.recipient_percent);
       const recipientPercent = Math.min(100, Math.max(0, Math.trunc(percent)));
       const adminPercent = 100 - recipientPercent;
-      const price = Number(gift.price);
+      const price = Number(gift.price) * quantity;
       const recipientCoins = Math.floor((price * recipientPercent) / 100);
       const adminCoins = price - recipientCoins;
 
       const created = await c.query(
         `INSERT INTO gift_sends
            (request_id, gift_id, sender_id, recipient_id, coins,
-            recipient_coins, admin_coins, recipient_percent, admin_percent, gift_name)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+            recipient_coins, admin_coins, recipient_percent, admin_percent, gift_name, quantity)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
          ON CONFLICT (request_id) DO NOTHING
          RETURNING *`,
         [
@@ -209,6 +211,7 @@ router.post(
           recipientPercent,
           adminPercent,
           gift.name,
+          quantity,
         ]
       );
       if (!created.rowCount) {
@@ -241,7 +244,7 @@ router.post(
       const message = await c.query<{ id: string }>(
         `INSERT INTO room_messages (room_id, user_id, body, type, gift_send_id)
          VALUES ($1, $2, $3, 'gift', $4) RETURNING id`,
-        [roomId, me, `🎁 ${gift.name}`, send.id]
+        [roomId, me, `🎁 ${gift.name}${quantity > 1 ? ` × ${quantity}` : ''}`, send.id]
       );
       return { messageId: message.rows[0].id, recipientCoins, coins: price, sendId: send.id };
     });

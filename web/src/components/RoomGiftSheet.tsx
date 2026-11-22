@@ -17,6 +17,7 @@ export interface RoomGiftInfo {
   rarity: string;
   price: number;
   recipientCoins: number;
+  quantity?: number;
 }
 
 export interface RoomMessageData {
@@ -47,6 +48,9 @@ const RARITY_LABEL: Record<string, string> = {
   vip: 'VIP',
 };
 
+/** Quick quantity picks for one gift send. */
+const QUANTITIES = [1, 7, 17, 77, 777, 999, 1000, 2000];
+
 function newRequestId(): string {
   if (typeof crypto !== 'undefined' && 'randomUUID' in crypto) return crypto.randomUUID();
   return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 12)}`;
@@ -73,6 +77,7 @@ export function RoomGiftSheet({
   const [loading, setLoading] = useState(false);
   const [recipientId, setRecipientId] = useState('');
   const [selected, setSelected] = useState<GiftItem | null>(null);
+  const [quantity, setQuantity] = useState(1);
   const [sending, setSending] = useState(false);
   const requestRef = useRef('');
   // `speakers` is a fresh array on every render of the room, so depend on the id
@@ -82,6 +87,7 @@ export function RoomGiftSheet({
   useEffect(() => {
     if (!open) return;
     setSelected(null);
+    setQuantity(1);
     setRecipientId((current) => current || firstSpeakerId);
     requestRef.current = '';
     setLoading(true);
@@ -96,7 +102,7 @@ export function RoomGiftSheet({
 
   const send = useCallback(async () => {
     if (!selected || !recipientId || sending) return;
-    if (balance < selected.price) {
+    if (balance < selected.price * quantity) {
       toast.push(t('insufficientCoins'), 'error');
       return;
     }
@@ -105,10 +111,10 @@ export function RoomGiftSheet({
     try {
       const response = await api<{ message: RoomMessageData }>(`/rooms/${roomId}/gifts`, {
         method: 'POST',
-        body: { giftId: selected.id, recipientId, requestId: requestRef.current },
+        body: { giftId: selected.id, recipientId, requestId: requestRef.current, quantity },
       });
       requestRef.current = '';
-      setBalance((current) => current - selected.price);
+      setBalance((current) => current - selected.price * quantity);
       onSent(response.message);
       setSelected(null);
       onClose();
@@ -117,7 +123,7 @@ export function RoomGiftSheet({
     } finally {
       setSending(false);
     }
-  }, [balance, onClose, onSent, recipientId, roomId, selected, sending, t, toast]);
+  }, [balance, onClose, onSent, quantity, recipientId, roomId, selected, sending, t, toast]);
 
   return (
     <Sheet open={open} onClose={onClose} title={t('giftShop')}>
@@ -184,6 +190,22 @@ export function RoomGiftSheet({
           </div>
         )}
 
+        <div className="gift-qty">
+          <span className="gift-qty-label">عدد الهدايا</span>
+          <div className="gift-qty-row">
+            {QUANTITIES.map((count) => (
+              <button
+                key={count}
+                type="button"
+                className={`gift-qty-chip${quantity === count ? ' active' : ''}`}
+                onClick={() => setQuantity(count)}
+              >
+                {count}
+              </button>
+            ))}
+          </div>
+        </div>
+
         <button
           className="btn btn-primary btn-block"
           onClick={() => void send()}
@@ -191,6 +213,7 @@ export function RoomGiftSheet({
         >
           {sending ? <span className="spinner" /> : <Icon name="gift" size={18} />}
           {t('sendGift')}
+          {selected ? ` · ${formatCoins(selected.price * quantity)}` : ''}
         </button>
       </div>
     </Sheet>
