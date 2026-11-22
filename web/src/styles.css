@@ -5239,6 +5239,25 @@ table.data tr:hover td {
   filter: drop-shadow(0 0 5px var(--vip-glow, #ff5a1f)) drop-shadow(0 0 12px rgba(200, 16, 46, 0.4));
 }
 
+/* Official General-Admin artwork frame: the picture is shown untouched and the
+   avatar sits inside the circle painted into it (hole centre 50% / 46%, hole
+   diameter 42.2% of the picture width). */
+.av-frame-art {
+  inset: auto;
+  top: -48.3%;
+  left: 50%;
+  width: 223%;
+  height: auto;
+  transform: translateX(-50%);
+  filter: drop-shadow(0 0 6px rgba(255, 90, 31, 0.45));
+}
+
+.av-frame-art > img {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+
 .admin-wing {
   transform-box: fill-box;
   transform-origin: 92% 62%;
@@ -5650,6 +5669,12 @@ table.data tr:hover td {
   overflow: hidden;
   border-color: rgba(255, 207, 64, 0.38);
   box-shadow: 0 0 36px -14px rgba(255, 90, 31, 0.6);
+}
+
+/* Room for the official frame artwork (crown above, banner below). */
+.profile-head:has(.av-frame-art) > .avatar-wrap,
+.profile-head:has(.av-frame-art) > .avatar-tap {
+  margin: 30px 0 70px;
 }
 
 .admin-profile-aura {

@@ -398,6 +398,11 @@ function Rainbow() {
   );
 }
 
+/** Official artwork frames: used exactly as delivered, the avatar sits in the painted circle. */
+const ART_FRAMES: Record<string, string> = {
+  'admin-royal': '/frames/admin-royal.png',
+};
+
 const DESIGNS: Record<string, () => ReactNode> = {
   ...Object.fromEntries(VIP_EAGLE_DESIGNS.map((key) => [key, () => <VipEagleFrame design={key} />])),
   ...Object.fromEntries(ADMIN_DESIGNS.map((key) => [key, () => <AdminRoyalFrame design={key} />])),
@@ -427,6 +432,14 @@ export function AvatarFrame({ frame }: { frame: FrameInfo | null }) {
     return (
       <span className="av-frame av-frame-image">
         <img src={assetUrl(frame.imageUrl)} alt="" />
+      </span>
+    );
+  }
+  const art = ART_FRAMES[frame.design ?? ''];
+  if (art) {
+    return (
+      <span className="av-frame av-frame-art" aria-hidden="true">
+        <img src={art} alt="" />
       </span>
     );
   }
