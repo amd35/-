@@ -1675,6 +1675,9 @@ p {
 }
 
 .pack .coins {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
   font-size: 19px;
   font-weight: 800;
   color: #ffd75e;

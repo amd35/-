@@ -17,6 +17,10 @@ import { AvatarFrame, type FrameInfo } from '../components/AvatarFrame';
 /** Gift artwork used wherever the gift icon appears (shop, composer, room, pills). */
 const GIFT_ICON_URL =
   'https://media.base44.com/images/public/6addb0a6b0689d303ed3a495/ba4c71cec_file_000000007c54821081a33f6e0657af7c.png';
+/** Royal gold coin artwork used wherever coins / the balance icon appears. */
+const COIN_ICON_URL = '/coin-gold.png';
+/** Icons rendered from artwork instead of a stroke path. */
+const IMAGE_ICONS: Record<string, string> = { gift: GIFT_ICON_URL, coins: COIN_ICON_URL };
 const ICONS: Record<string, ReactNode> = {
   home: <path d="M3 10.7 12 3.5l9 7.2V20a1 1 0 0 1-1 1h-5.2v-6.4H9.2V21H4a1 1 0 0 1-1-1z" />,
   chat: (
@@ -187,13 +191,6 @@ const ICONS: Record<string, ReactNode> = {
       <path d="M5.6 5.6l12.8 12.8" />
     </>
   ),
-  coins: (
-    <>
-      <ellipse cx="12" cy="6.5" rx="8" ry="3.5" />
-      <path d="M4 6.5v5c0 1.9 3.6 3.5 8 3.5s8-1.6 8-3.5v-5" />
-      <path d="M4 11.5v5c0 1.9 3.6 3.5 8 3.5s8-1.6 8-3.5v-5" />
-    </>
-  ),
   refresh: (
     <>
       <path d="M20.5 4.5v6h-6" />
@@ -282,10 +279,11 @@ export function Icon({
   style?: CSSProperties;
   fill?: string;
 }) {
-  if (name === 'gift') {
+  const artwork = IMAGE_ICONS[name];
+  if (artwork) {
     return (
       <img
-        src={GIFT_ICON_URL}
+        src={artwork}
         width={size}
         height={size}
         alt=""

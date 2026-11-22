@@ -206,6 +206,7 @@ export default function Wallet() {
             </span>
           </div>
           <div className="balance">
+            <Icon name="coins" size={30} style={{ alignSelf: 'center' }} />
             <strong>{formatCoins(wallet.balance)}</strong>
             <span className="muted tiny">
               ≈ {formatCoins(wallet.balance * (data?.coinToIqdRate ?? 5))} IQD
@@ -261,7 +262,9 @@ export default function Wallet() {
                   }}
                 >
                   {pack.bonusCoins > 0 ? <span className="bonus">+{pack.bonusCoins}</span> : null}
-                  <span className="coins">{formatCoins(pack.totalCoins)}</span>
+                  <span className="coins">
+                    <Icon name="coins" size={17} /> {formatCoins(pack.totalCoins)}
+                  </span>
                   <span className="tiny muted">{pack.name}</span>
                   <span className="price">
                     {formatCoins(currency === 'USD' ? pack.priceUsdCents / 100 : pack.priceIqd)}{' '}
@@ -340,11 +343,11 @@ export default function Wallet() {
                   <div className="icon-btn plain">
                     <Icon
                       name={
-                        transaction.amount >= 0
-                          ? transaction.type === 'earning'
-                            ? 'gift'
+                        transaction.type === 'earning'
+                          ? 'gift'
+                          : transaction.type.startsWith('call_')
+                            ? 'phone'
                             : 'coins'
-                          : 'phone'
                       }
                       size={18}
                     />
