@@ -75,11 +75,14 @@ export function RoomGiftSheet({
   const [selected, setSelected] = useState<GiftItem | null>(null);
   const [sending, setSending] = useState(false);
   const requestRef = useRef('');
+  // `speakers` is a fresh array on every render of the room, so depend on the id
+  // string instead — otherwise the effect re-fetches the gift list in a loop.
+  const firstSpeakerId = speakers[0]?.id ?? '';
 
   useEffect(() => {
     if (!open) return;
     setSelected(null);
-    setRecipientId((current) => current || speakers[0]?.id || '');
+    setRecipientId((current) => current || firstSpeakerId);
     requestRef.current = '';
     setLoading(true);
     api<{ gifts: GiftItem[]; balance: number }>('/gifts')
@@ -89,7 +92,7 @@ export function RoomGiftSheet({
       })
       .catch((error: Error) => toast.push(error.message, 'error'))
       .finally(() => setLoading(false));
-  }, [open, speakers, toast]);
+  }, [open, firstSpeakerId, toast]);
 
   const send = useCallback(async () => {
     if (!selected || !recipientId || sending) return;
