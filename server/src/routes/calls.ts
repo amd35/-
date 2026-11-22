@@ -53,6 +53,7 @@ router.post(
       freeAvailable: result.freeAvailable,
       ratePerMinute: result.ratePerMinute,
       status: result.call.status,
+      isBot: result.isBot,
     });
   })
 );

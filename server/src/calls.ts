@@ -93,8 +93,8 @@ export async function inviteCall(callerId: string, calleeId: string, kind: CallK
   if (callerId === calleeId) throw new HttpError(400, 'You cannot call yourself', 'invalid_callee');
 
   const settings = await getSettings();
-  const callee = await one<{ id: string; is_banned: boolean }>(
-    'SELECT id, is_banned FROM users WHERE id = $1',
+  const callee = await one<{ id: string; is_banned: boolean; is_bot: boolean }>(
+    'SELECT id, is_banned, is_bot FROM users WHERE id = $1',
     [calleeId]
   );
   if (!callee) throw new HttpError(404, 'User not found', 'user_not_found');
@@ -173,7 +173,16 @@ export async function inviteCall(callerId: string, calleeId: string, kind: CallK
     }, RING_TIMEOUT_MS)
   );
 
-  return { call, freeAvailable: canBeFree, ratePerMinute: rate };
+  // The in-app companion has no device to ring: she always picks up.
+  if (callee.is_bot) {
+    setTimeout(() => {
+      void acceptCall(call.id, calleeId).catch((error) => {
+        console.error('[calls] bot accept failed', (error as Error).message);
+      });
+    }, 1_400);
+  }
+
+  return { call, freeAvailable: canBeFree, ratePerMinute: rate, isBot: callee.is_bot };
 }
 
 async function endRinging(callId: string, status: 'missed' | 'cancelled' | 'rejected') {

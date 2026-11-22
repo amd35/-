@@ -51,6 +51,10 @@
   ensures that conversation exists and seeds one welcome message per user.
 - Replies come from local intent matching (`replyFor`) after a `chat:typing` event — no external AI call,
   so the assistant works with zero integration credits. Messages are inserted as Lina and pushed by websocket.
+- Calls to Lina: `inviteCall` auto-accepts a call whose callee is `is_bot` (after 1.4 s), so billing, free
+  attempts, ticks and history behave exactly like a real call. `POST /api/calls` returns `isBot`, and the client
+  then skips WebRTC signaling: `web/src/components/BotCall.tsx` draws her portrait on a canvas captured as a
+  MediaStream and speaks her lines with the device speech engine (shown as captions when no voice exists).
 
 ## Preview specifics
 - `web/vite.config.ts` adds the sandbox host wildcard and the public preview host to `allowedHosts`

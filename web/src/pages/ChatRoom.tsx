@@ -228,10 +228,20 @@ export default function ChatRoom() {
             {peerTyping ? '…' : isOnline ? t('onlineNow') : t('offline')}
           </div>
         </div>
-        <button className="icon-btn" onClick={() => callPeer('voice')} aria-label="voice call">
+        <button
+          className="icon-btn"
+          onClick={() => callPeer('voice')}
+          aria-label="voice call"
+          disabled={!peer}
+        >
           <Icon name="phone" size={18} />
         </button>
-        <button className="icon-btn" onClick={() => callPeer('video')} aria-label="video call">
+        <button
+          className="icon-btn"
+          onClick={() => callPeer('video')}
+          aria-label="video call"
+          disabled={!peer}
+        >
           <Icon name="video" size={18} />
         </button>
         <button className="icon-btn" onClick={() => setMenuOpen(true)} aria-label="menu">

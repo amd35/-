@@ -33,6 +33,8 @@ export interface CallInfo {
   peer: CallPeer;
   isFree: boolean;
   ratePerMinute: number;
+  /** The in-app companion: no WebRTC peer, she answers on the server. */
+  isBot?: boolean;
 }
 
 export interface CallSummary {
@@ -319,8 +321,16 @@ export function CallProvider({ children }: { children: ReactNode }) {
         setCall(updated);
         setBalance(Number(data.balance || 0));
         setPhase('connecting');
-        if (isCallerRef.current) void startAsCaller(updated.kind);
-        else void ensureLocalMedia(updated.kind);
+        // Lina has no WebRTC endpoint: her video is drawn locally and her voice
+        // comes from the device speech engine.
+        if (updated.isBot) {
+          void ensureLocalMedia(updated.kind);
+          setPhase('active');
+        } else if (isCallerRef.current) {
+          void startAsCaller(updated.kind);
+        } else {
+          void ensureLocalMedia(updated.kind);
+        }
       }),
       on('webrtc:signal', (data) => {
         void handleSignal(data);
@@ -414,10 +424,12 @@ export function CallProvider({ children }: { children: ReactNode }) {
         return;
       }
       try {
-        const response = await api<{ callId: string; ratePerMinute: number; freeAvailable: boolean }>(
-          '/calls',
-          { method: 'POST', body: { calleeId: peer.id, kind } }
-        );
+        const response = await api<{
+          callId: string;
+          ratePerMinute: number;
+          freeAvailable: boolean;
+          isBot?: boolean;
+        }>('/calls', { method: 'POST', body: { calleeId: peer.id, kind } });
         isCallerRef.current = true;
         setElapsed(0);
         setCost(0);
@@ -432,6 +444,7 @@ export function CallProvider({ children }: { children: ReactNode }) {
           peer,
           isFree: false,
           ratePerMinute: response.ratePerMinute,
+          isBot: Boolean(response.isBot),
         });
         setPhase('outgoing');
       } catch (error) {

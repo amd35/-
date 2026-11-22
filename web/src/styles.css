@@ -1052,6 +1052,77 @@ p {
   max-width: 80%;
 }
 
+.call-bot-badge {
+  position: absolute;
+  inset-block-start: 62px;
+  inset-inline: 0;
+  width: fit-content;
+  margin-inline: auto;
+  z-index: 3;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 6px 14px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 700;
+  color: #fff;
+  background: rgba(0, 0, 0, 0.45);
+  backdrop-filter: blur(8px);
+}
+
+.call-bot-badge.voice {
+  inset-block-start: auto;
+  inset-block-end: 150px;
+}
+
+.call-bot-badge.on {
+  color: #ffd75e;
+}
+
+.bot-caption {
+  position: absolute;
+  inset-block-end: 190px;
+  inset-inline: 0;
+  width: fit-content;
+  max-width: 86%;
+  margin-inline: auto;
+  z-index: 3;
+  padding: 10px 14px;
+  border-radius: 16px;
+  background: rgba(0, 0, 0, 0.55);
+  backdrop-filter: blur(10px);
+  color: #fff;
+  font-size: 14px;
+  line-height: 1.65;
+  text-align: center;
+}
+
+.bot-caption.voice {
+  inset-block-end: 205px;
+}
+
+.call-bot-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #86efac;
+}
+
+.call-bot-badge.on .call-bot-dot {
+  background: #ffd75e;
+  animation: botPulse 1.1s ease-out infinite;
+}
+
+@keyframes botPulse {
+  from {
+    box-shadow: 0 0 0 0 rgba(255, 215, 94, 0.7);
+  }
+  to {
+    box-shadow: 0 0 0 9px rgba(255, 215, 94, 0);
+  }
+}
+
 .pip {
   position: absolute;
   inset-block-start: 18px;

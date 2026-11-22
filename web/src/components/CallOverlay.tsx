@@ -1,4 +1,5 @@
 import { useEffect, useRef } from 'react';
+import { BotVideoStage, BotVoice } from './BotCall';
 import { useCall } from '../lib/call';
 import { useI18n } from '../lib/i18n';
 import { Avatar, formatCoins, formatDuration, Icon } from '../lib/ui';
@@ -54,6 +55,7 @@ export function CallOverlay() {
   const peer = incoming?.peer ?? call?.peer ?? null;
   const kind = incoming?.kind ?? call?.kind ?? 'voice';
   const isVideo = kind === 'video';
+  const isBotPeer = Boolean(call?.isBot);
 
   if (phase === 'incoming' && incoming) {
     return (
@@ -146,7 +148,9 @@ export function CallOverlay() {
     <div className="call-screen">
       {inProgress && isVideo ? (
         <div className="call-video-area">
-          {remoteStream ? (
+          {isBotPeer ? (
+            <BotVideoStage active={inProgress} muted={muted} />
+          ) : remoteStream ? (
             <video ref={remoteVideo} className="remote" autoPlay playsInline />
           ) : (
             <div style={{ display: 'grid', placeItems: 'center', height: '100%' }}>
@@ -156,6 +160,8 @@ export function CallOverlay() {
           <div className="scrim" />
         </div>
       ) : null}
+
+      {inProgress && !isVideo && isBotPeer ? <BotVoice active={inProgress} muted={muted} /> : null}
 
       {inProgress && isVideo && localStream ? (
         <div className="pip">
