@@ -555,11 +555,24 @@ CREATE TABLE IF NOT EXISTS room_mics (
 CREATE UNIQUE INDEX IF NOT EXISTS room_mics_position_uidx ON room_mics (room_id, position);
 CREATE INDEX IF NOT EXISTS room_mics_user_idx ON room_mics (user_id);
 
+-- Room chat: the message list inside a voice room. A row with `type = 'gift'`
+-- points at the gift send so the client can replay the gift animation.
+CREATE TABLE IF NOT EXISTS room_messages (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  room_id uuid NOT NULL REFERENCES rooms(id) ON DELETE CASCADE,
+  user_id uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  body text NOT NULL DEFAULT '',
+  type text NOT NULL DEFAULT 'text',
+  gift_send_id uuid REFERENCES gift_sends(id) ON DELETE SET NULL,
+  created_at timestamptz NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS room_messages_room_idx ON room_messages (room_id, created_at DESC);
+
 -- A starter room (with 8 seats) so the feature is usable right away. Seeded only
 -- when no room exists yet, so a room the admin deletes never comes back.
 WITH created AS (
   INSERT INTO rooms (name, description, rules, sort_order)
-  SELECT 'الغرفة العامة', 'غرفة مفتوحة للجميع — خذ مايك وتحدّث مع الأصدقاء',
+  SELECT 'الخدمة العملاء الرسمية', 'الغرفة الرسمية للخدمة العملاء — خذ مايك وتحدّث مع الفريق',
          'احترم الجميع ولا تخرج عن الآداب العامة', 10
   WHERE NOT EXISTS (SELECT 1 FROM rooms)
   RETURNING id

@@ -314,6 +314,12 @@ const ar: Record<string, string> = {
   micLeft: 'تركت المايك',
   leaveMic: 'مغادرة المايك',
   mic: 'مايك',
+  exitRoom: 'خروج',
+  roomMessages: 'الرسائل',
+  roomMessagePlaceholder: 'اكتب رسالة…',
+  roomMessagesEmpty: 'لا توجد رسائل بعد',
+  roomGiftTo: 'أرسل هدية إلى',
+  roomNoSpeakers: 'لا يوجد أحد على المايك الآن',
 };
 
 const en: Record<string, string> = {
@@ -628,6 +634,12 @@ const en: Record<string, string> = {
   micLeft: 'You left the mic',
   leaveMic: 'Leave mic',
   mic: 'Mic',
+  exitRoom: 'Exit',
+  roomMessages: 'Messages',
+  roomMessagePlaceholder: 'Type a message…',
+  roomMessagesEmpty: 'No messages yet',
+  roomGiftTo: 'Send a gift to',
+  roomNoSpeakers: 'Nobody is on a mic right now',
 };
 
 const dictionaries: Record<Lang, Record<string, string>> = { ar, en };

@@ -125,6 +125,82 @@ export async function allRoomsWithMics() {
   }));
 }
 
+export interface RoomMessageRow {
+  id: string;
+  room_id: string;
+  user_id: string;
+  body: string;
+  type: string;
+  created_at: string;
+  display_name: string | null;
+  username: string | null;
+  avatar_url: string | null;
+  gift_send_id: string | null;
+  gift_coins: string | null;
+  gift_recipient_coins: string | null;
+  gift_send_name: string | null;
+  gift_slug: string | null;
+  gift_name: string | null;
+  gift_name_en: string | null;
+  gift_design: string | null;
+  gift_video_url: string | null;
+  gift_cover_url: string | null;
+  gift_rarity: string | null;
+}
+
+export function serializeRoomMessage(row: RoomMessageRow) {
+  return {
+    id: row.id,
+    roomId: row.room_id,
+    userId: row.user_id,
+    displayName: row.display_name || row.username || '',
+    avatarUrl: row.avatar_url,
+    body: row.body,
+    type: row.type,
+    createdAt: row.created_at,
+    gift: row.gift_send_id
+      ? {
+          id: row.gift_send_id,
+          name: row.gift_name || row.gift_send_name || 'Gift',
+          nameEn: row.gift_name_en || row.gift_send_name || 'Gift',
+          slug: row.gift_slug,
+          design: row.gift_design,
+          videoUrl: row.gift_video_url,
+          coverUrl: row.gift_cover_url,
+          rarity: row.gift_rarity || 'common',
+          price: Number(row.gift_coins ?? 0),
+          recipientCoins: Number(row.gift_recipient_coins ?? 0),
+        }
+      : null,
+  };
+}
+
+const ROOM_MESSAGE_SELECT = `
+  SELECT rm.id, rm.room_id, rm.user_id, rm.body, rm.type, rm.created_at,
+         u.display_name, u.username, u.avatar_url,
+         gs.id AS gift_send_id, gs.coins AS gift_coins, gs.recipient_coins AS gift_recipient_coins,
+         gs.gift_name AS gift_send_name, g.slug AS gift_slug, g.name AS gift_name,
+         g.name_en AS gift_name_en, g.design AS gift_design, g.video_url AS gift_video_url,
+         g.cover_url AS gift_cover_url, g.rarity AS gift_rarity
+  FROM room_messages rm
+  JOIN users u ON u.id = rm.user_id
+  LEFT JOIN gift_sends gs ON gs.id = rm.gift_send_id
+  LEFT JOIN gifts g ON g.id = gs.gift_id`;
+
+/** Latest messages of a room, oldest first so the client can append at the bottom. */
+export async function roomMessages(roomId: string) {
+  const rows = await q<RoomMessageRow>(
+    `${ROOM_MESSAGE_SELECT} WHERE rm.room_id = $1 ORDER BY rm.created_at DESC LIMIT 60`,
+    [roomId]
+  );
+  return rows.reverse().map(serializeRoomMessage);
+}
+
+export async function roomMessageById(messageId: string) {
+  const row = await one<RoomMessageRow>(`${ROOM_MESSAGE_SELECT} WHERE rm.id = $1`, [messageId]);
+  return row ? serializeRoomMessage(row) : null;
+}
+
 /**
  * Re-numbers a room's seats to 1..n. Positions are shifted to negative values first so
  * the (room_id, position) unique index never collides halfway through the rewrite.
