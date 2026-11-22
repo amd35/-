@@ -674,6 +674,22 @@ CREATE TABLE IF NOT EXISTS rooms (
   sort_order integer NOT NULL DEFAULT 0,
   created_at timestamptz NOT NULL DEFAULT now()
 );
+-- Room owner, animated stage design and shared music track.
+ALTER TABLE rooms ADD COLUMN IF NOT EXISTS owner_id uuid REFERENCES users(id) ON DELETE SET NULL;
+ALTER TABLE rooms ADD COLUMN IF NOT EXISTS background text NOT NULL DEFAULT 'fire';
+ALTER TABLE rooms ADD COLUMN IF NOT EXISTS music_url text;
+ALTER TABLE rooms ADD COLUMN IF NOT EXISTS country text NOT NULL DEFAULT 'العراق';
+ALTER TABLE rooms ADD COLUMN IF NOT EXISTS language text NOT NULL DEFAULT 'العربية';
+
+-- Delegated room staff: 'admin' runs the room, 'supervisor' moderates mics and chat.
+CREATE TABLE IF NOT EXISTS room_roles (
+  room_id uuid NOT NULL REFERENCES rooms(id) ON DELETE CASCADE,
+  user_id uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  role text NOT NULL CHECK (role IN ('admin', 'supervisor')),
+  granted_by uuid REFERENCES users(id) ON DELETE SET NULL,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  PRIMARY KEY (room_id, user_id)
+);
 
 -- One row per microphone seat. `position` is the seat order the admin arranges;
 -- `user_id` is the occupant, cleared automatically when that account is deleted.
@@ -688,6 +704,7 @@ CREATE TABLE IF NOT EXISTS room_mics (
   joined_at timestamptz,
   created_at timestamptz NOT NULL DEFAULT now()
 );
+ALTER TABLE room_mics ADD COLUMN IF NOT EXISTS muted boolean NOT NULL DEFAULT false;
 CREATE UNIQUE INDEX IF NOT EXISTS room_mics_position_uidx ON room_mics (room_id, position);
 CREATE INDEX IF NOT EXISTS room_mics_user_idx ON room_mics (user_id);
 
@@ -707,8 +724,9 @@ CREATE TABLE IF NOT EXISTS room_messages (
 ALTER TABLE room_messages ADD COLUMN IF NOT EXISTS is_announcement boolean NOT NULL DEFAULT false;
 CREATE INDEX IF NOT EXISTS room_messages_room_idx ON room_messages (room_id, created_at DESC);
 
--- A starter room (with 8 seats) so the feature is usable right away. Seeded only
--- when no room exists yet, so a room the admin deletes never comes back.
+-- A starter room (with 15 seats: 3 rows of 5) so the feature is usable right
+-- away. Seeded only when no room exists yet, so a room the admin deletes never
+-- comes back.
 WITH created AS (
   INSERT INTO rooms (name, description, rules, sort_order)
   SELECT 'الخدمة العملاء الرسمية', 'الغرفة الرسمية للخدمة العملاء — خذ مايك وتحدّث مع الفريق',
@@ -717,12 +735,28 @@ WITH created AS (
   RETURNING id
 )
 INSERT INTO room_mics (room_id, position, label, kind)
-SELECT created.id, seat.position, seat.label, CASE WHEN seat.position = 1 THEN 'host' ELSE 'speaker' END
+SELECT created.id, seat.position, labels.label, CASE WHEN seat.position = 1 THEN 'host' ELSE 'speaker' END
 FROM created
-CROSS JOIN (VALUES
-  (1, 'المايك الرئيسي'), (2, 'مايك 2'), (3, 'مايك 3'), (4, 'مايك 4'),
-  (5, 'مايك 5'), (6, 'مايك 6'), (7, 'مايك 7'), (8, 'مايك 8')
-) AS seat(position, label);
+CROSS JOIN generate_series(1, 15) AS seat(position)
+CROSS JOIN LATERAL (
+  SELECT CASE WHEN seat.position = 1 THEN 'المايك الرئيسي' ELSE 'مايك ' || seat.position END AS label
+) AS labels;
+
+-- The starter room is a 15-seat stage; top it up once if an older checkout left
+-- it with fewer seats (rooms the admin deliberately trimmed are left alone).
+WITH starter AS (
+  SELECT id FROM rooms WHERE name = 'الخدمة العملاء الرسمية' ORDER BY created_at ASC LIMIT 1
+), missing AS (
+  SELECT starter.id AS room_id, seat.position
+  FROM starter
+  CROSS JOIN generate_series(1, 15) AS seat(position)
+  WHERE NOT EXISTS (
+    SELECT 1 FROM room_mics m WHERE m.room_id = starter.id AND m.position = seat.position
+  )
+  AND (SELECT count(*) FROM room_mics m WHERE m.room_id = starter.id) < 15
+)
+INSERT INTO room_mics (room_id, position, label, kind)
+SELECT room_id, position, 'مايك ' || position, 'speaker' FROM missing;
 
 -- ============================================================================
 -- Official ranks & daily boxes

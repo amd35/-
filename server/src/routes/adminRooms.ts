@@ -19,6 +19,10 @@ function readRoom(body: Record<string, unknown>) {
     rules: String(body?.rules ?? '').trim(),
     isActive: body?.isActive === undefined ? true : Boolean(body.isActive),
     sortOrder: Number(body?.sortOrder ?? 0) || 0,
+    background: String(body?.background ?? 'fire').slice(0, 300) || 'fire',
+    musicUrl: body?.musicUrl ? String(body.musicUrl).trim().slice(0, 500) : null,
+    country: String(body?.country ?? 'العراق').trim().slice(0, 60) || 'العراق',
+    language: String(body?.language ?? 'العربية').trim().slice(0, 60) || 'العربية',
   };
 }
 
@@ -38,13 +42,25 @@ router.post(
   '/',
   asyncHandler(async (req, res) => {
     const fields = readRoom((req.body ?? {}) as Record<string, unknown>);
-    const micCount = Math.min(20, Math.max(0, Number(req.body?.micCount ?? 8) || 0));
+    const micCount = Math.min(20, Math.max(0, Number(req.body?.micCount ?? 15) || 0));
 
     const room = await tx(async (client) => {
       const inserted = await client.query<RoomRow>(
-        `INSERT INTO rooms (name, description, cover_url, rules, is_active, sort_order)
-         VALUES ($1, $2, $3, $4, $5, $6) RETURNING *`,
-        [fields.name, fields.description, fields.coverUrl, fields.rules, fields.isActive, fields.sortOrder]
+        `INSERT INTO rooms (name, description, cover_url, rules, is_active, sort_order,
+                            background, music_url, country, language)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) RETURNING *`,
+        [
+          fields.name,
+          fields.description,
+          fields.coverUrl,
+          fields.rules,
+          fields.isActive,
+          fields.sortOrder,
+          fields.background,
+          fields.musicUrl,
+          fields.country,
+          fields.language,
+        ]
       );
       const created = inserted.rows[0];
       for (let position = 1; position <= micCount; position += 1) {
@@ -69,10 +85,23 @@ router.patch(
     const fields = readRoom((req.body ?? {}) as Record<string, unknown>);
     const updated = await q<RoomRow>(
       `UPDATE rooms
-       SET name = $2, description = $3, cover_url = $4, rules = $5, is_active = $6, sort_order = $7
+       SET name = $2, description = $3, cover_url = $4, rules = $5, is_active = $6, sort_order = $7,
+           background = $8, music_url = $9, country = $10, language = $11
        WHERE id = $1
        RETURNING *`,
-      [req.params.id, fields.name, fields.description, fields.coverUrl, fields.rules, fields.isActive, fields.sortOrder]
+      [
+        req.params.id,
+        fields.name,
+        fields.description,
+        fields.coverUrl,
+        fields.rules,
+        fields.isActive,
+        fields.sortOrder,
+        fields.background,
+        fields.musicUrl,
+        fields.country,
+        fields.language,
+      ]
     );
     if (!updated[0]) throw new HttpError(404, 'Room not found', 'room_not_found');
 

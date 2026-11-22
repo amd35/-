@@ -2,12 +2,19 @@ import { Router } from 'express';
 import { one, q, tx } from '../db';
 import { reqUser, requireAuth } from '../auth';
 import { broadcast, emitToUser } from '../realtime';
-import { getRoomDetail, listRooms, roomMessageById, roomMessages } from '../rooms';
+import {
+  getRoomDetail,
+  listRooms,
+  roomAccess,
+  roomMessageById,
+  roomMessages,
+} from '../rooms';
+import { notify } from '../notify';
 import { GiftRow, moveProfit } from '../gifts';
 import { getSettings } from '../settings';
 import { moveCoins } from '../wallet';
 import { awardXpSafe, getXpSettings, xpForCoins } from '../progression';
-import { activeRankFor } from '../ranks';
+import { activeRankFor, isOfficialAdmin } from '../ranks';
 import { HttpError, asyncHandler } from '../utils';
 
 const router = Router();
@@ -37,13 +44,14 @@ router.post(
     const micId = req.params.micId;
 
     await tx(async (client) => {
-      const room = await client.query<{ is_active: boolean }>('SELECT is_active FROM rooms WHERE id = $1', [
-        roomId,
-      ]);
+      const room = await client.query<{ is_active: boolean; owner_id: string | null }>(
+        'SELECT is_active, owner_id FROM rooms WHERE id = $1 FOR UPDATE',
+        [roomId]
+      );
       if (!room.rows[0]?.is_active) throw new HttpError(404, 'Room not found', 'room_not_found');
 
-      const found = await client.query<{ id: string; user_id: string | null; is_locked: boolean }>(
-        'SELECT id, user_id, is_locked FROM room_mics WHERE id = $1 AND room_id = $2 FOR UPDATE',
+      const found = await client.query<{ id: string; user_id: string | null; is_locked: boolean; kind: string }>(
+        'SELECT id, user_id, is_locked, kind FROM room_mics WHERE id = $1 AND room_id = $2 FOR UPDATE',
         [micId, roomId]
       );
       const seat = found.rows[0];
@@ -53,10 +61,17 @@ router.post(
 
       // One seat per user: release any other seat this user holds in the room first.
       await client.query(
-        'UPDATE room_mics SET user_id = NULL, joined_at = NULL WHERE room_id = $1 AND user_id = $2 AND id <> $3',
+        'UPDATE room_mics SET user_id = NULL, joined_at = NULL, muted = false WHERE room_id = $1 AND user_id = $2 AND id <> $3',
         [roomId, me, micId]
       );
-      await client.query('UPDATE room_mics SET user_id = $2, joined_at = now() WHERE id = $1', [micId, me]);
+      await client.query(
+        'UPDATE room_mics SET user_id = $2, joined_at = now(), muted = false WHERE id = $1',
+        [micId, me]
+      );
+      // Whoever takes the main host mic of an unowned room becomes its owner.
+      if (seat.kind === 'host' && !room.rows[0].owner_id) {
+        await client.query('UPDATE rooms SET owner_id = $2 WHERE id = $1 AND owner_id IS NULL', [roomId, me]);
+      }
     });
 
     broadcast('room', { roomId });
@@ -105,7 +120,7 @@ router.post(
     let announcement = false;
     if (req.body?.announcement === true) {
       const rank = await activeRankFor(me);
-      if (!rank || !rank.key.startsWith('admin_')) {
+      if (!isOfficialAdmin(rank)) {
         throw new HttpError(403, 'Official administration only', 'announcement_forbidden');
       }
       announcement = true;
@@ -244,6 +259,208 @@ router.post(
     emitToUser(me, 'wallet:update', {});
     emitToUser(recipientId, 'profit:update', {});
     res.status(201).json({ message, recipientCoins: outcome.recipientCoins });
+  })
+);
+
+/** Loads the room + caller access, or throws when the caller may not moderate. */
+async function moderateAccess(roomId: string, me: string) {
+  const room = await one<{ owner_id: string | null; is_active: boolean }>(
+    'SELECT owner_id, is_active FROM rooms WHERE id = $1',
+    [roomId]
+  );
+  if (!room?.is_active) throw new HttpError(404, 'Room not found', 'room_not_found');
+  const access = await roomAccess(roomId, me, room.owner_id);
+  if (!access.canModerate) throw new HttpError(403, 'You cannot moderate this room', 'not_moderator');
+  return { room, access };
+}
+
+/** Mute/unmute a seat. The occupant may mute themselves; staff may mute anyone. */
+router.post(
+  '/:id/mics/:micId/mute',
+  requireAuth(),
+  asyncHandler(async (req, res) => {
+    const me = reqUser(req).id;
+    const roomId = req.params.id;
+    const muted = Boolean(req.body?.muted);
+    const seat = await one<{ user_id: string | null }>(
+      'SELECT user_id FROM room_mics WHERE id = $1 AND room_id = $2',
+      [req.params.micId, roomId]
+    );
+    if (!seat) throw new HttpError(404, 'Mic not found', 'mic_not_found');
+    if (seat.user_id !== me) {
+      await moderateAccess(roomId, me);
+    }
+    await q('UPDATE room_mics SET muted = $2 WHERE id = $1 AND room_id = $3', [
+      req.params.micId,
+      muted,
+      roomId,
+    ]);
+    if (seat.user_id && seat.user_id !== me) {
+      emitToUser(seat.user_id, 'room:force_mute', { roomId, micId: req.params.micId, muted });
+    }
+    broadcast('room', { roomId });
+    res.json({ room: await getRoomDetail(roomId, me) });
+  })
+);
+
+/** Lock a seat so nobody can take it (staff only). */
+router.post(
+  '/:id/mics/:micId/lock',
+  requireAuth(),
+  asyncHandler(async (req, res) => {
+    const me = reqUser(req).id;
+    const roomId = req.params.id;
+    await moderateAccess(roomId, me);
+    const locked = Boolean(req.body?.locked);
+    const updated = await q(
+      'UPDATE room_mics SET is_locked = $2 WHERE id = $1 AND room_id = $3 RETURNING id',
+      [req.params.micId, locked, roomId]
+    );
+    if (!updated.length) throw new HttpError(404, 'Mic not found', 'mic_not_found');
+    broadcast('room', { roomId });
+    res.json({ room: await getRoomDetail(roomId, me) });
+  })
+);
+
+/** Remove the occupant from a seat (staff only). */
+router.post(
+  '/:id/mics/:micId/kick',
+  requireAuth(),
+  asyncHandler(async (req, res) => {
+    const me = reqUser(req).id;
+    const roomId = req.params.id;
+    await moderateAccess(roomId, me);
+    const seat = await one<{ user_id: string | null }>(
+      'SELECT user_id FROM room_mics WHERE id = $1 AND room_id = $2',
+      [req.params.micId, roomId]
+    );
+    if (!seat) throw new HttpError(404, 'Mic not found', 'mic_not_found');
+    if (seat.user_id) {
+      await q('UPDATE room_mics SET user_id = NULL, joined_at = NULL, muted = false WHERE id = $1', [
+        req.params.micId,
+      ]);
+      emitToUser(seat.user_id, 'room:kicked', { roomId, micId: req.params.micId });
+    }
+    broadcast('room', { roomId });
+    res.json({ room: await getRoomDetail(roomId, me) });
+  })
+);
+
+/** Grant or revoke a delegated room role (owner only). */
+router.post(
+  '/:id/roles',
+  requireAuth(),
+  asyncHandler(async (req, res) => {
+    const me = reqUser(req).id;
+    const roomId = req.params.id;
+    const room = await one<{ owner_id: string | null }>('SELECT owner_id FROM rooms WHERE id = $1', [roomId]);
+    if (!room) throw new HttpError(404, 'Room not found', 'room_not_found');
+    const access = await roomAccess(roomId, me, room.owner_id);
+    // The room owner and official platform administration manage the staff.
+    if (access.role !== 'owner' && access.role !== 'admin') {
+      throw new HttpError(403, 'Only the room owner can do this', 'not_owner');
+    }
+    const userId = String(req.body?.userId || '');
+    const role = String(req.body?.role || '');
+    if (!userId) throw new HttpError(400, 'A member is required', 'missing_member');
+    if (userId === room.owner_id) throw new HttpError(400, 'The owner already runs the room', 'owner');
+    if (!role) {
+      await q('DELETE FROM room_roles WHERE room_id = $1 AND user_id = $2', [roomId, userId]);
+    } else if (role === 'admin' || role === 'supervisor') {
+      await q(
+        `INSERT INTO room_roles (room_id, user_id, role, granted_by)
+         VALUES ($1, $2, $3, $4)
+         ON CONFLICT (room_id, user_id) DO UPDATE SET role = EXCLUDED.role, granted_by = EXCLUDED.granted_by`,
+        [roomId, userId, role, me]
+      );
+      await notify(
+        userId,
+        'room_role',
+        role === 'admin' ? 'تم تعيينك مديراً للغرفة' : 'تم تعيينك مشرفاً في الغرفة',
+        '',
+        { roomId, role }
+      );
+    } else {
+      throw new HttpError(400, 'Unknown role', 'invalid_role');
+    }
+    broadcast('room', { roomId });
+    res.json({ room: await getRoomDetail(roomId, me) });
+  })
+);
+
+/** Room stage settings: background, shared music, country/language (staff only). */
+router.post(
+  '/:id/settings',
+  requireAuth(),
+  asyncHandler(async (req, res) => {
+    const me = reqUser(req).id;
+    const roomId = req.params.id;
+    const room = await one<{ owner_id: string | null }>('SELECT owner_id FROM rooms WHERE id = $1', [roomId]);
+    if (!room) throw new HttpError(404, 'Room not found', 'room_not_found');
+    const access = await roomAccess(roomId, me, room.owner_id);
+    if (!access.canManage) throw new HttpError(403, 'Only room management can do this', 'not_manager');
+
+    const background = req.body?.background === undefined ? null : String(req.body.background).slice(0, 300);
+    const musicUrl =
+      req.body?.musicUrl === undefined ? null : String(req.body.musicUrl).trim().slice(0, 500) || '';
+    const country = req.body?.country === undefined ? null : String(req.body.country).trim().slice(0, 60);
+    const language = req.body?.language === undefined ? null : String(req.body.language).trim().slice(0, 60);
+
+    await q(
+      `UPDATE rooms SET
+         background = COALESCE($2, background),
+         music_url = CASE WHEN $3::text IS NULL THEN music_url ELSE NULLIF($3, '') END,
+         country = COALESCE(NULLIF($4, ''), country),
+         language = COALESCE(NULLIF($5, ''), language)
+       WHERE id = $1`,
+      [roomId, background, musicUrl, country, language]
+    );
+    broadcast('room', { roomId });
+    res.json({ room: await getRoomDetail(roomId, me) });
+  })
+);
+
+/** Invite a user to the room through an in-app notification. */
+router.post(
+  '/:id/invite',
+  requireAuth(),
+  asyncHandler(async (req, res) => {
+    const me = reqUser(req).id;
+    const roomId = req.params.id;
+    const userId = String(req.body?.userId || '');
+    if (!userId || userId === me) throw new HttpError(400, 'Pick a user to invite', 'invalid_recipient');
+    const room = await one<{ name: string; is_active: boolean }>(
+      'SELECT name, is_active FROM rooms WHERE id = $1',
+      [roomId]
+    );
+    if (!room?.is_active) throw new HttpError(404, 'Room not found', 'room_not_found');
+    const target = await one('SELECT 1 FROM users WHERE id = $1 AND is_banned = false', [userId]);
+    if (!target) throw new HttpError(404, 'User not found', 'user_not_found');
+
+    await notify(userId, 'room_invite', `دعوة إلى غرفة «${room.name}»`, '', {
+      roomId,
+      roomName: room.name,
+      from: me,
+    });
+    res.status(201).json({ ok: true });
+  })
+);
+
+/** Delete one room message (staff only). */
+router.post(
+  '/:id/messages/:messageId/delete',
+  requireAuth(),
+  asyncHandler(async (req, res) => {
+    const me = reqUser(req).id;
+    const roomId = req.params.id;
+    await moderateAccess(roomId, me);
+    const deleted = await q(
+      'DELETE FROM room_messages WHERE id = $1 AND room_id = $2 RETURNING id',
+      [req.params.messageId, roomId]
+    );
+    if (!deleted.length) throw new HttpError(404, 'Message not found', 'message_not_found');
+    broadcast('room_message_deleted', { roomId, messageId: req.params.messageId });
+    res.json({ ok: true });
   })
 );
 

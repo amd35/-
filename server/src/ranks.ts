@@ -170,6 +170,11 @@ export async function expireRanks(): Promise<void> {
   );
 }
 
+/** True for the official administration: the General Admin plus every admin_* position. */
+export function isOfficialAdmin(rank: { key: string } | null | undefined): boolean {
+  return Boolean(rank && (rank.key === 'super_admin' || rank.key.startsWith('admin_')));
+}
+
 export async function activeRankFor(userId: string): Promise<RankRow | null> {
   return one<RankRow>(
     `SELECT r.* FROM user_ranks ur

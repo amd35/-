@@ -1,5 +1,6 @@
 import type { PoolClient } from 'pg';
 import { one, q } from './db';
+import { activeRankFor, isOfficialAdmin } from './ranks';
 import { isOnline } from './realtime';
 import {
   FRAME_FIELDS,
@@ -27,6 +28,11 @@ export interface RoomRow {
   rules: string;
   is_active: boolean;
   sort_order: number;
+  owner_id: string | null;
+  background: string;
+  music_url: string | null;
+  country: string;
+  language: string;
   created_at: string;
 }
 
@@ -37,6 +43,7 @@ export interface MicRow {
   label: string;
   kind: string;
   is_locked: boolean;
+  muted: boolean;
   user_id: string | null;
   joined_at: string | null;
   display_name: string | null;
@@ -80,15 +87,27 @@ export interface SeatUser {
   vip: import('./progression').VipInfo | null;
 }
 
+/** Short numeric room code shown in the stage header (stable, derived from the id). */
+export function roomCode(id: string): string {
+  const digits = id.replace(/[^0-9]/g, '');
+  return (digits.slice(-5) || id.slice(0, 5)).padStart(5, '0');
+}
+
 export function serializeRoom(row: RoomRow) {
   return {
     id: row.id,
+    code: roomCode(row.id),
     name: row.name,
     description: row.description,
     coverUrl: row.cover_url,
     rules: row.rules,
     isActive: row.is_active,
     sortOrder: Number(row.sort_order),
+    background: row.background || 'fire',
+    musicUrl: row.music_url,
+    country: row.country || 'العراق',
+    language: row.language || 'العربية',
+    ownerId: row.owner_id,
     createdAt: row.created_at,
   };
 }
@@ -113,13 +132,14 @@ export function serializeMic(row: MicRow, meId: string) {
     label: row.label,
     kind: row.kind,
     isLocked: row.is_locked,
+    muted: Boolean(row.muted),
     mine: Boolean(row.user_id && row.user_id === meId),
     user,
   };
 }
 
 const MIC_SELECT = `
-  SELECT m.id, m.room_id, m.position, m.label, m.kind, m.is_locked, m.user_id, m.joined_at,
+  SELECT m.id, m.room_id, m.position, m.label, m.kind, m.is_locked, m.muted, m.user_id, m.joined_at,
          u.username, u.level, u.display_name, u.avatar_url, ${FRAME_FIELDS}, ${RANK_FIELDS}, ${VIP_FIELDS}
   FROM room_mics m
   LEFT JOIN users u ON u.id = m.user_id
@@ -132,10 +152,136 @@ export async function roomMics(roomId: string, meId: string) {
   return rows.map((row) => serializeMic(row, meId));
 }
 
+export type RoomRole = 'owner' | 'admin' | 'supervisor' | 'member';
+
+export interface RoomAccess {
+  role: RoomRole;
+  /** Owner/admin: background, roles, room settings. */
+  canManage: boolean;
+  /** Owner/admin/supervisor: lock, mute, kick, delete messages. */
+  canModerate: boolean;
+}
+
+export async function roomAccess(
+  roomId: string,
+  userId: string,
+  ownerId: string | null
+): Promise<RoomAccess> {
+  if (ownerId && ownerId === userId) return { role: 'owner', canManage: true, canModerate: true };
+  const granted = await one<{ role: 'admin' | 'supervisor' }>(
+    'SELECT role FROM room_roles WHERE room_id = $1 AND user_id = $2',
+    [roomId, userId]
+  );
+  if (granted) {
+    return {
+      role: granted.role,
+      canManage: granted.role === 'admin',
+      canModerate: true,
+    };
+  }
+  // Official platform administration can moderate any room.
+  const rank = await activeRankFor(userId);
+  if (isOfficialAdmin(rank)) {
+    return { role: 'admin', canManage: true, canModerate: true };
+  }
+  return { role: 'member', canManage: false, canModerate: false };
+}
+
+interface RoomOwnerRow {
+  id: string;
+  username: string | null;
+  display_name: string | null;
+  avatar_url: string | null;
+  level: number | null;
+  rank_key?: string | null;
+  rank_name_ar?: string | null;
+  rank_name_en?: string | null;
+  rank_kind?: string | null;
+  rank_tier?: number | null;
+  rank_color?: string | null;
+  rank_badge_url?: string | null;
+  frame_id?: string | null;
+  frame_design?: string | null;
+  frame_kind?: string | null;
+  frame_image_url?: string | null;
+  frame_rarity?: string | null;
+  vip_tier?: number | null;
+  vip_name_ar?: string | null;
+  vip_name_en?: string | null;
+  vip_color?: string | null;
+  vip_title_ar?: string | null;
+  vip_title_en?: string | null;
+  vip_badge_url?: string | null;
+  vip_frame_url?: string | null;
+  vip_bubble_url?: string | null;
+  vip_source?: string | null;
+  vip_expires_at?: string | null;
+}
+
+/** The owner's public identity (avatar, rank, frame) shown in the room header. */
+export async function roomOwner(ownerId: string | null) {
+  if (!ownerId) return null;
+  const row = await one<RoomOwnerRow>(
+    `SELECT u.id, u.username, u.level, u.display_name, u.avatar_url,
+            ${FRAME_FIELDS}, ${RANK_FIELDS}, ${VIP_FIELDS}
+     FROM users u
+     ${frameJoins('u')}
+     ${rankJoins('u')}
+     ${vipJoins('u')}
+     WHERE u.id = $1`,
+    [ownerId]
+  );
+  if (!row) return null;
+  return {
+    id: row.id,
+    displayName: row.display_name || row.username || '',
+    avatarUrl: row.avatar_url,
+    online: isOnline(row.id),
+    frame: frameFromRow(row),
+    rank: rankFromRow(row),
+    level: Number(row.level ?? 1) || 1,
+    vip: vipFromRow(row),
+  };
+}
+
 export async function getRoomDetail(roomId: string, meId: string) {
   const room = await one<RoomRow>('SELECT * FROM rooms WHERE id = $1', [roomId]);
   if (!room || !room.is_active) throw new HttpError(404, 'Room not found', 'room_not_found');
-  return { ...serializeRoom(room), mics: await roomMics(roomId, meId) };
+  const [mics, owner, access, roles] = await Promise.all([
+    roomMics(roomId, meId),
+    roomOwner(room.owner_id),
+    roomAccess(roomId, meId, room.owner_id),
+    roomRoles(roomId),
+  ]);
+  return { ...serializeRoom(room), owner, ...access, roles, mics };
+}
+
+export interface RoomRoleEntry {
+  userId: string;
+  displayName: string;
+  avatarUrl: string | null;
+  role: 'admin' | 'supervisor';
+}
+
+export async function roomRoles(roomId: string): Promise<RoomRoleEntry[]> {
+  const rows = await q<{
+    user_id: string;
+    role: 'admin' | 'supervisor';
+    display_name: string | null;
+    username: string | null;
+    avatar_url: string | null;
+  }>(
+    `SELECT rr.user_id, rr.role, u.display_name, u.username, u.avatar_url
+     FROM room_roles rr JOIN users u ON u.id = rr.user_id
+     WHERE rr.room_id = $1 ORDER BY rr.created_at ASC`,
+    [roomId]
+  );
+  return rows.map((row) => ({
+    userId: row.user_id,
+    displayName: row.display_name || row.username || '',
+    avatarUrl: row.avatar_url,
+    role: row.role,
+  }));
 }
 
 export async function listRooms() {

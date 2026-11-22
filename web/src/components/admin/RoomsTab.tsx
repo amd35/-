@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { api } from '../../lib/api';
 import { Icon, useToast } from '../../lib/ui';
 import { AdminCard, Empty, Field, Toggle, useAdminData } from './shared';
+import { ROOM_BACKGROUNDS } from '../room/RoomBackdrop';
 
 interface AdminMic {
   id: string;
@@ -20,6 +21,9 @@ interface AdminRoom {
   rules: string;
   isActive: boolean;
   sortOrder: number;
+  background: string;
+  country: string;
+  language: string;
   mics: AdminMic[];
 }
 
@@ -31,7 +35,10 @@ const EMPTY_FORM = {
   rules: '',
   isActive: true,
   sortOrder: 0,
-  micCount: 8,
+  background: 'fire',
+  country: 'العراق',
+  language: 'العربية',
+  micCount: 15,
 };
 
 const KINDS = [
@@ -62,6 +69,9 @@ export default function RoomsTab() {
       rules: room.rules,
       isActive: room.isActive,
       sortOrder: room.sortOrder,
+      background: room.background ?? 'fire',
+      country: room.country ?? 'العراق',
+      language: room.language ?? 'العربية',
       micCount: room.mics.length,
     });
     setOpenRoomId(room.id);
@@ -81,6 +91,9 @@ export default function RoomsTab() {
         rules: form.rules,
         isActive: form.isActive,
         sortOrder: form.sortOrder,
+        background: form.background,
+        country: form.country,
+        language: form.language,
         micCount: form.micCount,
       };
       if (form.id) {
@@ -259,6 +272,53 @@ export default function RoomsTab() {
                 />
               </Field>
             )}
+          </div>
+        </div>
+
+        <div className="admin-grid-2">
+          <Field label="الخلفية المتحركة" hint="تظهر داخل الغرفة خلف المايكات">
+            <select
+              className="input"
+              value={form.background}
+              onChange={(event) => setForm({ ...form, background: event.target.value })}
+            >
+              {ROOM_BACKGROUNDS.map((item) => (
+                <option key={item.id} value={item.id}>
+                  {item.label}
+                </option>
+              ))}
+              {form.background &&
+              !ROOM_BACKGROUNDS.some((item) => item.id === form.background) ? (
+                <option value={form.background}>خلفية مخصّصة</option>
+              ) : null}
+            </select>
+          </Field>
+          <Field label="رابط خلفية مخصّصة" hint="صورة أو فيديو MP4 — يتجاوز الخلفية المختارة">
+            <input
+              className="input"
+              dir="ltr"
+              placeholder="/uploads/background.mp4"
+              value={/^(https?:\/\/|\/uploads\/)/i.test(form.background) ? form.background : ''}
+              onChange={(event) =>
+                setForm({ ...form, background: event.target.value.trim() || 'fire' })
+              }
+            />
+          </Field>
+          <div className="admin-grid-2">
+            <Field label="الدولة">
+              <input
+                className="input"
+                value={form.country}
+                onChange={(event) => setForm({ ...form, country: event.target.value })}
+              />
+            </Field>
+            <Field label="اللغة">
+              <input
+                className="input"
+                value={form.language}
+                onChange={(event) => setForm({ ...form, language: event.target.value })}
+              />
+            </Field>
           </div>
         </div>
 

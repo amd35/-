@@ -18,12 +18,18 @@ type SocketHandler = (ctx: {
 
 const byUser = new Map<string, Set<Client>>();
 const handlers = new Map<string, SocketHandler>();
+const closeHandlers = new Set<(userId: string, clientId: number) => void>();
 let sequence = 0;
 let wss: WebSocketServer | null = null;
 let heartbeat: ReturnType<typeof setInterval> | null = null;
 
 export function onSocketEvent(event: string, handler: SocketHandler): void {
   handlers.set(event, handler);
+}
+
+/** Registers a cleanup callback fired when one socket of a user disconnects. */
+export function onSocketClose(handler: (userId: string, clientId: number) => void): void {
+  closeHandlers.add(handler);
 }
 
 function send(ws: WebSocket, event: string, data: unknown): void {
@@ -104,6 +110,13 @@ export function attachRealtime(server: Server): void {
     });
 
     ws.on('close', () => {
+      for (const handler of closeHandlers) {
+        try {
+          handler(userId, client.id);
+        } catch (error) {
+          console.error('[ws] close handler failed', error);
+        }
+      }
       const set = byUser.get(userId);
       if (!set) return;
       set.delete(client);
