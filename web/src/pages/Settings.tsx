@@ -177,7 +177,7 @@ export default function Settings() {
             <Icon name="arrowLeft" size={17} />
           </div>
 
-          {me?.isAdmin && (
+          {me?.user.isAdmin && (
             <div className="row" onClick={() => navigate('/admin')}>
               <Icon name="chart" size={19} />
               <div className="row-main">

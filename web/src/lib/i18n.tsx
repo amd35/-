@@ -298,6 +298,22 @@ const ar: Record<string, string> = {
   payoutDetailsHint: 'رقم المحفظة أو الحساب البنكي واسم المستلم',
   payoutAmount: 'المبلغ المستلم',
   withdrawNote: 'لا تُعتبر الأرباح مدفوعة إلا بعد تأكيد الإدارة لعملية الدفع الفعلي.',
+  // chat rooms
+  roomsTitle: 'غرف الدردشة',
+  roomsSub: 'انضم إلى غرفة وخذ مايك وتحدّث',
+  roomsHomeHint: 'غرف صوتية — اختر مايك وتحدّث مع الجميع',
+  roomsEmpty: 'لا توجد غرف متاحة حالياً',
+  roomsEmptyHint: 'ستظهر الغرف هنا عند إضافتها من لوحة التحكم',
+  roomMics: 'المايكات',
+  roomRules: 'قواعد الغرفة',
+  roomNoMics: 'لم تُضف مايكات لهذه الغرفة بعد',
+  micFree: 'متاح',
+  micLocked: 'مقفل',
+  micBusy: 'المايك مشغول',
+  micJoined: 'أصبحت على المايك 🎤',
+  micLeft: 'تركت المايك',
+  leaveMic: 'مغادرة المايك',
+  mic: 'مايك',
 };
 
 const en: Record<string, string> = {
@@ -596,6 +612,22 @@ const en: Record<string, string> = {
   payoutDetailsHint: 'Wallet number or bank account and recipient name',
   payoutAmount: 'Payout amount',
   withdrawNote: 'Earnings are only considered paid after the admin confirms the actual payment.',
+  // chat rooms
+  roomsTitle: 'Chat rooms',
+  roomsSub: 'Join a room, take a mic and talk',
+  roomsHomeHint: 'Voice rooms — grab a mic and talk with everyone',
+  roomsEmpty: 'No rooms available right now',
+  roomsEmptyHint: 'Rooms show up here once the admin adds them',
+  roomMics: 'Mics',
+  roomRules: 'Room rules',
+  roomNoMics: 'No mics added to this room yet',
+  micFree: 'Free',
+  micLocked: 'Locked',
+  micBusy: 'This mic is taken',
+  micJoined: 'You are on the mic 🎤',
+  micLeft: 'You left the mic',
+  leaveMic: 'Leave mic',
+  mic: 'Mic',
 };
 
 const dictionaries: Record<Lang, Record<string, string>> = { ar, en };

@@ -124,6 +124,17 @@ export default function Home() {
 
         <BotGreeter />
 
+        <button type="button" className="room-card" onClick={() => navigate('/rooms')}>
+          <span className="room-cover">
+            <Icon name="mic" size={24} />
+          </span>
+          <span className="room-main">
+            <span className="room-name">{t('roomsTitle')}</span>
+            <span className="tiny muted room-desc">{t('roomsHomeHint')}</span>
+          </span>
+          <Icon name="arrowLeft" size={18} />
+        </button>
+
         <div className="search">
           <Icon name="search" size={18} />
           <input

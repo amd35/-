@@ -17,6 +17,8 @@ import { Profile, UserProfile } from './pages/Profile';
 import Settings from './pages/Settings';
 import Frames from './pages/Frames';
 import Earnings from './pages/Earnings';
+import Rooms from './pages/Rooms';
+import Room from './pages/Room';
 import Admin from './pages/Admin';
 
 function Protected({ children }: { children: ReactNode }) {
@@ -129,6 +131,22 @@ export default function App() {
           element={
             <Protected>
               <Settings />
+            </Protected>
+          }
+        />
+        <Route
+          path="/rooms"
+          element={
+            <Protected>
+              <Rooms />
+            </Protected>
+          }
+        />
+        <Route
+          path="/rooms/:id"
+          element={
+            <Protected>
+              <Room />
             </Protected>
           }
         />

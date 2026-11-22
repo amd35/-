@@ -3266,3 +3266,175 @@ table.data tr:hover td {
     height: 88px;
   }
 }
+
+/* ---------------------------------------------------------------- chat rooms */
+.room-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 12px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--line);
+  background: var(--card);
+  color: var(--text);
+  text-align: start;
+  cursor: pointer;
+  transition: border-color 0.2s ease, background 0.2s ease;
+}
+
+.room-card:hover {
+  border-color: var(--line-strong);
+  background: var(--card-2);
+}
+
+.room-cover {
+  width: 58px;
+  height: 58px;
+  flex: 0 0 58px;
+  border-radius: 18px;
+  display: grid;
+  place-items: center;
+  background-color: rgba(139, 92, 246, 0.18);
+  background-image: var(--grad-soft);
+  background-size: cover;
+  background-position: center;
+  color: var(--text);
+}
+
+.room-main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.room-name {
+  font-weight: 700;
+  font-size: 15px;
+}
+
+.room-desc {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.room-meta {
+  display: flex;
+  gap: 6px;
+  margin-top: 2px;
+}
+
+.mic-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.mic-seat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 5px;
+  min-height: 118px;
+  padding: 12px 6px;
+  border-radius: var(--radius-sm);
+  border: 1px dashed var(--line-strong);
+  background: rgba(255, 255, 255, 0.02);
+  color: var(--text);
+  cursor: pointer;
+}
+
+.mic-seat.taken {
+  border-style: solid;
+  border-color: rgba(139, 92, 246, 0.5);
+  background-image: var(--grad-soft);
+}
+
+.mic-seat.mine {
+  border-color: var(--magenta);
+  box-shadow: 0 0 0 1px rgba(224, 57, 154, 0.5);
+}
+
+.mic-seat:disabled {
+  opacity: 0.65;
+  cursor: progress;
+}
+
+.mic-slot {
+  position: relative;
+  display: grid;
+  place-items: center;
+}
+
+.mic-empty {
+  width: 62px;
+  height: 62px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  border: 1px solid var(--line-strong);
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--muted);
+}
+
+.mic-crown {
+  position: absolute;
+  top: -10px;
+  inset-inline-end: -6px;
+  font-size: 15px;
+}
+
+.mic-name {
+  max-width: 100%;
+  font-size: 12.5px;
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.mic-label {
+  max-width: 100%;
+  font-size: 11px;
+  color: var(--muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.admin-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.admin-grid-2 {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.admin-mic-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  padding: 8px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--line);
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.admin-mic-row .input {
+  flex: 1;
+  min-width: 120px;
+}
+
+@media (max-width: 720px) {
+  .admin-grid-2 {
+    grid-template-columns: 1fr;
+  }
+}

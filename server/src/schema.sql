@@ -526,3 +526,48 @@ SELECT * FROM (VALUES
   ('Elite', 6000, 1500, 25000, 1999, 4)
 ) AS seed(name, coins, bonus_coins, price_iqd, price_usd_cents, sort_order)
 WHERE NOT EXISTS (SELECT 1 FROM recharge_packages);
+
+-- ---------------------------------------------------------------- chat rooms
+CREATE TABLE IF NOT EXISTS rooms (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  name text NOT NULL,
+  description text NOT NULL DEFAULT '',
+  cover_url text,
+  rules text NOT NULL DEFAULT '',
+  is_active boolean NOT NULL DEFAULT true,
+  sort_order integer NOT NULL DEFAULT 0,
+  created_at timestamptz NOT NULL DEFAULT now()
+);
+
+-- One row per microphone seat. `position` is the seat order the admin arranges;
+-- `user_id` is the occupant, cleared automatically when that account is deleted.
+CREATE TABLE IF NOT EXISTS room_mics (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  room_id uuid NOT NULL REFERENCES rooms(id) ON DELETE CASCADE,
+  position integer NOT NULL,
+  label text NOT NULL DEFAULT '',
+  kind text NOT NULL DEFAULT 'speaker',
+  is_locked boolean NOT NULL DEFAULT false,
+  user_id uuid REFERENCES users(id) ON DELETE SET NULL,
+  joined_at timestamptz,
+  created_at timestamptz NOT NULL DEFAULT now()
+);
+CREATE UNIQUE INDEX IF NOT EXISTS room_mics_position_uidx ON room_mics (room_id, position);
+CREATE INDEX IF NOT EXISTS room_mics_user_idx ON room_mics (user_id);
+
+-- A starter room (with 8 seats) so the feature is usable right away. Seeded only
+-- when no room exists yet, so a room the admin deletes never comes back.
+WITH created AS (
+  INSERT INTO rooms (name, description, rules, sort_order)
+  SELECT 'الغرفة العامة', 'غرفة مفتوحة للجميع — خذ مايك وتحدّث مع الأصدقاء',
+         'احترم الجميع ولا تخرج عن الآداب العامة', 10
+  WHERE NOT EXISTS (SELECT 1 FROM rooms)
+  RETURNING id
+)
+INSERT INTO room_mics (room_id, position, label, kind)
+SELECT created.id, seat.position, seat.label, CASE WHEN seat.position = 1 THEN 'host' ELSE 'speaker' END
+FROM created
+CROSS JOIN (VALUES
+  (1, 'المايك الرئيسي'), (2, 'مايك 2'), (3, 'مايك 3'), (4, 'مايك 4'),
+  (5, 'مايك 5'), (6, 'مايك 6'), (7, 'مايك 7'), (8, 'مايك 8')
+) AS seat(position, label);

@@ -18,6 +18,8 @@ import uploadRoutes from './routes/uploads';
 import frameRoutes from './routes/frames';
 import giftRoutes from './routes/gifts';
 import paymentRoutes from './routes/payments';
+import roomRoutes from './routes/rooms';
+import adminRoomRoutes from './routes/adminRooms';
 import adminRoutes from './routes/admin';
 
 const PORT = Number(process.env.PORT || 4000);
@@ -72,6 +74,8 @@ app.use('/api/uploads', uploadRoutes);
 app.use('/api/frames', frameRoutes);
 app.use('/api/gifts', giftRoutes);
 app.use('/api/payments', paymentRoutes);
+app.use('/api/rooms', roomRoutes);
+app.use('/api/admin/rooms', adminRoomRoutes);
 app.use('/api/admin', adminRoutes);
 
 app.use('/uploads', express.static(UPLOAD_DIR, { maxAge: '7d', fallthrough: true }));
