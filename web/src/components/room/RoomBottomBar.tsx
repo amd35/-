@@ -64,6 +64,28 @@ export function RoomBottomBar({
         </button>
         <button type="button" className={`room-bar-btn mic-main${micOn ? ' on' : ''}`} onClick={onMic}>
           <span className="room-mic-orb">
+            <svg className="room-mic-wings" viewBox="0 0 140 60" aria-hidden="true">
+              <defs>
+                <linearGradient id="room-mic-wing-gold" x1="0" y1="1" x2="0" y2="0">
+                  <stop offset="0%" stopColor="#8a5206" />
+                  <stop offset="55%" stopColor="#ffd24a" />
+                  <stop offset="100%" stopColor="#fff3c2" />
+                </linearGradient>
+              </defs>
+              {[0, 1].map((side) => (
+                <g
+                  key={side}
+                  transform={side ? 'translate(140 0) scale(-1 1)' : undefined}
+                  fill="url(#room-mic-wing-gold)"
+                  stroke="#7a4d0a"
+                  strokeWidth="0.5"
+                >
+                  <path d="M64 32 C 52 28 40 20 28 8 C 38 22 48 30 60 34 Z" />
+                  <path d="M62 37 C 48 36 34 30 20 18 C 34 32 48 40 60 41 Z" />
+                  <path d="M60 41 C 46 43 30 39 16 30 C 30 42 46 48 59 45 Z" />
+                </g>
+              ))}
+            </svg>
             <Icon name={micOn && !micMuted ? 'mic' : 'micOff'} size={22} />
           </span>
           <span>{micOn && micMuted ? 'مكتوم' : 'المايك'}</span>

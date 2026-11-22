@@ -403,6 +403,11 @@ const ART_FRAMES: Record<string, string> = {
   'admin-royal': '/frames/admin-royal.png',
 };
 
+/** True for the large painted artwork frames, which need the full profile size. */
+export function isArtFrame(frame: FrameInfo | null | undefined): boolean {
+  return Boolean(frame && frame.kind !== 'image' && ART_FRAMES[frame.design ?? '']);
+}
+
 const ART_EMBERS = [5, 11, 17, 25, 75, 83, 89, 95];
 
 /**

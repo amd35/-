@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Avatar, Icon } from '../../lib/ui';
-import type { FrameInfo } from '../AvatarFrame';
+import { isArtFrame, type FrameInfo } from '../AvatarFrame';
 import { RankBadge, type RankInfo } from '../RankBadge';
 import { LevelBadge, VipBadge, type VipInfo } from '../ProgressionBadges';
 
@@ -51,12 +51,15 @@ export function MicSeat({
   const [menu, setMenu] = useState(false);
   const speaking = Boolean(mic.user) && !mic.muted && level > 0.14;
   const owner = mic.kind === 'host';
+  // The full painted artwork frame is profile-sized; on a seat it would cover
+  // the neighbouring mics, so the seat shows a small crown instead.
+  const royal = isArtFrame(mic.user?.frame);
 
   return (
     <div
-      className={`seat${mic.user ? ' taken' : ''}${mic.mine ? ' mine' : ''}${
+      className={`seat${mic.user ? ' taken' : ''}${!mic.user ? ' empty' : ''}${mic.mine ? ' mine' : ''}${
         speaking ? ' speaking' : ''
-      }${mic.muted ? ' muted' : ''}${mic.isLocked ? ' locked' : ''}`}
+      }${mic.muted ? ' muted' : ''}${mic.isLocked ? ' locked' : ''}${royal ? ' royal' : ''}`}
     >
       <button
         type="button"
@@ -73,17 +76,17 @@ export function MicSeat({
                 displayName: mic.user.displayName,
                 avatarUrl: mic.user.avatarUrl,
                 online: mic.user.online,
-                frame: mic.user.frame,
+                frame: royal ? null : mic.user.frame,
               }}
-              size={58}
+              size={50}
             />
           ) : (
             <span className="seat-empty">
-              <Icon name={mic.isLocked ? 'lock' : 'mic'} size={24} />
+              <Icon name={mic.isLocked ? 'lock' : 'mic'} size={22} />
             </span>
           )}
           <span className="seat-num">{mic.position}</span>
-          {owner ? <span className="seat-crown" aria-hidden="true">👑</span> : null}
+          {owner || royal ? <span className="seat-crown" aria-hidden="true">👑</span> : null}
           {mic.user && mic.muted ? (
             <span className="seat-mute" aria-label="مكتوم">
               <Icon name="micOff" size={11} />

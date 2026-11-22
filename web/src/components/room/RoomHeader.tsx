@@ -1,10 +1,14 @@
 import { Avatar, Icon } from '../../lib/ui';
-import { RankBadge } from '../RankBadge';
 import { VipBadge } from '../ProgressionBadges';
+import { isArtFrame } from '../AvatarFrame';
 import type { SeatUser } from './MicSeat';
-import { RoomWings } from './RoomBackdrop';
+import { RoomCrest } from './RoomCrest';
 
-/** Compact stage header: identity, room name, owner and live occupancy. */
+/**
+ * Royal stage header: golden crowned eagle crest, the app wordmark, a compact
+ * room info panel (owner avatar + name + ID + occupancy + settings), the room
+ * announcement bar, the owner badges and the country/language pills.
+ */
 export function RoomHeader({
   name,
   code,
@@ -28,70 +32,93 @@ export function RoomHeader({
   onBack: () => void;
   onSettings: () => void;
 }) {
+  // The painted artwork frame is profile-sized, so the stage shows a compact
+  // crowned ring instead: it keeps the royal identity without covering a seat.
+  const royal = isArtFrame(owner?.frame);
+
   return (
     <header className="room-head">
-      <RoomWings className="room-head-wings" />
+      <button type="button" className="room-back" onClick={onBack} aria-label="رجوع">
+        <Icon name="arrowLeft" size={16} />
+      </button>
 
-      <div className="room-head-top">
-        <button type="button" className="room-icon-btn" onClick={onBack} aria-label="رجوع">
-          <Icon name="arrowLeft" size={18} />
-        </button>
-        <div className="room-head-id">
-          <span className="room-logo-word">YALLA PHONE</span>
-          <span className="room-id">ID: {code}</span>
-        </div>
-        <span className="room-head-spacer" />
-        <span className="room-live">
-          <i aria-hidden="true" />
-          {occupied} / {total}
-        </span>
-        {canManage ? (
-          <button type="button" className="room-icon-btn" onClick={onSettings} aria-label="إعدادات الغرفة">
-            <Icon name="settings" size={17} />
-          </button>
-        ) : null}
+      <div className="room-head-crest">
+        <RoomCrest />
       </div>
 
-      <div className="room-head-title">
-        <span className="room-logo-crown" aria-hidden="true">👑</span>
-        <h1 className="room-title">{name}</h1>
+      <div className="room-brand">
+        <span className="room-brand-gem" aria-hidden="true">◆</span>
+        <span className="room-logo-word">YALLA PHONE</span>
+        <span className="room-brand-gem" aria-hidden="true">◆</span>
       </div>
 
-      <div className="room-head-meta">
-        <div className="room-owner">
+      <div className="room-info">
+        <span className={`room-info-owner${royal ? ' royal' : ''}`}>
           {owner ? (
             <Avatar
               user={{
                 displayName: owner.displayName,
                 avatarUrl: owner.avatarUrl,
                 online: owner.online,
-                frame: owner.frame,
+                frame: royal ? null : owner.frame,
               }}
-              size={30}
+              size={42}
             />
           ) : (
             <span className="room-owner-empty">
-              <Icon name="shield" size={14} />
+              <Icon name="shield" size={16} />
             </span>
           )}
-          <span className="room-owner-copy">
-            <span className="room-owner-tag">صاحب الغرفة</span>
-            <span className="room-owner-name">
-              {owner?.rank ? <RankBadge rank={owner.rank} size={11} /> : null}
-              <VipBadge vip={owner?.vip} size={9} />
-              <span className="room-owner-name-text">{owner ? owner.displayName : 'إدارة يلا فون'}</span>
-            </span>
+          {royal ? (
+            <span className="room-info-crown" aria-hidden="true">👑</span>
+          ) : null}
+        </span>
+
+        <span className="room-info-center">
+          <span className="room-info-name">
+            <span aria-hidden="true">♛</span> YALLA PHONE
           </span>
-        </div>
-        <div className="room-place">
-          <span>
-            <Icon name="globe" size={11} /> {country}
+          <span className="room-info-id">
+            <Icon name="package" size={11} /> ID: {code}
           </span>
-          <span>
-            <Icon name="chat" size={11} /> {language}
+        </span>
+
+        <span className="room-info-side">
+          <span className="room-live">
+            <i aria-hidden="true" />
+            {occupied} / {total}
           </span>
-        </div>
+          {canManage ? (
+            <button type="button" className="room-icon-btn" onClick={onSettings} aria-label="إعدادات الغرفة">
+              <Icon name="settings" size={16} />
+            </button>
+          ) : null}
+        </span>
       </div>
+
+      <div className="room-announce">
+        <Icon name="volume" size={13} />
+        <span className="room-announce-text">{name}</span>
+        <span className="room-announce-crown" aria-hidden="true">👑</span>
+      </div>
+
+      <div className="room-sub">
+        <span className="room-sub-owner">
+          <VipBadge vip={owner?.vip} size={10} />
+          <span className="room-sub-name">{owner ? owner.displayName : 'إدارة يلا فون'}</span>
+          <span className="room-sub-tag">{owner?.rank?.nameAr ?? 'صاحب الغرفة'}</span>
+        </span>
+        <span className="room-place">
+          <span>
+            <Icon name="globe" size={10} /> {country}
+          </span>
+          <span>
+            <Icon name="chat" size={10} /> {language}
+          </span>
+        </span>
+      </div>
+
+      <span className="room-star" aria-hidden="true">✦</span>
     </header>
   );
 }
