@@ -604,7 +604,7 @@ p {
   .av-wing,
   .av-bob,
   .av-pulse,
-  .av-frame-art > img,
+  .av-frame-art img,
   .av-art-aura,
   .av-art-shine,
   .av-art-crown i,
@@ -5257,16 +5257,128 @@ table.data tr:hover td {
   filter: drop-shadow(0 0 6px rgba(255, 90, 31, 0.45));
 }
 
-.av-frame-art > img {
+.av-frame-art img {
   width: 100%;
   height: auto;
   display: block;
-  animation: avArtBreathe 6.5s ease-in-out infinite, avArtFire 3.2s ease-in-out infinite;
+}
+
+/* The artwork is split into three layers of the same picture:
+   - two wing layers, masked to the left/right wing sectors and rotating around the
+     painted shoulder joints (10 and 2 o'clock on the gold ring),
+   - one centre layer holding the crown, ring and banner, which never moves.
+   The wing layers sit underneath, so the ring always covers their inner edge. */
+.av-art-wing,
+.av-art-wing-hole {
+  position: absolute;
+  inset: 0;
+  display: block;
+  pointer-events: none;
+}
+
+.av-art-wing {
+  z-index: 1;
+}
+
+.av-art-wing-l {
+  -webkit-mask-image: conic-gradient(
+    from 0deg at 50% 46%,
+    transparent 0deg 244deg,
+    #000 258deg 326deg,
+    transparent 338deg
+  );
+  mask-image: conic-gradient(
+    from 0deg at 50% 46%,
+    transparent 0deg 244deg,
+    #000 258deg 326deg,
+    transparent 338deg
+  );
+}
+
+.av-art-wing-r {
+  -webkit-mask-image: conic-gradient(
+    from 0deg at 50% 46%,
+    transparent 0deg 22deg,
+    #000 34deg 102deg,
+    transparent 116deg
+  );
+  mask-image: conic-gradient(
+    from 0deg at 50% 46%,
+    transparent 0deg 22deg,
+    #000 34deg 102deg,
+    transparent 116deg
+  );
+}
+
+/* Wings start outside the gold ring, so the static ring always covers their root. */
+.av-art-wing-hole {
+  -webkit-mask-image: radial-gradient(ellipse 23.5% 24.5% at 50% 46%, transparent 0 99%, #000 100%);
+  mask-image: radial-gradient(ellipse 23.5% 24.5% at 50% 46%, transparent 0 99%, #000 100%);
+}
+
+.av-art-wing img {
+  transform-origin: 31.7% 35%;
+  animation: avWingFlapL 4.4s ease-in-out infinite, avArtFire 3.2s ease-in-out infinite;
+}
+
+.av-art-wing-r img {
+  transform-origin: 68.3% 35%;
+  animation-name: avWingFlapR, avArtFire;
+}
+
+.av-art-center {
+  position: relative;
+  z-index: 2;
+  display: block;
+  pointer-events: none;
+  -webkit-mask-image: radial-gradient(ellipse 25.6% 26.7% at 50% 46%, #000 0 96%, transparent 100%),
+    conic-gradient(from 0deg at 50% 46%, #000 0deg 34deg, transparent 46deg 102deg, #000 116deg 244deg, transparent 256deg 326deg, #000 338deg);
+  mask-image: radial-gradient(ellipse 25.6% 26.7% at 50% 46%, #000 0 96%, transparent 100%),
+    conic-gradient(from 0deg at 50% 46%, #000 0deg 34deg, transparent 46deg 102deg, #000 116deg 244deg, transparent 256deg 326deg, #000 338deg);
+}
+
+.av-art-center img {
+  animation: avArtFire 3.2s ease-in-out infinite;
+}
+
+@keyframes avWingFlapL {
+  0%,
+  10%,
+  100% {
+    transform: rotate(0deg);
+  }
+  44% {
+    transform: rotate(4.8deg);
+  }
+  68% {
+    transform: rotate(1.6deg);
+  }
+  86% {
+    transform: rotate(-1.1deg);
+  }
+}
+
+@keyframes avWingFlapR {
+  0%,
+  10%,
+  100% {
+    transform: rotate(0deg);
+  }
+  44% {
+    transform: rotate(-4.8deg);
+  }
+  68% {
+    transform: rotate(-1.6deg);
+  }
+  86% {
+    transform: rotate(1.1deg);
+  }
 }
 
 /* Fire aura breathing inside the painted ring. */
 .av-art-aura {
   position: absolute;
+  z-index: 0;
   top: 46%;
   left: 50%;
   width: 80%;
@@ -5282,6 +5394,7 @@ table.data tr:hover td {
 /* Light sweep across the crown and upper wings. */
 .av-art-shine {
   position: absolute;
+  z-index: 3;
   top: 0;
   left: 0;
   width: 100%;
@@ -5299,6 +5412,7 @@ table.data tr:hover td {
 
 .av-art-crown {
   position: absolute;
+  z-index: 3;
   top: 0;
   left: 50%;
   width: 32%;
@@ -5336,6 +5450,7 @@ table.data tr:hover td {
 
 .av-art-embers {
   position: absolute;
+  z-index: 3;
   inset: 0;
   pointer-events: none;
 }
@@ -5350,16 +5465,6 @@ table.data tr:hover td {
   box-shadow: 0 0 6px rgba(255, 110, 20, 0.85);
   opacity: 0;
   animation: avArtEmber 4s linear infinite;
-}
-
-@keyframes avArtBreathe {
-  0%,
-  100% {
-    transform: scale(1);
-  }
-  50% {
-    transform: scale(1.014);
-  }
 }
 
 @keyframes avArtFire {

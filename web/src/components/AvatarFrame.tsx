@@ -405,13 +405,29 @@ const ART_FRAMES: Record<string, string> = {
 
 const ART_EMBERS = [5, 11, 17, 25, 75, 83, 89, 95];
 
-/** The painted artwork, brought to life: fire aura, breathing glow, shine sweep,
- *  crown sparkles and embers rising around the wings. Pure CSS, no extra assets. */
+/**
+ * The painted artwork, brought to life. The single PNG is layered three times and
+ * clipped with CSS masks: two wing layers that really rotate around the painted
+ * shoulder joints, and a centre layer (crown, gold ring, banner) that stays still.
+ * Both wings flap together, so the movement reads as real wings, not a glow trick.
+ */
 function ArtFrame({ src }: { src: string }) {
   return (
     <span className="av-frame av-frame-art" aria-hidden="true">
       <span className="av-art-aura" />
-      <img src={src} alt="" />
+      <span className="av-art-wing av-art-wing-l">
+        <span className="av-art-wing-hole">
+          <img src={src} alt="" />
+        </span>
+      </span>
+      <span className="av-art-wing av-art-wing-r">
+        <span className="av-art-wing-hole">
+          <img src={src} alt="" />
+        </span>
+      </span>
+      <span className="av-art-center">
+        <img src={src} alt="" />
+      </span>
       <span className="av-art-shine" />
       <span className="av-art-crown">
         <i />
