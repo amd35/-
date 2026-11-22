@@ -22,7 +22,7 @@ type Tab = 'all' | 'online' | 'favorites';
 export default function Home() {
   const { t, lang } = useI18n();
   const { me } = useAuth();
-  const { online } = useRealtime();
+  const { online, on } = useRealtime();
   const navigate = useNavigate();
   const toast = useToast();
 
@@ -33,8 +33,8 @@ export default function Home() {
   const [suggestions, setSuggestions] = useState<UserCardData[]>([]);
   const [loading, setLoading] = useState(true);
 
-  const loadUsers = useCallback(async () => {
-    setLoading(true);
+  const loadUsers = useCallback(async (quiet = false) => {
+    if (!quiet) setLoading(true);
     try {
       const response = await api<{ users: UserCardData[] }>(
         `/users?filter=${tab}&q=${encodeURIComponent(debouncedQuery)}`
@@ -50,6 +50,19 @@ export default function Home() {
   useEffect(() => {
     void loadUsers();
   }, [loadUsers]);
+
+  // Keep the online counter and the people list live as users come online / go offline.
+  useEffect(() => {
+    const off = on('presence', () => void loadUsers(true));
+    const onVisible = () => {
+      if (document.visibilityState === 'visible') void loadUsers(true);
+    };
+    document.addEventListener('visibilitychange', onVisible);
+    return () => {
+      off();
+      document.removeEventListener('visibilitychange', onVisible);
+    };
+  }, [on, loadUsers]);
 
   useEffect(() => {
     api<{ users: UserCardData[] }>('/users/suggestions')

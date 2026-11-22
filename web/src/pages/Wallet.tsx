@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { api } from '../lib/api';
 import { useAuth } from '../lib/auth';
 import { useI18n } from '../lib/i18n';
+import { useRealtime } from '../lib/realtime';
 import {
   EmptyState,
   formatCoins,
@@ -82,6 +83,7 @@ const TX_LABELS: Record<string, string> = {
 export default function Wallet() {
   const { t, lang } = useI18n();
   const { me, refresh } = useAuth();
+  const { on } = useRealtime();
   const toast = useToast();
 
   const [data, setData] = useState<WalletData | null>(null);
@@ -97,8 +99,8 @@ export default function Wallet() {
   const [withdrawCoins, setWithdrawCoins] = useState('');
   const [createdOrder, setCreatedOrder] = useState<Order | null>(null);
 
-  const load = useCallback(async () => {
-    setLoading(true);
+  const load = useCallback(async (quiet = false) => {
+    if (!quiet) setLoading(true);
     try {
       const [wallet, packageData, orderData] = await Promise.all([
         api<WalletData>('/wallet'),
@@ -121,6 +123,22 @@ export default function Wallet() {
   useEffect(() => {
     void load();
   }, [load]);
+
+  // Keep the wallet counters (balance / earned / spent / transactions) live instead of
+  // showing the values captured when the page opened.
+  useEffect(() => {
+    const offWallet = on('wallet:update', () => void load(true));
+    const offFree = on('free:update', () => void load(true));
+    const onVisible = () => {
+      if (document.visibilityState === 'visible') void load(true);
+    };
+    document.addEventListener('visibilitychange', onVisible);
+    return () => {
+      offWallet();
+      offFree();
+      document.removeEventListener('visibilitychange', onVisible);
+    };
+  }, [on, load]);
 
   const createOrder = async () => {
     if (!selected) return;

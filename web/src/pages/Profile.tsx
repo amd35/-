@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { Navigate, useNavigate, useParams } from 'react-router-dom';
 import { api } from '../lib/api';
 import { useAuth } from '../lib/auth';
@@ -27,6 +27,7 @@ interface ProfileResponse {
 export function Profile() {
   const { me, refresh } = useAuth();
   const { t } = useI18n();
+  const { on } = useRealtime();
   const navigate = useNavigate();
   const toast = useToast();
   const [editOpen, setEditOpen] = useState(false);
@@ -38,19 +39,43 @@ export function Profile() {
   const [age, setAge] = useState(me?.user.age ? String(me.user.age) : '');
   const [busy, setBusy] = useState(false);
 
+  const userId = me?.user.id;
+
+  const loadStats = useCallback(async () => {
+    if (!userId) return;
+    const [profile, friendRequests] = await Promise.all([
+      api<ProfileResponse>(`/users/${userId}`).catch(() => null),
+      api<{ requests: { id: string; user: UserCardData }[] }>('/users/friends/requests').catch(() => null),
+    ]);
+    if (profile) setStats(profile);
+    if (friendRequests) setRequests(friendRequests.requests);
+  }, [userId]);
+
   useEffect(() => {
     if (!me) return;
     setName(me.user.displayName);
     setUsername(me.user.username);
     setBio(me.user.bio ?? '');
     setAge(me.user.age ? String(me.user.age) : '');
-    api<ProfileResponse>(`/users/${me.user.id}`)
-      .then(setStats)
-      .catch(() => undefined);
-    api<{ requests: { id: string; user: UserCardData }[] }>('/users/friends/requests')
-      .then((response) => setRequests(response.requests))
-      .catch(() => undefined);
-  }, [me?.user.id]);
+    void loadStats();
+  }, [userId, loadStats]);
+
+  // Keep the counters live: refresh friends / followers / following / earnings when a
+  // relevant event arrives or the app regains focus, instead of freezing on load values.
+  useEffect(() => {
+    if (!userId) return;
+    const offNotification = on('notification', () => void loadStats());
+    const offWallet = on('wallet:update', () => void loadStats());
+    const onVisible = () => {
+      if (document.visibilityState === 'visible') void loadStats();
+    };
+    document.addEventListener('visibilitychange', onVisible);
+    return () => {
+      offNotification();
+      offWallet();
+      document.removeEventListener('visibilitychange', onVisible);
+    };
+  }, [userId, on, loadStats]);
 
   if (!me) return null;
 
@@ -95,7 +120,7 @@ export function Profile() {
       await api(`/users/friends/${id}/accept`, { method: 'POST' });
       setRequests((current) => current.filter((item) => item.id !== id));
       toast.push(t('friendAdded'), 'success');
-      await refresh();
+      await Promise.all([refresh(), loadStats()]);
     } catch (error) {
       toast.push((error as Error).message, 'error');
     }
