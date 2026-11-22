@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { api } from '../lib/api';
 import { useI18n } from '../lib/i18n';
 import { formatCoins, Icon, Sheet, Spinner, useToast } from '../lib/ui';
-import { GiftAnimation, type GiftVisual } from './GiftAnimation';
+import { GiftAnimation, GiftCover, type GiftVisual } from './GiftAnimation';
 
 export interface GiftItem extends Omit<GiftVisual, 'price' | 'rarity'> {
   id: string;
@@ -165,7 +165,7 @@ export function GiftShop({
         ) : selected ? (
           <div className="gift-detail">
             <div className="gift-detail-stage">
-              <GiftAnimation gift={selected} />
+              <GiftCover gift={selected} />
               <span className={`pill rarity-${selected.rarity} gift-rarity`}>
                 {RARITY_LABEL[selected.rarity] ?? selected.rarity}
               </span>
@@ -217,7 +217,7 @@ export function GiftShop({
                 <span className={`gift-rarity-pill rarity-${gift.rarity}`}>
                   {RARITY_LABEL[gift.rarity] ?? gift.rarity}
                 </span>
-                <GiftAnimation gift={gift} className="gift-card-art" />
+                <GiftCover gift={gift} className="gift-card-art" />
                 <span className="gift-card-name">{gift.name}</span>
                 <span className="gift-card-price">
                   <Icon name="coins" size={12} /> {formatCoins(gift.price)}

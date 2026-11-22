@@ -13,7 +13,7 @@ import {
   useToast,
 } from '../lib/ui';
 import { AppShell } from '../components/AppShell';
-import { GiftAnimation } from '../components/GiftAnimation';
+import { GiftCover } from '../components/GiftAnimation';
 
 interface ReceivedGift {
   id: string;
@@ -213,7 +213,7 @@ export default function Earnings() {
               {data?.received.map((gift) => (
                 <div key={gift.id} className="row static gift-received-row">
                   <div className="gift-thumb">
-                    <GiftAnimation
+                    <GiftCover
                       gift={{
                         name: gift.giftName,
                         design: gift.design,

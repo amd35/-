@@ -2762,6 +2762,13 @@ table.data tr:hover td {
   border-radius: inherit;
 }
 
+.gift-cover img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  border-radius: inherit;
+}
+
 .gift-float {
   animation: giftFloat 3.8s ease-in-out infinite;
   transform-box: fill-box;

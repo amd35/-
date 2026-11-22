@@ -48,6 +48,20 @@ export function GiftAnimation({
   );
 }
 
+/**
+ * Card-sized gift artwork: the gift's cover image when one is set,
+ * otherwise the built-in animated scene.
+ */
+export function GiftCover({ gift, className = '' }: { gift: GiftVisual; className?: string }) {
+  const src = assetUrl(gift.coverUrl);
+  if (!src) return <GiftAnimation gift={gift} className={className} />;
+  return (
+    <div className={`gift-scene gift-cover ${className}`}>
+      <img src={src} alt={gift.name} />
+    </div>
+  );
+}
+
 function sparkles(uid: string, count = 6): ReactNode {
   return Array.from({ length: count }).map((_, index) => {
     const left = 18 + ((index * 27) % 164);

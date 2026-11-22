@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { api } from '../../lib/api';
 import { formatCoins, Icon, useToast } from '../../lib/ui';
-import { GiftAnimation } from '../GiftAnimation';
+import { GiftCover } from '../GiftAnimation';
 import { AdminCard, Empty, Field, Table, Toggle, useAdminData } from './shared';
 
 interface AdminGift {
@@ -336,7 +336,7 @@ export default function GiftsTab() {
 
         <div className="inline" style={{ gap: 14 }}>
           <div className="gift-admin-preview">
-            <GiftAnimation
+            <GiftCover
               gift={{
                 name: form.name || 'Gift',
                 design: form.media === 'design' ? form.design : null,
@@ -363,7 +363,7 @@ export default function GiftsTab() {
               <tr key={gift.id}>
                 <td>
                   <div className="gift-admin-thumb">
-                    <GiftAnimation
+                    <GiftCover
                       gift={{
                         name: gift.name,
                         design: gift.design,

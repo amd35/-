@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { api, assetUrl } from '../lib/api';
 import { useI18n } from '../lib/i18n';
 import { formatCoins, Icon, Sheet, Spinner, useToast } from '../lib/ui';
-import { GiftAnimation } from './GiftAnimation';
+import { GiftCover } from './GiftAnimation';
 import type { GiftItem } from './GiftShop';
 
 export interface RoomGiftInfo {
@@ -162,7 +162,7 @@ export function RoomGiftSheet({
                 <span className={`gift-rarity-pill rarity-${gift.rarity}`}>
                   {RARITY_LABEL[gift.rarity] ?? gift.rarity}
                 </span>
-                <GiftAnimation gift={gift} className="gift-card-art" />
+                <GiftCover gift={gift} className="gift-card-art" />
                 <span className="gift-card-name">{gift.name}</span>
                 <span className="gift-card-price">
                   <Icon name="coins" size={12} /> {formatCoins(gift.price)}

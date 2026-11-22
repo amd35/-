@@ -497,6 +497,10 @@ SELECT * FROM (VALUES
 ) AS seed(slug, name, name_en, description, design, price, rarity, sort_order)
 WHERE NOT EXISTS (SELECT 1 FROM gifts);
 
+-- Default cover artwork for every gift (admins can replace it per gift from the panel).
+UPDATE gifts SET cover_url = 'https://media.base44.com/images/public/6addb0a6b0689d303ed3a495/0f0338134_file_000000007c54821081a33f6e0657af7c.png'
+WHERE cover_url IS NULL;
+
 -- ---------------------------------------------------------------- settings
 INSERT INTO app_settings (key, value) VALUES
   ('gifts_enabled', 'true'::jsonb),
