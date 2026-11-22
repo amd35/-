@@ -13,7 +13,7 @@ import {
   requireAuth,
   signUserToken,
 } from '../auth';
-import { equippedFrameInfo } from '../frames';
+import { equippedCosmetics, equippedFrameInfo } from '../frames';
 import { getFreeCallState } from '../freecalls';
 import { notify } from '../notify';
 import { getPublicUser } from '../serializers';
@@ -93,6 +93,7 @@ export async function buildMe(userId: string) {
   const settings = await getSettings();
   return {
     user: serializeSelf(row, await equippedFrameInfo(userId)),
+    cosmetics: await equippedCosmetics(userId),
     wallet: wallet ?? { balance: 0, reserved: 0, earned: 0, spent: 0 },
     freeCalls: free,
     unreadNotifications: Number(unread?.count || 0),

@@ -290,7 +290,11 @@ export default function ChatRoom() {
                 </span>
               </button>
             ) : (
-            <div className="msg-bubble">
+            <div
+              className={`msg-bubble ${
+                message.mine && me?.cosmetics?.bubble?.design ? `bubble-${me.cosmetics.bubble.design}` : ''
+              }`}
+            >
               {message.type === 'image' && message.attachmentUrl ? (
                 <img src={assetUrl(message.attachmentUrl)} alt={message.attachmentName || 'image'} />
               ) : null}

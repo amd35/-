@@ -6,6 +6,7 @@ import { useI18n } from '../lib/i18n';
 import { Avatar, EmptyState, formatCoins, Icon, Sheet, Spinner, useToast } from '../lib/ui';
 import { AppShell } from '../components/AppShell';
 import type { FrameInfo } from '../components/AvatarFrame';
+import { CosmeticPreview, type CosmeticCategory } from '../components/Cosmetics';
 
 interface FrameItem {
   id: string;
@@ -19,12 +20,22 @@ interface FrameItem {
   rarity: string;
   durationDays: number;
   isRare: boolean;
+  category: CosmeticCategory;
   owned: boolean;
   expiresAt: string | null;
   equipped: boolean;
 }
 
 type Tab = 'all' | 'owned' | 'rare';
+
+const CATEGORIES: { key: 'all' | CosmeticCategory; label: string }[] = [
+  { key: 'all', label: 'catAll' },
+  { key: 'frame', label: 'catFrames' },
+  { key: 'id', label: 'catIds' },
+  { key: 'namecard', label: 'catNameCards' },
+  { key: 'bubble', label: 'catBubbles' },
+  { key: 'entry', label: 'catEntry' },
+];
 
 function frameInfoOf(frame: FrameItem): FrameInfo {
   return { id: frame.id, design: frame.design, kind: frame.kind, imageUrl: frame.imageUrl, rarity: frame.rarity };
@@ -38,6 +49,7 @@ export default function Frames() {
   const [frames, setFrames] = useState<FrameItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [tab, setTab] = useState<Tab>('all');
+  const [category, setCategory] = useState<'all' | CosmeticCategory>('all');
   const [busyId, setBusyId] = useState<string | null>(null);
   const [tryFrame, setTryFrame] = useState<FrameItem | null>(null);
 
@@ -85,10 +97,10 @@ export default function Frames() {
     }
   };
 
-  const unequip = async () => {
+  const unequip = async (frame: FrameItem) => {
     setBusyId('unequip');
     try {
-      await api('/frames/unequip', { method: 'POST' });
+      await api('/frames/unequip', { method: 'POST', body: { category: frame.category } });
       toast.push(t('frameRemoved'), 'success');
       await Promise.all([load(), refresh()]);
     } catch (error) {
@@ -99,10 +111,17 @@ export default function Frames() {
   };
 
   const visible = useMemo(() => {
-    if (tab === 'owned') return frames.filter((frame) => frame.owned);
-    if (tab === 'rare') return frames.filter((frame) => frame.isRare || frame.rarity === 'vip' || frame.rarity === 'legendary');
-    return frames;
-  }, [frames, tab]);
+    const inCategory = (frame: FrameItem) =>
+      category === 'all' || (frame.category ?? 'frame') === category;
+    if (tab === 'owned') return frames.filter((frame) => frame.owned && inCategory(frame));
+    if (tab === 'rare')
+      return frames.filter(
+        (frame) =>
+          inCategory(frame) &&
+          (frame.isRare || frame.rarity === 'vip' || frame.rarity === 'legendary')
+      );
+    return frames.filter(inCategory);
+  }, [frames, tab, category]);
 
   const sample = (frame: FrameInfo | null) => ({
     displayName: me?.user.displayName ?? '',
@@ -127,6 +146,18 @@ export default function Frames() {
       }
     >
       <div className="page page-tight">
+        <div className="hscroll store-cats">
+          {CATEGORIES.map((item) => (
+            <button
+              key={item.key}
+              className={`chip ${category === item.key ? 'chip-on' : ''}`}
+              onClick={() => setCategory(item.key)}
+            >
+              {t(item.label)}
+            </button>
+          ))}
+        </div>
+
         <div className="tabs">
           {(['all', 'owned', 'rare'] as Tab[]).map((item) => (
             <button key={item} className={`tab ${tab === item ? 'active' : ''}`} onClick={() => setTab(item)}>
@@ -144,7 +175,15 @@ export default function Frames() {
             {visible.map((frame) => (
               <div key={frame.id} className={`frame-card ${frame.equipped ? 'on' : ''}`}>
                 <div className="frame-preview">
-                  <Avatar user={sample(frameInfoOf(frame))} size={82} />
+                  {frame.category === 'frame' ? (
+                    <Avatar user={sample(frameInfoOf(frame))} size={82} />
+                  ) : (
+                    <CosmeticPreview
+                      cosmetic={frameInfoOf(frame)}
+                      category={frame.category}
+                      sampleName={me?.user.displayName ?? ''}
+                    />
+                  )}
                 </div>
                 <div className="frame-name">{lang === 'ar' ? frame.name : frame.nameEn || frame.name}</div>
                 <div className="inline" style={{ gap: 6, justifyContent: 'center', flexWrap: 'wrap' }}>
@@ -168,7 +207,7 @@ export default function Frames() {
                 </div>
                 <div className="frame-actions">
                   {frame.equipped ? (
-                    <button className="btn btn-outline btn-xs grow" disabled={busyId === 'unequip'} onClick={() => void unequip()}>
+                    <button className="btn btn-outline btn-xs grow" disabled={busyId === 'unequip'} onClick={() => void unequip(frame)}>
                       {t('unequip')}
                     </button>
                   ) : frame.owned ? (
@@ -198,7 +237,15 @@ export default function Frames() {
       <Sheet open={Boolean(tryFrame)} onClose={() => setTryFrame(null)} title={tryFrame?.name} center>
         {tryFrame ? (
           <div className="stack center-col" style={{ gap: 14 }}>
-            <Avatar user={sample(frameInfoOf(tryFrame))} size={132} />
+            {tryFrame.category === 'frame' ? (
+              <Avatar user={sample(frameInfoOf(tryFrame))} size={132} />
+            ) : (
+              <CosmeticPreview
+                cosmetic={frameInfoOf(tryFrame)}
+                category={tryFrame.category}
+                sampleName={me?.user.displayName ?? ''}
+              />
+            )}
             <span className="tiny muted">{t('tryFrameHint')}</span>
             {tryFrame.equipped ? (
               <span className="pill pill-green">{t('equipped')}</span>

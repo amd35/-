@@ -3659,3 +3659,260 @@ table.data tr:hover td {
     transform: translateY(-10px);
   }
 }
+
+/* ---------------------------------------------------- store sections / cosmetics */
+.store-cats {
+  gap: 8px;
+  padding: 2px 0 10px;
+}
+
+.chip {
+  flex: 0 0 auto;
+  padding: 7px 14px;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--muted);
+  font-size: 12.5px;
+  font-weight: 700;
+  font-family: inherit;
+  cursor: pointer;
+  transition: transform 0.15s ease, box-shadow 0.2s ease;
+}
+
+.chip-on {
+  background: var(--grad);
+  border-color: transparent;
+  color: #fff;
+  box-shadow: 0 10px 22px -14px rgba(214, 51, 132, 0.95);
+}
+
+/* numeric-ID badge */
+.idbadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  border-radius: 999px;
+  font-weight: 800;
+  font-size: 13px;
+  letter-spacing: 0.4px;
+  border: 1px solid var(--line-strong);
+  background: rgba(255, 255, 255, 0.07);
+}
+
+.idbadge-hash {
+  opacity: 0.65;
+  font-size: 12px;
+}
+
+.idbadge-neon {
+  color: #ffd9f2;
+  border-color: rgba(224, 57, 154, 0.9);
+  animation: idNeon 2.4s ease-in-out infinite;
+}
+
+.idbadge-gold {
+  color: #ffe9a3;
+  border-color: rgba(255, 193, 7, 0.85);
+  background: linear-gradient(135deg, rgba(255, 193, 7, 0.18), rgba(120, 70, 0, 0.28));
+  box-shadow: 0 0 16px rgba(255, 193, 7, 0.35);
+}
+
+.idbadge-blue {
+  color: #c8f4ff;
+  border-color: rgba(56, 189, 248, 0.85);
+  box-shadow: 0 0 16px rgba(56, 189, 248, 0.45);
+}
+
+.idbadge-fire {
+  color: #ffd9c2;
+  border-color: rgba(249, 115, 22, 0.9);
+  background: linear-gradient(135deg, rgba(249, 115, 22, 0.28), rgba(214, 51, 132, 0.22));
+  animation: idFire 1.8s ease-in-out infinite;
+}
+
+.idbadge-diamond {
+  color: #eaf6ff;
+  border-color: rgba(226, 240, 255, 0.9);
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.24), rgba(139, 92, 246, 0.22), rgba(56, 189, 248, 0.22));
+  box-shadow: 0 0 18px rgba(255, 255, 255, 0.3);
+}
+
+/* name card */
+.namecard {
+  padding: 6px 22px;
+  border-radius: 14px;
+  font-size: 20px;
+  font-weight: 800;
+  border: 1px solid var(--line-strong);
+  background: rgba(255, 255, 255, 0.06);
+  text-align: center;
+}
+
+.namecard-glass {
+  background: rgba(255, 255, 255, 0.08);
+  backdrop-filter: blur(10px);
+  border-color: rgba(255, 255, 255, 0.28);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.35);
+}
+
+.namecard-neon {
+  color: #ffe4f6;
+  border-color: rgba(224, 57, 154, 0.85);
+  box-shadow: 0 0 18px rgba(224, 57, 154, 0.45), inset 0 0 18px rgba(224, 57, 154, 0.16);
+}
+
+.namecard-gold {
+  color: #ffe9a3;
+  border-color: rgba(255, 193, 7, 0.8);
+  background: linear-gradient(135deg, rgba(255, 193, 7, 0.2), rgba(120, 70, 0, 0.3));
+}
+
+.namecard-holo {
+  color: #fff;
+  border-color: transparent;
+  background: linear-gradient(120deg, rgba(224, 57, 154, 0.4), rgba(139, 92, 246, 0.4), rgba(56, 189, 248, 0.4));
+  background-size: 220% 220%;
+  animation: holoShift 5s ease infinite;
+}
+
+.frame-preview .namecard {
+  font-size: 15px;
+  padding: 5px 14px;
+}
+
+/* chat bubble skins */
+.msg-mine .msg-bubble.bubble-glass {
+  background: rgba(255, 255, 255, 0.14);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  box-shadow: none;
+  backdrop-filter: blur(8px);
+}
+
+.msg-mine .msg-bubble.bubble-neon {
+  background: #1b0f24;
+  border: 1px solid rgba(224, 57, 154, 0.9);
+  color: #ffe4f6;
+  box-shadow: 0 0 16px rgba(224, 57, 154, 0.5);
+}
+
+.msg-mine .msg-bubble.bubble-gradient {
+  background: linear-gradient(135deg, #22d3ee, #8b5cf6 55%, #d63384);
+}
+
+.msg-mine .msg-bubble.bubble-fire {
+  background: linear-gradient(135deg, #f97316, #d63384 70%, #7c2d12);
+  animation: bubbleFire 2.6s ease-in-out infinite;
+}
+
+.bubble-sample {
+  max-width: 100%;
+}
+
+.bubble-sample .msg-bubble {
+  font-size: 12px;
+  padding: 7px 12px;
+}
+
+/* room entry animation */
+.entry-banner {
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 12px 18px;
+  margin-bottom: 12px;
+  border-radius: 18px;
+  font-weight: 800;
+  font-size: 15px;
+  color: #fff;
+  background: linear-gradient(135deg, rgba(214, 51, 132, 0.9), rgba(139, 92, 246, 0.9));
+  box-shadow: 0 16px 34px -20px rgba(214, 51, 132, 0.9);
+  animation: entryIn 0.5s ease, entryPulse 2.4s ease-in-out 0.5s infinite;
+}
+
+.entry-banner-glow {
+  position: absolute;
+  inset: -40% -10%;
+  background: radial-gradient(closest-side, rgba(255, 255, 255, 0.55), transparent);
+  opacity: 0.5;
+  animation: entrySweep 2.4s linear infinite;
+}
+
+.entry-banner-text,
+.entry-banner-spark {
+  position: relative;
+  z-index: 1;
+}
+
+.entry-banner-rose {
+  background: linear-gradient(135deg, #be185d, #f472b6);
+}
+
+.entry-banner-lightning {
+  background: linear-gradient(135deg, #1e3a8a, #38bdf8);
+  animation: entryIn 0.5s ease, entryFlash 1.6s ease-in-out 0.5s infinite;
+}
+
+.entry-banner-fireworks {
+  background: linear-gradient(135deg, #1b0f24, #7c2d12 60%, #d63384);
+}
+
+.entry-banner-crown {
+  color: #3b2500;
+  background: linear-gradient(135deg, #ffe9a3, #ffc107 55%, #b07d00);
+}
+
+.entry-preview {
+  width: 100%;
+  transform: scale(0.72);
+}
+
+.entry-preview .entry-banner {
+  margin-bottom: 0;
+}
+
+@keyframes idNeon {
+  0%, 100% { box-shadow: 0 0 10px rgba(224, 57, 154, 0.45); }
+  50% { box-shadow: 0 0 22px rgba(224, 57, 154, 0.85); }
+}
+
+@keyframes idFire {
+  0%, 100% { box-shadow: 0 0 12px rgba(249, 115, 22, 0.5); }
+  50% { box-shadow: 0 0 24px rgba(249, 115, 22, 0.9); }
+}
+
+@keyframes holoShift {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+@keyframes bubbleFire {
+  0%, 100% { box-shadow: 0 10px 24px -16px rgba(249, 115, 22, 0.9); }
+  50% { box-shadow: 0 10px 30px -12px rgba(214, 51, 132, 0.95); }
+}
+
+@keyframes entryIn {
+  from { opacity: 0; transform: translateY(-14px) scale(0.94); }
+  to { opacity: 1; transform: none; }
+}
+
+@keyframes entryPulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.02); }
+}
+
+@keyframes entryFlash {
+  0%, 100% { filter: brightness(1); }
+  45% { filter: brightness(1.35); }
+  55% { filter: brightness(1.1); }
+}
+
+@keyframes entrySweep {
+  from { transform: translateX(-60%); }
+  to { transform: translateX(60%); }
+}

@@ -795,6 +795,13 @@ function readFrameBody(body: Record<string, unknown>): Partial<FrameRow> {
     out.design = design || null;
   }
   if (body.imageUrl !== undefined) out.image_url = String(body.imageUrl).trim().slice(0, 500) || null;
+  if (body.category !== undefined) {
+    const category = String(body.category);
+    if (!['frame', 'id', 'namecard', 'bubble', 'entry'].includes(category)) {
+      throw new HttpError(400, 'Invalid store section', 'invalid_frame');
+    }
+    out.category = category;
+  }
   if (body.price !== undefined) {
     const price = Math.round(Number(body.price));
     if (!Number.isFinite(price) || price < 0) throw new HttpError(400, 'Invalid frame price', 'invalid_frame');
@@ -825,8 +832,11 @@ router.get(
       `SELECT f.*,
         (SELECT count(*)::int FROM user_avatar_frames uaf
           WHERE uaf.frame_id = f.id AND (uaf.expires_at IS NULL OR uaf.expires_at > now())) AS owners,
-        (SELECT count(*)::int FROM users u WHERE u.avatar_frame_id = f.id) AS equipped
-       FROM avatar_frames f ORDER BY f.sort_order, f.created_at`
+        CASE WHEN f.category = 'frame'
+          THEN (SELECT count(*)::int FROM users u WHERE u.avatar_frame_id = f.id)
+          ELSE (SELECT count(*)::int FROM user_cosmetics uc WHERE uc.item_id = f.id)
+        END AS equipped
+       FROM avatar_frames f ORDER BY f.category, f.sort_order, f.created_at`
     );
     res.json({
       frames: rows.map((row) => ({ ...serializeFrame(row), owners: row.owners, equippedCount: row.equipped })),
@@ -862,8 +872,8 @@ router.post(
 
     const created = await one<FrameRow>(
       `INSERT INTO avatar_frames
-        (slug, name, name_en, kind, design, image_url, price, rarity, duration_days, is_rare, is_active, sort_order)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+        (slug, name, name_en, kind, design, image_url, price, rarity, duration_days, is_rare, is_active, sort_order, category)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
        ON CONFLICT (slug) DO NOTHING
        RETURNING *`,
       [
@@ -879,6 +889,7 @@ router.post(
         fields.is_rare ?? false,
         fields.is_active ?? true,
         fields.sort_order ?? 0,
+        fields.category ?? 'frame',
       ]
     );
     if (!created) throw new HttpError(409, 'A frame with this slug already exists', 'frame_slug_taken');
@@ -901,7 +912,8 @@ router.patch(
     }
     const updated = await one<FrameRow>(
       `UPDATE avatar_frames SET name = $2, name_en = $3, kind = $4, design = $5, image_url = $6,
-         price = $7, rarity = $8, duration_days = $9, is_rare = $10, is_active = $11, sort_order = $12
+         price = $7, rarity = $8, duration_days = $9, is_rare = $10, is_active = $11, sort_order = $12,
+         category = $13
        WHERE id = $1 RETURNING *`,
       [
         existing.id,
@@ -916,6 +928,7 @@ router.patch(
         merged.is_rare,
         merged.is_active,
         merged.sort_order,
+        merged.category,
       ]
     );
     res.json({ frame: updated ? serializeFrame(updated) : null });

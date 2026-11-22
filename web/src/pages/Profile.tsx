@@ -15,6 +15,7 @@ import {
   useToast,
 } from '../lib/ui';
 import { AppShell } from '../components/AppShell';
+import { IdBadge, NameCard } from '../components/Cosmetics';
 import type { UserCardData } from '../components/UserCard';
 
 interface ProfileResponse {
@@ -137,13 +138,21 @@ export function Profile() {
       <div className="page page-tight">
         <section className="profile-head">
           <Avatar user={{ ...me.user, online: true }} size={104} />
-          <h2 style={{ fontSize: 21 }}>{me.user.displayName}</h2>
+          {me.cosmetics?.namecard ? (
+            <NameCard cosmetic={me.cosmetics.namecard} name={me.user.displayName} />
+          ) : (
+            <h2 style={{ fontSize: 21 }}>{me.user.displayName}</h2>
+          )}
           <span className="tiny muted">#{me.user.username}</span>
           {me.user.bio ? <p className="tiny center muted">{me.user.bio}</p> : null}
           <div className="inline">
-            <span className="pill pill-pink">
-              <Icon name="user" size={12} /> {t('id')}: {me.user.username}
-            </span>
+            {me.cosmetics?.id ? (
+              <IdBadge cosmetic={me.cosmetics.id} value={me.user.username} />
+            ) : (
+              <span className="pill pill-pink">
+                <Icon name="user" size={12} /> {t('id')}: {me.user.username}
+              </span>
+            )}
             <span className="pill pill-green">
               <Icon name="coins" size={12} /> {formatCoins(me.wallet.balance)}
             </span>

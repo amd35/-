@@ -18,6 +18,7 @@ export interface FrameRow {
   is_rare: boolean;
   is_active: boolean;
   sort_order: number;
+  category: string;
 }
 
 export interface FrameCatalogItem {
@@ -34,6 +35,7 @@ export interface FrameCatalogItem {
   isRare: boolean;
   isActive: boolean;
   sortOrder: number;
+  category: string;
   owned: boolean;
   expiresAt: string | null;
   equipped: boolean;
@@ -54,6 +56,7 @@ export function serializeFrame(row: FrameRow): Omit<FrameCatalogItem, 'owned' | 
     isRare: Boolean(row.is_rare),
     isActive: Boolean(row.is_active),
     sortOrder: Number(row.sort_order),
+    category: row.category,
   };
 }
 
@@ -79,10 +82,14 @@ export async function ownsFrame(userId: string, frameId: string): Promise<boolea
 
 const CATALOG_SELECT = `
   SELECT f.id, f.slug, f.name, f.name_en, f.kind, f.design, f.image_url, f.price, f.rarity,
-         f.duration_days, f.is_rare, f.is_active, f.sort_order,
+         f.duration_days, f.is_rare, f.is_active, f.sort_order, f.category,
          (uaf.user_id IS NOT NULL) AS owned,
          uaf.expires_at AS owned_expires_at,
-         (u.avatar_frame_id = f.id AND uaf.user_id IS NOT NULL) AS equipped
+         CASE WHEN f.category = 'frame'
+           THEN (u.avatar_frame_id = f.id AND uaf.user_id IS NOT NULL)
+           ELSE EXISTS (SELECT 1 FROM user_cosmetics uc
+                        WHERE uc.user_id = $1 AND uc.category = f.category AND uc.item_id = f.id)
+         END AS equipped
   FROM avatar_frames f
   JOIN users u ON u.id = $1
   LEFT JOIN user_avatar_frames uaf ON uaf.user_id = $1 AND uaf.frame_id = f.id
@@ -114,6 +121,22 @@ export async function listFrames(userId: string): Promise<FrameCatalogItem[]> {
     expiresAt: row.owned_expires_at ? new Date(row.owned_expires_at).toISOString() : null,
     equipped: row.equipped,
   }));
+}
+
+/** The non-frame cosmetic the user wears in each category, keyed by category. */
+export async function equippedCosmetics(userId: string): Promise<Record<string, FrameInfo>> {
+  const rows = await q<FrameRow>(
+    `SELECT f.id, f.category, f.design, f.kind, f.image_url, f.rarity
+     FROM user_cosmetics uc
+     JOIN avatar_frames f ON f.id = uc.item_id AND f.is_active = true
+     JOIN user_avatar_frames uaf ON uaf.user_id = uc.user_id AND uaf.frame_id = uc.item_id
+       AND (uaf.expires_at IS NULL OR uaf.expires_at > now())
+     WHERE uc.user_id = $1`,
+    [userId]
+  );
+  const map: Record<string, FrameInfo> = {};
+  for (const row of rows) map[row.category] = frameInfo(row);
+  return map;
 }
 
 /** One catalog entry with the caller's ownership state (used after buy/equip). */

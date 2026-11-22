@@ -13,6 +13,7 @@ import {
   type RoomMessageData,
 } from '../components/RoomGiftSheet';
 import type { FrameInfo } from '../components/AvatarFrame';
+import { EntryBanner } from '../components/Cosmetics';
 
 interface SeatUser {
   id: string;
@@ -58,6 +59,18 @@ export default function Room() {
   const [playing, setPlaying] = useState<{ gift: RoomGiftInfo; name: string } | null>(null);
   const listRef = useRef<HTMLDivElement | null>(null);
   const flashTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const entryCosmetic = me?.cosmetics?.entry ?? null;
+  const entryShown = useRef(false);
+  const [showEntry, setShowEntry] = useState(false);
+
+  // Play the equipped room-entry animation once per visit.
+  useEffect(() => {
+    if (!room || entryShown.current || !entryCosmetic) return;
+    entryShown.current = true;
+    setShowEntry(true);
+    const timer = setTimeout(() => setShowEntry(false), 3400);
+    return () => clearTimeout(timer);
+  }, [room, entryCosmetic]);
 
   const load = useCallback(async () => {
     try {
@@ -183,6 +196,9 @@ export default function Room() {
   return (
     <AppShell title={room?.name ?? t('roomsTitle')} subtitle={room?.description || t('roomsSub')} active="home">
       <div className="page">
+        {showEntry && entryCosmetic ? (
+          <EntryBanner cosmetic={entryCosmetic} name={me?.user.displayName ?? ''} />
+        ) : null}
         {loading ? (
           <Spinner label={t('loading')} />
         ) : room ? (

@@ -93,7 +93,17 @@ router.post(
     if (!(await ownsFrame(me, frameId))) {
       throw new HttpError(403, 'You do not own this frame', 'frame_not_owned');
     }
-    await one('UPDATE users SET avatar_frame_id = $2 WHERE id = $1 RETURNING id', [me, frameId]);
+    if (frame.category === 'frame') {
+      await one('UPDATE users SET avatar_frame_id = $2 WHERE id = $1 RETURNING id', [me, frameId]);
+    } else {
+      await one(
+        `INSERT INTO user_cosmetics (user_id, category, item_id) VALUES ($1, $2, $3)
+         ON CONFLICT (user_id, category)
+         DO UPDATE SET item_id = EXCLUDED.item_id, equipped_at = now()
+         RETURNING user_id`,
+        [me, frame.category, frameId]
+      );
+    }
     res.json({ frame: await getFrameForUser(me, frameId) });
   })
 );
@@ -103,7 +113,15 @@ router.post(
   requireAuth(),
   asyncHandler(async (req, res) => {
     const me = reqUser(req).id;
-    await one('UPDATE users SET avatar_frame_id = NULL WHERE id = $1 RETURNING id', [me]);
+    const category = String(req.body?.category || 'frame');
+    if (category === 'frame') {
+      await one('UPDATE users SET avatar_frame_id = NULL WHERE id = $1 RETURNING id', [me]);
+    } else {
+      await one('DELETE FROM user_cosmetics WHERE user_id = $1 AND category = $2 RETURNING user_id', [
+        me,
+        category,
+      ]);
+    }
     res.json({ frame: null });
   })
 );

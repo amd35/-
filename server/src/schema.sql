@@ -414,6 +414,47 @@ SELECT * FROM (VALUES
 ) AS seed(slug, name, name_en, kind, design, price, rarity, duration_days, is_rare, sort_order)
 WHERE NOT EXISTS (SELECT 1 FROM avatar_frames);
 
+-- ------------------------------------------------- store sections / cosmetics
+-- The store catalog is shared: `category` says where an item is worn.
+--   frame    → animated avatar frame (users.avatar_frame_id)
+--   id       → badge around the numeric account ID
+--   namecard → card behind the display name
+--   bubble   → chat message bubble style
+--   entry    → animation shown when entering a voice room
+ALTER TABLE avatar_frames ADD COLUMN IF NOT EXISTS category text NOT NULL DEFAULT 'frame';
+CREATE INDEX IF NOT EXISTS avatar_frames_category_idx ON avatar_frames (category, sort_order);
+
+-- The item a user wears in each non-frame category (ownership stays in user_avatar_frames).
+CREATE TABLE IF NOT EXISTS user_cosmetics (
+  user_id uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  category text NOT NULL,
+  item_id uuid NOT NULL REFERENCES avatar_frames(id) ON DELETE CASCADE,
+  equipped_at timestamptz NOT NULL DEFAULT now(),
+  PRIMARY KEY (user_id, category)
+);
+
+INSERT INTO avatar_frames (slug, name, name_en, kind, design, price, rarity, duration_days, is_rare, sort_order, category)
+SELECT * FROM (VALUES
+  ('id-neon',        'معرّف نيون وردي',        'Neon Pink ID',        'design', 'neon',   800,  'epic',      0, false, 10, 'id'),
+  ('id-gold',        'معرّف ذهبي',             'Golden ID',           'design', 'gold',   1200, 'legendary', 0, true,  20, 'id'),
+  ('id-blue',        'معرّف أزرق متوهج',       'Glowing Blue ID',     'design', 'blue',   500,  'rare',      0, false, 30, 'id'),
+  ('id-fire',        'معرّف ناري',             'Fiery ID',            'design', 'fire',   1500, 'legendary', 0, true,  40, 'id'),
+  ('id-diamond',     'معرّف ألماسي',           'Diamond ID',          'design', 'diamond',2000, 'vip',       0, true,  50, 'id'),
+  ('card-glass',     'بطاقة اسم شفافة',        'Transparent Name Card','design','glass',  600,  'rare',      0, false, 10, 'namecard'),
+  ('card-neon',      'بطاقة نيون',             'Neon Name Card',      'design', 'neon',   900,  'epic',      0, false, 20, 'namecard'),
+  ('card-gold',      'بطاقة ذهبية',            'Golden Name Card',    'design', 'gold',   1400, 'legendary', 0, true,  30, 'namecard'),
+  ('card-holo',      'بطاقة هولوغرافية',       'Holographic Card',    'design', 'holo',   1800, 'vip',       0, true,  40, 'namecard'),
+  ('bubble-glass',   'فقاعة زجاجية',           'Glass Bubble',        'design', 'glass',  500,  'common',    0, false, 10, 'bubble'),
+  ('bubble-neon',    'فقاعة نيون',             'Neon Bubble',         'design', 'neon',   700,  'rare',      0, false, 20, 'bubble'),
+  ('bubble-gradient','فقاعة متدرجة',           'Gradient Bubble',     'design', 'gradient',900, 'epic',      0, false, 30, 'bubble'),
+  ('bubble-fire',    'فقاعة نارية',            'Fiery Bubble',        'design', 'fire',   1500, 'legendary', 0, true,  40, 'bubble'),
+  ('entry-rose',     'ورود متساقطة',           'Falling Roses',       'design', 'rose',   600,  'common',    0, false, 10, 'entry'),
+  ('entry-lightning','برق الدخول',             'Entry Lightning',     'design', 'lightning',800,'rare',      0, false, 20, 'entry'),
+  ('entry-fireworks','ألعاب نارية',            'Fireworks Entry',     'design', 'fireworks',1000,'epic',     0, false, 30, 'entry'),
+  ('entry-crown',    'تاج ملكي',               'Royal Crown Entry',   'design', 'crown',  2000, 'legendary', 0, true,  40, 'entry')
+) AS seed(slug, name, name_en, kind, design, price, rarity, duration_days, is_rare, sort_order, category)
+ON CONFLICT (slug) DO NOTHING;
+
 -- ------------------------------------------------------------------- gifts
 -- Animated gift catalog. `design` renders one of the built-in animated scenes;
 -- `video_url` (MP4/WebM uploaded from the admin panel) takes priority when set.

@@ -62,6 +62,8 @@ export interface AppConfig {
 
 export interface Me {
   user: SelfUser;
+  /** Equipped non-frame cosmetics, keyed by category (id | namecard | bubble | entry). */
+  cosmetics: Record<string, { id: string; design: string | null; kind: string; imageUrl: string | null; rarity: string } | undefined>;
   wallet: WalletInfo;
   freeCalls: FreeCallInfo;
   unreadNotifications: number;

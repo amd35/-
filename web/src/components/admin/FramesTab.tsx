@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { api } from '../../lib/api';
 import { Avatar, formatCoins, Icon, useToast } from '../../lib/ui';
 import { AdminCard, Empty, Field, Table, Toggle, useAdminData } from './shared';
+import { CosmeticPreview, type CosmeticCategory } from '../Cosmetics';
 
 interface AdminFrame {
   id: string;
@@ -17,6 +18,7 @@ interface AdminFrame {
   isRare: boolean;
   isActive: boolean;
   sortOrder: number;
+  category: string;
   owners: number;
   equippedCount: number;
 }
@@ -37,6 +39,14 @@ const DESIGN_KEYS = [
   'rainbow',
 ];
 
+const SECTIONS: { key: CosmeticCategory; label: string; designs: string[] }[] = [
+  { key: 'frame', label: 'إطارات الصور', designs: DESIGN_KEYS },
+  { key: 'id', label: 'المعرّفات', designs: ['neon', 'gold', 'blue', 'fire', 'diamond'] },
+  { key: 'namecard', label: 'بطاقات الأسماء', designs: ['glass', 'neon', 'gold', 'holo'] },
+  { key: 'bubble', label: 'فقاعات الدردشة', designs: ['glass', 'neon', 'gradient', 'fire'] },
+  { key: 'entry', label: 'دخوليات الغرفة', designs: ['rose', 'lightning', 'fireworks', 'crown'] },
+];
+
 const RARITIES = ['common', 'rare', 'epic', 'legendary', 'vip'];
 
 const EMPTY_FORM = {
@@ -51,6 +61,7 @@ const EMPTY_FORM = {
   durationDays: 0,
   isRare: false,
   sortOrder: 0,
+  category: 'frame' as CosmeticCategory,
 };
 
 export default function FramesTab() {
@@ -75,6 +86,7 @@ export default function FramesTab() {
       durationDays: frame.durationDays,
       isRare: frame.isRare,
       sortOrder: frame.sortOrder,
+      category: (frame.category as CosmeticCategory) || 'frame',
     });
   };
 
@@ -100,6 +112,7 @@ export default function FramesTab() {
         durationDays: Number(form.durationDays),
         isRare: form.isRare,
         sortOrder: Number(form.sortOrder),
+        category: form.category,
       };
       if (form.id) {
         await api(`/admin/frames/${form.id}`, { method: 'PATCH', admin: true, body });
@@ -187,6 +200,23 @@ export default function FramesTab() {
               onChange={(event) => setForm({ ...form, nameEn: event.target.value })}
             />
           </Field>
+          <Field label="القسم في المتجر">
+            <select
+              className="select"
+              value={form.category}
+              onChange={(event) => {
+                const category = event.target.value as CosmeticCategory;
+                const designs = SECTIONS.find((section) => section.key === category)?.designs ?? DESIGN_KEYS;
+                setForm({ ...form, category, design: designs[0] });
+              }}
+            >
+              {SECTIONS.map((section) => (
+                <option key={section.key} value={section.key}>
+                  {section.label}
+                </option>
+              ))}
+            </select>
+          </Field>
           <Field label="نوع الإطار">
             <select
               className="select"
@@ -205,7 +235,7 @@ export default function FramesTab() {
                 value={form.design}
                 onChange={(event) => setForm({ ...form, design: event.target.value })}
               >
-                {DESIGN_KEYS.map((key) => (
+                {(SECTIONS.find((section) => section.key === form.category)?.designs ?? DESIGN_KEYS).map((key) => (
                   <option key={key} value={key}>
                     {key}
                   </option>
@@ -273,19 +303,33 @@ export default function FramesTab() {
 
         <div className="inline" style={{ gap: 14 }}>
           <div className="frame-preview" style={{ height: 96 }}>
-            <Avatar
-              user={{
-                displayName: form.name || 'A',
-                frame: {
+            {form.category === 'frame' ? (
+              <Avatar
+                user={{
+                  displayName: form.name || 'A',
+                  frame: {
+                    id: 'preview',
+                    kind: form.kind,
+                    design: form.kind === 'design' ? form.design : null,
+                    imageUrl: form.kind === 'image' ? form.imageUrl : null,
+                    rarity: form.rarity,
+                  },
+                }}
+                size={72}
+              />
+            ) : (
+              <CosmeticPreview
+                cosmetic={{
                   id: 'preview',
                   kind: form.kind,
                   design: form.kind === 'design' ? form.design : null,
                   imageUrl: form.kind === 'image' ? form.imageUrl : null,
                   rarity: form.rarity,
-                },
-              }}
-              size={72}
-            />
+                }}
+                category={form.category}
+                sampleName={form.name || 'A'}
+              />
+            )}
           </div>
           <button className="btn btn-primary" onClick={() => void save()} disabled={busy}>
             <Icon name="check" size={16} /> {busy ? 'جارٍ الحفظ…' : form.id ? 'حفظ التعديلات' : 'إضافة الإطار'}
@@ -299,29 +343,46 @@ export default function FramesTab() {
         ) : (data?.frames.length ?? 0) === 0 ? (
           <Empty text="لا توجد إطارات" />
         ) : (
-          <Table head={['معاينة', 'الاسم', 'النوع', 'السعر', 'الفئة', 'المدة', 'المالكون', 'الحالة', 'إجراءات']}>
+          <Table head={['معاينة', 'الاسم', 'القسم', 'النوع', 'السعر', 'الفئة', 'المدة', 'المالكون', 'الحالة', 'إجراءات']}>
             {data?.frames.map((frame) => (
               <tr key={frame.id}>
                 <td>
-                  <Avatar
-                    user={{
-                      displayName: frame.name,
-                      frame: {
+                  {frame.category && frame.category !== 'frame' ? (
+                    <CosmeticPreview
+                      cosmetic={{
                         id: frame.id,
                         kind: frame.kind,
                         design: frame.design,
                         imageUrl: frame.imageUrl,
                         rarity: frame.rarity,
-                      },
-                    }}
-                    size={40}
-                  />
+                      }}
+                      category={frame.category as CosmeticCategory}
+                      sampleName={frame.name}
+                    />
+                  ) : (
+                    <Avatar
+                      user={{
+                        displayName: frame.name,
+                        frame: {
+                          id: frame.id,
+                          kind: frame.kind,
+                          design: frame.design,
+                          imageUrl: frame.imageUrl,
+                          rarity: frame.rarity,
+                        },
+                      }}
+                      size={40}
+                    />
+                  )}
                 </td>
                 <td>
                   <b>{frame.name}</b>
                   <div className="tiny muted" dir="ltr">
                     {frame.slug}
                   </div>
+                </td>
+                <td className="tiny">
+                  {SECTIONS.find((section) => section.key === frame.category)?.label ?? 'إطارات الصور'}
                 </td>
                 <td className="tiny" dir="ltr">
                   {frame.kind === 'image' ? 'image' : frame.design}
