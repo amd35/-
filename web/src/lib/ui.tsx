@@ -14,6 +14,9 @@ import { assetUrl } from './api';
 import { AvatarFrame, type FrameInfo } from '../components/AvatarFrame';
 
 /* ------------------------------------------------------------------ icons */
+/** Gift artwork used wherever the gift icon appears (shop, composer, room, pills). */
+const GIFT_ICON_URL =
+  'https://media.base44.com/images/public/6addb0a6b0689d303ed3a495/ba4c71cec_file_000000007c54821081a33f6e0657af7c.png';
 const ICONS: Record<string, ReactNode> = {
   home: <path d="M3 10.7 12 3.5l9 7.2V20a1 1 0 0 1-1 1h-5.2v-6.4H9.2V21H4a1 1 0 0 1-1-1z" />,
   chat: (
@@ -279,6 +282,19 @@ export function Icon({
   style?: CSSProperties;
   fill?: string;
 }) {
+  if (name === 'gift') {
+    return (
+      <img
+        src={GIFT_ICON_URL}
+        width={size}
+        height={size}
+        alt=""
+        aria-hidden="true"
+        className={className}
+        style={{ objectFit: 'contain', flex: '0 0 auto', ...style }}
+      />
+    );
+  }
   return (
     <svg
       width={size}
