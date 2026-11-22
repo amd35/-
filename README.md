@@ -46,8 +46,10 @@ docker compose --project-name app \
 | --- | --- |
 | `SECRET_KEY` | توقيع JWT للجلسات (إلزامي) |
 | `ADMIN_PASSWORD` | كلمة مرور لوحة الإدارة (إلزامي) |
-| `GOOGLE_CLIENT_ID` | اختياري — تفعيل تسجيل الدخول بـ Google |
-| `SMS_PROVIDER_URL` / `SMS_PROVIDER_KEY` | اختياري — إرسال رمز OTP برسالة حقيقية |
+| `GOOGLE_CLIENT_ID` | اختياري — تفعيل تسجيل الدخول الحقيقي بـ Google (Web client ID) |
+| `TWILIO_ACCOUNT_SID` / `TWILIO_AUTH_TOKEN` | اختياري — إرسال رمز OTP برسالة SMS حقيقية عبر Twilio |
+| `TWILIO_FROM_NUMBER` أو `TWILIO_MESSAGING_SERVICE_SID` | اختياري — رقم المُرسِل في Twilio (E.164) أو خدمة رسائل |
+| `SMS_PROVIDER_URL` / `SMS_PROVIDER_KEY` | اختياري — بوابة SMS بديلة إن لم يُستخدم Twilio |
 | `SMTP_URL` | اختياري — إرسال رابط استعادة كلمة المرور بالبريد |
 | `PAYMENT_WEBHOOK_SECRET` | اختياري — تفعيل تأكيد الدفع الآلي من مزود (HMAC-SHA256) |
 | `ZAINCASH_MERCHANT_ID` / `FASTPAY_MERCHANT_ID` | اختياري — إظهار بوابات الدفع المحلية |

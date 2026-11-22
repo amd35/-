@@ -49,6 +49,14 @@
   only when `BASE44_PREVIEW_MODE === '1'`; `__VITE_ADDITIONAL_SERVER_ALLOWED_HOSTS` is passed through.
 - Without an SMS/SMTP provider, OTP codes and password-reset tokens are echoed in the API response
   **only** when `BASE44_PREVIEW_MODE === '1'`, so signup can be completed in the sandbox.
+- SMS delivery: `server/src/sms.ts` uses Twilio when `TWILIO_ACCOUNT_SID` + `TWILIO_AUTH_TOKEN` +
+  (`TWILIO_FROM_NUMBER` or `TWILIO_MESSAGING_SERVICE_SID`) are set, else the legacy
+  `SMS_PROVIDER_URL`/`SMS_PROVIDER_KEY` webhook. With a provider configured, a rejected send returns
+  `502 sms_failed` instead of silently echoing the code.
+- Google sign-in: `/auth/providers` returns `googleClientId`, the client loads Google Identity Services
+  on demand (`web/src/lib/google.ts`) and sends `{ idToken?, accessToken }`; `/auth/google` verifies it
+  through `oauth2.googleapis.com/tokeninfo` and checks `aud === GOOGLE_CLIENT_ID`.
+  Google blocks OAuth inside the Android WebView, so the native shell still needs a native Google plugin.
 - Admin panel: `/admin`, username `admin`. The password starts as the `ADMIN_PASSWORD` secret; once it is
   changed from the panel's **Security** tab, the stored hash wins (`admin_users.password_source = 'custom'`)
   and a boot no longer overwrites it. Setting the secret again only affects a row still on `'secret'`.

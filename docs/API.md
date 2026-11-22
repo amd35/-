@@ -14,7 +14,7 @@ with a matching HTTP status (`400/401/402/403/404/409/429/500`).
 | POST | `/auth/login` | `{ identifier, password }` | `identifier` = email, phone or username |
 | POST | `/auth/otp/request` | `{ phone }` | Returns `{ sent, expiresInSeconds, delivery, devCode? }` (`devCode` only in preview mode without an SMS gateway) |
 | POST | `/auth/otp/verify` | `{ phone, code }` | Returns `{ verified, phone, phoneToken }` (15 min) |
-| POST | `/auth/google` | `{ idToken }` | Requires `GOOGLE_CLIENT_ID`; verifies the Google ID token |
+| POST | `/auth/google` | `{ idToken? , accessToken? }` | Requires `GOOGLE_CLIENT_ID`; verifies the Google token via tokeninfo and checks its audience |
 | POST | `/auth/forgot-password` | `{ email }` | Returns `{ sent, devToken? }` |
 | POST | `/auth/reset-password` | `{ token, password }` | |
 | POST | `/auth/change-password` | `{ currentPassword, newPassword }` | Auth |
