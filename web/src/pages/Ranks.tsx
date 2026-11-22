@@ -90,29 +90,18 @@ const PERMISSION_LABELS: Record<string, string> = {
   agent_panel: 'لوحة الوكيل',
 };
 
-function formatCountdown(ms: number): string {
-  const total = Math.max(0, Math.floor(ms / 1000));
-  const hours = String(Math.floor(total / 3600)).padStart(2, '0');
-  const minutes = String(Math.floor((total % 3600) / 60)).padStart(2, '0');
-  const seconds = String(total % 60).padStart(2, '0');
-  return `${hours}:${minutes}:${seconds}`;
-}
-
 function permissionChips(permissions: string[]): string[] {
   if (!permissions?.length) return [];
   return permissions.map((permission) => PERMISSION_LABELS[permission] ?? permission);
 }
 
 export default function Ranks() {
-  const { me, refresh } = useAuth();
+  const { me } = useAuth();
   const { t, lang } = useI18n();
   const toast = useToast();
   const [data, setData] = useState<RanksResponse | null>(null);
   const [agent, setAgent] = useState<AgentResponse | null>(null);
   const [loading, setLoading] = useState(true);
-  const [claiming, setClaiming] = useState(false);
-  const [celebrate, setCelebrate] = useState(false);
-  const [now, setNow] = useState(Date.now());
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -134,31 +123,6 @@ export default function Ranks() {
     void load();
   }, [load]);
 
-  useEffect(() => {
-    const timer = setInterval(() => setNow(Date.now()), 1000);
-    return () => clearInterval(timer);
-  }, []);
-
-  const claim = async () => {
-    setClaiming(true);
-    try {
-      const result = await api<{ coins: number; granted: { label: string }[] }>('/ranks/box/claim', {
-        method: 'POST',
-      });
-      setCelebrate(true);
-      toast.push(t('boxClaimedToast'), 'success');
-      setTimeout(() => setCelebrate(false), 2200);
-      await Promise.all([load(), refresh()]);
-      if (result.granted?.length) {
-        toast.push(result.granted.map((item) => item.label).join(' • '), 'success');
-      }
-    } catch (error) {
-      toast.push((error as Error).message, 'error');
-    } finally {
-      setClaiming(false);
-    }
-  };
-
   const rankNameFor = (key: string) =>
     data?.ranks.find((rank) => rank.key === key)?.nameAr ?? key;
 
@@ -171,7 +135,6 @@ export default function Ranks() {
     [data]
   );
 
-  const countdown = formatCountdown(new Date(data?.nextClaimAt ?? Date.now()).getTime() - now);
   const myPermissions = permissionChips(data?.mine?.permissions ?? []);
 
   return (
@@ -220,75 +183,6 @@ export default function Ranks() {
                 </div>
               </section>
             )}
-
-            {data.mine ? (
-              <section className="card rank-box-card">
-                <div
-                  className={`rank-chest ${celebrate ? 'is-open' : ''} ${
-                    data.claimedToday ? 'is-claimed' : ''
-                  }`}
-                >
-                  <span className="rank-chest-glow" aria-hidden="true" />
-                  <span className="rank-chest-lid" aria-hidden="true">
-                    <span className="rank-chest-gem">✦</span>
-                  </span>
-                  <span className="rank-chest-body" aria-hidden="true">
-                    <span className="rank-chest-lock">
-                      <Icon name="lock" size={15} />
-                    </span>
-                  </span>
-                  {celebrate ? (
-                    <span className="rank-chest-coins">+{formatCoins(data.myBox?.coins ?? 0)}</span>
-                  ) : null}
-                </div>
-                <div className="rank-box-info">
-                  <div className="tiny muted">{t('dailyBox')}</div>
-                  {data.myBox ? (
-                    <>
-                      <div className="rank-box-coins">
-                        <Icon name="coins" size={20} />
-                        <span>{formatCoins(data.myBox.coins)}</span>
-                      </div>
-                      <div className="tiny muted">{data.myBox.name}</div>
-                      {data.myBox.extras?.length ? (
-                        <ul className="rank-box-extras">
-                          {data.myBox.extras.map((extra, index) => (
-                            <li key={index}>
-                              <Icon name="sparkle" size={13} />
-                              {extra.type === 'coins'
-                                ? `+${formatCoins(extra.amount ?? 0)} كونز إضافية`
-                                : 'عنصر تجميلي حصري'}
-                            </li>
-                          ))}
-                        </ul>
-                      ) : null}
-                      <button
-                        className="btn btn-primary btn-block"
-                        disabled={data.claimedToday || claiming}
-                        onClick={() => void claim()}
-                      >
-                        {data.claimedToday ? (
-                          <>
-                            <Icon name="check" size={16} /> {t('boxClaimedToday')}
-                          </>
-                        ) : claiming ? (
-                          <span className="spinner" />
-                        ) : (
-                          <>
-                            <Icon name="gift" size={16} /> {t('claimBox')}
-                          </>
-                        )}
-                      </button>
-                      <div className="tiny muted center">
-                        {data.claimedToday ? t('renewsAfter', { time: countdown }) : t('boxReady')}
-                      </div>
-                    </>
-                  ) : (
-                    <div className="tiny muted">{t('noBoxYet')}</div>
-                  )}
-                </div>
-              </section>
-            ) : null}
 
             {agent ? (
               <section className="card rank-agent">

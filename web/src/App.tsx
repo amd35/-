@@ -4,6 +4,7 @@ import { useAuth } from './lib/auth';
 import { useI18n } from './lib/i18n';
 import { Spinner } from './lib/ui';
 import { CallOverlay } from './components/CallOverlay';
+import { DailyBoxModal } from './components/DailyBoxModal';
 import { BottomNav } from './components/AppShell';
 import Welcome from './pages/Welcome';
 import { Login, Register, ForgotPassword } from './pages/Auth';
@@ -183,6 +184,7 @@ export default function App() {
         />
       </Routes>
       <CallOverlay />
+      <DailyBoxModal />
     </>
   );
 }

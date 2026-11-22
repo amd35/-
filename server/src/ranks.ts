@@ -1,5 +1,6 @@
 import type { PoolClient } from 'pg';
 import { one, q, tx } from './db';
+import { notify } from './notify';
 import { HttpError, iraqDateStr, nextIraqMidnight } from './utils';
 import { moveCoins } from './wallet';
 
@@ -235,7 +236,7 @@ export async function grantRank(input: {
     input.durationDays === undefined ? Number(rank.duration_days) : Math.max(0, Number(input.durationDays));
   const expiresAt = days > 0 ? new Date(Date.now() + days * 86_400_000) : null;
 
-  return tx(async (c) => {
+  const granted = await tx(async (c) => {
     await c.query(
       'UPDATE user_ranks SET is_active = false, revoked_at = now() WHERE user_id = $1 AND is_active',
       [input.userId]
@@ -261,6 +262,22 @@ export async function grantRank(input: {
     });
     return { rank, expiresAt: expiresAt ? expiresAt.toISOString() : null };
   });
+
+  // Automatic in-app notification for the new rank (stored + pushed live).
+  await notify(
+    input.userId,
+    'rank_granted',
+    'رتبة جديدة 🎖',
+    `تم منحك رتبة "${rank.name_ar}" — استلم بوكسك اليومي من الشاشة الرئيسية`,
+    {
+      rankKey: rank.key,
+      rankName: rank.name_ar,
+      color: rank.color,
+      badgeImageUrl: rank.badge_image_url,
+    }
+  );
+
+  return granted;
 }
 
 export async function revokeRank(input: {

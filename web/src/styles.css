@@ -4737,3 +4737,87 @@ table.data tr:hover td {
     grid-template-columns: 1fr;
   }
 }
+
+/* ------------------------------------------------------------------ daily box popup */
+.box-popup {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  padding: 22px 18px 18px;
+  text-align: center;
+  overflow: hidden;
+  border-radius: 26px;
+  border: 1px solid rgba(196, 132, 252, 0.5);
+  background:
+    radial-gradient(120% 90% at 50% 0%, rgba(168, 85, 247, 0.45), transparent 62%),
+    radial-gradient(100% 70% at 50% 100%, rgba(236, 72, 153, 0.28), transparent 65%),
+    linear-gradient(180deg, #2b1049, #150826 72%);
+  box-shadow: 0 24px 60px -24px rgba(168, 85, 247, 0.9), inset 0 0 0 1px rgba(255, 255, 255, 0.04);
+}
+.box-popup::before {
+  content: '';
+  position: absolute;
+  inset: -40% -20% auto;
+  height: 70%;
+  background: radial-gradient(closest-side, rgba(236, 72, 153, 0.3), transparent 70%);
+  pointer-events: none;
+}
+.box-popup-close {
+  position: absolute;
+  top: 10px;
+  inset-inline-end: 10px;
+  z-index: 2;
+}
+.box-popup-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  text-align: start;
+}
+.box-popup-title {
+  font-size: 17px;
+  font-weight: 800;
+  color: #f5e9ff;
+}
+.box-popup-coins {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  font-size: 30px;
+  font-weight: 900;
+  color: #ede0ff;
+  text-shadow: 0 0 18px rgba(168, 85, 247, 0.85);
+}
+.box-popup .rank-box-extras li {
+  justify-content: center;
+}
+.box-chest {
+  margin: 6px auto 0;
+}
+.box-popup .rank-chest-body {
+  background: linear-gradient(160deg, #d8b4fe, #8b5cf6 55%, #3b0f6b);
+  border-color: #f3e8ff;
+}
+.box-popup .rank-chest-lid {
+  background: linear-gradient(160deg, #f7efff, #a855f7 55%, #5b21b6);
+  border-color: #faf5ff;
+}
+.box-popup .rank-chest-gem {
+  color: #ffd75e;
+}
+.box-popup .rank-chest-lock {
+  color: #2a0a4d;
+  background: linear-gradient(160deg, #faf5ff, #c084fc);
+  border-color: #faf5ff;
+}
+.box-popup .rank-chest-glow {
+  background: radial-gradient(closest-side, rgba(168, 85, 247, 0.65), transparent 70%);
+}
+.box-popup .rank-chest-coins {
+  color: #f3e8ff;
+  text-shadow: 0 0 12px rgba(168, 85, 247, 0.95);
+}

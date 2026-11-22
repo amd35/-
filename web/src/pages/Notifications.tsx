@@ -30,6 +30,7 @@ const ICON_BY_TYPE: Record<string, string> = {
   friend_request: 'users',
   friend_accepted: 'check',
   new_follower: 'user',
+  rank_granted: 'shield',
   account_banned: 'ban',
   account_unbanned: 'check',
   admin_broadcast: 'bell',
