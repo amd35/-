@@ -16,6 +16,13 @@ export interface AppSettings {
   gifts_enabled: boolean;
   gift_recipient_percent: number;
   gift_admin_percent: number;
+  cup_enabled: boolean;
+  /** Share of the gold spent inside a room that goes to its owner (rest → admin). */
+  cup_owner_percent: number;
+  cup_period: 'daily' | 'weekly' | 'monthly';
+  cup_prize_1: number;
+  cup_prize_2: number;
+  cup_prize_3: number;
   app_name: string;
   support_contact: string;
 }
@@ -36,6 +43,12 @@ export const SETTINGS_DEFAULTS: AppSettings = {
   gifts_enabled: true,
   gift_recipient_percent: 60,
   gift_admin_percent: 40,
+  cup_enabled: true,
+  cup_owner_percent: 50,
+  cup_period: 'weekly',
+  cup_prize_1: 5000,
+  cup_prize_2: 2000,
+  cup_prize_3: 1000,
   app_name: 'Connect+',
   support_contact: 'support@connectplus.app',
 };
@@ -75,6 +88,13 @@ const COERCE: Record<string, (value: unknown) => unknown> = {
   gifts_enabled: (v) => Boolean(v),
   gift_recipient_percent: (v) => Math.min(100, Math.max(0, Math.trunc(Number(v) || 0))),
   gift_admin_percent: (v) => Math.min(100, Math.max(0, Math.trunc(Number(v) || 0))),
+  cup_enabled: (v) => Boolean(v),
+  cup_owner_percent: (v) => Math.min(100, Math.max(0, Math.trunc(Number(v) || 0))),
+  cup_period: (v) =>
+    v === 'daily' || v === 'weekly' || v === 'monthly' ? v : 'weekly',
+  cup_prize_1: (v) => Math.max(0, Math.trunc(Number(v) || 0)),
+  cup_prize_2: (v) => Math.max(0, Math.trunc(Number(v) || 0)),
+  cup_prize_3: (v) => Math.max(0, Math.trunc(Number(v) || 0)),
   app_name: (v) => String(v || 'Connect+').slice(0, 60),
   support_contact: (v) => String(v || '').slice(0, 120),
 };

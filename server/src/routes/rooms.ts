@@ -13,6 +13,7 @@ import {
 } from '../rooms';
 import { notify } from '../notify';
 import { GiftRow, moveProfit } from '../gifts';
+import { cupSnapshot, ensureCompetition, recordCupGift } from '../roomCup';
 import { getSettings } from '../settings';
 import { moveCoins } from '../wallet';
 import { awardXpSafe, getXpSettings, xpForCoins } from '../progression';
@@ -72,6 +73,15 @@ router.get(
   requireAuth(),
   asyncHandler(async (req, res) => {
     res.json({ room: await getRoomDetail(req.params.id, reqUser(req).id) });
+  })
+);
+
+/** Cup panel: split settings, the running competition, the ranking and past winners. */
+router.get(
+  '/:id/cup',
+  requireAuth(),
+  asyncHandler(async (req, res) => {
+    res.json(await cupSnapshot(req.params.id, reqUser(req).id));
   })
 );
 
@@ -236,8 +246,8 @@ router.post(
       const created = await c.query(
         `INSERT INTO gift_sends
            (request_id, gift_id, sender_id, recipient_id, coins,
-            recipient_coins, admin_coins, recipient_percent, admin_percent, gift_name, quantity)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+            recipient_coins, admin_coins, recipient_percent, admin_percent, gift_name, quantity, room_id)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
          ON CONFLICT (request_id) DO NOTHING
          RETURNING *`,
         [
@@ -252,6 +262,7 @@ router.post(
           adminPercent,
           gift.name,
           quantity,
+          roomId,
         ]
       );
       if (!created.rowCount) {
@@ -281,12 +292,21 @@ router.post(
         });
       }
 
+      // Room cup: one ledger row per send splits the spent gold between the room
+      // owner and the administration, and the room gets a running competition.
+      const cup = await recordCupGift(
+        c,
+        { giftSendId: send.id, roomId, senderId: me, recipientId, coins: price },
+        settings
+      );
+      if (settings.cup_enabled) await ensureCompetition(c, roomId, settings);
+
       const message = await c.query<{ id: string }>(
         `INSERT INTO room_messages (room_id, user_id, body, type, gift_send_id)
          VALUES ($1, $2, $3, 'gift', $4) RETURNING id`,
         [roomId, me, `🎁 ${gift.name}${quantity > 1 ? ` × ${quantity}` : ''}`, send.id]
       );
-      return { messageId: message.rows[0].id, recipientCoins, coins: price, sendId: send.id };
+      return { messageId: message.rows[0].id, recipientCoins, coins: price, sendId: send.id, cup };
     });
 
     const xpSettings = await getXpSettings();
@@ -301,6 +321,8 @@ router.post(
     broadcast('room_message', { roomId, message });
     emitToUser(me, 'wallet:update', {});
     emitToUser(recipientId, 'profit:update', {});
+    if (outcome.cup?.ownerId) emitToUser(outcome.cup.ownerId, 'profit:update', {});
+    if (settings.cup_enabled) broadcast('room_cup', { roomId });
     res.status(201).json({ message, recipientCoins: outcome.recipientCoins });
   })
 );

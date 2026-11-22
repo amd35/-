@@ -23,6 +23,7 @@ import { RoomInvitePanel } from '../components/room/RoomInvitePanel';
 import { RoomSettingsPanel, type RoomSettingsPatch } from '../components/room/RoomSettingsPanel';
 import { RoomMusicPanel } from '../components/room/RoomMusicPanel';
 import { RoomChatPanel } from '../components/room/RoomChatPanel';
+import { RoomCup } from '../components/room/RoomCup';
 import type { RoomData } from '../components/room/types';
 import { useRoomVoice } from '../lib/roomVoice';
 
@@ -376,6 +377,8 @@ export default function Room() {
             onBack={leaveRoom}
             onSettings={() => setPanel('settings')}
           />
+
+          <RoomCup roomId={id} />
 
           {room.rules ? <p className="room-rules-line">{room.rules}</p> : null}
 

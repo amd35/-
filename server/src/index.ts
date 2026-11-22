@@ -21,7 +21,9 @@ import giftRoutes from './routes/gifts';
 import paymentRoutes from './routes/payments';
 import roomRoutes from './routes/rooms';
 import adminRoomRoutes from './routes/adminRooms';
+import adminRoomCupRoutes from './routes/adminRoomCup';
 import adminRoutes from './routes/admin';
+import { startCupLoop } from './roomCup';
 import rankRoutes from './routes/ranks';
 import levelRoutes from './routes/levels';
 import adminProgressionRoutes from './routes/adminProgression';
@@ -83,6 +85,7 @@ app.use('/api/rooms', roomRoutes);
 app.use('/api/ranks', rankRoutes);
 app.use('/api/levels', levelRoutes);
 app.use('/api/admin/rooms', adminRoomRoutes);
+app.use('/api/admin/room-cup', adminRoomCupRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/admin', adminProgressionRoutes);
 app.use('/api/admin', adminLookRoutes);
@@ -130,6 +133,7 @@ async function bootstrap(): Promise<void> {
   await ensureBotUser().catch((error) => console.error('[bot] seed failed', (error as Error).message));
   await recoverStaleCalls();
   startBillingLoop();
+  startCupLoop();
   server.listen(PORT, '0.0.0.0', () => {
     console.log(`[api] listening on 0.0.0.0:${PORT}`);
   });

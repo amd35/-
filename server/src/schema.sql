@@ -748,6 +748,78 @@ CREATE TABLE IF NOT EXISTS room_messages (
 ALTER TABLE room_messages ADD COLUMN IF NOT EXISTS is_announcement boolean NOT NULL DEFAULT false;
 CREATE INDEX IF NOT EXISTS room_messages_room_idx ON room_messages (room_id, created_at DESC);
 
+-- ============================================================================
+-- Room cup & gold profit sharing
+-- ----------------------------------------------------------------------------
+-- Every gift sent inside a room writes one ledger row: the gold the sender spent
+-- and how it splits between the room owner and the general administration.
+-- `gift_send_id` is unique, so a retried send can never split (or pay) twice.
+-- A reversed (refunded/cancelled) row stays for auditing but is excluded from
+-- the owner payout and from the competition ranking.
+ALTER TABLE gift_sends ADD COLUMN IF NOT EXISTS room_id uuid REFERENCES rooms(id) ON DELETE SET NULL;
+CREATE INDEX IF NOT EXISTS gift_sends_room_idx ON gift_sends (room_id, created_at DESC);
+
+CREATE TABLE IF NOT EXISTS room_cup_ledger (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  gift_send_id uuid NOT NULL UNIQUE REFERENCES gift_sends(id) ON DELETE CASCADE,
+  room_id uuid NOT NULL REFERENCES rooms(id) ON DELETE CASCADE,
+  owner_id uuid REFERENCES users(id) ON DELETE SET NULL,
+  sender_id uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  recipient_id uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  coins integer NOT NULL CHECK (coins >= 0),
+  owner_coins integer NOT NULL DEFAULT 0 CHECK (owner_coins >= 0),
+  admin_coins integer NOT NULL DEFAULT 0 CHECK (admin_coins >= 0),
+  owner_percent integer NOT NULL DEFAULT 50,
+  admin_percent integer NOT NULL DEFAULT 50,
+  status text NOT NULL DEFAULT 'settled' CHECK (status IN ('settled', 'reversed')),
+  reversed_at timestamptz,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  CHECK (owner_coins + admin_coins = coins)
+);
+CREATE INDEX IF NOT EXISTS room_cup_ledger_room_idx ON room_cup_ledger (room_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS room_cup_ledger_owner_idx ON room_cup_ledger (owner_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS room_cup_ledger_sender_idx ON room_cup_ledger (sender_id, created_at DESC);
+
+-- One competition per room at a time; the partial unique index is what enforces it.
+CREATE TABLE IF NOT EXISTS room_cup_competitions (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  room_id uuid NOT NULL REFERENCES rooms(id) ON DELETE CASCADE,
+  period text NOT NULL CHECK (period IN ('daily', 'weekly', 'monthly')),
+  starts_at timestamptz NOT NULL,
+  ends_at timestamptz NOT NULL,
+  status text NOT NULL DEFAULT 'open' CHECK (status IN ('open', 'closed')),
+  closed_at timestamptz,
+  created_at timestamptz NOT NULL DEFAULT now()
+);
+CREATE UNIQUE INDEX IF NOT EXISTS room_cup_competitions_open_uidx
+  ON room_cup_competitions (room_id) WHERE status = 'open';
+CREATE INDEX IF NOT EXISTS room_cup_competitions_due_idx ON room_cup_competitions (status, ends_at);
+
+CREATE TABLE IF NOT EXISTS room_cup_winners (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  competition_id uuid NOT NULL REFERENCES room_cup_competitions(id) ON DELETE CASCADE,
+  room_id uuid NOT NULL REFERENCES rooms(id) ON DELETE CASCADE,
+  rank integer NOT NULL CHECK (rank BETWEEN 1 AND 3),
+  user_id uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  coins bigint NOT NULL DEFAULT 0,
+  prize integer NOT NULL DEFAULT 0 CHECK (prize >= 0),
+  awarded boolean NOT NULL DEFAULT false,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  UNIQUE (competition_id, rank),
+  UNIQUE (competition_id, user_id)
+);
+CREATE INDEX IF NOT EXISTS room_cup_winners_room_idx ON room_cup_winners (room_id, created_at DESC);
+
+-- Defaults for the cup settings; an existing value is never overwritten.
+INSERT INTO app_settings (key, value) VALUES
+  ('cup_enabled', 'true'::jsonb),
+  ('cup_owner_percent', '50'::jsonb),
+  ('cup_period', '"weekly"'::jsonb),
+  ('cup_prize_1', '5000'::jsonb),
+  ('cup_prize_2', '2000'::jsonb),
+  ('cup_prize_3', '1000'::jsonb)
+ON CONFLICT (key) DO NOTHING;
+
 -- A starter room (with 15 seats: 3 rows of 5) so the feature is usable right
 -- away. Seeded only when no room exists yet, so a room the admin deletes never
 -- comes back.
