@@ -20,7 +20,13 @@ interface CallRecord {
   direction: 'incoming' | 'outgoing';
   missed: boolean;
   endReason: string | null;
-  peer: { id: string; displayName: string; username: string; avatarUrl: string | null };
+  peer: {
+    id: string;
+    displayName: string;
+    username: string;
+    avatarUrl: string | null;
+    frame?: { id: string; design: string | null; kind: string; imageUrl: string | null; rarity: string } | null;
+  };
 }
 
 type Tab = 'all' | 'voice' | 'video' | 'missed';

@@ -217,6 +217,14 @@ export function Profile() {
         ) : null}
 
         <section className="list">
+          <div className="row" onClick={() => navigate('/frames')}>
+            <Icon name="sparkle" size={19} />
+            <div className="row-main">
+              <div className="row-title">{t('framesStore')}</div>
+              <div className="row-sub">{t('framesSub')}</div>
+            </div>
+            <Icon name="arrowLeft" size={17} />
+          </div>
           <div className="row" onClick={() => navigate('/settings')}>
             <Icon name="settings" size={19} />
             <div className="row-main">

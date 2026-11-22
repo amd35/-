@@ -15,6 +15,7 @@ import Wallet from './pages/Wallet';
 import Notifications from './pages/Notifications';
 import { Profile, UserProfile } from './pages/Profile';
 import Settings from './pages/Settings';
+import Frames from './pages/Frames';
 import Admin from './pages/Admin';
 
 function Protected({ children }: { children: ReactNode }) {
@@ -87,6 +88,14 @@ export default function App() {
           element={
             <Protected>
               <Notifications />
+            </Protected>
+          }
+        />
+        <Route
+          path="/frames"
+          element={
+            <Protected>
+              <Frames />
             </Protected>
           }
         />

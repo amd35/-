@@ -10,6 +10,7 @@ import {
   type CallKind,
 } from '../calls';
 import { getFreeCallState } from '../freecalls';
+import { FRAME_FIELDS, frameFromRow, frameJoins } from '../serializers';
 import { asyncHandler, intParam } from '../utils';
 
 const router = Router();
@@ -28,14 +29,15 @@ router.get(
   asyncHandler(async (req, res) => {
     const me = reqUser(req).id;
     const call = await one(
-      `SELECT c.*, u.display_name AS peer_name, u.avatar_url AS peer_avatar
+      `SELECT c.*, u.display_name AS peer_name, u.avatar_url AS peer_avatar, ${FRAME_FIELDS}
        FROM calls c
        JOIN users u ON u.id = CASE WHEN c.caller_id = $1 THEN c.callee_id ELSE c.caller_id END
+       ${frameJoins('u')}
        WHERE (c.caller_id = $1 OR c.callee_id = $1) AND c.status IN ('ringing', 'accepted')
        ORDER BY c.created_at DESC LIMIT 1`,
       [me]
     );
-    res.json({ call });
+    res.json({ call: call ? { ...call, peerFrame: frameFromRow(call as never) } : null });
   })
 );
 
@@ -110,9 +112,10 @@ router.get(
              CASE WHEN c.caller_id = $1 THEN 'outgoing' ELSE 'incoming' END AS direction,
              (c.status = 'missed' AND c.callee_id = $1) AS missed_for_me,
              u.id AS peer_id, u.display_name AS peer_name, u.username AS peer_username,
-             u.avatar_url AS peer_avatar
+             u.avatar_url AS peer_avatar, ${FRAME_FIELDS}
       FROM calls c
       JOIN users u ON u.id = CASE WHEN c.caller_id = $1 THEN c.callee_id ELSE c.caller_id END
+      ${frameJoins('u')}
       WHERE (c.caller_id = $1 OR c.callee_id = $1)`;
     if (filter === 'voice' || filter === 'video') {
       params.push(filter);
@@ -144,6 +147,7 @@ router.get(
           displayName: row.peer_name,
           username: row.peer_username,
           avatarUrl: row.peer_avatar,
+          frame: frameFromRow(row as never),
         },
       })),
     });

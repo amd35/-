@@ -11,6 +11,7 @@ export interface UserCardData {
   username: string;
   displayName: string;
   avatarUrl?: string | null;
+  frame?: { id: string; design: string | null; kind: string; imageUrl: string | null; rarity: string } | null;
   bio?: string | null;
   online?: boolean;
   isFavorite?: boolean;

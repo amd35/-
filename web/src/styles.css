@@ -425,6 +425,265 @@ p {
   border: 2.5px solid #140b22;
 }
 
+/* ------------------------------------------------------- avatar frames */
+.avatar-wrap {
+  position: relative;
+  display: block;
+  flex-shrink: 0;
+}
+
+.av-frame {
+  position: absolute;
+  inset: -14%;
+  z-index: 3;
+  pointer-events: none;
+  display: block;
+}
+
+.av-frame > svg {
+  width: 100%;
+  height: 100%;
+  display: block;
+  overflow: visible;
+  filter: drop-shadow(0 0 4px rgba(255, 213, 94, 0.35));
+}
+
+.av-frame-image > img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+@keyframes av-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.av-spin,
+.av-spin-slow,
+.av-spin-rev {
+  transform-origin: 50px 50px;
+}
+
+.av-spin {
+  animation: av-spin 7s linear infinite;
+}
+
+.av-spin-slow {
+  animation: av-spin 18s linear infinite;
+}
+
+.av-spin-rev {
+  animation: av-spin 5s linear infinite reverse;
+}
+
+.av-dash {
+  stroke-dasharray: 26 9;
+}
+
+@keyframes av-flicker {
+  0%,
+  100% {
+    opacity: 0.45;
+  }
+  50% {
+    opacity: 0.9;
+  }
+}
+
+.av-flicker {
+  animation: av-flicker 1.4s ease-in-out infinite;
+}
+
+@keyframes av-flash {
+  0%,
+  100% {
+    opacity: 0.35;
+  }
+  45% {
+    opacity: 1;
+  }
+  65% {
+    opacity: 0.5;
+  }
+}
+
+.av-flash {
+  animation: av-flash 1.8s ease-in-out infinite;
+}
+
+@keyframes av-twinkle {
+  0%,
+  100% {
+    opacity: 0.3;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+.av-twinkle {
+  animation: av-twinkle 2.6s ease-in-out infinite;
+}
+
+@keyframes av-flap {
+  0%,
+  100% {
+    transform: rotate(0deg);
+  }
+  50% {
+    transform: rotate(-5deg);
+  }
+}
+
+.av-flap {
+  transform-box: fill-box;
+  transform-origin: 0% 100%;
+  animation: av-flap 3.4s ease-in-out infinite;
+}
+
+@keyframes av-bob {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-1.4px);
+  }
+}
+
+.av-bob {
+  animation: av-bob 4s ease-in-out infinite;
+}
+
+.av-pulse {
+  animation: av-pulse 2.4s ease-in-out infinite;
+}
+
+@keyframes av-pulse {
+  0%,
+  100% {
+    opacity: 0.65;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .av-spin,
+  .av-spin-slow,
+  .av-spin-rev,
+  .av-dash,
+  .av-flicker,
+  .av-flash,
+  .av-twinkle,
+  .av-flap,
+  .av-bob,
+  .av-pulse {
+    animation: none;
+  }
+}
+
+/* ------------------------------------------------------- frames store */
+.frames-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.frame-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 7px;
+  padding: 16px 10px 12px;
+  border-radius: 20px;
+  background: linear-gradient(170deg, rgba(255, 255, 255, 0.07), rgba(255, 255, 255, 0.02));
+  border: 1px solid var(--line);
+}
+
+.frame-card.on {
+  border-color: rgba(214, 51, 132, 0.7);
+  box-shadow: 0 0 0 1px rgba(214, 51, 132, 0.3), 0 18px 36px -24px rgba(214, 51, 132, 0.95);
+}
+
+.frame-preview {
+  height: 112px;
+  display: grid;
+  place-items: center;
+}
+
+.frame-name {
+  font-weight: 700;
+  font-size: 13px;
+  text-align: center;
+  line-height: 1.35;
+}
+
+.frame-price {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  color: #ffd75e;
+  font-weight: 700;
+  font-size: 12.5px;
+}
+
+.frame-actions {
+  display: flex;
+  gap: 6px;
+  width: 100%;
+  margin-top: 2px;
+}
+
+.frame-equipped-badge {
+  position: absolute;
+  top: 8px;
+  inset-inline-start: 8px;
+  display: inline-flex;
+  gap: 4px;
+  align-items: center;
+  font-size: 9.5px;
+  padding: 3px 7px;
+  border-radius: 999px;
+  background: rgba(16, 185, 129, 0.2);
+  color: #6ee7b7;
+  border: 1px solid rgba(16, 185, 129, 0.4);
+}
+
+.pill.rarity-common {
+  background: rgba(255, 255, 255, 0.09);
+  color: #cbd5e1;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+}
+
+.pill.rarity-rare {
+  background: rgba(56, 189, 248, 0.16);
+  color: #7dd3fc;
+  border: 1px solid rgba(56, 189, 248, 0.35);
+}
+
+.pill.rarity-epic {
+  background: rgba(168, 85, 247, 0.18);
+  color: #d8b4fe;
+  border: 1px solid rgba(168, 85, 247, 0.4);
+}
+
+.pill.rarity-legendary {
+  background: rgba(245, 158, 11, 0.2);
+  color: #fcd34d;
+  border: 1px solid rgba(245, 158, 11, 0.45);
+}
+
+.pill.rarity-vip {
+  background: linear-gradient(120deg, rgba(244, 63, 94, 0.35), rgba(168, 85, 247, 0.35));
+  color: #ffe4f1;
+  border: 1px solid rgba(244, 63, 94, 0.55);
+}
+
 /* ------------------------------------------------------------------ forms */
 .field {
   display: flex;

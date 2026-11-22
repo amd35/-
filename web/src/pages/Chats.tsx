@@ -20,7 +20,15 @@ interface Conversation {
   id: string;
   lastMessageAt: string;
   unread: number;
-  peer: { id: string; username: string; displayName: string; avatarUrl: string | null; online: boolean; lastSeenAt: string | null };
+  peer: {
+    id: string;
+    username: string;
+    displayName: string;
+    avatarUrl: string | null;
+    online: boolean;
+    lastSeenAt: string | null;
+    frame?: UserCardData['frame'];
+  };
   lastMessage: { body: string; type: string; attachmentUrl: string | null; mine: boolean; createdAt: string } | null;
 }
 

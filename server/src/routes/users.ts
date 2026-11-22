@@ -3,7 +3,7 @@ import { one, q, tx } from '../db';
 import { reqUser, requireAuth } from '../auth';
 import { getFreeCallState } from '../freecalls';
 import { notify } from '../notify';
-import { toPublicUser } from '../serializers';
+import { FRAME_FIELDS, frameJoins, toPublicUser } from '../serializers';
 import { HttpError, asyncHandler, intParam } from '../utils';
 
 const router = Router();
@@ -27,7 +27,7 @@ interface FeedRow {
 
 const FEED_SELECT = `
   SELECT u.id, u.username, u.display_name, u.avatar_url, u.bio, u.gender, u.country, u.age,
-         u.last_seen_at, u.created_at,
+         u.last_seen_at, u.created_at, ${FRAME_FIELDS},
     EXISTS (SELECT 1 FROM favorites f WHERE f.user_id = $1 AND f.target_id = u.id) AS is_favorite,
     EXISTS (SELECT 1 FROM friendships fr WHERE fr.status = 'accepted'
             AND ((fr.requester_id = $1 AND fr.addressee_id = u.id)
@@ -35,6 +35,7 @@ const FEED_SELECT = `
     EXISTS (SELECT 1 FROM follows fo WHERE fo.follower_id = $1 AND fo.following_id = u.id) AS is_following,
     EXISTS (SELECT 1 FROM blocked_users b WHERE b.user_id = $1 AND b.blocked_id = u.id) AS is_blocked
   FROM users u
+  ${frameJoins('u')}
   WHERE u.id <> $1 AND u.is_banned = false AND u.is_bot = false
     AND NOT EXISTS (
       SELECT 1 FROM blocked_users bb
@@ -105,9 +106,11 @@ router.get(
     const me = reqUser(req).id;
     const rows = await q<FeedRow & { request_id: string; requested_at: string }>(
       `SELECT u.id, u.username, u.display_name, u.avatar_url, u.bio, u.gender, u.country, u.age,
-              u.last_seen_at, u.created_at, fr.id AS request_id, fr.created_at AS requested_at,
+              u.last_seen_at, u.created_at, ${FRAME_FIELDS},
+              fr.id AS request_id, fr.created_at AS requested_at,
               false AS is_favorite, false AS is_friend, false AS is_following, false AS is_blocked
        FROM friendships fr JOIN users u ON u.id = fr.requester_id
+       ${frameJoins('u')}
        WHERE fr.addressee_id = $1 AND fr.status = 'pending'
        ORDER BY fr.created_at DESC`,
       [me]
@@ -151,10 +154,10 @@ router.get(
       targetId === me
         ? await one<FeedRow>(
             `SELECT u.id, u.username, u.display_name, u.avatar_url, u.bio, u.gender, u.country,
-                    u.age, u.last_seen_at, u.created_at,
+                    u.age, u.last_seen_at, u.created_at, ${FRAME_FIELDS},
                     false AS is_favorite, false AS is_friend, false AS is_following,
                     false AS is_blocked
-             FROM users u WHERE u.id = $1`,
+             FROM users u ${frameJoins('u')} WHERE u.id = $1`,
             [me]
           )
         : await one<FeedRow>(`${FEED_SELECT} AND u.id = $2`, [me, targetId]);

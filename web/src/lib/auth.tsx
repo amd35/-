@@ -10,6 +10,7 @@ import {
 import { api, getToken, setToken } from './api';
 
 export interface SelfUser {
+  frame: { id: string; design: string | null; kind: string; imageUrl: string | null; rarity: string } | null;
   id: string;
   email: string | null;
   phone: string | null;

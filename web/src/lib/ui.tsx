@@ -9,7 +9,9 @@ import {
   type CSSProperties,
   type ReactNode,
 } from 'react';
+import { createPortal } from 'react-dom';
 import { assetUrl } from './api';
+import { AvatarFrame, type FrameInfo } from '../components/AvatarFrame';
 
 /* ------------------------------------------------------------------ icons */
 const ICONS: Record<string, ReactNode> = {
@@ -362,7 +364,12 @@ export function Avatar({
   size = 46,
   className = '',
 }: {
-  user: { displayName?: string | null; avatarUrl?: string | null; online?: boolean } | null;
+  user: {
+    displayName?: string | null;
+    avatarUrl?: string | null;
+    online?: boolean;
+    frame?: FrameInfo | null;
+  } | null;
   size?: number;
   className?: string;
 }) {
@@ -370,13 +377,20 @@ export function Avatar({
   const initial = name.trim().charAt(0).toUpperCase() || '?';
   const hash = [...name].reduce((acc, char) => acc + char.charCodeAt(0), 0);
   const gradient = GRADIENTS[hash % GRADIENTS.length];
-  return (
+  const avatar = (
     <div
       className={`avatar ${className}`}
       style={{ width: size, height: size, background: user?.avatarUrl ? undefined : gradient, fontSize: size * 0.38 }}
     >
       {user?.avatarUrl ? <img src={assetUrl(user.avatarUrl)} alt={name} /> : initial}
       {user?.online ? <span className="online-dot" /> : null}
+    </div>
+  );
+  if (!user?.frame) return avatar;
+  return (
+    <div className="avatar-wrap" style={{ width: size, height: size }}>
+      {avatar}
+      <AvatarFrame frame={user.frame} />
     </div>
   );
 }
@@ -405,7 +419,10 @@ export function Sheet({
   }, [open, onClose]);
 
   if (!open) return null;
-  return (
+  // Rendered at the document root: `.app-shell` has a backdrop-filter/transform, which
+  // would otherwise anchor this fixed overlay to the whole (possibly very tall) page
+  // instead of the viewport, pushing the sheet off-screen on long pages.
+  return createPortal(
     <div className={`overlay ${center ? 'center' : ''}`} onClick={onClose}>
       <div className={center ? 'dialog' : 'sheet'} onClick={(event) => event.stopPropagation()}>
         {title ? (
@@ -418,7 +435,8 @@ export function Sheet({
         ) : null}
         {children}
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
 

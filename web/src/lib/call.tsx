@@ -25,6 +25,7 @@ export interface CallPeer {
   displayName: string;
   avatarUrl?: string | null;
   online?: boolean;
+  frame?: { id: string; design: string | null; kind: string; imageUrl: string | null; rarity: string } | null;
 }
 
 export interface CallInfo {
@@ -396,6 +397,7 @@ export function CallProvider({ children }: { children: ReactNode }) {
             id: String(active.caller_id),
             displayName: String(active.peer_name || 'Unknown'),
             avatarUrl: (active.peer_avatar as string | null) ?? null,
+            frame: (active.peerFrame as CallPeer['frame']) ?? null,
           },
           isFree: false,
           ratePerMinute: Number(active.rate_per_minute || 100),

@@ -15,8 +15,10 @@ import { notify } from '../notify';
 import { confirmOrder } from '../orders';
 import { emitToUser, isOnline, onlineUserIds } from '../realtime';
 import { getSettings, updateSettings } from '../settings';
+import { FRAME_RARITIES, FrameRow, serializeFrame } from '../frames';
 import { HttpError, asyncHandler, intParam, iraqDateStr, nextIraqMidnight } from '../utils';
 import { moveCoins } from '../wallet';
+import { upload } from './uploads';
 
 const router = Router();
 
@@ -684,6 +686,153 @@ router.patch(
     );
     if (!row) throw new HttpError(404, 'Gift code not found', 'code_not_found');
     res.json({ code: row });
+  })
+);
+
+// ------------------------------------------------------------ avatar frames
+function readFrameBody(body: Record<string, unknown>): Partial<FrameRow> {
+  const out: Partial<FrameRow> = {};
+  if (body.name !== undefined) {
+    const name = String(body.name).trim().slice(0, 60);
+    if (!name) throw new HttpError(400, 'Frame name is required', 'invalid_frame');
+    out.name = name;
+  }
+  if (body.nameEn !== undefined) out.name_en = String(body.nameEn).trim().slice(0, 60);
+  if (body.kind !== undefined) {
+    const kind = String(body.kind);
+    if (kind !== 'design' && kind !== 'image') throw new HttpError(400, 'Invalid frame kind', 'invalid_frame');
+    out.kind = kind;
+  }
+  if (body.design !== undefined) {
+    const design = String(body.design).trim();
+    if (design && !/^[a-z0-9-]{2,40}$/.test(design)) throw new HttpError(400, 'Invalid design key', 'invalid_frame');
+    out.design = design || null;
+  }
+  if (body.imageUrl !== undefined) out.image_url = String(body.imageUrl).trim().slice(0, 500) || null;
+  if (body.price !== undefined) {
+    const price = Math.round(Number(body.price));
+    if (!Number.isFinite(price) || price < 0) throw new HttpError(400, 'Invalid frame price', 'invalid_frame');
+    out.price = price;
+  }
+  if (body.rarity !== undefined) {
+    const rarity = String(body.rarity);
+    if (!(FRAME_RARITIES as readonly string[]).includes(rarity)) {
+      throw new HttpError(400, 'Invalid frame rarity', 'invalid_frame');
+    }
+    out.rarity = rarity;
+  }
+  if (body.durationDays !== undefined) {
+    const days = Math.round(Number(body.durationDays));
+    if (!Number.isFinite(days) || days < 0) throw new HttpError(400, 'Invalid frame duration', 'invalid_frame');
+    out.duration_days = days;
+  }
+  if (body.isRare !== undefined) out.is_rare = Boolean(body.isRare);
+  if (body.isActive !== undefined) out.is_active = Boolean(body.isActive);
+  if (body.sortOrder !== undefined) out.sort_order = Math.round(Number(body.sortOrder)) || 0;
+  return out;
+}
+
+router.get(
+  '/frames',
+  asyncHandler(async (_req, res) => {
+    const rows = await q<FrameRow & { owners: number; equipped: number }>(
+      `SELECT f.*,
+        (SELECT count(*)::int FROM user_avatar_frames uaf
+          WHERE uaf.frame_id = f.id AND (uaf.expires_at IS NULL OR uaf.expires_at > now())) AS owners,
+        (SELECT count(*)::int FROM users u WHERE u.avatar_frame_id = f.id) AS equipped
+       FROM avatar_frames f ORDER BY f.sort_order, f.created_at`
+    );
+    res.json({
+      frames: rows.map((row) => ({ ...serializeFrame(row), owners: row.owners, equippedCount: row.equipped })),
+    });
+  })
+);
+
+router.post(
+  '/frames/upload',
+  upload.single('file'),
+  asyncHandler(async (req, res) => {
+    if (!req.file) throw new HttpError(400, 'No file received', 'missing_file');
+    res.status(201).json({ url: `/uploads/${req.file.filename}`, name: req.file.originalname });
+  })
+);
+
+router.post(
+  '/frames',
+  asyncHandler(async (req, res) => {
+    const body = (req.body ?? {}) as Record<string, unknown>;
+    const fields = readFrameBody(body);
+    const name = fields.name ?? '';
+    if (!name) throw new HttpError(400, 'Frame name is required', 'invalid_frame');
+    const kind = fields.kind ?? 'design';
+    if (kind === 'design' && !fields.design) throw new HttpError(400, 'Design key is required', 'invalid_frame');
+    if (kind === 'image' && !fields.image_url) throw new HttpError(400, 'Image URL is required', 'invalid_frame');
+    const slug =
+      String(body.slug || '')
+        .trim()
+        .toLowerCase()
+        .replace(/[^a-z0-9-]/g, '')
+        .slice(0, 40) || `custom-${crypto.randomBytes(3).toString('hex')}`;
+
+    const created = await one<FrameRow>(
+      `INSERT INTO avatar_frames
+        (slug, name, name_en, kind, design, image_url, price, rarity, duration_days, is_rare, is_active, sort_order)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+       ON CONFLICT (slug) DO NOTHING
+       RETURNING *`,
+      [
+        slug,
+        name,
+        fields.name_en || name,
+        kind,
+        fields.design ?? null,
+        fields.image_url ?? null,
+        fields.price ?? 0,
+        fields.rarity ?? 'common',
+        fields.duration_days ?? 0,
+        fields.is_rare ?? false,
+        fields.is_active ?? true,
+        fields.sort_order ?? 0,
+      ]
+    );
+    if (!created) throw new HttpError(409, 'A frame with this slug already exists', 'frame_slug_taken');
+    res.status(201).json({ frame: serializeFrame(created) });
+  })
+);
+
+router.patch(
+  '/frames/:id',
+  asyncHandler(async (req, res) => {
+    const existing = await one<FrameRow>('SELECT * FROM avatar_frames WHERE id = $1', [req.params.id]);
+    if (!existing) throw new HttpError(404, 'Frame not found', 'frame_not_found');
+    const fields = readFrameBody((req.body ?? {}) as Record<string, unknown>);
+    const merged = { ...existing, ...fields };
+    if (merged.kind === 'design' && !merged.design) {
+      throw new HttpError(400, 'Design key is required', 'invalid_frame');
+    }
+    if (merged.kind === 'image' && !merged.image_url) {
+      throw new HttpError(400, 'Image URL is required', 'invalid_frame');
+    }
+    const updated = await one<FrameRow>(
+      `UPDATE avatar_frames SET name = $2, name_en = $3, kind = $4, design = $5, image_url = $6,
+         price = $7, rarity = $8, duration_days = $9, is_rare = $10, is_active = $11, sort_order = $12
+       WHERE id = $1 RETURNING *`,
+      [
+        existing.id,
+        merged.name,
+        merged.name_en,
+        merged.kind,
+        merged.design,
+        merged.image_url,
+        merged.price,
+        merged.rarity,
+        merged.duration_days,
+        merged.is_rare,
+        merged.is_active,
+        merged.sort_order,
+      ]
+    );
+    res.json({ frame: updated ? serializeFrame(updated) : null });
   })
 );
 

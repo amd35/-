@@ -340,6 +340,60 @@ CREATE TABLE IF NOT EXISTS gift_code_redemptions (
   UNIQUE (gift_code_id, user_id)
 );
 
+-- ------------------------------------------------------------ avatar frames
+-- Store catalog. `kind = 'design'` renders one of the built-in animated SVG frames
+-- (keyed by `design`); `kind = 'image'` renders an uploaded transparent PNG/WebP.
+CREATE TABLE IF NOT EXISTS avatar_frames (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  slug text NOT NULL UNIQUE,
+  name text NOT NULL,
+  name_en text NOT NULL DEFAULT '',
+  kind text NOT NULL DEFAULT 'design' CHECK (kind IN ('design', 'image')),
+  design text,
+  image_url text,
+  price integer NOT NULL DEFAULT 0 CHECK (price >= 0),
+  rarity text NOT NULL DEFAULT 'common',
+  duration_days integer NOT NULL DEFAULT 0 CHECK (duration_days >= 0),
+  is_rare boolean NOT NULL DEFAULT false,
+  is_active boolean NOT NULL DEFAULT true,
+  sort_order integer NOT NULL DEFAULT 0,
+  created_at timestamptz NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS avatar_frames_order_idx ON avatar_frames (sort_order, price);
+
+-- One row per (user, frame): permanent when expires_at is NULL.
+CREATE TABLE IF NOT EXISTS user_avatar_frames (
+  user_id uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  frame_id uuid NOT NULL REFERENCES avatar_frames(id) ON DELETE CASCADE,
+  expires_at timestamptz,
+  acquired_at timestamptz NOT NULL DEFAULT now(),
+  PRIMARY KEY (user_id, frame_id)
+);
+CREATE INDEX IF NOT EXISTS user_avatar_frames_user_idx ON user_avatar_frames (user_id);
+
+-- The frame the user currently wears. It is only rendered while the matching
+-- user_avatar_frames row exists and has not expired.
+ALTER TABLE users ADD COLUMN IF NOT EXISTS avatar_frame_id uuid REFERENCES avatar_frames(id) ON DELETE SET NULL;
+CREATE INDEX IF NOT EXISTS users_avatar_frame_idx ON users (avatar_frame_id);
+
+INSERT INTO avatar_frames (slug, name, name_en, kind, design, price, rarity, duration_days, is_rare, sort_order)
+SELECT * FROM (VALUES
+  ('eagle-gold',     'أجنحة النسر الذهبية',   'Golden Eagle Wings',  'design', 'eagle-gold',     5000, 'legendary', 0,  true,  10),
+  ('eagle-silver',   'أجنحة النسر الفضية',    'Silver Eagle Wings',  'design', 'eagle-silver',   3000, 'epic',      0,  true,  20),
+  ('royal-crown',    'النسر الملكي مع التاج', 'Royal Eagle Crown',   'design', 'royal-crown',    8000, 'vip',       0,  true,  30),
+  ('diamond-gold',   'ذهبي مرصع بالألماس',    'Diamond Gold',        'design', 'diamond-gold',   4000, 'legendary', 0,  true,  40),
+  ('sports-car',     'سيارة رياضية فخمة',     'Luxury Sports Car',   'design', 'sports-car',     2500, 'rare',      30, true,  50),
+  ('racing-led',     'سيارة سباق بأضواء LED', 'Racing LED',          'design', 'racing-led',     2000, 'rare',      30, true,  60),
+  ('fire',           'إطار ناري متحرك',       'Animated Fire',       'design', 'fire',           1500, 'epic',      0,  false, 70),
+  ('lightning',      'البرق الأزرق',          'Blue Lightning',      'design', 'lightning',      1200, 'rare',      0,  false, 80),
+  ('royal-purple',   'ملكي باللون البنفسجي',  'Royal Purple',        'design', 'royal-purple',    900, 'rare',      0,  false, 90),
+  ('emerald',        'الزمرد الملكي',         'Royal Emerald',       'design', 'emerald',        1000, 'rare',      0,  false, 100),
+  ('aurora',         'الشفق القطبي',          'Aurora',              'design', 'aurora',          700, 'common',    0,  false, 110),
+  ('galaxy',         'المجرة',                'Galaxy',              'design', 'galaxy',           0, 'common',    0,  false, 120),
+  ('rainbow',        'قوس قزح',               'Rainbow',             'design', 'rainbow',          0, 'common',    0,  false, 130)
+) AS seed(slug, name, name_en, kind, design, price, rarity, duration_days, is_rare, sort_order)
+WHERE NOT EXISTS (SELECT 1 FROM avatar_frames);
+
 -- ---------------------------------------------------------------- settings
 INSERT INTO app_settings (key, value) VALUES
   ('voice_price', '100'::jsonb),

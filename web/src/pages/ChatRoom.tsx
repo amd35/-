@@ -27,6 +27,7 @@ interface Peer {
   avatarUrl: string | null;
   online?: boolean;
   lastSeenAt?: string | null;
+  frame?: { id: string; design: string | null; kind: string; imageUrl: string | null; rarity: string } | null;
 }
 
 export default function ChatRoom() {

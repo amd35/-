@@ -13,6 +13,7 @@ import {
   requireAuth,
   signUserToken,
 } from '../auth';
+import { equippedFrameInfo } from '../frames';
 import { getFreeCallState } from '../freecalls';
 import { notify } from '../notify';
 import { getPublicUser } from '../serializers';
@@ -50,8 +51,9 @@ interface UserRow {
   created_at: string;
 }
 
-function serializeSelf(row: UserRow) {
+function serializeSelf(row: UserRow, frame: Awaited<ReturnType<typeof equippedFrameInfo>>) {
   return {
+    frame,
     id: row.id,
     email: row.email,
     phone: row.phone,
@@ -92,7 +94,7 @@ export async function buildMe(userId: string) {
   );
   const settings = await getSettings();
   return {
-    user: serializeSelf(row),
+    user: serializeSelf(row, await equippedFrameInfo(userId)),
     wallet: wallet ?? { balance: 0, reserved: 0, earned: 0, spent: 0 },
     freeCalls: free,
     unreadNotifications: Number(unread?.count || 0),
