@@ -70,6 +70,16 @@ export interface Me {
   vip: import('../components/ProgressionBadges').VipInfo | null;
   /** Equipped non-frame cosmetics, keyed by category (id | namecard | bubble | entry). */
   cosmetics: Record<string, { id: string; design: string | null; kind: string; imageUrl: string | null; rarity: string } | undefined>;
+  /** Royal administration identity, or null for a regular user. */
+  adminLook: {
+    rankKey: string;
+    label: string;
+    effectsEnabled: boolean;
+    frameId: string | null;
+    namecardId: string | null;
+    bubbleId: string | null;
+    entryId: string | null;
+  } | null;
   wallet: WalletInfo;
   freeCalls: FreeCallInfo;
   unreadNotifications: number;

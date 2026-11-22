@@ -174,6 +174,14 @@ export interface RoomMessageRow {
   display_name: string | null;
   username: string | null;
   avatar_url: string | null;
+  is_announcement: boolean;
+  rank_key?: string | null;
+  rank_name_ar?: string | null;
+  rank_name_en?: string | null;
+  rank_kind?: string | null;
+  rank_tier?: number | null;
+  rank_color?: string | null;
+  rank_badge_url?: string | null;
   gift_send_id: string | null;
   gift_coins: string | null;
   gift_recipient_coins: string | null;
@@ -196,6 +204,8 @@ export function serializeRoomMessage(row: RoomMessageRow) {
     avatarUrl: row.avatar_url,
     body: row.body,
     type: row.type,
+    isAnnouncement: Boolean(row.is_announcement),
+    rank: rankFromRow(row),
     createdAt: row.created_at,
     gift: row.gift_send_id
       ? {
@@ -215,14 +225,15 @@ export function serializeRoomMessage(row: RoomMessageRow) {
 }
 
 const ROOM_MESSAGE_SELECT = `
-  SELECT rm.id, rm.room_id, rm.user_id, rm.body, rm.type, rm.created_at,
-         u.display_name, u.username, u.avatar_url,
+  SELECT rm.id, rm.room_id, rm.user_id, rm.body, rm.type, rm.created_at, rm.is_announcement,
+         u.display_name, u.username, u.avatar_url, ${RANK_FIELDS},
          gs.id AS gift_send_id, gs.coins AS gift_coins, gs.recipient_coins AS gift_recipient_coins,
          gs.gift_name AS gift_send_name, g.slug AS gift_slug, g.name AS gift_name,
          g.name_en AS gift_name_en, g.design AS gift_design, g.video_url AS gift_video_url,
          g.cover_url AS gift_cover_url, g.rarity AS gift_rarity
   FROM room_messages rm
   JOIN users u ON u.id = rm.user_id
+  ${rankJoins('u')}
   LEFT JOIN gift_sends gs ON gs.id = rm.gift_send_id
   LEFT JOIN gifts g ON g.id = gs.gift_id`;
 

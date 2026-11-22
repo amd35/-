@@ -140,7 +140,8 @@ export function Profile() {
       }
     >
       <div className="page page-tight">
-        <section className="profile-head">
+        <section className={`profile-head${me.adminLook ? ' profile-head-admin' : ''}`}>
+          {me.adminLook?.effectsEnabled ? <span className="admin-profile-aura" aria-hidden="true" /> : null}
           <button
             type="button"
             className="avatar-tap"
@@ -159,6 +160,7 @@ export function Profile() {
             <NameCard
               cosmetic={me.cosmetics.namecard}
               name={me.user.displayName}
+              id={me.user.username}
               avatarUrl={me.user.avatarUrl}
             />
           ) : (

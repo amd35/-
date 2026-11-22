@@ -8,6 +8,7 @@ import { useRealtime } from '../lib/realtime';
 import { Avatar, EmptyState, formatClock, formatCoins, Icon, Sheet, Spinner, useToast } from '../lib/ui';
 import { GiftReveal, GiftAnimation, type GiftVisual } from '../components/GiftAnimation';
 import { RankBadge, type RankInfo } from '../components/RankBadge';
+import { ADMIN_BADGE_BY_RANK, AdminBubbleDecor } from '../components/AdminRoyal';
 import { LevelBadge, VipBadge, type VipInfo } from '../components/ProgressionBadges';
 import { GiftShop, type GiftItem, type GiftMessage } from '../components/GiftShop';
 
@@ -275,7 +276,15 @@ export default function ChatRoom() {
         {!loading && messages.length === 0 ? (
           <EmptyState icon="chat" title={t('noChats')} hint={t('typeMessage')} />
         ) : null}
-        {messages.map((message) => (
+        {messages.map((message) => {
+          const adminSender = message.mine
+            ? me?.adminLook
+              ? { label: me.adminLook.label, effects: me.adminLook.effectsEnabled }
+              : null
+            : peer?.rank && ADMIN_BADGE_BY_RANK[peer.rank.key]
+              ? { label: peer.rank.nameAr, effects: true }
+              : null;
+          return (
           <div key={message.id} className={`msg ${message.mine ? 'msg-mine' : ''}`}>
             {message.type === 'gift' && message.gift ? (
               <button
@@ -301,9 +310,12 @@ export default function ChatRoom() {
               </button>
             ) : (
             <div
-              className={`msg-bubble ${
-                message.mine && me?.cosmetics?.bubble?.design ? `bubble-${me.cosmetics.bubble.design}` : ''
+              className={`msg-bubble ${adminSender ? 'bubble-admin' : ''}${
+                !adminSender && message.mine && me?.cosmetics?.bubble?.design
+                  ? ` bubble-${me.cosmetics.bubble.design}`
+                  : ''
               }${
+                !adminSender &&
                 message.mine &&
                 ((me?.cosmetics?.bubble?.kind === 'image' && me.cosmetics.bubble.imageUrl) ||
                   me?.vip?.bubbleImageUrl)
@@ -320,6 +332,9 @@ export default function ChatRoom() {
                   : undefined
               }
             >
+              {adminSender ? (
+                <AdminBubbleDecor label={adminSender.label} effects={adminSender.effects} />
+              ) : null}
               {message.type === 'image' && message.attachmentUrl ? (
                 <img src={assetUrl(message.attachmentUrl)} alt={message.attachmentName || 'image'} />
               ) : null}
@@ -338,7 +353,8 @@ export default function ChatRoom() {
             </div>
             )}
           </div>
-        ))}
+          );
+        })}
         {peerTyping ? (
           <div className="msg">
             <div className="msg-bubble tiny muted">{t('typeMessage')}</div>

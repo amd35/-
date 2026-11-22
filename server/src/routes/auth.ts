@@ -14,6 +14,7 @@ import {
   signUserToken,
 } from '../auth';
 import { equippedCosmetics, equippedFrameInfo } from '../frames';
+import { adminLookForUser } from '../adminLook';
 import { getFreeCallState } from '../freecalls';
 import { notify } from '../notify';
 import { activeVip, awardDailyActivity, getLevelState } from '../progression';
@@ -104,6 +105,7 @@ export async function buildMe(userId: string) {
     level,
     vip,
     cosmetics: await equippedCosmetics(userId),
+    adminLook: await adminLookForUser(userId),
     wallet: wallet ?? { balance: 0, reserved: 0, earned: 0, spent: 0 },
     freeCalls: free,
     unreadNotifications: Number(unread?.count || 0),

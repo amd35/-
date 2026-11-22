@@ -1,6 +1,7 @@
 import { useId, type CSSProperties, type ReactNode } from 'react';
 import { assetUrl } from '../lib/api';
 import { VIP_EAGLE_DESIGNS, VIP_EAGLE_FRAMES, VipEagleFrame } from './VipEagleFrame';
+import { ADMIN_DESIGNS, ADMIN_POSITIONS, AdminRoyalFrame, isAdminDesign } from './AdminRoyal';
 
 export interface FrameInfo {
   id: string;
@@ -399,6 +400,7 @@ function Rainbow() {
 
 const DESIGNS: Record<string, () => ReactNode> = {
   ...Object.fromEntries(VIP_EAGLE_DESIGNS.map((key) => [key, () => <VipEagleFrame design={key} />])),
+  ...Object.fromEntries(ADMIN_DESIGNS.map((key) => [key, () => <AdminRoyalFrame design={key} />])),
   'eagle-gold': GoldEagle,
   'eagle-silver': SilverEagle,
   'royal-crown': RoyalCrown,
@@ -429,10 +431,11 @@ export function AvatarFrame({ frame }: { frame: FrameInfo | null }) {
     );
   }
   const Design = DESIGNS[frame.design ?? ''] ?? DESIGNS.galaxy;
-  const glow = VIP_EAGLE_FRAMES[frame.design ?? '']?.glow;
+  const glow = VIP_EAGLE_FRAMES[frame.design ?? '']?.glow ?? ADMIN_POSITIONS[frame.design ?? '']?.fire;
+  const admin = isAdminDesign(frame.design);
   return (
     <span
-      className={`av-frame av-frame-${frame.design ?? 'galaxy'}${glow ? ' av-frame-vip' : ''}`}
+      className={`av-frame av-frame-${frame.design ?? 'galaxy'}${glow ? ' av-frame-vip' : ''}${admin ? ' av-frame-admin' : ''}`}
       style={glow ? ({ '--vip-glow': glow } as CSSProperties) : undefined}
       aria-hidden="true"
     >

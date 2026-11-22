@@ -24,6 +24,7 @@ import adminRoutes from './routes/admin';
 import rankRoutes from './routes/ranks';
 import levelRoutes from './routes/levels';
 import adminProgressionRoutes from './routes/adminProgression';
+import adminLookRoutes from './routes/adminLook';
 
 const PORT = Number(process.env.PORT || 4000);
 const app = express();
@@ -83,6 +84,7 @@ app.use('/api/levels', levelRoutes);
 app.use('/api/admin/rooms', adminRoomRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/admin', adminProgressionRoutes);
+app.use('/api/admin', adminLookRoutes);
 
 app.use('/uploads', express.static(UPLOAD_DIR, { maxAge: '7d', fallthrough: true }));
 

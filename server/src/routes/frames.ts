@@ -41,6 +41,7 @@ router.post(
     const frameId = req.params.id;
     const gate = await one<FrameRow>('SELECT * FROM avatar_frames WHERE id = $1 AND is_active = true', [frameId]);
     if (!gate) throw new HttpError(404, 'Frame not found', 'frame_not_found');
+    if (gate.admin_only) throw new HttpError(403, 'This design is granted by the administration', 'admin_only');
     await requireFrameVip(me, gate);
     const outcome = await tx(async (c) => {
       const found = await c.query<FrameRow>(

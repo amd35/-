@@ -15,6 +15,7 @@ import {
 import type { FrameInfo } from '../components/AvatarFrame';
 import { EntryBanner } from '../components/Cosmetics';
 import { RankBadge, type RankInfo } from '../components/RankBadge';
+import { ADMIN_BADGE_BY_RANK } from '../components/AdminRoyal';
 import { LevelBadge, VipBadge, VipEntryBanner, type VipInfo } from '../components/ProgressionBadges';
 
 interface SeatUser {
@@ -60,11 +61,13 @@ export default function Room() {
   const [messages, setMessages] = useState<RoomMessageData[]>([]);
   const [draft, setDraft] = useState('');
   const [sending, setSending] = useState(false);
+  const [announce, setAnnounce] = useState(false);
   const [giftOpen, setGiftOpen] = useState(false);
   const [playing, setPlaying] = useState<{ gift: RoomGiftInfo; name: string } | null>(null);
   const listRef = useRef<HTMLDivElement | null>(null);
   const flashTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const entryCosmetic = me?.cosmetics?.entry ?? null;
+  const isAdminUser = Boolean(me?.rank && ADMIN_BADGE_BY_RANK[me.rank.key]);
   const entryShown = useRef(false);
   const [showEntry, setShowEntry] = useState(false);
 
@@ -177,10 +180,11 @@ export default function Room() {
     try {
       const response = await api<{ message: RoomMessageData }>(`/rooms/${id}/messages`, {
         method: 'POST',
-        body: { body },
+        body: { body, announcement: announce },
       });
       append(response.message);
       setDraft('');
+      setAnnounce(false);
     } catch (error) {
       toast.push((error as Error).message, 'error');
     } finally {
@@ -202,7 +206,12 @@ export default function Room() {
     <AppShell title={room?.name ?? t('roomsTitle')} subtitle={room?.description || t('roomsSub')} active="home">
       <div className="page">
         {showEntry && entryCosmetic ? (
-          <EntryBanner cosmetic={entryCosmetic} name={me?.user.displayName ?? ''} />
+          <EntryBanner
+            cosmetic={entryCosmetic}
+            name={me?.user.displayName ?? ''}
+            label={me?.adminLook?.label ?? me?.rank?.nameAr}
+            effects={me?.adminLook?.effectsEnabled ?? true}
+          />
         ) : showEntry && me?.vip ? (
           <VipEntryBanner vip={me.vip} name={me.user.displayName} />
         ) : null}
@@ -293,14 +302,20 @@ export default function Room() {
                   messages.map((message) => (
                     <div
                       key={message.id}
-                      className={`room-msg ${message.userId === me?.user.id ? 'mine' : ''}`}
+                      className={`room-msg ${message.userId === me?.user.id ? 'mine' : ''}${
+                        message.rank && ADMIN_BADGE_BY_RANK[message.rank.key] ? ' room-msg-admin' : ''
+                      }${message.isAnnouncement ? ' room-msg-announce' : ''}`}
                     >
                       <Avatar
                         user={{ displayName: message.displayName, avatarUrl: message.avatarUrl }}
                         size={30}
                       />
                       <div className="room-msg-body">
-                        <span className="room-msg-name">{message.displayName}</span>
+                        <span className="room-msg-name">
+                          {message.rank ? <RankBadge rank={message.rank} size={13} /> : null}
+                          {message.displayName}
+                          {message.isAnnouncement ? <span className="admin-announce-tag">إعلان إداري</span> : null}
+                        </span>
                         <span className={`room-msg-text ${message.gift ? 'gift' : ''}`}>
                           {message.gift ? <Icon name="gift" size={13} /> : null}
                           {message.body}
@@ -322,6 +337,17 @@ export default function Room() {
                   placeholder={t('roomMessagePlaceholder')}
                   maxLength={500}
                 />
+                {isAdminUser ? (
+                  <button
+                    type="button"
+                    className={`icon-btn plain room-announce-btn ${announce ? 'on' : ''}`}
+                    onClick={() => setAnnounce((value) => !value)}
+                    aria-label="إعلان إداري"
+                    title="إرسال كإعلان إداري"
+                  >
+                    <Icon name="bell" size={17} />
+                  </button>
+                ) : null}
                 <button
                   className="icon-btn plain"
                   onClick={() => void sendMessage()}

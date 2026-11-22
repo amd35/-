@@ -6,6 +6,7 @@
 import { useId, type CSSProperties } from 'react';
 import { assetUrl } from '../lib/api';
 import { useI18n } from '../lib/i18n';
+import { ADMIN_BADGE_BY_RANK, AdminRoyalBadge } from './AdminRoyal';
 
 export interface RankInfo {
   key: string;
@@ -49,6 +50,11 @@ export function RankBadge({
         <img src={assetUrl(rank.badgeImageUrl)} alt={rank.nameAr} />
       </span>
     );
+  }
+
+  const adminDesign = ADMIN_BADGE_BY_RANK[rank.key];
+  if (adminDesign) {
+    return <AdminRoyalBadge design={adminDesign} size={size} label={rank.nameAr} className={className} />;
   }
 
   return (

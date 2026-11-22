@@ -4,6 +4,7 @@ import { useI18n } from '../lib/i18n';
 import { formatCoins, Icon, Sheet, Spinner, useToast } from '../lib/ui';
 import { GiftCover } from './GiftAnimation';
 import type { GiftItem } from './GiftShop';
+import type { RankInfo } from './RankBadge';
 
 export interface RoomGiftInfo {
   id: string;
@@ -26,6 +27,8 @@ export interface RoomMessageData {
   avatarUrl: string | null;
   body: string;
   type: string;
+  isAnnouncement?: boolean;
+  rank?: RankInfo | null;
   createdAt: string;
   gift: RoomGiftInfo | null;
 }

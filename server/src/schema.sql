@@ -700,8 +700,11 @@ CREATE TABLE IF NOT EXISTS room_messages (
   body text NOT NULL DEFAULT '',
   type text NOT NULL DEFAULT 'text',
   gift_send_id uuid REFERENCES gift_sends(id) ON DELETE SET NULL,
+  -- Administrative announcement: only an official admin position can post one.
+  is_announcement boolean NOT NULL DEFAULT false,
   created_at timestamptz NOT NULL DEFAULT now()
 );
+ALTER TABLE room_messages ADD COLUMN IF NOT EXISTS is_announcement boolean NOT NULL DEFAULT false;
 CREATE INDEX IF NOT EXISTS room_messages_room_idx ON room_messages (room_id, created_at DESC);
 
 -- A starter room (with 8 seats) so the feature is usable right away. Seeded only
@@ -988,3 +991,104 @@ CREATE TABLE IF NOT EXISTS vip_history (
 );
 CREATE INDEX IF NOT EXISTS vip_history_user_idx ON vip_history (user_id, created_at DESC);
 CREATE INDEX IF NOT EXISTS vip_history_created_idx ON vip_history (created_at DESC);
+
+-- ============================================================================
+-- Royal administration identity (YALLA PHONE)
+-- ----------------------------------------------------------------------------
+-- A set of admin-only designs (frame / name card / chat bubble / room entry)
+-- that ordinary users can never buy. Each item belongs to one official admin
+-- position; `admin_looks` is the design the General Admin chose for that
+-- position, and it is applied to every active holder of it. `admin_look_grants`
+-- lets the General Admin hand a specific design to a specific user (and take it
+-- back) without changing the position defaults.
+ALTER TABLE avatar_frames ADD COLUMN IF NOT EXISTS admin_only boolean NOT NULL DEFAULT false;
+ALTER TABLE avatar_frames ADD COLUMN IF NOT EXISTS admin_rank text;
+CREATE INDEX IF NOT EXISTS avatar_frames_admin_idx ON avatar_frames (admin_only, category, admin_rank);
+
+-- The five royal positions that own the identity.
+INSERT INTO ranks (key, name_ar, name_en, kind, tier, power, description, daily_coins, commission_percent, color, permissions, sort_order)
+VALUES
+  ('admin_manager',    'المدير',        'Manager',                  'position', 5, 95,  'إدارة شاملة تحت قيادة الادمن العام', 450000, 0, '#ef4444', '["manage_users","manage_rooms","manage_events","manage_ranks","manage_boxes","support_tickets","view_users"]'::jsonb, 120),
+  ('admin_deputy',     'نائب المدير',   'Deputy Manager',           'position', 5, 90,  'نائب المدير — متابعة الإدارة اليومية', 400000, 0, '#f97316', '["manage_users","manage_rooms","support_tickets","view_users","view_recharge_orders"]'::jsonb, 130),
+  ('admin_supervisor', 'المشرف',        'Supervisor',               'position', 5, 85,  'الإشراف على الغرف والمستخدمين', 350000, 0, '#f59e0b', '["manage_rooms","support_tickets","view_users"]'::jsonb, 140),
+  ('admin_official',   'الإدارة الرسمية','Official Administration', 'position', 5, 80,  'فريق الإدارة الرسمي — تمثيل التطبيق', 300000, 0, '#b45309', '["support_tickets","view_users"]'::jsonb, 150)
+ON CONFLICT (key) DO NOTHING;
+
+INSERT INTO rank_boxes (rank_key, name, coins)
+SELECT r.key, 'بوكس ' || r.name_ar, 0
+FROM ranks r
+WHERE r.key IN ('admin_manager','admin_deputy','admin_supervisor','admin_official')
+ON CONFLICT (rank_key) DO NOTHING;
+
+-- The royal catalog. Vector designs: transparent centre, no image download.
+INSERT INTO avatar_frames (slug, name, name_en, kind, design, price, rarity, duration_days, is_rare, sort_order, category, admin_only, admin_rank)
+SELECT * FROM (VALUES
+  ('admin-frame-royal',      'إطار الادمن العام الملكي', 'General Admin Royal Frame', 'design', 'admin-royal',      0, 'vip', 0, true, 900, 'frame',    true, 'super_admin'),
+  ('admin-frame-manager',    'إطار المدير الملكي',      'Manager Royal Frame',       'design', 'admin-manager',    0, 'vip', 0, true, 901, 'frame',    true, 'admin_manager'),
+  ('admin-frame-deputy',     'إطار نائب المدير',        'Deputy Royal Frame',        'design', 'admin-deputy',     0, 'vip', 0, true, 902, 'frame',    true, 'admin_deputy'),
+  ('admin-frame-supervisor', 'إطار المشرف',             'Supervisor Royal Frame',    'design', 'admin-supervisor', 0, 'vip', 0, true, 903, 'frame',    true, 'admin_supervisor'),
+  ('admin-frame-official',   'إطار الإدارة الرسمية',    'Official Royal Frame',      'design', 'admin-official',   0, 'vip', 0, true, 904, 'frame',    true, 'admin_official'),
+  ('admin-card-royal',       'بطاقة الادمن العام',      'General Admin Name Card',   'design', 'admin-royal',      0, 'vip', 0, true, 910, 'namecard', true, 'super_admin'),
+  ('admin-card-manager',     'بطاقة المدير',            'Manager Name Card',         'design', 'admin-manager',    0, 'vip', 0, true, 911, 'namecard', true, 'admin_manager'),
+  ('admin-card-deputy',      'بطاقة نائب المدير',       'Deputy Name Card',          'design', 'admin-deputy',     0, 'vip', 0, true, 912, 'namecard', true, 'admin_deputy'),
+  ('admin-card-supervisor',  'بطاقة المشرف',            'Supervisor Name Card',      'design', 'admin-supervisor', 0, 'vip', 0, true, 913, 'namecard', true, 'admin_supervisor'),
+  ('admin-card-official',    'بطاقة الإدارة الرسمية',   'Official Name Card',        'design', 'admin-official',   0, 'vip', 0, true, 914, 'namecard', true, 'admin_official'),
+  ('admin-bubble-royal',     'فقاعة الادمن العام',      'General Admin Bubble',      'design', 'admin-royal',      0, 'vip', 0, true, 920, 'bubble',   true, NULL),
+  ('admin-bubble-announce',  'فقاعة الإعلانات الإدارية','Admin Announcement Bubble', 'design', 'admin-announce',   0, 'vip', 0, true, 921, 'bubble',   true, NULL),
+  ('admin-entry-eagle',      'دخولية النسر الناري',     'Fiery Eagle Entry',         'design', 'admin-eagle',      0, 'vip', 0, true, 930, 'entry',    true, NULL),
+  ('admin-entry-crown',      'دخولية التاج الملكي',     'Royal Crown Entry',         'design', 'admin-crown',      0, 'vip', 0, true, 931, 'entry',    true, NULL),
+  ('admin-entry-wings',      'دخولية الأجنحة الذهبية',  'Golden Wings Entry',        'design', 'admin-wings',      0, 'vip', 0, true, 932, 'entry',    true, NULL)
+) AS seed(slug, name, name_en, kind, design, price, rarity, duration_days, is_rare, sort_order, category, admin_only, admin_rank)
+ON CONFLICT (slug) DO NOTHING;
+
+-- Rows seeded before the top rank was renamed: move them to super_admin.
+UPDATE avatar_frames SET admin_rank = 'super_admin'
+WHERE admin_rank = 'admin_general' AND slug IN ('admin-frame-royal','admin-card-royal');
+
+-- The look each royal position wears by default (editable in «مظهر الإدارة»).
+CREATE TABLE IF NOT EXISTS admin_looks (
+  rank_key text PRIMARY KEY REFERENCES ranks(key) ON DELETE CASCADE,
+  frame_id uuid REFERENCES avatar_frames(id) ON DELETE SET NULL,
+  namecard_id uuid REFERENCES avatar_frames(id) ON DELETE SET NULL,
+  bubble_id uuid REFERENCES avatar_frames(id) ON DELETE SET NULL,
+  entry_id uuid REFERENCES avatar_frames(id) ON DELETE SET NULL,
+  effects_enabled boolean NOT NULL DEFAULT true,
+  updated_at timestamptz NOT NULL DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS admin_look_grants (
+  user_id uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  item_id uuid NOT NULL REFERENCES avatar_frames(id) ON DELETE CASCADE,
+  granted_at timestamptz NOT NULL DEFAULT now(),
+  PRIMARY KEY (user_id, item_id)
+);
+
+-- The existing top rank (super_admin) *is* the General Admin of this identity.
+UPDATE ranks SET name_ar = 'الادمن العام', name_en = 'General Admin', color = '#e11d48'
+WHERE key = 'super_admin' AND name_ar = 'سوبر أدمن';
+
+-- Fold a previously seeded parallel general row into the top rank, if any.
+INSERT INTO admin_looks (rank_key, frame_id, namecard_id, bubble_id, entry_id, effects_enabled)
+SELECT 'super_admin', frame_id, namecard_id, bubble_id, entry_id, effects_enabled
+FROM admin_looks WHERE rank_key = 'admin_general'
+ON CONFLICT (rank_key) DO NOTHING;
+DELETE FROM admin_looks WHERE rank_key = 'admin_general';
+DELETE FROM rank_boxes WHERE rank_key = 'admin_general';
+DELETE FROM ranks WHERE key = 'admin_general'
+  AND NOT EXISTS (SELECT 1 FROM user_ranks WHERE rank_key = 'admin_general');
+
+INSERT INTO admin_looks (rank_key, frame_id, namecard_id, bubble_id, entry_id, effects_enabled)
+SELECT p.rank_key,
+  (SELECT id FROM avatar_frames WHERE slug = 'admin-frame-' || p.suffix),
+  (SELECT id FROM avatar_frames WHERE slug = 'admin-card-' || p.suffix),
+  (SELECT id FROM avatar_frames WHERE slug = 'admin-bubble-royal'),
+  (SELECT id FROM avatar_frames WHERE slug = 'admin-entry-eagle'),
+  true
+FROM (VALUES
+  ('super_admin', 'royal'),
+  ('admin_manager', 'manager'),
+  ('admin_deputy', 'deputy'),
+  ('admin_supervisor', 'supervisor'),
+  ('admin_official', 'official')
+) AS p(rank_key, suffix)
+ON CONFLICT (rank_key) DO NOTHING;

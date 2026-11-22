@@ -7,6 +7,7 @@ import { GiftRow, moveProfit } from '../gifts';
 import { getSettings } from '../settings';
 import { moveCoins } from '../wallet';
 import { awardXpSafe, getXpSettings, xpForCoins } from '../progression';
+import { activeRankFor } from '../ranks';
 import { HttpError, asyncHandler } from '../utils';
 
 const router = Router();
@@ -100,9 +101,19 @@ router.post(
     const room = await one<{ is_active: boolean }>('SELECT is_active FROM rooms WHERE id = $1', [roomId]);
     if (!room?.is_active) throw new HttpError(404, 'Room not found', 'room_not_found');
 
+    // Administrative announcements are reserved for the royal admin positions.
+    let announcement = false;
+    if (req.body?.announcement === true) {
+      const rank = await activeRankFor(me);
+      if (!rank || !rank.key.startsWith('admin_')) {
+        throw new HttpError(403, 'Official administration only', 'announcement_forbidden');
+      }
+      announcement = true;
+    }
+
     const inserted = await q<{ id: string }>(
-      'INSERT INTO room_messages (room_id, user_id, body) VALUES ($1, $2, $3) RETURNING id',
-      [roomId, me, body]
+      'INSERT INTO room_messages (room_id, user_id, body, is_announcement) VALUES ($1, $2, $3, $4) RETURNING id',
+      [roomId, me, body, announcement]
     );
     const xpSettings = await getXpSettings();
     await awardXpSafe({

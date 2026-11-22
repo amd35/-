@@ -21,6 +21,9 @@ export interface FrameRow {
   category: string;
   /** 0 = anyone, 1..5 = an active VIP of that tier is required. */
   min_vip: number;
+  /** Admin-only designs are never sold in the store; the General Admin grants them. */
+  admin_only?: boolean;
+  admin_rank?: string | null;
 }
 
 export interface FrameCatalogItem {
@@ -39,6 +42,8 @@ export interface FrameCatalogItem {
   sortOrder: number;
   category: string;
   minVip: number;
+  adminOnly: boolean;
+  adminRank: string | null;
   owned: boolean;
   expiresAt: string | null;
   equipped: boolean;
@@ -61,6 +66,8 @@ export function serializeFrame(row: FrameRow): Omit<FrameCatalogItem, 'owned' | 
     sortOrder: Number(row.sort_order),
     category: row.category,
     minVip: Number(row.min_vip ?? 0),
+    adminOnly: Boolean(row.admin_only),
+    adminRank: row.admin_rank ?? null,
   };
 }
 
@@ -87,6 +94,7 @@ export async function ownsFrame(userId: string, frameId: string): Promise<boolea
 const CATALOG_SELECT = `
   SELECT f.id, f.slug, f.name, f.name_en, f.kind, f.design, f.image_url, f.price, f.rarity,
          f.duration_days, f.is_rare, f.is_active, f.sort_order, f.category, f.min_vip,
+         f.admin_only, f.admin_rank,
          (uaf.user_id IS NOT NULL) AS owned,
          uaf.expires_at AS owned_expires_at,
          CASE WHEN f.category = 'frame'
@@ -116,7 +124,8 @@ export async function equippedFrameInfo(userId: string): Promise<FrameInfo | nul
 /** Active catalog with the caller's ownership state, ordered for the store. */
 export async function listFrames(userId: string): Promise<FrameCatalogItem[]> {
   const rows = await q<FrameRow & { owned: boolean; owned_expires_at: string | null; equipped: boolean }>(
-    `${CATALOG_SELECT} WHERE f.is_active = true ORDER BY f.sort_order, f.price, f.created_at`,
+    `${CATALOG_SELECT} WHERE f.is_active = true AND f.admin_only = false
+     ORDER BY f.sort_order, f.price, f.created_at`,
     [userId]
   );
   return rows.map((row) => ({

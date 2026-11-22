@@ -13,6 +13,7 @@ import PricingTab from '../components/admin/PricingTab';
 import PackagesTab from '../components/admin/PackagesTab';
 import GiftCodesTab from '../components/admin/GiftCodesTab';
 import FramesTab from '../components/admin/FramesTab';
+import AdminLookTab from '../components/admin/AdminLookTab';
 import PremiumIdsTab from '../components/admin/PremiumIdsTab';
 import GiftsTab from '../components/admin/GiftsTab';
 import OrdersTab from '../components/admin/OrdersTab';
@@ -26,6 +27,7 @@ const TABS = [
   { id: 'overview', label: 'نظرة عامة', icon: 'chart' },
   { id: 'users', label: 'المستخدمون', icon: 'users' },
   { id: 'ranks', label: 'إدارة الرتب والبوكسات', icon: 'star' },
+  { id: 'appearance', label: 'مظهر الإدارة', icon: 'sparkle' },
   { id: 'levels-vip', label: 'المستويات و VIP', icon: 'sparkle' },
   { id: 'calls', label: 'المكالمات', icon: 'phone' },
   { id: 'free', label: 'المحاولات المجانية', icon: 'gift' },
@@ -179,6 +181,7 @@ export default function Admin() {
         {tab === 'overview' ? <Overview /> : null}
         {tab === 'users' ? <UsersTab /> : null}
         {tab === 'ranks' ? <RanksTab /> : null}
+        {tab === 'appearance' ? <AdminLookTab /> : null}
         {tab === 'levels-vip' ? <LevelsVipTab /> : null}
         {tab === 'calls' ? <CallsTab /> : null}
         {tab === 'free' ? <FreeCallsTab /> : null}
