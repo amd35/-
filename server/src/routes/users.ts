@@ -16,6 +16,7 @@ interface FeedRow {
   bio: string | null;
   gender: string | null;
   country: string | null;
+  age: number | null;
   last_seen_at: string | null;
   created_at: string;
   is_favorite: boolean;
@@ -25,7 +26,7 @@ interface FeedRow {
 }
 
 const FEED_SELECT = `
-  SELECT u.id, u.username, u.display_name, u.avatar_url, u.bio, u.gender, u.country,
+  SELECT u.id, u.username, u.display_name, u.avatar_url, u.bio, u.gender, u.country, u.age,
          u.last_seen_at, u.created_at,
     EXISTS (SELECT 1 FROM favorites f WHERE f.user_id = $1 AND f.target_id = u.id) AS is_favorite,
     EXISTS (SELECT 1 FROM friendships fr WHERE fr.status = 'accepted'
@@ -103,7 +104,7 @@ router.get(
   asyncHandler(async (req, res) => {
     const me = reqUser(req).id;
     const rows = await q<FeedRow & { request_id: string; requested_at: string }>(
-      `SELECT u.id, u.username, u.display_name, u.avatar_url, u.bio, u.gender, u.country,
+      `SELECT u.id, u.username, u.display_name, u.avatar_url, u.bio, u.gender, u.country, u.age,
               u.last_seen_at, u.created_at, fr.id AS request_id, fr.created_at AS requested_at,
               false AS is_favorite, false AS is_friend, false AS is_following, false AS is_blocked
        FROM friendships fr JOIN users u ON u.id = fr.requester_id

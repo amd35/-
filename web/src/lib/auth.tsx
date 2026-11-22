@@ -19,6 +19,7 @@ export interface SelfUser {
   bio: string | null;
   gender: string | null;
   country: string | null;
+  age: number | null;
   isAdmin: boolean;
   provider: string;
   createdAt: string;

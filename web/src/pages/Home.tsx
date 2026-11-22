@@ -90,60 +90,19 @@ export default function Home() {
       }
     >
       <div className="page">
-        <section className="hero">
-          <div className="hero-row">
-            <div className="grow">
-              <div className="tiny muted">{t('freeAttempts')}</div>
-              <div style={{ display: 'flex', alignItems: 'baseline', gap: 6 }}>
-                <span style={{ fontSize: 30, fontWeight: 800 }}>
-                  {free?.remaining ?? 0}
-                  <span style={{ fontSize: 16, color: 'var(--muted)' }}> / {free?.perDay ?? 5}</span>
-                </span>
-              </div>
-            </div>
-            <div className="pill pill-gold">
-              <Icon name="gift" size={14} />
-              {t('remaining')}
-            </div>
-          </div>
-
-          <div className="free-meter">
+        <section className={`free-strip ${free && free.remaining === 0 ? 'empty' : ''}`}>
+          <span className="pill pill-gold">
+            <Icon name="gift" size={13} /> {free?.remaining ?? 0} / {free?.perDay ?? 5}
+          </span>
+          <div className="free-strip-meter">
             <div className="meter-track">
               <div className="meter-fill" style={{ width: `${percent}%` }} />
             </div>
-            <div className="inline" style={{ justifyContent: 'space-between' }}>
-              <span className="tiny muted">
-                {t('used')}: {free?.used ?? 0} • {t('renewsIn')} {formatCountdown(countdown, lang)}
-              </span>
-              <span className="tiny" style={{ color: '#ffd75e' }}>
-                {me?.config.voicePrice ?? 100} {t('coins')} / {t('minutes')}
-              </span>
-            </div>
           </div>
-
-          {free && free.remaining === 0 ? (
-            <div
-              className="tiny"
-              style={{
-                marginTop: 12,
-                padding: '9px 12px',
-                borderRadius: 12,
-                background: 'rgba(239,68,68,0.14)',
-                border: '1px solid rgba(239,68,68,0.3)',
-                color: '#fecaca',
-              }}
-            >
-              {t('freeCallsExhausted')}
-            </div>
-          ) : free && free.remaining === 1 ? (
-            <div className="tiny" style={{ marginTop: 12, color: '#ffd75e' }}>
-              {t('freeCallsLast')}
-            </div>
-          ) : (
-            <div className="tiny muted" style={{ marginTop: 12 }}>
-              {t('nextCallPaid')}
-            </div>
-          )}
+          <span className="tiny muted">{formatCountdown(countdown, lang)}</span>
+          <span className="tiny" style={{ color: '#ffd75e' }}>
+            {me?.config.voicePrice ?? 100} / {t('minutes')}
+          </span>
         </section>
 
         <div className="search">
@@ -162,7 +121,7 @@ export default function Home() {
 
         <div className="tabs">
           <button className={`tab ${tab === 'all' ? 'active' : ''}`} onClick={() => setTab('all')}>
-            {t('all')}
+            {t('allUsers')}
           </button>
           <button className={`tab ${tab === 'online' ? 'active' : ''}`} onClick={() => setTab('online')}>
             {t('online')}
@@ -171,7 +130,7 @@ export default function Home() {
             className={`tab ${tab === 'favorites' ? 'active' : ''}`}
             onClick={() => setTab('favorites')}
           >
-            {t('favorites')}
+            {t('myFavorites')}
           </button>
         </div>
 

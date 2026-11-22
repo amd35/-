@@ -9,6 +9,7 @@ export interface PublicUser {
   bio: string | null;
   gender: string | null;
   country: string | null;
+  age: number | null;
   online: boolean;
   lastSeenAt: string | null;
   createdAt: string;
@@ -22,6 +23,7 @@ interface UserLike {
   bio?: string | null;
   gender?: string | null;
   country?: string | null;
+  age?: number | null;
   last_seen_at?: string | Date | null;
   created_at?: string | Date;
 }
@@ -41,6 +43,7 @@ export function toPublicUser(row: UserLike): PublicUser {
     bio: row.bio ?? null,
     gender: row.gender ?? null,
     country: row.country ?? null,
+    age: row.age ?? null,
     online: isOnline(row.id) || recentlySeen(row.last_seen_at),
     lastSeenAt: row.last_seen_at ? new Date(row.last_seen_at).toISOString() : null,
     createdAt: row.created_at ? new Date(row.created_at).toISOString() : new Date().toISOString(),
@@ -49,7 +52,7 @@ export function toPublicUser(row: UserLike): PublicUser {
 
 export async function getPublicUser(userId: string): Promise<PublicUser | null> {
   const row = await one<UserLike>(
-    'SELECT id, username, display_name, avatar_url, bio, gender, country, last_seen_at, created_at FROM users WHERE id = $1',
+    'SELECT id, username, display_name, avatar_url, bio, gender, country, age, last_seen_at, created_at FROM users WHERE id = $1',
     [userId]
   );
   return row ? toPublicUser(row) : null;

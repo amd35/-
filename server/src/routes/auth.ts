@@ -42,6 +42,7 @@ interface UserRow {
   bio: string | null;
   gender: string | null;
   country: string | null;
+  age: number | null;
   is_admin: boolean;
   is_banned: boolean;
   provider: string;
@@ -59,6 +60,7 @@ function serializeSelf(row: UserRow) {
     bio: row.bio,
     gender: row.gender,
     country: row.country,
+    age: row.age ?? null,
     isAdmin: row.is_admin,
     provider: row.provider,
     createdAt: row.created_at,
@@ -123,6 +125,15 @@ async function uniqueUsername(desired?: string): Promise<string> {
   }
   throw new HttpError(500, 'Could not allocate a username', 'username_allocation_failed');
 }
+
+// Public: which social sign-in providers are actually configured, so the
+// welcome screen can show them without offering a button that cannot work.
+router.get('/providers', (_req, res) => {
+  res.json({
+    google: Boolean(process.env.GOOGLE_CLIENT_ID),
+    apple: false,
+  });
+});
 
 router.post(
   '/register',
@@ -443,6 +454,13 @@ router.patch(
     const avatarUrl = req.body?.avatarUrl !== undefined ? String(req.body.avatarUrl || '') || null : null;
     const gender = req.body?.gender !== undefined ? String(req.body.gender || '') || null : null;
     const country = req.body?.country !== undefined ? String(req.body.country || '') || null : null;
+    let age: number | null = null;
+    if (req.body?.age !== undefined && req.body.age !== null && req.body.age !== '') {
+      age = Number(req.body.age);
+      if (!Number.isInteger(age) || age < 13 || age > 120) {
+        throw new HttpError(400, 'Age must be between 13 and 120', 'invalid_age');
+      }
+    }
     let username: string | null = null;
     if (req.body?.username) {
       username = assertUsername(req.body.username);
@@ -462,9 +480,10 @@ router.patch(
          avatar_url = COALESCE($4, avatar_url),
          gender = COALESCE($5, gender),
          country = COALESCE($6, country),
-         username = COALESCE($7, username)
+         username = COALESCE($7, username),
+         age = COALESCE($8, age)
        WHERE id = $1`,
-      [user.id, displayName, bio, avatarUrl, gender, country, username]
+      [user.id, displayName, bio, avatarUrl, gender, country, username, age]
     );
     res.json(await buildMe(user.id));
   })

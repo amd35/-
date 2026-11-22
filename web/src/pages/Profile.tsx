@@ -35,6 +35,7 @@ export function Profile() {
   const [name, setName] = useState(me?.user.displayName ?? '');
   const [username, setUsername] = useState(me?.user.username ?? '');
   const [bio, setBio] = useState(me?.user.bio ?? '');
+  const [age, setAge] = useState(me?.user.age ? String(me.user.age) : '');
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
@@ -42,6 +43,7 @@ export function Profile() {
     setName(me.user.displayName);
     setUsername(me.user.username);
     setBio(me.user.bio ?? '');
+    setAge(me.user.age ? String(me.user.age) : '');
     api<ProfileResponse>(`/users/${me.user.id}`)
       .then(setStats)
       .catch(() => undefined);
@@ -57,7 +59,7 @@ export function Profile() {
     try {
       await api('/auth/me', {
         method: 'PATCH',
-        body: { displayName: name, username, bio },
+        body: { displayName: name, username, bio, age: age ? Number(age) : undefined },
       });
       await refresh();
       setEditOpen(false);
@@ -234,6 +236,18 @@ export function Profile() {
           <div className="field">
             <label>{t('username')}</label>
             <input className="input" value={username} onChange={(event) => setUsername(event.target.value)} dir="ltr" />
+          </div>
+          <div className="field">
+            <label>{t('age')}</label>
+            <input
+              className="input"
+              type="number"
+              min={13}
+              max={120}
+              value={age}
+              onChange={(event) => setAge(event.target.value)}
+              dir="ltr"
+            />
           </div>
           <div className="field">
             <label>{t('bio')}</label>

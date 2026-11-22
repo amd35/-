@@ -163,32 +163,42 @@ export function CallOverlay() {
         </div>
       ) : null}
 
-      <div className="call-top" style={inProgress && isVideo ? {} : { marginTop: 40 }}>
-        {!inProgress || !isVideo ? (
+      {inProgress && isVideo ? (
+        <div className="video-hud">
+          <span className="hud-pill">
+            <Icon name="clock" size={13} /> {formatDuration(elapsed)}
+          </span>
+          <span className="hud-pill gold">
+            {call?.isFree ? t('freeCallBadge') : `-${formatCoins(cost)} ${t('coins')}`}
+          </span>
+          {mediaError ? <span className="hud-pill error">{mediaError}</span> : null}
+        </div>
+      ) : (
+        <div className="call-top" style={{ marginTop: 40 }}>
           <div className="pulse-wrap">
             {!inProgress ? <span className="pulse-ring" /> : null}
             <Avatar user={peer} size={132} />
           </div>
-        ) : null}
-        <div className="call-peer-name">{peer?.displayName ?? '—'}</div>
-        <div className="call-status">{statusLabel}</div>
-        <div className="call-timer">{formatDuration(elapsed)}</div>
-        <div className="call-cost">
-          {call?.isFree
-            ? t('freeCallBadge')
-            : `${formatCoins(cost)} ${t('coins')} • ${call?.ratePerMinute ?? 100} ${t('perMinute')}`}
+          <div className="call-peer-name">{peer?.displayName ?? '—'}</div>
+          <div className="call-status">{statusLabel}</div>
+          <div className="call-timer">{formatDuration(elapsed)}</div>
+          <div className="call-cost">
+            {call?.isFree
+              ? t('freeCallBadge')
+              : `${formatCoins(cost)} ${t('coins')} • ${call?.ratePerMinute ?? 100} ${t('perMinute')}`}
+          </div>
+          {!call?.isFree ? (
+            <div className="tiny muted">
+              {t('balance')}: {formatCoins(balance)} {t('coins')}
+            </div>
+          ) : null}
+          {mediaError ? (
+            <div className="tiny" style={{ color: '#fca5a5', maxWidth: 280, textAlign: 'center' }}>
+              {mediaError}
+            </div>
+          ) : null}
         </div>
-        {!call?.isFree ? (
-          <div className="tiny muted">
-            {t('balance')}: {formatCoins(balance)} {t('coins')}
-          </div>
-        ) : null}
-        {mediaError ? (
-          <div className="tiny" style={{ color: '#fca5a5', maxWidth: 280, textAlign: 'center' }}>
-            {mediaError}
-          </div>
-        ) : null}
-      </div>
+      )}
 
       <div className="call-controls">
         {!inProgress ? (

@@ -6,7 +6,7 @@ import { useI18n } from '../lib/i18n';
 import { formatCoins, formatCountdown, Icon, Sheet, useCountdown, useToast } from '../lib/ui';
 import { AppShell } from '../components/AppShell';
 
-type SheetKind = 'password' | 'privacy' | 'support' | 'about' | 'delete' | null;
+type SheetKind = 'password' | 'privacy' | 'calls' | 'support' | 'about' | 'delete' | null;
 
 export default function Settings() {
   const { me, refresh, logout } = useAuth();
@@ -116,8 +116,19 @@ export default function Settings() {
           <div className="row" onClick={() => setSheet('password')}>
             <Icon name="lock" size={19} />
             <div className="row-main">
-              <div className="row-title">{t('changePassword')}</div>
-              <div className="row-sub">{t('security')}</div>
+              <div className="row-title">{t('privacySecurity')}</div>
+              <div className="row-sub">{t('changePassword')}</div>
+            </div>
+            <Icon name="arrowLeft" size={17} />
+          </div>
+
+          <div className="row" onClick={() => setSheet('calls')}>
+            <Icon name="phone" size={19} />
+            <div className="row-main">
+              <div className="row-title">{t('callSettings')}</div>
+              <div className="row-sub">
+                {me?.config.voicePrice ?? 100} / {me?.config.videoPrice ?? 100} {t('coins')} / {t('minutes')}
+              </div>
             </div>
             <Icon name="arrowLeft" size={17} />
           </div>
@@ -178,7 +189,7 @@ export default function Settings() {
 
         <section className="list">
           <button
-            className="btn btn-ghost btn-block"
+            className="btn btn-block logout-btn"
             onClick={() => {
               logout();
               navigate('/welcome', { replace: true });
@@ -217,6 +228,30 @@ export default function Settings() {
           <button className="btn btn-primary btn-block" onClick={() => void changePassword()} disabled={busy}>
             {t('save')}
           </button>
+        </div>
+      </Sheet>
+
+      <Sheet open={sheet === 'calls'} onClose={() => setSheet(null)} title={t('callSettings')}>
+        <div className="stack">
+          <div className="inline" style={{ justifyContent: 'space-between' }}>
+            <span className="row-sub">{t('priceVoice')}</span>
+            <strong>
+              {me?.config.voicePrice ?? 100} {t('coins')} / {t('minutes')}
+            </strong>
+          </div>
+          <div className="inline" style={{ justifyContent: 'space-between' }}>
+            <span className="row-sub">{t('priceVideo')}</span>
+            <strong>
+              {me?.config.videoPrice ?? 100} {t('coins')} / {t('minutes')}
+            </strong>
+          </div>
+          <div className="inline" style={{ justifyContent: 'space-between' }}>
+            <span className="row-sub">{t('freeAttempts')}</span>
+            <strong>
+              {free?.remaining ?? 0} / {free?.perDay ?? 5}
+            </strong>
+          </div>
+          <p className="tiny muted">{t('nextCallPaid')}</p>
         </div>
       </Sheet>
 

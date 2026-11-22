@@ -17,6 +17,7 @@ export interface UserCardData {
   isFriend?: boolean;
   isFollowing?: boolean;
   isBlocked?: boolean;
+  age?: number | null;
 }
 
 export function UserCard({
@@ -52,27 +53,31 @@ export function UserCard({
       <Avatar user={{ ...user, online: isOnline }} size={62} />
       <div className="name">{user.displayName}</div>
       <div className="handle">
-        @{user.username}
+        {user.age ? `${user.age} ${t('years')}` : `@${user.username}`}
         {isOnline ? <span style={{ color: 'var(--green)' }}> • {t('onlineNow')}</span> : null}
       </div>
       <div className="actions">
         <button
-          className="call-chip voice"
+          className="call-icon voice"
+          aria-label={t('voiceCall')}
+          title={t('voiceCall')}
           onClick={(event) => {
             event.stopPropagation();
             void call('voice');
           }}
         >
-          <Icon name="phone" size={13} /> {t('voiceCall')}
+          <Icon name="phone" size={16} />
         </button>
         <button
-          className="call-chip video"
+          className="call-icon video"
+          aria-label={t('videoCall')}
+          title={t('videoCall')}
           onClick={(event) => {
             event.stopPropagation();
             void call('video');
           }}
         >
-          <Icon name="video" size={13} /> {t('videoCall')}
+          <Icon name="video" size={17} />
         </button>
       </div>
     </div>

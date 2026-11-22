@@ -8,7 +8,6 @@ const NAV = [
   { key: 'home', path: '/', icon: 'home' },
   { key: 'chats', path: '/chats', icon: 'chat' },
   { key: 'calls', path: '/calls', icon: 'phone' },
-  { key: 'wallet', path: '/wallet', icon: 'wallet' },
   { key: 'profile', path: '/profile', icon: 'user' },
 ] as const;
 
@@ -81,9 +80,12 @@ export function AppShell({
 export function CoinPill({ balance }: { balance: number }) {
   const navigate = useNavigate();
   return (
-    <button className="pill pill-gold" onClick={() => navigate('/wallet')} style={{ border: 'none' }}>
+    <button className="pill pill-gold coin-chip" onClick={() => navigate('/wallet')} style={{ border: 'none' }}>
       <Icon name="coins" size={15} />
       <span>{formatCoins(balance)}</span>
+      <span className="coin-plus" aria-hidden="true">
+        <Icon name="plus" size={11} />
+      </span>
     </button>
   );
 }
