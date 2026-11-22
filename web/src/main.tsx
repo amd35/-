@@ -6,7 +6,10 @@ import { ToastProvider } from './lib/ui';
 import { AuthProvider } from './lib/auth';
 import { RealtimeProvider } from './lib/realtime';
 import { CallProvider } from './lib/call';
+import { setupNativeShell } from './lib/native';
 import './styles.css';
+
+void setupNativeShell();
 
 const root = createRoot(document.getElementById('root') as HTMLElement);
 

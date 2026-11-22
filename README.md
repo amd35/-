@@ -11,7 +11,7 @@
 
 | الطبقة | التقنية | المسار |
 | --- | --- | --- |
-| الواجهة (Android-first / PWA) | React 18 + TypeScript + Vite | `web/` |
+| الواجهة (React + غلاف Android عبر Capacitor / PWA) | React 18 + TypeScript + Vite | `web/` |
 | السيرفر | Node.js 22 + TypeScript + Express | `server/` |
 | قاعدة البيانات | PostgreSQL 16 | `server/src/schema.sql` |
 | الاتصالات الفورية | WebSocket (ws) — إشارات WebRTC + الدردشة + الإشعارات | `server/src/realtime.ts` |
@@ -71,7 +71,7 @@ docker compose --project-name app \
 | إشعارات فورية داخل التطبيق (WS) | ✅ |
 | لوحة إدارة كاملة (مستخدمون/مكالمات/أسعار/باقات/طلبات/أرباح/سحب/بلاغات/تقارير) | ✅ |
 | إشعارات Push عبر Firebase (تطبيق مغلق) | ❌ غير منفّذ — يحتاج مشروع Firebase ومفاتيحه |
-| تطبيق Flutter + ملف APK | ❌ غير منفّذ — هذه نسخة ويب متجاوبة (PWA) بنفس الـ API |
+| تطبيق Android أصلي (Capacitor) | 🟡 مشروع `web/android/` والأيقونات والأذونات وربط الـ API جاهزة — بناء APK/AAB يتم على جهازك أو CI، راجع `docs/ANDROID.md` |
 
 ### ملاحظات صدق مهمة
 

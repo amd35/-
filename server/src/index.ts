@@ -24,6 +24,32 @@ app.disable('x-powered-by');
 
 app.use(express.json({ limit: '2mb' }));
 
+// The Android shell serves the UI from https://localhost (Capacitor), so API calls
+// are cross-origin there. Browsers keep using the same-origin Vite/nginx proxy and
+// send no Origin header, so this allowlist only affects native builds.
+const CORS_ORIGINS = String(
+  process.env.CORS_ORIGINS || 'https://localhost,capacitor://localhost,http://localhost,http://10.0.2.2'
+)
+  .split(',')
+  .map((origin) => origin.trim())
+  .filter(Boolean);
+
+app.use((req, res, next) => {
+  const origin = req.headers.origin;
+  if (origin && CORS_ORIGINS.includes(origin)) {
+    res.setHeader('Access-Control-Allow-Origin', origin);
+    res.setHeader('Vary', 'Origin');
+    res.setHeader('Access-Control-Allow-Headers', 'authorization,content-type');
+    res.setHeader('Access-Control-Allow-Methods', 'GET,POST,PATCH,PUT,DELETE,OPTIONS');
+    res.setHeader('Access-Control-Max-Age', '86400');
+  }
+  if (req.method === 'OPTIONS') {
+    res.status(204).end();
+    return;
+  }
+  next();
+});
+
 app.get('/api/health', async (_req, res) => {
   try {
     await pool.query('SELECT 1');

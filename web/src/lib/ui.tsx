@@ -9,6 +9,7 @@ import {
   type CSSProperties,
   type ReactNode,
 } from 'react';
+import { assetUrl } from './api';
 
 /* ------------------------------------------------------------------ icons */
 const ICONS: Record<string, ReactNode> = {
@@ -374,7 +375,7 @@ export function Avatar({
       className={`avatar ${className}`}
       style={{ width: size, height: size, background: user?.avatarUrl ? undefined : gradient, fontSize: size * 0.38 }}
     >
-      {user?.avatarUrl ? <img src={user.avatarUrl} alt={name} /> : initial}
+      {user?.avatarUrl ? <img src={assetUrl(user.avatarUrl)} alt={name} /> : initial}
       {user?.online ? <span className="online-dot" /> : null}
     </div>
   );

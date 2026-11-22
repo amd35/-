@@ -1,6 +1,20 @@
 const TOKEN_KEY = 'connect_token';
 const ADMIN_TOKEN_KEY = 'connect_admin_token';
 
+/**
+ * Base URL of the API. Empty in the browser (same-origin, proxied by Vite/nginx);
+ * the Android build sets VITE_API_URL to the public server origin, because the
+ * native WebView is served from https://localhost and has no proxy.
+ */
+export const API_BASE = String(import.meta.env.VITE_API_URL || '').replace(/\/+$/, '');
+
+/** Turns a server-relative path (/uploads/...) into an absolute URL for the native shell. */
+export function assetUrl(url: string | null | undefined): string | undefined {
+  if (!url) return undefined;
+  if (/^(https?:|data:|blob:|capacitor:)/.test(url)) return url;
+  return `${API_BASE}${url.startsWith('/') ? '' : '/'}${url}`;
+}
+
 export class ApiError extends Error {
   status: number;
   code?: string;
@@ -52,7 +66,7 @@ export async function api<T = unknown>(path: string, options: RequestOptions = {
 
   let response: Response;
   try {
-    response = await fetch(`/api${path}`, {
+    response = await fetch(`${API_BASE}/api${path}`, {
       method: options.method || (body ? 'POST' : 'GET'),
       headers,
       body,
@@ -76,6 +90,8 @@ export async function api<T = unknown>(path: string, options: RequestOptions = {
 
 export function wsUrl(): string {
   const token = getToken() || '';
-  const protocol = window.location.protocol === 'https:' ? 'wss' : 'ws';
-  return `${protocol}://${window.location.host}/ws?token=${encodeURIComponent(token)}`;
+  const base = API_BASE ? new URL(API_BASE) : null;
+  const protocol = (base ? base.protocol : window.location.protocol) === 'https:' ? 'wss' : 'ws';
+  const host = base ? base.host : window.location.host;
+  return `${protocol}://${host}/ws?token=${encodeURIComponent(token)}`;
 }

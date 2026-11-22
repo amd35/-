@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { api } from '../lib/api';
+import { api, assetUrl } from '../lib/api';
 import { useAuth } from '../lib/auth';
 import { useCall } from '../lib/call';
 import { useI18n } from '../lib/i18n';
@@ -248,10 +248,10 @@ export default function ChatRoom() {
           <div key={message.id} className={`msg ${message.mine ? 'msg-mine' : ''}`}>
             <div className="msg-bubble">
               {message.type === 'image' && message.attachmentUrl ? (
-                <img src={message.attachmentUrl} alt={message.attachmentName || 'image'} />
+                <img src={assetUrl(message.attachmentUrl)} alt={message.attachmentName || 'image'} />
               ) : null}
               {message.type === 'file' && message.attachmentUrl ? (
-                <a href={message.attachmentUrl} target="_blank" rel="noreferrer" className="inline">
+                <a href={assetUrl(message.attachmentUrl)} target="_blank" rel="noreferrer" className="inline">
                   <Icon name="package" size={16} /> {message.attachmentName || t('file')}
                 </a>
               ) : null}

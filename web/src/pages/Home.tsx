@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { api } from '../lib/api';
+import { api, assetUrl } from '../lib/api';
 import { useAuth } from '../lib/auth';
 import { useI18n } from '../lib/i18n';
 import { useRealtime } from '../lib/realtime';
@@ -227,7 +227,7 @@ function AvatarMini({ user, online }: { user: UserCardData; online?: boolean }) 
       className="avatar"
       style={{ width: 52, height: 52, fontSize: 19 }}
     >
-      {user.avatarUrl ? <img src={user.avatarUrl} alt={user.displayName} /> : user.displayName.charAt(0)}
+      {user.avatarUrl ? <img src={assetUrl(user.avatarUrl)} alt={user.displayName} /> : user.displayName.charAt(0)}
       {online ? <span className="online-dot" /> : null}
     </div>
   );
