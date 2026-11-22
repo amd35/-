@@ -35,7 +35,7 @@ const FEED_SELECT = `
     EXISTS (SELECT 1 FROM follows fo WHERE fo.follower_id = $1 AND fo.following_id = u.id) AS is_following,
     EXISTS (SELECT 1 FROM blocked_users b WHERE b.user_id = $1 AND b.blocked_id = u.id) AS is_blocked
   FROM users u
-  WHERE u.id <> $1 AND u.is_banned = false
+  WHERE u.id <> $1 AND u.is_banned = false AND u.is_bot = false
     AND NOT EXISTS (
       SELECT 1 FROM blocked_users bb
       WHERE (bb.user_id = $1 AND bb.blocked_id = u.id)

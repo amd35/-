@@ -2317,3 +2317,82 @@ table.data tr:hover td {
     transition-duration: 0.01ms !important;
   }
 }
+
+/* Lina — the in-app companion greeting card */
+.bot-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 12px;
+  border-radius: var(--radius-sm);
+  border: 1px solid rgba(214, 51, 132, 0.35);
+  background: var(--grad-soft);
+  color: var(--text);
+  font: inherit;
+  text-align: start;
+  cursor: pointer;
+  box-shadow: var(--shadow);
+  animation: botIn 0.45s ease both;
+}
+
+.bot-main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.bot-name {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-weight: 700;
+  font-size: 14px;
+}
+
+.bot-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 2px 7px;
+  border-radius: 999px;
+  font-size: 10px;
+  font-weight: 600;
+  color: #ffd75e;
+  background: rgba(255, 199, 60, 0.14);
+  border: 1px solid rgba(255, 199, 60, 0.3);
+}
+
+.bot-line {
+  font-size: 12.5px;
+  color: var(--muted);
+  line-height: 1.5;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.bot-cta {
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: var(--grad);
+  color: #fff;
+  flex: 0 0 auto;
+}
+
+@keyframes botIn {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}

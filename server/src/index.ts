@@ -5,6 +5,7 @@ import { pool, migrate, waitForDatabase } from './db';
 import { attachRealtime } from './realtime';
 import { registerSocketHandlers } from './wsHandlers';
 import { recoverStaleCalls, startBillingLoop } from './calls';
+import { ensureBotUser } from './bot';
 import { UPLOAD_DIR } from './routes/uploads';
 import { HttpError } from './utils';
 import authRoutes from './routes/auth';
@@ -104,6 +105,7 @@ registerSocketHandlers();
 async function bootstrap(): Promise<void> {
   await waitForDatabase();
   await migrate();
+  await ensureBotUser().catch((error) => console.error('[bot] seed failed', (error as Error).message));
   await recoverStaleCalls();
   startBillingLoop();
   server.listen(PORT, '0.0.0.0', () => {

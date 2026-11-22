@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { one, q, tx } from '../db';
 import { reqUser, requireAuth } from '../auth';
+import { botIntro, botUserId, ensureBotConversation, scheduleBotReply } from '../bot';
 import { emitToUser, isOnline } from '../realtime';
 import { notify } from '../notify';
 import { toPublicUser } from '../serializers';
@@ -16,11 +17,21 @@ async function assertMember(conversationId: string, userId: string) {
   if (!member) throw new HttpError(404, 'Conversation not found', 'conversation_not_found');
 }
 
+// Lina, the in-app companion: her intro card and her private chat.
+router.get(
+  '/bot',
+  requireAuth(),
+  asyncHandler(async (req, res) => {
+    res.json(await botIntro(reqUser(req).id));
+  })
+);
+
 router.get(
   '/conversations',
   requireAuth(),
   asyncHandler(async (req, res) => {
     const me = reqUser(req).id;
+    await ensureBotConversation(me);
     const rows = await q(
       `SELECT c.id, c.last_message_at,
               peer.id AS peer_id, peer.username AS peer_username, peer.display_name AS peer_name,
@@ -224,6 +235,9 @@ router.post(
       mine: false,
     };
     emitToUser(me, 'message:new', { ...payload, mine: true });
+    if (peer && peer.user_id === (await botUserId())) {
+      scheduleBotReply(me, conversationId, body || attachmentName || '');
+    }
     if (peer) {
       emitToUser(peer.user_id, 'message:new', payload);
       await notify(peer.user_id, 'message', 'رسالة جديدة', body.slice(0, 80), {

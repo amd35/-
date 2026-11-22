@@ -96,7 +96,7 @@ router.get(
         (SELECT count(*)::int FROM calls WHERE kind = 'voice' AND (created_at AT TIME ZONE 'Asia/Baghdad')::date = $1::date) AS voice_today,
         (SELECT count(*)::int FROM calls WHERE kind = 'video' AND (created_at AT TIME ZONE 'Asia/Baghdad')::date = $1::date) AS video_today,
         (SELECT count(*)::int FROM calls WHERE status IN ('ringing', 'accepted')) AS active_calls,
-        (SELECT count(*)::int FROM users) AS total_users,
+        (SELECT count(*)::int FROM users WHERE is_bot = false) AS total_users,
         (SELECT count(*)::int FROM users WHERE is_banned) AS banned_users,
         (SELECT COALESCE(SUM(attempts_used), 0)::int FROM daily_free_calls WHERE usage_date = $1::date) AS free_used_today,
         (SELECT COALESCE(SUM(amount), 0)::int FROM payment_orders WHERE status = 'paid' AND currency = 'IQD' AND (paid_at AT TIME ZONE 'Asia/Baghdad')::date = $1::date) AS revenue_iqd_today,
@@ -144,7 +144,7 @@ router.get(
              (SELECT COALESCE(SUM(d.attempts_used), 0)::int FROM daily_free_calls d
                 WHERE d.user_id = u.id AND d.usage_date = $2::date) AS free_used_today
       FROM users u LEFT JOIN wallets w ON w.user_id = u.id
-      WHERE (u.display_name ILIKE $1 OR u.username ILIKE $1 OR COALESCE(u.email, '') ILIKE $1
+      WHERE u.is_bot = false AND (u.display_name ILIKE $1 OR u.username ILIKE $1 OR COALESCE(u.email, '') ILIKE $1
              OR COALESCE(u.phone, '') ILIKE $1 OR u.id::text = $3)`;
     params.push(iraqDateStr());
     params.push(search);

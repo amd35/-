@@ -26,6 +26,8 @@ CREATE INDEX IF NOT EXISTS users_last_seen_idx ON users (last_seen_at DESC);
 CREATE INDEX IF NOT EXISTS users_display_name_idx ON users (lower(display_name));
 -- Public profile age, shown on the discovery cards.
 ALTER TABLE users ADD COLUMN IF NOT EXISTS age integer;
+-- Automated companion account (Lina); hidden from discovery and admin user lists.
+ALTER TABLE users ADD COLUMN IF NOT EXISTS is_bot boolean NOT NULL DEFAULT false;
 
 -- Public profile data, exposed as a view over `users` so there is a single source of truth.
 CREATE OR REPLACE VIEW profiles AS

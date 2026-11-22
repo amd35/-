@@ -14,6 +14,7 @@ import {
   useToast,
 } from '../lib/ui';
 import { AppShell, BellButton, CoinPill } from '../components/AppShell';
+import { BotGreeter } from '../components/BotGreeter';
 import { GiftCodeButton } from '../components/GiftCodeSheet';
 import { UserCard, type UserCardData } from '../components/UserCard';
 
@@ -119,6 +120,8 @@ export default function Home() {
             {me?.config.voicePrice ?? 100} / {t('minutes')}
           </span>
         </section>
+
+        <BotGreeter />
 
         <div className="search">
           <Icon name="search" size={18} />

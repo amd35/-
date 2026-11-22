@@ -44,6 +44,14 @@
   with the SDK kept in the `android-sdk` volume — exact commands in `docs/ANDROID.md`. Debug APKs are signed
   with the debug key and installable; release builds need the user's own keystore.
 
+## In-app companion (Lina)
+- `server/src/bot.ts` seeds a real `users` row (`username = 'lina'`, `is_bot = true`) so chat list, thread,
+  unread badges and realtime all work unchanged. `is_bot` rows are hidden from discovery and admin lists.
+- `GET /api/chat/bot` returns her intro + the user's conversation; `GET /api/chat/conversations` also
+  ensures that conversation exists and seeds one welcome message per user.
+- Replies come from local intent matching (`replyFor`) after a `chat:typing` event — no external AI call,
+  so the assistant works with zero integration credits. Messages are inserted as Lina and pushed by websocket.
+
 ## Preview specifics
 - `web/vite.config.ts` adds the sandbox host wildcard and the public preview host to `allowedHosts`
   only when `BASE44_PREVIEW_MODE === '1'`; `__VITE_ADDITIONAL_SERVER_ALLOWED_HOSTS` is passed through.
