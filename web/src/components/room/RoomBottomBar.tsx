@@ -1,6 +1,7 @@
+import { useState } from 'react';
 import { Icon } from '../../lib/ui';
 
-/** The seven stage controls, in the room's official order. */
+/** The stage dock: five main controls, with invite/members/music behind "more". */
 export function RoomBottomBar({
   onLeave,
   onInvite,
@@ -24,36 +25,58 @@ export function RoomBottomBar({
   micMuted: boolean;
   chatOpen: boolean;
 }) {
+  const [more, setMore] = useState(false);
+  const pick = (action: () => void) => () => {
+    setMore(false);
+    action();
+  };
+
   return (
-    <nav className="room-bar" aria-label="أزرار الغرفة">
-      <button type="button" className="room-bar-btn danger" onClick={onLeave}>
-        <Icon name="logout" size={20} />
-        <span>مغادرة</span>
-      </button>
-      <button type="button" className="room-bar-btn" onClick={onInvite}>
-        <Icon name="plus" size={20} />
-        <span>دعوة</span>
-      </button>
-      <button type="button" className="room-bar-btn" onClick={onMembers}>
-        <Icon name="users" size={20} />
-        <span>الأعضاء</span>
-      </button>
-      <button type="button" className="room-bar-btn" onClick={onMusic}>
-        <Icon name="volume" size={20} />
-        <span>الموسيقى</span>
-      </button>
-      <button type="button" className={`room-bar-btn${chatOpen ? ' on' : ''}`} onClick={onChat}>
-        <Icon name="chat" size={20} />
-        <span>الدردشة</span>
-      </button>
-      <button type="button" className="room-bar-btn gold" onClick={onGifts}>
-        <Icon name="gift" size={20} />
-        <span>الهدايا</span>
-      </button>
-      <button type="button" className={`room-bar-btn mic${micOn ? ' on' : ''}`} onClick={onMic}>
-        <Icon name={micOn && !micMuted ? 'mic' : 'micOff'} size={20} />
-        <span>{micOn ? (micMuted ? 'مكتوم' : 'المايك') : 'المايك'}</span>
-      </button>
-    </nav>
+    <>
+      {more ? (
+        <>
+          <button type="button" className="room-more-backdrop" onClick={() => setMore(false)} aria-label="إغلاق" />
+          <div className="room-more-sheet" role="dialog" aria-label="أدوات الغرفة">
+            <button type="button" onClick={pick(onInvite)}>
+              <Icon name="plus" size={18} />
+              <span>دعوة الأصدقاء</span>
+            </button>
+            <button type="button" onClick={pick(onMembers)}>
+              <Icon name="users" size={18} />
+              <span>الأعضاء</span>
+            </button>
+            <button type="button" onClick={pick(onMusic)}>
+              <Icon name="volume" size={18} />
+              <span>الموسيقى</span>
+            </button>
+          </div>
+        </>
+      ) : null}
+
+      <nav className="room-bar" aria-label="أزرار الغرفة">
+        <button type="button" className="room-bar-btn danger" onClick={onLeave}>
+          <Icon name="logout" size={19} />
+          <span>مغادرة</span>
+        </button>
+        <button type="button" className="room-bar-btn gold" onClick={onGifts}>
+          <Icon name="gift" size={19} />
+          <span>الهدايا</span>
+        </button>
+        <button type="button" className={`room-bar-btn mic-main${micOn ? ' on' : ''}`} onClick={onMic}>
+          <span className="room-mic-orb">
+            <Icon name={micOn && !micMuted ? 'mic' : 'micOff'} size={22} />
+          </span>
+          <span>{micOn && micMuted ? 'مكتوم' : 'المايك'}</span>
+        </button>
+        <button type="button" className={`room-bar-btn${chatOpen ? ' on' : ''}`} onClick={onChat}>
+          <Icon name="chat" size={19} />
+          <span>الدردشة</span>
+        </button>
+        <button type="button" className={`room-bar-btn${more ? ' on' : ''}`} onClick={() => setMore((value) => !value)}>
+          <span className="room-more-dots" aria-hidden="true">⋯</span>
+          <span>المزيد</span>
+        </button>
+      </nav>
+    </>
   );
 }

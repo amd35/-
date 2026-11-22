@@ -395,19 +395,6 @@ export default function Room() {
               />
             ))}
           </section>
-
-          <RoomBottomBar
-            onLeave={leaveRoom}
-            onInvite={() => setPanel('invite')}
-            onMembers={() => setPanel('members')}
-            onMusic={() => setPanel('music')}
-            onChat={() => setPanel('chat')}
-            onGifts={() => setGiftOpen(true)}
-            onMic={micButton}
-            micOn={Boolean(myMic)}
-            micMuted={Boolean(myMic?.muted)}
-            chatOpen={panel === 'chat'}
-          />
         </div>
       ) : (
         <div className="room-loading">
@@ -416,6 +403,21 @@ export default function Room() {
           </button>
         </div>
       )}
+
+      {room && !loading ? (
+        <RoomBottomBar
+          onLeave={leaveRoom}
+          onInvite={() => setPanel('invite')}
+          onMembers={() => setPanel('members')}
+          onMusic={() => setPanel('music')}
+          onChat={() => setPanel('chat')}
+          onGifts={() => setGiftOpen(true)}
+          onMic={micButton}
+          micOn={Boolean(myMic)}
+          micMuted={Boolean(myMic?.muted)}
+          chatOpen={panel === 'chat'}
+        />
+      ) : null}
 
       {/* Remote voice streams (peer-to-peer, audio only). */}
       <div className="room-audio-sinks" aria-hidden="true">

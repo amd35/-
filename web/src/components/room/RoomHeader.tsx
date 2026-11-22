@@ -1,10 +1,10 @@
 import { Avatar, Icon } from '../../lib/ui';
 import { RankBadge } from '../RankBadge';
-import { LevelBadge, VipBadge } from '../ProgressionBadges';
+import { VipBadge } from '../ProgressionBadges';
 import type { SeatUser } from './MicSeat';
 import { RoomWings } from './RoomBackdrop';
 
-/** The stage header: room identity, owner card and live occupancy. */
+/** Compact stage header: identity, room name, owner and live occupancy. */
 export function RoomHeader({
   name,
   code,
@@ -30,11 +30,16 @@ export function RoomHeader({
 }) {
   return (
     <header className="room-head">
+      <RoomWings className="room-head-wings" />
+
       <div className="room-head-top">
         <button type="button" className="room-icon-btn" onClick={onBack} aria-label="رجوع">
           <Icon name="arrowLeft" size={18} />
         </button>
-        <span className="room-id">ID: {code}</span>
+        <div className="room-head-id">
+          <span className="room-logo-word">YALLA PHONE</span>
+          <span className="room-id">ID: {code}</span>
+        </div>
         <span className="room-head-spacer" />
         <span className="room-live">
           <i aria-hidden="true" />
@@ -47,11 +52,9 @@ export function RoomHeader({
         ) : null}
       </div>
 
-      <div className="room-logo">
-        <RoomWings className="room-logo-wings" />
+      <div className="room-head-title">
         <span className="room-logo-crown" aria-hidden="true">👑</span>
-        <span className="room-logo-word">YALLA PHONE</span>
-        <span className="room-logo-name">{name}</span>
+        <h1 className="room-title">{name}</h1>
       </div>
 
       <div className="room-head-meta">
@@ -64,29 +67,28 @@ export function RoomHeader({
                 online: owner.online,
                 frame: owner.frame,
               }}
-              size={42}
+              size={30}
             />
           ) : (
             <span className="room-owner-empty">
-              <Icon name="shield" size={18} />
+              <Icon name="shield" size={14} />
             </span>
           )}
           <span className="room-owner-copy">
             <span className="room-owner-tag">صاحب الغرفة</span>
             <span className="room-owner-name">
-              {owner?.rank ? <RankBadge rank={owner.rank} size={12} /> : null}
-              {owner ? <LevelBadge level={owner.level ?? 1} size={11} /> : null}
-              <VipBadge vip={owner?.vip} size={10} />
-              {owner ? owner.displayName : 'إدارة يلا فون'}
+              {owner?.rank ? <RankBadge rank={owner.rank} size={11} /> : null}
+              <VipBadge vip={owner?.vip} size={9} />
+              <span className="room-owner-name-text">{owner ? owner.displayName : 'إدارة يلا فون'}</span>
             </span>
           </span>
         </div>
         <div className="room-place">
           <span>
-            <Icon name="globe" size={12} /> {country}
+            <Icon name="globe" size={11} /> {country}
           </span>
           <span>
-            <Icon name="chat" size={12} /> {language}
+            <Icon name="chat" size={11} /> {language}
           </span>
         </div>
       </div>
