@@ -20,6 +20,9 @@ import { HttpError } from './utils';
 export const MIC_KINDS = ['host', 'speaker', 'audience'] as const;
 export type MicKind = (typeof MIC_KINDS)[number];
 
+/** Mic seat designs selectable from the admin panel (all transparent). */
+export const MIC_STYLES = ['fire', 'glass', 'crystal', 'neon', 'gold', 'ice'] as const;
+
 export interface RoomRow {
   id: string;
   name: string;
@@ -34,6 +37,8 @@ export interface RoomRow {
   music_url: string | null;
   country: string;
   language: string;
+  mic_style: string;
+  mic_color: string;
   created_at: string;
 }
 
@@ -108,6 +113,8 @@ export function serializeRoom(row: RoomRow) {
     musicUrl: row.music_url,
     country: row.country || 'العراق',
     language: row.language || 'العربية',
+    micStyle: row.mic_style || 'fire',
+    micColor: row.mic_color || '#ff3b0f',
     ownerId: row.owner_id,
     createdAt: row.created_at,
   };

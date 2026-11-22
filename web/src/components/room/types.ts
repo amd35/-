@@ -19,6 +19,8 @@ export interface RoomData {
   coverUrl: string | null;
   rules: string;
   background: string;
+  micStyle: string;
+  micColor: string;
   musicUrl: string | null;
   country: string;
   language: string;

@@ -41,6 +41,9 @@ export function GiftAnimation({
       </div>
     );
   }
+  if (gift.design === 'photo' && gift.coverUrl) {
+    return <GiftCover gift={gift} className={className} />;
+  }
   return (
     <div className={`gift-scene ${className}`}>
       {renderScene(gift.design || 'hearts', uid)}

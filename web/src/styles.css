@@ -3403,6 +3403,70 @@ table.data tr:hover td {
   background: transparent;
 }
 
+/* Admin mic design picker */
+.mic-style-picker {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.mic-style-option {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 10px;
+  border-radius: 12px;
+  border: 1px solid var(--line);
+  background: rgba(255, 255, 255, 0.02);
+  color: var(--text);
+  font-size: 11px;
+  cursor: pointer;
+}
+
+.mic-style-option.on {
+  border-color: var(--accent);
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.mic-style-preview {
+  display: grid;
+  place-items: center;
+}
+
+.mic-style-preview .seat-ring {
+  width: 34px;
+  height: 34px;
+}
+
+.mic-color-picker {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.mic-color-dot {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  border: 2px solid rgba(255, 255, 255, 0.25);
+  cursor: pointer;
+}
+
+.mic-color-dot.on {
+  border-color: #fff;
+  box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.35);
+}
+
+.mic-color-input {
+  width: 34px;
+  height: 28px;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+}
+
 .room-create .room-cover {
   background: rgba(214, 51, 132, 0.16);
   color: #ff8fc4;
@@ -6832,8 +6896,67 @@ table.data tr:hover td {
   height: 100%;
   border-radius: 50%;
   background: transparent;
-  color: #ffcf70;
-  filter: drop-shadow(0 0 6px rgba(255, 140, 30, 0.6));
+  color: var(--mic-accent, #ffcf70);
+  filter: drop-shadow(0 0 6px color-mix(in srgb, var(--mic-accent, #ff8c1e) 65%, transparent));
+}
+
+.room-seats .seat-glow {
+  background: radial-gradient(
+    closest-side,
+    color-mix(in srgb, var(--mic-accent, #ff5a1f) 35%, transparent),
+    transparent 72%
+  );
+}
+
+/* Transparent mic seat designs picked from the admin panel. */
+[data-mic-style='glass'] .seat-ring {
+  background:
+    linear-gradient(rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.02)) padding-box,
+    conic-gradient(from 0deg, rgba(255, 255, 255, 0.9), rgba(255, 255, 255, 0.15), rgba(255, 255, 255, 0.9))
+      border-box;
+  box-shadow: 0 0 10px rgba(255, 255, 255, 0.18), inset 0 0 10px rgba(255, 255, 255, 0.12);
+}
+
+[data-mic-style='crystal'] .seat-ring {
+  background:
+    linear-gradient(rgba(255, 255, 255, 0.06), rgba(255, 255, 255, 0.01)) padding-box,
+    conic-gradient(
+        from 0deg,
+        var(--mic-accent),
+        #ffffff,
+        var(--mic-accent),
+        rgba(255, 255, 255, 0.4),
+        var(--mic-accent)
+      )
+      border-box;
+  box-shadow: 0 0 14px color-mix(in srgb, var(--mic-accent) 45%, transparent),
+    inset 0 0 12px rgba(255, 255, 255, 0.15);
+}
+
+[data-mic-style='neon'] .seat-ring {
+  background: transparent;
+  border-color: var(--mic-accent);
+  box-shadow: 0 0 12px color-mix(in srgb, var(--mic-accent) 70%, transparent),
+    inset 0 0 12px color-mix(in srgb, var(--mic-accent) 35%, transparent);
+}
+
+[data-mic-style='gold'] .seat-ring {
+  background:
+    linear-gradient(rgba(255, 210, 74, 0.1), rgba(255, 210, 74, 0.02)) padding-box,
+    conic-gradient(from 0deg, #ffe9a8, #b8860b, #ffd24a, #8a6508, #ffe9a8) border-box;
+  box-shadow: 0 0 12px rgba(255, 210, 74, 0.35), inset 0 0 10px rgba(255, 210, 74, 0.15);
+}
+
+[data-mic-style='ice'] .seat-ring {
+  background:
+    linear-gradient(rgba(180, 240, 255, 0.08), transparent) padding-box,
+    conic-gradient(from 0deg, #e6faff, #7fd8ff, #b9ecff, #5fc4ef, #e6faff) border-box;
+  box-shadow: 0 0 12px rgba(140, 220, 255, 0.35), inset 0 0 10px rgba(160, 230, 255, 0.15);
+}
+
+[data-mic-style='glass'] .seat-empty,
+[data-mic-style='ice'] .seat-empty {
+  color: #ffffff;
 }
 
 .seat-num {

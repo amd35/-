@@ -2,7 +2,7 @@ import { Router } from 'express';
 import { q, tx } from '../db';
 import { requireAdmin } from '../auth';
 import { broadcast } from '../realtime';
-import { MIC_KINDS, RoomRow, allRoomsWithMics, packMicPositions, serializeRoom } from '../rooms';
+import { MIC_KINDS, MIC_STYLES, RoomRow, allRoomsWithMics, packMicPositions, serializeRoom } from '../rooms';
 import { HttpError, asyncHandler } from '../utils';
 import { giftUpload } from './uploads';
 
@@ -23,6 +23,8 @@ function readRoom(body: Record<string, unknown>) {
     musicUrl: body?.musicUrl ? String(body.musicUrl).trim().slice(0, 500) : null,
     country: String(body?.country ?? 'العراق').trim().slice(0, 60) || 'العراق',
     language: String(body?.language ?? 'العربية').trim().slice(0, 60) || 'العربية',
+    micStyle: (MIC_STYLES as readonly string[]).includes(String(body?.micStyle)) ? String(body?.micStyle) : 'fire',
+    micColor: /^#[0-9a-f]{6}$/i.test(String(body?.micColor ?? '')) ? String(body?.micColor) : '#ff3b0f',
   };
 }
 
@@ -47,8 +49,8 @@ router.post(
     const room = await tx(async (client) => {
       const inserted = await client.query<RoomRow>(
         `INSERT INTO rooms (name, description, cover_url, rules, is_active, sort_order,
-                            background, music_url, country, language)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) RETURNING *`,
+                            background, music_url, country, language, mic_style, mic_color)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12) RETURNING *`,
         [
           fields.name,
           fields.description,
@@ -60,6 +62,8 @@ router.post(
           fields.musicUrl,
           fields.country,
           fields.language,
+          fields.micStyle,
+          fields.micColor,
         ]
       );
       const created = inserted.rows[0];
@@ -86,7 +90,8 @@ router.patch(
     const updated = await q<RoomRow>(
       `UPDATE rooms
        SET name = $2, description = $3, cover_url = $4, rules = $5, is_active = $6, sort_order = $7,
-           background = $8, music_url = $9, country = $10, language = $11
+           background = $8, music_url = $9, country = $10, language = $11,
+           mic_style = $12, mic_color = $13
        WHERE id = $1
        RETURNING *`,
       [
@@ -101,6 +106,8 @@ router.patch(
         fields.musicUrl,
         fields.country,
         fields.language,
+        fields.micStyle,
+        fields.micColor,
       ]
     );
     if (!updated[0]) throw new HttpError(404, 'Room not found', 'room_not_found');

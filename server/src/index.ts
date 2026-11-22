@@ -1,4 +1,5 @@
 import http from 'node:http';
+import path from 'node:path';
 import express, { type NextFunction, type Request, type Response } from 'express';
 import multer from 'multer';
 import { pool, migrate, waitForDatabase } from './db';
@@ -87,6 +88,11 @@ app.use('/api/admin', adminProgressionRoutes);
 app.use('/api/admin', adminLookRoutes);
 
 app.use('/uploads', express.static(UPLOAD_DIR, { maxAge: '7d', fallthrough: true }));
+// Gift artwork shipped inside the web app (web/public/gifts) — same paths work in the Android shell.
+app.use(
+  '/gifts',
+  express.static(path.join(process.cwd(), '..', 'web', 'public', 'gifts'), { maxAge: '7d', fallthrough: true })
+);
 
 app.use((req, res) => {
   res.status(404).json({ error: `No route for ${req.method} ${req.path}`, code: 'not_found' });

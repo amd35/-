@@ -635,6 +635,23 @@ WHERE NOT EXISTS (SELECT 1 FROM gifts);
 UPDATE gifts SET cover_url = 'https://media.base44.com/images/public/6addb0a6b0689d303ed3a495/0f0338134_file_000000007c54821081a33f6e0657af7c.png'
 WHERE cover_url IS NULL;
 
+-- Romantic photo gifts: real artwork bundled in web/public/gifts (`design = 'photo'`
+-- makes the sent animation show the photo itself instead of a built-in scene).
+INSERT INTO gifts (slug, name, name_en, description, design, cover_url, price, rarity, sort_order)
+SELECT * FROM (VALUES
+  ('kiss-heart-balloon', 'بوسة وبالون قلب',    'Kiss with a Heart Balloon', 'بوسة رومانسية مع بالون قلب أحمر',  'photo', '/gifts/kiss-1.jpg',   800, 'rare',  200),
+  ('kiss-on-lips',       'بوسة على الشفايف',   'Kiss on the Lips',          'بوسة رومانسية على الشفايف',        'photo', '/gifts/kiss-2.jpg',  1200, 'epic',  210),
+  ('kiss-monochrome',    'بوسة أبيض وأسود',    'Black & White Kiss',        'لحظة بوسة بلمسة أبيض وأسود',       'photo', '/gifts/kiss-3.jpg',  1000, 'rare',  220),
+  ('kiss-closeup',       'بوسة قريبة',         'Close-up Kiss',             'لقطة قريبة لبوسة حب',              'photo', '/gifts/kiss-4.jpg',  1500, 'epic',  230),
+  ('kiss-leather',       'بوسة بالجاكيت الأسود','Leather Jacket Kiss',       'بوسة بالهواء الطلق',               'photo', '/gifts/kiss-5.jpg',  1200, 'rare',  240),
+  ('kiss-cozy',          'بوسة بالبيت',        'Cozy Kiss',                 'بوسة رومانسية جوّا البيت',          'photo', '/gifts/kiss-6.jpg',   900, 'common',250),
+  ('kiss-embrace',       'عناق وبوسة',         'Embrace & Kiss',            'عناق دافي مع بوسة',                'photo', '/gifts/kiss-7.jpg',  1300, 'rare',  260),
+  ('kiss-forest',        'بوسة بالغابة',       'Forest Kiss',               'بوسة بين أشجار الغابة',            'photo', '/gifts/kiss-8.jpg',  1100, 'rare',  270),
+  ('kiss-love',          'بوسة حب',            'Love Kiss',                 'بوسة حب صادقة',                    'photo', '/gifts/kiss-9.jpg',  1000, 'rare',  280),
+  ('kiss-sunset',        'بوسة عند الغروب',    'Sunset Kiss',               'بوسة ذهبية وقت الغروب',            'photo', '/gifts/kiss-10.jpg', 2000, 'epic',  290)
+) AS seed(slug, name, name_en, description, design, cover_url, price, rarity, sort_order)
+ON CONFLICT (slug) DO NOTHING;
+
 -- ---------------------------------------------------------------- settings
 INSERT INTO app_settings (key, value) VALUES
   ('gifts_enabled', 'true'::jsonb),
@@ -681,6 +698,9 @@ ALTER TABLE rooms ADD COLUMN IF NOT EXISTS owner_id uuid REFERENCES users(id) ON
 -- Who created the room through the app (one user-created room per account).
 ALTER TABLE rooms ADD COLUMN IF NOT EXISTS created_by uuid REFERENCES users(id) ON DELETE SET NULL;
 ALTER TABLE rooms ADD COLUMN IF NOT EXISTS background text NOT NULL DEFAULT 'fire';
+-- Mic seat design chosen from the admin panel (transparent variants + accent color).
+ALTER TABLE rooms ADD COLUMN IF NOT EXISTS mic_style text NOT NULL DEFAULT 'fire';
+ALTER TABLE rooms ADD COLUMN IF NOT EXISTS mic_color text NOT NULL DEFAULT '#ff3b0f';
 ALTER TABLE rooms ADD COLUMN IF NOT EXISTS music_url text;
 ALTER TABLE rooms ADD COLUMN IF NOT EXISTS country text NOT NULL DEFAULT 'العراق';
 ALTER TABLE rooms ADD COLUMN IF NOT EXISTS language text NOT NULL DEFAULT 'العربية';

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { api, assetUrl } from '../lib/api';
 import { useAuth } from '../lib/auth';
@@ -379,7 +379,12 @@ export default function Room() {
 
           {room.rules ? <p className="room-rules-line">{room.rules}</p> : null}
 
-          <section className="room-seats" aria-label="مقاعد المايكات">
+          <section
+            className="room-seats"
+            data-mic-style={room.micStyle}
+            style={{ '--mic-accent': room.micColor } as CSSProperties}
+            aria-label="مقاعد المايكات"
+          >
             {room.mics.map((mic) => (
               <MicSeat
                 key={mic.id}

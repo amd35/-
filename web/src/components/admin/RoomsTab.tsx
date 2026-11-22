@@ -1,8 +1,9 @@
-import { useState } from 'react';
+import { useState, type CSSProperties } from 'react';
 import { api } from '../../lib/api';
 import { Icon, useToast } from '../../lib/ui';
 import { AdminCard, Empty, Field, Toggle, useAdminData } from './shared';
 import { ROOM_BACKGROUNDS } from '../room/RoomBackdrop';
+import { MIC_COLORS, MIC_STYLES } from '../room/micStyles';
 
 interface AdminMic {
   id: string;
@@ -22,6 +23,8 @@ interface AdminRoom {
   isActive: boolean;
   sortOrder: number;
   background: string;
+  micStyle: string;
+  micColor: string;
   country: string;
   language: string;
   mics: AdminMic[];
@@ -36,6 +39,8 @@ const EMPTY_FORM = {
   isActive: true,
   sortOrder: 0,
   background: 'fire',
+  micStyle: 'fire',
+  micColor: '#ff3b0f',
   country: 'العراق',
   language: 'العربية',
   micCount: 15,
@@ -70,6 +75,8 @@ export default function RoomsTab() {
       isActive: room.isActive,
       sortOrder: room.sortOrder,
       background: room.background ?? 'fire',
+      micStyle: room.micStyle ?? 'fire',
+      micColor: room.micColor ?? '#ff3b0f',
       country: room.country ?? 'العراق',
       language: room.language ?? 'العربية',
       micCount: room.mics.length,
@@ -92,6 +99,8 @@ export default function RoomsTab() {
         isActive: form.isActive,
         sortOrder: form.sortOrder,
         background: form.background,
+        micStyle: form.micStyle,
+        micColor: form.micColor,
         country: form.country,
         language: form.language,
         micCount: form.micCount,
@@ -320,6 +329,52 @@ export default function RoomsTab() {
               />
             </Field>
           </div>
+        </div>
+
+        <div className="admin-grid-2">
+          <Field label="تصميم المايكات" hint="كل التصاميم شفافة — بدون مربع خلف المايك">
+            <div className="mic-style-picker">
+              {MIC_STYLES.map((item) => (
+                <button
+                  key={item.id}
+                  type="button"
+                  className={`mic-style-option${form.micStyle === item.id ? ' on' : ''}`}
+                  onClick={() => setForm({ ...form, micStyle: item.id })}
+                >
+                  <span
+                    className="mic-style-preview"
+                    data-mic-style={item.id}
+                    style={{ '--mic-accent': form.micColor } as CSSProperties}
+                  >
+                    <span className="seat-ring">
+                      <Icon name="mic" size={14} />
+                    </span>
+                  </span>
+                  <span>{item.label}</span>
+                </button>
+              ))}
+            </div>
+          </Field>
+          <Field label="لون المايك" hint="يُطبَّق على الحلقة والتوهج داخل الغرفة">
+            <div className="mic-color-picker">
+              {MIC_COLORS.map((color) => (
+                <button
+                  key={color}
+                  type="button"
+                  className={`mic-color-dot${form.micColor.toLowerCase() === color ? ' on' : ''}`}
+                  style={{ background: color }}
+                  aria-label={color}
+                  onClick={() => setForm({ ...form, micColor: color })}
+                />
+              ))}
+              <input
+                type="color"
+                className="mic-color-input"
+                value={form.micColor}
+                onChange={(event) => setForm({ ...form, micColor: event.target.value })}
+              />
+            </div>
+          </Field>
         </div>
 
         <Toggle
