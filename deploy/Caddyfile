@@ -1,0 +1,63 @@
+# VPS edge configuration.
+#
+# Two sites, each one origin of its own: the SPA files and /api, /media, /ws
+# all come from the same hostname, so browser sessions and the socket need no
+# cross-site configuration. TLS certificates are obtained and renewed
+# automatically for {$APP_DOMAIN} and {$ADMIN_DOMAIN}.
+#
+# Uncomment and fill in to receive certificate-expiry mail:
+# {
+# 	email you@example.com
+# }
+
+{$APP_DOMAIN} {
+	encode zstd gzip
+	root * /srv/app
+
+	handle /api/* {
+		reverse_proxy api:8000
+	}
+	handle /media/* {
+		reverse_proxy api:8000
+	}
+	handle /ws* {
+		reverse_proxy api:8000
+	}
+	handle {
+		try_files {path} /index.html
+		file_server
+	}
+
+	@immutable path /assets/*
+	header @immutable Cache-Control "public, max-age=31536000, immutable"
+	header {
+		X-Content-Type-Options nosniff
+		X-Frame-Options SAMEORIGIN
+		Referrer-Policy strict-origin-when-cross-origin
+	}
+}
+
+{$ADMIN_DOMAIN} {
+	encode zstd gzip
+	root * /srv/admin
+
+	handle /api/* {
+		reverse_proxy api:8000
+	}
+	handle /media/* {
+		reverse_proxy api:8000
+	}
+	handle {
+		try_files {path} /index.html
+		file_server
+	}
+
+	@immutable path /assets/*
+	header @immutable Cache-Control "public, max-age=31536000, immutable"
+	header {
+		X-Content-Type-Options nosniff
+		X-Frame-Options SAMEORIGIN
+		Referrer-Policy strict-origin-when-cross-origin
+		X-Robots-Tag "noindex, nofollow"
+	}
+}

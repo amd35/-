@@ -89,6 +89,10 @@ node_modules/
 dist/
 .vite/
 
+# VPS deployment: real secrets and database dumps never go to git
+deploy/.env
+backups/
+
 # Python / FastAPI backend
 __pycache__/
 *.py[cod]

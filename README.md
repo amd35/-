@@ -115,14 +115,23 @@ flutter build apk --release --dart-define=API_BASE_URL=https://api.your-domain.c
 
 ## 4. النشر (خادم حقيقي)
 
-1. **API**: صورة إنتاج (بدون bind mount) + `uvicorn --workers N` خلف Nginx/Proxy مع شهادة TLS.
-   اضبط متغيرات البيئة من `backend/.env.example`، ونفّذ `alembic upgrade head` قبل الإقلاع.
-2. **قاعدة البيانات**: PostgreSQL مُدارة + نسخ احتياطي يومي (`pg_dump`) واختبار استعادة دوري.
-3. **الويب ولوحة الإدارة**: `npm run build` ثم تقديم مخرجات `dist/` عبر Nginx،
-   وتمرير `/api` و`/ws` إلى الـ API (نفس الأصل لتجنب مشاكل الجلسة و WebSocket).
-4. **TURN**: إمّا خادم coturn خاص وإمّا مفاتيح Cloudflare TURN (انظر قسم الأسرار) — لضمان الصوت
-   بين شبكات الجوال المختلفة.
-5. **HTTPS إلزامي** في الإنتاج: الكوكيز والـ WebSocket والتطبيق تعتمد عليه.
+الخادم الخاص جاهز كملفات Docker: `docker-compose.prod.yml` + `deploy/`، والدليل الكامل خطوة بخطوة
+(تثبيت Docker، DNS، HTTPS تلقائي، النسخ الاحتياطي، TURN، بناء APK) في
+**[`deploy/DEPLOY_VPS.md`](deploy/DEPLOY_VPS.md)**.
+
+```bash
+cp deploy/.env.prod.example deploy/.env     # املأ النطاقات والأسرار
+docker compose --env-file deploy/.env -f docker-compose.prod.yml up -d --build
+```
+
+1. **API**: صورة إنتاج (بدون bind mount) بـ `uvicorn` واحد خلف Caddy مع شهادة TLS؛ الترحيلات
+   تُطبَّق تلقائيًا في خدمة `migrate` (`alembic upgrade head`) قبل إقلاع الـ API.
+   (`API_WORKERS=1` مقصود: نظام الغرف واللعب اللحظي يعمل داخل ذاكرة العملية الواحدة.)
+2. **قاعدة البيانات**: PostgreSQL في Compose مع حجم دائم + `deploy/backup-db.sh` للنسخ اليومي.
+3. **الويب ولوحة الإدارة**: يُبنيان داخل صورة `deploy/Dockerfile.proxy` ويُقدَّمان من Caddy،
+   وتمرير `/api` و`/media` و`/ws` إلى الـ API (نفس الأصل لتجنب مشاكل الجلسة و WebSocket).
+4. **TURN**: إمّا خادم coturn ضمن `--profile turn` وإمّا مفاتيح Cloudflare TURN (انظر قسم الأسرار).
+5. **HTTPS إلزامي** في الإنتاج: الكوكيز والـ WebSocket والتطبيق تعتمد عليه (شهادات تلقائية).
 
 ---
 

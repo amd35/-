@@ -1,0 +1,13 @@
+# Keep the production image build small and reproducible.
+.git
+.gitignore
+**/node_modules
+**/dist
+**/.vite
+**/__pycache__
+**/*.py[cod]
+**/.venv
+**/.pytest_cache
+flutter_app/build
+backups
+deploy/.env

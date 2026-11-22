@@ -1,0 +1,142 @@
+# Production stack for a private VPS (Docker + Caddy automatic HTTPS).
+#
+# This file is NOT used by the Base44 sandbox — that one runs
+# docker-compose.base44.yml. See deploy/DEPLOY_VPS.md for the full walkthrough.
+#
+#   cp deploy/.env.prod.example deploy/.env      # fill in, never commit it
+#   docker compose --env-file deploy/.env -f docker-compose.prod.yml up -d --build
+#
+# The browser and the Android app only talk to Caddy on 80/443; the API,
+# PostgreSQL and the media files stay on the private compose network.
+
+x-logging: &default-logging
+  driver: json-file
+  options:
+    max-size: "10m"
+    max-file: "3"
+
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    logging: *default-logging
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-app}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in deploy/.env}
+      POSTGRES_DB: ${POSTGRES_DB:-app}
+    volumes:
+      - db_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-app} -d ${POSTGRES_DB:-app}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
+
+  # One-shot schema migration; runs before the API starts and exits.
+  migrate:
+    build:
+      context: .
+      dockerfile: deploy/Dockerfile.api
+    command: ["alembic", "upgrade", "head"]
+    env_file:
+      - ./deploy/.env
+    environment:
+      DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:-app}:${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in deploy/.env}@db:5432/${POSTGRES_DB:-app}
+      AUTO_CREATE_TABLES: "0"
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: "no"
+
+  api:
+    build:
+      context: .
+      dockerfile: deploy/Dockerfile.api
+    restart: unless-stopped
+    logging: *default-logging
+    env_file:
+      - ./deploy/.env
+    environment:
+      DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:-app}:${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in deploy/.env}@db:5432/${POSTGRES_DB:-app}
+      MEDIA_DIR: /data/media
+      # The schema comes from Alembic (the migrate service), the seed is idempotent.
+      AUTO_CREATE_TABLES: "0"
+      AUTO_SEED: "1"
+      WEB_ORIGIN: https://${APP_DOMAIN:?set APP_DOMAIN in deploy/.env}
+      ADMIN_ORIGIN: https://${ADMIN_DOMAIN:?set ADMIN_DOMAIN in deploy/.env}
+      CORS_ORIGINS: https://${APP_DOMAIN:?},https://${ADMIN_DOMAIN:?}
+    volumes:
+      - media:/data/media
+    expose:
+      - "8000"
+    depends_on:
+      db:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "python -c \"import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://127.0.0.1:8000/api/health', timeout=4).status==200 else 1)\"",
+        ]
+      interval: 15s
+      timeout: 6s
+      retries: 6
+      start_period: 30s
+
+  proxy:
+    build:
+      context: .
+      dockerfile: deploy/Dockerfile.proxy
+    restart: unless-stopped
+    logging: *default-logging
+    environment:
+      APP_DOMAIN: ${APP_DOMAIN:?set APP_DOMAIN in deploy/.env}
+      ADMIN_DOMAIN: ${ADMIN_DOMAIN:?set ADMIN_DOMAIN in deploy/.env}
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    volumes:
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      api:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://127.0.0.1:2019/config/ || exit 1"]
+      interval: 15s
+      timeout: 6s
+      retries: 6
+      start_period: 20s
+
+  # Optional TURN relay for voice between different mobile networks.
+  # Start it with:  docker compose --env-file deploy/.env -f docker-compose.prod.yml --profile turn up -d
+  # and set TURN_URL/TURN_USERNAME/TURN_CREDENTIAL in deploy/.env to match.
+  turn:
+    image: coturn/coturn:4.6.3
+    profiles: ["turn"]
+    restart: unless-stopped
+    logging: *default-logging
+    network_mode: host
+    command:
+      - "--listening-port=3478"
+      - "--fingerprint"
+      - "--lt-cred-mech"
+      - "--realm=${TURN_REALM:-yalla-lohan}"
+      # Required only when this profile is enabled (see deploy/DEPLOY_VPS.md §8).
+      - "--user=${TURN_USERNAME:-turnuser}:${TURN_CREDENTIAL:-change-me}"
+      - "--external-ip=${TURN_EXTERNAL_IP:-}"
+      - "--min-port=49160"
+      - "--max-port=49200"
+      - "--no-cli"
+      - "--no-tls"
+      - "--no-dtls"
+
+volumes:
+  db_data:
+  media:
+  caddy_data:
+  caddy_config:

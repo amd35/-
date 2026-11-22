@@ -1,0 +1,25 @@
+# Production edge: builds the web app and the admin panel, then serves both
+# with Caddy (automatic HTTPS + one origin per site for /api, /media and /ws).
+# Built from the repository root:
+#   docker build -f deploy/Dockerfile.proxy .
+FROM node:22-alpine AS web-build
+WORKDIR /src/web
+COPY web/package.json web/package-lock.json ./
+RUN npm ci --no-audit --no-fund
+COPY web/ ./
+RUN npm run build
+
+FROM node:22-alpine AS admin-build
+WORKDIR /src/admin
+COPY admin/package.json admin/package-lock.json ./
+RUN npm ci --no-audit --no-fund
+COPY admin/ ./
+RUN npm run build
+
+FROM caddy:2-alpine
+
+COPY deploy/Caddyfile /etc/caddy/Caddyfile
+COPY --from=web-build /src/web/dist /srv/app
+COPY --from=admin-build /src/admin/dist /srv/admin
+
+EXPOSE 80 443
