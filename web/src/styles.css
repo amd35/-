@@ -5454,6 +5454,64 @@ table.data tr:hover td {
   pointer-events: none;
 }
 
+/* fire licking the admin name */
+.admin-bubble-fire {
+  position: absolute;
+  inset-inline: -6px;
+  top: -26px;
+  height: 50px;
+  z-index: 1;
+  pointer-events: none;
+}
+
+.admin-bubble-flame {
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(42% 70% at 20% 100%, rgba(255, 196, 80, 0.95), transparent 72%),
+    radial-gradient(34% 60% at 52% 100%, rgba(255, 90, 31, 0.95), transparent 72%),
+    radial-gradient(38% 66% at 82% 100%, rgba(255, 214, 90, 0.85), transparent 72%);
+  filter: blur(2.5px) saturate(1.2);
+  animation: adminFlameLick 1.9s ease-in-out infinite;
+}
+
+.admin-bubble-flame::before,
+.admin-bubble-flame::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  width: 32%;
+  height: 84%;
+  background: radial-gradient(closest-side at 50% 100%, rgba(255, 150, 40, 0.95), rgba(255, 80, 20, 0.4) 62%, transparent 80%);
+  filter: blur(3px);
+  animation: adminFlameLick 1.3s ease-in-out infinite;
+}
+
+.admin-bubble-flame::before {
+  left: 10%;
+}
+
+.admin-bubble-flame::after {
+  right: 8%;
+  height: 68%;
+  animation-delay: 0.45s;
+}
+
+.admin-bubble-fire i {
+  position: absolute;
+  bottom: 3px;
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: #ffe6a0;
+  box-shadow: 0 0 9px #ff6a1f, 0 0 16px rgba(255, 90, 31, 0.8);
+  animation: adminEmber 2.2s ease-in infinite;
+}
+
+.msg-bubble.bubble-admin .admin-bubble-role {
+  animation: adminRoleFire 2.4s ease-in-out infinite;
+}
+
 /* ---------------------------------------------------------- room entry */
 .admin-entry {
   position: relative;
@@ -5856,6 +5914,47 @@ table.data tr:hover td {
   }
 }
 
+@keyframes adminFlameLick {
+  0%,
+  100% {
+    transform: scaleY(0.86) translateY(1px);
+    opacity: 0.72;
+  }
+  50% {
+    transform: scaleY(1.14) translateY(-2px);
+    opacity: 1;
+  }
+}
+
+@keyframes adminEmber {
+  0% {
+    transform: translateY(0) scale(0.6);
+    opacity: 0;
+  }
+  18% {
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(-24px) scale(0.2);
+    opacity: 0;
+  }
+}
+
+@keyframes adminRoleFire {
+  0%,
+  100% {
+    color: #ffd75e;
+    text-shadow: 0 0 6px rgba(255, 120, 40, 0.85), 0 1px 4px rgba(0, 0, 0, 0.9);
+  }
+  50% {
+    color: #fff3c4;
+    text-shadow:
+      0 0 10px rgba(255, 180, 60, 1),
+      0 0 18px rgba(255, 90, 31, 0.9),
+      0 1px 4px rgba(0, 0, 0, 0.9);
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .admin-wing,
   .admin-crown-bob,
@@ -5871,7 +5970,10 @@ table.data tr:hover td {
   .admin-entry-beam,
   .admin-entry-sparks i,
   .admin-profile-aura,
-  .msg-bubble.bubble-admin {
+  .admin-bubble-flame,
+  .admin-bubble-fire i,
+  .msg-bubble.bubble-admin,
+  .msg-bubble.bubble-admin .admin-bubble-role {
     animation: none !important;
   }
 }

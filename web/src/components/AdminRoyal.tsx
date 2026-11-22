@@ -479,6 +479,14 @@ export function AdminBubbleDecor({
         <rect x="7" y="18" width="26" height="4.6" rx="1.4" fill={palette.gold[1]} />
         <circle cx="20" cy="4" r="2" fill={palette.gem[1]} />
       </svg>
+      {effects ? (
+        <span className="admin-bubble-fire" aria-hidden="true">
+          <span className="admin-bubble-flame" />
+          {Array.from({ length: 8 }).map((_, index) => (
+            <i key={index} style={{ animationDelay: `${index * 0.27}s`, left: `${6 + index * 12}%` }} />
+          ))}
+        </span>
+      ) : null}
       {effects ? <span className="admin-bubble-sparks" aria-hidden="true" /> : null}
       <span className="admin-bubble-role">{announce ? 'إعلان إداري' : label}</span>
     </>
