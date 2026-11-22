@@ -610,4 +610,81 @@ router.get(
   })
 );
 
+const GIFT_ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+
+/** Unambiguous 10-character code, shown to the user as XXXXX-XXXXX. */
+function makeGiftCode(): string {
+  let raw = '';
+  for (let index = 0; index < 10; index += 1) {
+    raw += GIFT_ALPHABET[crypto.randomInt(GIFT_ALPHABET.length)];
+  }
+  return `${raw.slice(0, 5)}-${raw.slice(5)}`;
+}
+
+router.get(
+  '/gift-codes',
+  asyncHandler(async (_req, res) => {
+    const rows = await q(
+      `SELECT g.id, g.code, g.coins, g.max_uses, g.used_count, g.note, g.expires_at,
+              g.is_active, g.created_at,
+              (SELECT count(*)::int FROM gift_code_redemptions r WHERE r.gift_code_id = g.id) AS redemptions
+       FROM gift_codes g ORDER BY g.created_at DESC LIMIT 200`
+    );
+    res.json({ codes: rows });
+  })
+);
+
+router.post(
+  '/gift-codes',
+  asyncHandler(async (req, res) => {
+    const coins = Math.trunc(Number(req.body?.coins || 0));
+    const count = Math.min(50, Math.max(1, Math.trunc(Number(req.body?.count || 1))));
+    const maxUses = Math.min(1000, Math.max(1, Math.trunc(Number(req.body?.maxUses || 1))));
+    const note = String(req.body?.note || '').slice(0, 200);
+    const expiresAt = req.body?.expiresAt ? new Date(String(req.body.expiresAt)) : null;
+    if (!Number.isFinite(coins) || coins <= 0) {
+      throw new HttpError(400, 'Coins must be a positive number', 'invalid_amount');
+    }
+    if (coins > 1_000_000) throw new HttpError(400, 'Coins amount is too large', 'invalid_amount');
+    if (expiresAt && Number.isNaN(expiresAt.getTime())) {
+      throw new HttpError(400, 'Invalid expiry date', 'invalid_expiry');
+    }
+
+    const admin = reqAdmin(req);
+    const created = await tx(async (c) => {
+      const rows: Record<string, unknown>[] = [];
+      for (let index = 0; index < count; index += 1) {
+        for (let attempt = 0; attempt < 5; attempt += 1) {
+          const inserted = await c.query(
+            `INSERT INTO gift_codes (code, coins, max_uses, note, expires_at, created_by)
+             VALUES ($1, $2, $3, $4, $5, $6)
+             ON CONFLICT (code) DO NOTHING
+             RETURNING id, code, coins, max_uses, used_count, note, expires_at, is_active, created_at`,
+            [makeGiftCode(), coins, maxUses, note, expiresAt, admin.id]
+          );
+          if (inserted.rowCount) {
+            rows.push(inserted.rows[0]);
+            break;
+          }
+        }
+      }
+      return rows;
+    });
+    res.status(201).json({ codes: created });
+  })
+);
+
+router.patch(
+  '/gift-codes/:id',
+  asyncHandler(async (req, res) => {
+    const row = await one(
+      `UPDATE gift_codes SET is_active = COALESCE($2, is_active) WHERE id = $1
+       RETURNING id, code, is_active`,
+      [req.params.id, typeof req.body?.isActive === 'boolean' ? req.body.isActive : null]
+    );
+    if (!row) throw new HttpError(404, 'Gift code not found', 'code_not_found');
+    res.json({ code: row });
+  })
+);
+
 export default router;

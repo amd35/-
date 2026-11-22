@@ -2076,6 +2076,240 @@ table.data tr:hover td {
   }
 }
 
+/* ------------------------------------------------------------ gift codes */
+.gift-btn {
+  color: #ffd75e;
+  border-color: rgba(255, 215, 94, 0.35);
+  background: rgba(255, 215, 94, 0.1);
+}
+
+.gift-entry {
+  width: 100%;
+  margin-top: 14px;
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  padding: 11px 13px;
+  border-radius: 16px;
+  border: 1px dashed rgba(255, 215, 94, 0.4);
+  background: rgba(255, 215, 94, 0.07);
+  color: var(--text);
+  text-align: start;
+  cursor: pointer;
+  transition: background 0.16s ease, border-color 0.16s ease, transform 0.16s ease;
+}
+
+.gift-entry:hover {
+  background: rgba(255, 215, 94, 0.13);
+  border-color: rgba(255, 215, 94, 0.65);
+}
+
+.gift-entry:active {
+  transform: scale(0.99);
+}
+
+.gift-entry-icon {
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 12px;
+  flex: none;
+  color: #2a1a02;
+  background: linear-gradient(135deg, #ffd75e, #f5a623);
+}
+
+.gift-entry-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1;
+  min-width: 0;
+}
+
+.gift-entry-text b {
+  font-size: 13.5px;
+}
+
+.gift-intro {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.gift-intro p {
+  margin: 0;
+}
+
+.gift-intro-icon {
+  display: grid;
+  place-items: center;
+  width: 52px;
+  height: 52px;
+  border-radius: 18px;
+  flex: none;
+  color: #ffd75e;
+  background: radial-gradient(circle at 30% 20%, rgba(255, 215, 94, 0.28), rgba(214, 51, 132, 0.2));
+  border: 1px solid rgba(255, 215, 94, 0.35);
+  box-shadow: 0 12px 30px -18px rgba(255, 215, 94, 0.9);
+}
+
+.gift-input {
+  text-align: center;
+  letter-spacing: 0.22em;
+  font-weight: 700;
+  font-size: 16px;
+  text-transform: uppercase;
+}
+
+.gift-reward {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 0 0;
+  text-align: center;
+}
+
+.gift-glow {
+  position: absolute;
+  inset: -30px -10px auto;
+  height: 220px;
+  border-radius: 50%;
+  pointer-events: none;
+  background: radial-gradient(
+    circle,
+    rgba(255, 215, 94, 0.4),
+    rgba(214, 51, 132, 0.18) 45%,
+    transparent 70%
+  );
+  animation: giftGlow 1.6s ease-out both;
+}
+
+.gift-medal {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 96px;
+  height: 96px;
+  margin: 6px 0 2px;
+  border-radius: 50%;
+  color: #2a1a02;
+  background: radial-gradient(circle at 32% 24%, #fff3c4, #ffd75e 42%, #f5a623 78%);
+  border: 2px solid rgba(255, 255, 255, 0.6);
+  box-shadow: 0 22px 45px -18px rgba(255, 215, 94, 0.85), inset 0 -6px 14px rgba(180, 110, 0, 0.35);
+  animation: giftMedal 0.65s cubic-bezier(0.22, 1.4, 0.36, 1) both;
+}
+
+.gift-title {
+  margin: 4px 0 0;
+  font-size: 19px;
+}
+
+.gift-amount {
+  font-size: 34px;
+  font-weight: 800;
+  letter-spacing: -1px;
+  background: linear-gradient(135deg, #fff, #ffd75e);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  animation: fadeUp 0.5s 0.15s ease both;
+}
+
+.gift-amount span {
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 0;
+}
+
+.gift-reward p {
+  margin: 0 0 10px;
+}
+
+.gift-spark {
+  position: absolute;
+  top: 62px;
+  left: 50%;
+  margin: -10px 0 0 -10px;
+  color: #ffd75e;
+  opacity: 0;
+  pointer-events: none;
+  animation: giftFly 0.95s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.gift-code-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.gift-code-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 11px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 215, 94, 0.35);
+  background: rgba(255, 215, 94, 0.08);
+  color: var(--text);
+  cursor: pointer;
+}
+
+.gift-code-pill b {
+  font-size: 13px;
+  letter-spacing: 0.06em;
+  color: #ffd75e;
+}
+
+.gift-code-pill:active {
+  transform: scale(0.98);
+}
+
+@keyframes giftFly {
+  0% {
+    opacity: 0;
+    transform: translate3d(0, 0, 0) scale(0.2) rotate(0deg);
+  }
+  18% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: translate3d(var(--dx), var(--dy), 0) scale(1.05) rotate(140deg);
+  }
+}
+
+@keyframes giftGlow {
+  0% {
+    opacity: 0;
+    transform: scale(0.6);
+  }
+  40% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0.55;
+    transform: scale(1.08);
+  }
+}
+
+@keyframes giftMedal {
+  0% {
+    opacity: 0;
+    transform: scale(0.3) rotate(-18deg);
+  }
+  60% {
+    opacity: 1;
+    transform: scale(1.08) rotate(4deg);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1) rotate(0);
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   * {
     animation-duration: 0.01ms !important;

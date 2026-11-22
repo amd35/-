@@ -9,6 +9,7 @@ import CallsTab from '../components/admin/CallsTab';
 import FreeCallsTab from '../components/admin/FreeCallsTab';
 import PricingTab from '../components/admin/PricingTab';
 import PackagesTab from '../components/admin/PackagesTab';
+import GiftCodesTab from '../components/admin/GiftCodesTab';
 import OrdersTab from '../components/admin/OrdersTab';
 import FinancialTab from '../components/admin/FinancialTab';
 import ReportsTab from '../components/admin/ReportsTab';
@@ -22,6 +23,7 @@ const TABS = [
   { id: 'free', label: 'Free attempts', icon: 'gift' },
   { id: 'pricing', label: 'Pricing & split', icon: 'percent' },
   { id: 'packages', label: 'Packages', icon: 'package' },
+  { id: 'gifts', label: 'Gift codes', icon: 'gift' },
   { id: 'orders', label: 'Recharge orders', icon: 'card' },
   { id: 'financial', label: 'Earnings & withdrawals', icon: 'coins' },
   { id: 'reports', label: 'Reports', icon: 'alert' },
@@ -169,6 +171,7 @@ export default function Admin() {
         {tab === 'free' ? <FreeCallsTab /> : null}
         {tab === 'pricing' ? <PricingTab /> : null}
         {tab === 'packages' ? <PackagesTab /> : null}
+        {tab === 'gifts' ? <GiftCodesTab /> : null}
         {tab === 'orders' ? <OrdersTab /> : null}
         {tab === 'financial' ? <FinancialTab /> : null}
         {tab === 'reports' ? <ReportsTab /> : null}

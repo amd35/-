@@ -12,6 +12,7 @@ import {
   useToast,
 } from '../lib/ui';
 import { AppShell } from '../components/AppShell';
+import { GiftCodeButton } from '../components/GiftCodeSheet';
 
 interface WalletData {
   wallet: { balance: number; reserved: number; earned: number; spent: number };
@@ -75,6 +76,7 @@ const TX_LABELS: Record<string, string> = {
   withdrawal: 'طلب سحب',
   withdrawal_refund: 'إرجاع سحب',
   admin_adjust: 'تعديل إداري',
+  gift_code: 'كود هدية',
 };
 
 export default function Wallet() {
@@ -213,6 +215,7 @@ export default function Wallet() {
           <p className="tiny muted" style={{ marginTop: 8 }}>
             {t('walletReservedHint')}
           </p>
+          <GiftCodeButton block onRedeemed={() => void load()} />
         </section>
 
         <section className="stack" id="packages">

@@ -313,6 +313,31 @@ CREATE TABLE IF NOT EXISTS auth_attempts (
 );
 CREATE INDEX IF NOT EXISTS auth_attempts_identifier_idx ON auth_attempts (identifier, created_at DESC);
 
+-- -------------------------------------------------------------- gift codes
+-- Admin-issued redeem codes: the user enters the code and the coins land in the wallet.
+CREATE TABLE IF NOT EXISTS gift_codes (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  code text NOT NULL UNIQUE,
+  coins integer NOT NULL CHECK (coins > 0),
+  max_uses integer NOT NULL DEFAULT 1 CHECK (max_uses > 0),
+  used_count integer NOT NULL DEFAULT 0,
+  note text,
+  expires_at timestamptz,
+  is_active boolean NOT NULL DEFAULT true,
+  created_by uuid,
+  created_at timestamptz NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS gift_codes_created_idx ON gift_codes (created_at DESC);
+
+CREATE TABLE IF NOT EXISTS gift_code_redemptions (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  gift_code_id uuid NOT NULL REFERENCES gift_codes(id) ON DELETE CASCADE,
+  user_id uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  coins integer NOT NULL,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  UNIQUE (gift_code_id, user_id)
+);
+
 -- ---------------------------------------------------------------- settings
 INSERT INTO app_settings (key, value) VALUES
   ('voice_price', '100'::jsonb),

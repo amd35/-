@@ -14,6 +14,7 @@ import {
   useToast,
 } from '../lib/ui';
 import { AppShell, BellButton, CoinPill } from '../components/AppShell';
+import { GiftCodeButton } from '../components/GiftCodeSheet';
 import { UserCard, type UserCardData } from '../components/UserCard';
 
 type Tab = 'all' | 'online' | 'favorites';
@@ -85,6 +86,7 @@ export default function Home() {
       right={
         <div className="inline">
           <CoinPill balance={me?.wallet.balance ?? 0} />
+          <GiftCodeButton />
           <BellButton />
         </div>
       }

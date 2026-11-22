@@ -235,6 +235,13 @@ const ar: Record<string, string> = {
   notifIncomingCall: 'مكالمة واردة',
   minutes: 'دقيقة',
   seconds: 'ثانية',
+  giftCode: 'كود الهدية',
+  redeemGiftCode: 'استخدام كود هدية',
+  giftCodeHint: 'عندك كود هدية؟ أدخله واحصل على كونز فوراً',
+  redeem: 'استرداد',
+  giftCodeSuccess: 'مبروك! 🎉',
+  giftCodeSuccessHint: 'أُضيفت الكونز إلى محفظتك مباشرة',
+  done: 'تم',
 };
 
 const en: Record<string, string> = {
@@ -470,6 +477,13 @@ const en: Record<string, string> = {
   notifIncomingCall: 'Incoming call',
   minutes: 'min',
   seconds: 'sec',
+  giftCode: 'Gift code',
+  redeemGiftCode: 'Redeem gift code',
+  giftCodeHint: 'Have a gift code? Enter it and get coins instantly',
+  redeem: 'Redeem',
+  giftCodeSuccess: 'Congrats! 🎉',
+  giftCodeSuccessHint: 'The coins were added to your wallet',
+  done: 'Done',
 };
 
 const dictionaries: Record<Lang, Record<string, string>> = { ar, en };

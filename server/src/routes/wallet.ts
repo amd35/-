@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { one, q, tx } from '../db';
-import { reqUser, requireAuth } from '../auth';
+import { assertNotThrottled, clearAttempts, recordAttempt, reqUser, requireAuth } from '../auth';
 import { emitToUser } from '../realtime';
 import { notify } from '../notify';
 import { confirmOrder } from '../orders';
@@ -108,6 +108,77 @@ router.get(
       })),
       paymentMethods: paymentMethods(),
     });
+  })
+);
+
+const GIFT_ATTEMPT_KIND = 'gift_redeem';
+
+router.post(
+  '/redeem',
+  requireAuth(),
+  asyncHandler(async (req, res) => {
+    const me = reqUser(req).id;
+    const code = String(req.body?.code || '')
+      .toUpperCase()
+      .replace(/[^A-Z0-9]/g, '');
+    if (code.length < 4) throw new HttpError(400, 'Enter a valid gift code', 'invalid_code');
+    await assertNotThrottled(`gift:${me}`, GIFT_ATTEMPT_KIND);
+
+    let outcome: { coins: number; balance: number; code: string };
+    try {
+      outcome = await tx(async (c) => {
+        // Lock the code row so two users redeeming the same multi-use code cannot overrun max_uses.
+        const found = await c.query(
+          `SELECT id, code, coins, max_uses, used_count, is_active, expires_at
+           FROM gift_codes
+           WHERE regexp_replace(upper(code), '[^A-Z0-9]', '', 'g') = $1
+           FOR UPDATE`,
+          [code]
+        );
+        const gift = found.rows[0];
+        if (!gift || !gift.is_active) throw new HttpError(404, 'Gift code not found', 'invalid_code');
+        if (gift.expires_at && new Date(gift.expires_at).getTime() < Date.now()) {
+          throw new HttpError(410, 'This gift code has expired', 'code_expired');
+        }
+        const already = await c.query(
+          'SELECT 1 FROM gift_code_redemptions WHERE gift_code_id = $1 AND user_id = $2',
+          [gift.id, me]
+        );
+        if (already.rowCount) {
+          throw new HttpError(409, 'You already used this gift code', 'code_already_used');
+        }
+        if (Number(gift.used_count) >= Number(gift.max_uses)) {
+          throw new HttpError(409, 'This gift code has been used up', 'code_exhausted');
+        }
+        await c.query('UPDATE gift_codes SET used_count = used_count + 1 WHERE id = $1', [gift.id]);
+        await c.query(
+          'INSERT INTO gift_code_redemptions (gift_code_id, user_id, coins) VALUES ($1, $2, $3)',
+          [gift.id, me, gift.coins]
+        );
+        const moved = await moveCoins(c, {
+          userId: me,
+          amount: Number(gift.coins),
+          type: 'gift_code',
+          refType: 'gift_code',
+          refId: gift.id,
+          meta: { code: gift.code },
+        });
+        return { coins: Number(gift.coins), balance: moved.balanceAfter, code: gift.code };
+      });
+    } catch (error) {
+      if (error instanceof HttpError && error.status < 500) {
+        await recordAttempt(`gift:${me}`, GIFT_ATTEMPT_KIND);
+      }
+      throw error;
+    }
+
+    await clearAttempts(`gift:${me}`, GIFT_ATTEMPT_KIND);
+    emitToUser(me, 'wallet:update', { balance: outcome.balance });
+    await notify(me, 'gift_code', 'كود هدية', `تمت إضافة ${outcome.coins} كونز إلى محفظتك`, {
+      coins: outcome.coins,
+      code: outcome.code,
+    });
+    res.json(outcome);
   })
 );
 
