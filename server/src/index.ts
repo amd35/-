@@ -2,7 +2,7 @@ import http from 'node:http';
 import express, { type NextFunction, type Request, type Response } from 'express';
 import multer from 'multer';
 import { pool, migrate, waitForDatabase } from './db';
-import { attachRealtime } from './realtime';
+import { attachRealtime, closeRealtime } from './realtime';
 import { registerSocketHandlers } from './wsHandlers';
 import { recoverStaleCalls, startBillingLoop } from './calls';
 import { ensureBotUser } from './bot';
@@ -125,7 +125,11 @@ bootstrap().catch((error) => {
 for (const signal of ['SIGTERM', 'SIGINT'] as const) {
   process.on(signal, () => {
     console.log(`[api] ${signal} received, shutting down`);
+    closeRealtime();
     server.close(() => pool.end().then(() => process.exit(0)));
-    setTimeout(() => process.exit(0), 5000).unref();
+    // Drop idle keep-alive sockets so `close` fires immediately instead of
+    // leaving the port refusing connections during a dev-server restart.
+    server.closeAllConnections();
+    setTimeout(() => process.exit(0), 1500).unref();
   });
 }

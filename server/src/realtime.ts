@@ -19,6 +19,8 @@ type SocketHandler = (ctx: {
 const byUser = new Map<string, Set<Client>>();
 const handlers = new Map<string, SocketHandler>();
 let sequence = 0;
+let wss: WebSocketServer | null = null;
+let heartbeat: ReturnType<typeof setInterval> | null = null;
 
 export function onSocketEvent(event: string, handler: SocketHandler): void {
   handlers.set(event, handler);
@@ -53,7 +55,7 @@ export function broadcast(event: string, data: unknown): void {
 }
 
 export function attachRealtime(server: Server): void {
-  const wss = new WebSocketServer({ server, path: '/ws', maxPayload: 512 * 1024 });
+  wss = new WebSocketServer({ server, path: '/ws', maxPayload: 512 * 1024 });
 
   wss.on('connection', (ws, req) => {
     let userId: string;
@@ -121,7 +123,7 @@ export function attachRealtime(server: Server): void {
     });
   });
 
-  const heartbeat = setInterval(() => {
+  heartbeat = setInterval(() => {
     for (const clients of byUser.values()) {
       for (const client of clients) {
         if (!client.alive) {
@@ -139,4 +141,22 @@ export function attachRealtime(server: Server): void {
   }, 25_000);
   heartbeat.unref?.();
   console.log('[ws] realtime gateway ready on /ws');
+}
+
+/** Drops every socket and the upgrade server so shutdown can finish at once. */
+export function closeRealtime(): void {
+  if (heartbeat) clearInterval(heartbeat);
+  heartbeat = null;
+  for (const clients of byUser.values()) {
+    for (const client of clients) {
+      try {
+        client.ws.terminate();
+      } catch {
+        /* already closed */
+      }
+    }
+  }
+  byUser.clear();
+  wss?.close();
+  wss = null;
 }
