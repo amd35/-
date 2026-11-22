@@ -29,6 +29,8 @@ export default function UsersTab() {
   const [selected, setSelected] = useState<AdminUser | null>(null);
   const [amount, setAmount] = useState('');
   const [note, setNote] = useState('');
+  const [idTarget, setIdTarget] = useState<AdminUser | null>(null);
+  const [code, setCode] = useState('');
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -73,6 +75,24 @@ export default function UsersTab() {
         body: {},
       });
       toast.push(`تم إرسال الآي دي ${response.code} إلى ${user.display_name}`, 'success');
+    } catch (error) {
+      toast.push((error as Error).message, 'error');
+    }
+  };
+
+  // Admin types any account ID and applies it to the user.
+  const saveId = async () => {
+    if (!idTarget) return;
+    try {
+      const response = await api<{ code: string }>(`/admin/users/${idTarget.id}/set-id`, {
+        method: 'POST',
+        admin: true,
+        body: { code: code.trim() },
+      });
+      toast.push(`تم تعيين الآي دي ${response.code} إلى ${idTarget.display_name}`, 'success');
+      setIdTarget(null);
+      setCode('');
+      await load();
     } catch (error) {
       toast.push((error as Error).message, 'error');
     }
@@ -154,6 +174,15 @@ export default function UsersTab() {
                     إرسال الآي دي
                   </button>
                   <button
+                    className="btn btn-ghost btn-xs"
+                    onClick={() => {
+                      setIdTarget(user);
+                      setCode(user.username);
+                    }}
+                  >
+                    تعديل الآي دي
+                  </button>
+                  <button
                     className={`btn btn-xs ${user.is_banned ? 'btn-outline' : 'btn-danger'}`}
                     onClick={() => void toggleBan(user)}
                   >
@@ -183,6 +212,28 @@ export default function UsersTab() {
           </Field>
           <button className="btn btn-primary btn-block" onClick={() => void adjustCoins()}>
             تطبيق
+          </button>
+        </div>
+      </Sheet>
+
+      <Sheet
+        open={Boolean(idTarget)}
+        onClose={() => setIdTarget(null)}
+        title={`تعيين الآي دي — ${idTarget?.display_name ?? ''}`}
+      >
+        <div className="stack">
+          <Field label="الآي دي الجديد" hint="أرقام فقط — اكتب أي آي دي تريده">
+            <input
+              className="input"
+              value={code}
+              onChange={(event) => setCode(event.target.value)}
+              placeholder="123456"
+              dir="ltr"
+              inputMode="numeric"
+            />
+          </Field>
+          <button className="btn btn-primary btn-block" onClick={() => void saveId()}>
+            حفظ الآي دي
           </button>
         </div>
       </Sheet>

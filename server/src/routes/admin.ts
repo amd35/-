@@ -245,6 +245,36 @@ router.post(
   })
 );
 
+// Admin sets any account ID manually.
+router.post(
+  '/users/:id/set-id',
+  asyncHandler(async (req, res) => {
+    const code = String(req.body?.code || '').trim();
+    if (!/^\d{1,12}$/.test(code)) {
+      throw new HttpError(400, 'الآي دي يجب أن يكون أرقاماً فقط (حتى 12 رقماً)', 'invalid_code');
+    }
+    const user = await one<{ id: string; username: string }>(
+      'SELECT id, username FROM users WHERE id = $1 AND is_bot = false',
+      [req.params.id]
+    );
+    if (!user) throw new HttpError(404, 'User not found', 'user_not_found');
+    const taken = await one<{ id: string }>('SELECT id FROM users WHERE username = $1 AND id <> $2', [
+      code,
+      user.id,
+    ]);
+    if (taken) throw new HttpError(409, 'هذا الآي دي مستخدم من حساب آخر', 'code_taken');
+    await q('UPDATE users SET username = $2 WHERE id = $1', [user.id, code]);
+    await notify(
+      user.id,
+      'account_id',
+      'آي دي حسابك',
+      `تم تحديث آي دي حسابك في Connect+ إلى ${code} — استخدمه لتسجيل الدخول`,
+      { code }
+    );
+    res.json({ code });
+  })
+);
+
 router.get(
   '/calls',
   asyncHandler(async (req, res) => {
