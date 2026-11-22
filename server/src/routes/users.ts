@@ -3,7 +3,7 @@ import { one, q, tx } from '../db';
 import { reqUser, requireAuth } from '../auth';
 import { getFreeCallState } from '../freecalls';
 import { notify } from '../notify';
-import { FRAME_FIELDS, frameJoins, toPublicUser } from '../serializers';
+import { FRAME_FIELDS, RANK_FIELDS, frameJoins, rankJoins, toPublicUser } from '../serializers';
 import { HttpError, asyncHandler, intParam } from '../utils';
 
 const router = Router();
@@ -27,7 +27,7 @@ interface FeedRow {
 
 const FEED_SELECT = `
   SELECT u.id, u.username, u.display_name, u.avatar_url, u.bio, u.gender, u.country, u.age,
-         u.last_seen_at, u.created_at, ${FRAME_FIELDS},
+         u.last_seen_at, u.created_at, ${FRAME_FIELDS}, ${RANK_FIELDS},
     EXISTS (SELECT 1 FROM favorites f WHERE f.user_id = $1 AND f.target_id = u.id) AS is_favorite,
     EXISTS (SELECT 1 FROM friendships fr WHERE fr.status = 'accepted'
             AND ((fr.requester_id = $1 AND fr.addressee_id = u.id)
@@ -36,6 +36,7 @@ const FEED_SELECT = `
     EXISTS (SELECT 1 FROM blocked_users b WHERE b.user_id = $1 AND b.blocked_id = u.id) AS is_blocked
   FROM users u
   ${frameJoins('u')}
+  ${rankJoins('u')}
   WHERE u.id <> $1 AND u.is_banned = false AND u.is_bot = false
     AND NOT EXISTS (
       SELECT 1 FROM blocked_users bb
@@ -154,10 +155,10 @@ router.get(
       targetId === me
         ? await one<FeedRow>(
             `SELECT u.id, u.username, u.display_name, u.avatar_url, u.bio, u.gender, u.country,
-                    u.age, u.last_seen_at, u.created_at, ${FRAME_FIELDS},
+                    u.age, u.last_seen_at, u.created_at, ${FRAME_FIELDS}, ${RANK_FIELDS},
                     false AS is_favorite, false AS is_friend, false AS is_following,
                     false AS is_blocked
-             FROM users u ${frameJoins('u')} WHERE u.id = $1`,
+             FROM users u ${frameJoins('u')} ${rankJoins('u')} WHERE u.id = $1`,
             [me]
           )
         : await one<FeedRow>(`${FEED_SELECT} AND u.id = $2`, [me, targetId]);

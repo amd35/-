@@ -7,6 +7,7 @@ import { useI18n } from '../lib/i18n';
 import { useRealtime } from '../lib/realtime';
 import { Avatar, EmptyState, formatClock, formatCoins, Icon, Sheet, Spinner, useToast } from '../lib/ui';
 import { GiftReveal, GiftAnimation, type GiftVisual } from '../components/GiftAnimation';
+import { RankBadge, type RankInfo } from '../components/RankBadge';
 import { GiftShop, type GiftItem, type GiftMessage } from '../components/GiftShop';
 
 interface Message {
@@ -31,6 +32,7 @@ interface Peer {
   online?: boolean;
   lastSeenAt?: string | null;
   frame?: { id: string; design: string | null; kind: string; imageUrl: string | null; rarity: string } | null;
+  rank?: RankInfo | null;
 }
 
 export default function ChatRoom() {
@@ -234,7 +236,10 @@ export default function ChatRoom() {
         </button>
         <Avatar user={{ ...peer, online: isOnline }} size={40} />
         <div className="grow" style={{ minWidth: 0 }}>
-          <div className="row-title">{peer?.displayName ?? t('loading')}</div>
+          <div className="row-title name-with-rank">
+            {peer?.rank ? <RankBadge rank={peer.rank} size={15} /> : null}
+            <span>{peer?.displayName ?? t('loading')}</span>
+          </div>
           <div className="row-sub">
             {peerTyping ? '…' : isOnline ? t('onlineNow') : t('offline')}
           </div>

@@ -5,6 +5,7 @@ import { useI18n } from '../lib/i18n';
 import { useRealtime } from '../lib/realtime';
 import { useToast } from '../lib/ui';
 import { Avatar, formatCoins, formatDuration, Icon } from '../lib/ui';
+import { RankBadge } from './RankBadge';
 
 export interface UserCardData {
   id: string;
@@ -12,6 +13,7 @@ export interface UserCardData {
   displayName: string;
   avatarUrl?: string | null;
   frame?: { id: string; design: string | null; kind: string; imageUrl: string | null; rarity: string } | null;
+  rank?: import('./RankBadge').RankInfo | null;
   bio?: string | null;
   online?: boolean;
   isFavorite?: boolean;
@@ -52,7 +54,10 @@ export function UserCard({
         <Icon name="star" size={15} fill={user.isFavorite ? 'currentColor' : 'none'} />
       </button>
       <Avatar user={{ ...user, online: isOnline }} size={62} />
-      <div className="name">{user.displayName}</div>
+      <div className="name name-with-rank">
+        {user.rank ? <RankBadge rank={user.rank} size={15} /> : null}
+        <span>{user.displayName}</span>
+      </div>
       <div className="handle">
         {user.age ? `${user.age} ${t('years')}` : `#${user.username}`}
         {isOnline ? <span style={{ color: 'var(--green)' }}> • {t('onlineNow')}</span> : null}
@@ -100,7 +105,10 @@ export function UserRow({
     <div className="row" onClick={onClick}>
       <Avatar user={{ ...user, online: isOnline }} />
       <div className="row-main">
-        <div className="row-title">{user.displayName}</div>
+        <div className="row-title name-with-rank">
+          {user.rank ? <RankBadge rank={user.rank} size={14} /> : null}
+          <span>{user.displayName}</span>
+        </div>
         <div className="row-sub">#{user.username}</div>
       </div>
       {right}

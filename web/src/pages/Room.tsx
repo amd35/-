@@ -14,6 +14,7 @@ import {
 } from '../components/RoomGiftSheet';
 import type { FrameInfo } from '../components/AvatarFrame';
 import { EntryBanner } from '../components/Cosmetics';
+import { RankBadge, type RankInfo } from '../components/RankBadge';
 
 interface SeatUser {
   id: string;
@@ -21,6 +22,7 @@ interface SeatUser {
   avatarUrl: string | null;
   online: boolean;
   frame: FrameInfo | null;
+  rank?: RankInfo | null;
 }
 
 interface Mic {
@@ -248,8 +250,9 @@ export default function Room() {
                         )}
                         {mic.kind === 'host' ? <span className="mic-crown">👑</span> : null}
                       </span>
-                      <span className="mic-name">
-                        {mic.user ? mic.user.displayName : mic.isLocked ? t('micLocked') : t('micFree')}
+                      <span className="mic-name name-with-rank">
+                        {mic.user?.rank ? <RankBadge rank={mic.user.rank} size={13} /> : null}
+                        <span>{mic.user ? mic.user.displayName : mic.isLocked ? t('micLocked') : t('micFree')}</span>
                       </span>
                       <span className="mic-label">
                         {mic.mine ? t('leaveMic') : mic.label || `${t('mic')} ${mic.position}`}

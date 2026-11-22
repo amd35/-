@@ -5,6 +5,7 @@ import { Icon, useToast } from '../lib/ui';
 import { adminError } from '../components/admin/shared';
 import Overview from '../components/admin/Overview';
 import UsersTab from '../components/admin/UsersTab';
+import RanksTab from '../components/admin/RanksTab';
 import CallsTab from '../components/admin/CallsTab';
 import FreeCallsTab from '../components/admin/FreeCallsTab';
 import PricingTab from '../components/admin/PricingTab';
@@ -23,6 +24,7 @@ import RoomsTab from '../components/admin/RoomsTab';
 const TABS = [
   { id: 'overview', label: 'نظرة عامة', icon: 'chart' },
   { id: 'users', label: 'المستخدمون', icon: 'users' },
+  { id: 'ranks', label: 'إدارة الرتب والبوكسات', icon: 'star' },
   { id: 'calls', label: 'المكالمات', icon: 'phone' },
   { id: 'free', label: 'المحاولات المجانية', icon: 'gift' },
   { id: 'pricing', label: 'الأسعار والأرباح', icon: 'percent' },
@@ -174,6 +176,7 @@ export default function Admin() {
 
         {tab === 'overview' ? <Overview /> : null}
         {tab === 'users' ? <UsersTab /> : null}
+        {tab === 'ranks' ? <RanksTab /> : null}
         {tab === 'calls' ? <CallsTab /> : null}
         {tab === 'free' ? <FreeCallsTab /> : null}
         {tab === 'pricing' ? <PricingTab /> : null}

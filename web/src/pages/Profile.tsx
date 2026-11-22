@@ -16,6 +16,7 @@ import {
 } from '../lib/ui';
 import { AppShell } from '../components/AppShell';
 import { IdBadge, NameCard } from '../components/Cosmetics';
+import { RankTag, rankName } from '../components/RankBadge';
 import { ProfileCustomize } from '../components/ProfileCustomize';
 import type { UserCardData } from '../components/UserCard';
 
@@ -28,7 +29,7 @@ interface ProfileResponse {
 
 export function Profile() {
   const { me, refresh } = useAuth();
-  const { t } = useI18n();
+  const { t, lang } = useI18n();
   const { on } = useRealtime();
   const navigate = useNavigate();
   const toast = useToast();
@@ -159,6 +160,7 @@ export function Profile() {
           ) : (
             <h2 style={{ fontSize: 21 }}>{me.user.displayName}</h2>
           )}
+          {me.rank ? <RankTag rank={me.rank} size={18} /> : null}
           {me.user.bio ? <p className="tiny center muted">{me.user.bio}</p> : null}
           <div className="inline">
             {me.cosmetics?.id ? (
@@ -239,6 +241,16 @@ export function Profile() {
         ) : null}
 
         <section className="list">
+          <div className="row rank-entry-row" onClick={() => navigate('/ranks')}>
+            <span className="rank-entry-icon" aria-hidden="true">♛</span>
+            <div className="row-main">
+              <div className="row-title">{t('ranks')}</div>
+              <div className="row-sub">
+                {me.rank ? rankName(me.rank, lang) : t('noRankHint')}
+              </div>
+            </div>
+            <Icon name="arrowLeft" size={17} />
+          </div>
           <div className="row" onClick={() => navigate('/frames')}>
             <Icon name="sparkle" size={19} />
             <div className="row-main">
@@ -432,6 +444,7 @@ export function UserProfile() {
         <section className="profile-head">
           <Avatar user={{ ...user, online: isOnline }} size={104} />
           <h2 style={{ fontSize: 21 }}>{user.displayName}</h2>
+          {user.rank ? <RankTag rank={user.rank} size={17} /> : null}
           <span className="tiny muted">
             #{user.username} • {isOnline ? t('onlineNow') : t('offline')}
           </span>

@@ -16,6 +16,7 @@ import {
 import { equippedCosmetics, equippedFrameInfo } from '../frames';
 import { getFreeCallState } from '../freecalls';
 import { notify } from '../notify';
+import { activeRankFor, serializeRankInfo } from '../ranks';
 import { getPublicUser } from '../serializers';
 import { getSettings } from '../settings';
 import { sendSms, smsConfigured } from '../sms';
@@ -91,8 +92,10 @@ export async function buildMe(userId: string) {
     [userId]
   );
   const settings = await getSettings();
+  const rank = await activeRankFor(userId);
   return {
     user: serializeSelf(row, await equippedFrameInfo(userId)),
+    rank: rank ? serializeRankInfo(rank) : null,
     cosmetics: await equippedCosmetics(userId),
     wallet: wallet ?? { balance: 0, reserved: 0, earned: 0, spent: 0 },
     freeCalls: free,

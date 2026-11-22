@@ -702,3 +702,132 @@ CROSS JOIN (VALUES
   (1, 'المايك الرئيسي'), (2, 'مايك 2'), (3, 'مايك 3'), (4, 'مايك 4'),
   (5, 'مايك 5'), (6, 'مايك 6'), (7, 'مايك 7'), (8, 'مايك 8')
 ) AS seat(position, label);
+
+-- ============================================================================
+-- Official ranks & daily boxes
+-- ----------------------------------------------------------------------------
+-- A rank is granted by the administration only. A user wears one active rank
+-- at a time (senior-management positions included); `user_ranks` keeps the full
+-- history, so a revoked or expired rank is never lost. Every daily box claim is
+-- keyed by the Baghdad calendar date, so a retried request or a device in
+-- another timezone can never pay twice.
+CREATE TABLE IF NOT EXISTS ranks (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  key text NOT NULL UNIQUE,
+  name_ar text NOT NULL,
+  name_en text NOT NULL DEFAULT '',
+  -- 'rank' = one of the five official ranks; 'position' = a senior-management job.
+  kind text NOT NULL DEFAULT 'rank',
+  tier integer NOT NULL DEFAULT 1,
+  -- Authority level: a manager can never grant a rank at or above their own power.
+  power integer NOT NULL DEFAULT 10,
+  description text NOT NULL DEFAULT '',
+  daily_coins integer NOT NULL DEFAULT 0 CHECK (daily_coins >= 0),
+  commission_percent integer NOT NULL DEFAULT 0 CHECK (commission_percent BETWEEN 0 AND 100),
+  color text NOT NULL DEFAULT '#ffc107',
+  badge_image_url text,
+  permissions jsonb NOT NULL DEFAULT '[]'::jsonb,
+  duration_days integer NOT NULL DEFAULT 0 CHECK (duration_days >= 0),
+  is_active boolean NOT NULL DEFAULT true,
+  sort_order integer NOT NULL DEFAULT 0,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  updated_at timestamptz NOT NULL DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS user_ranks (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  rank_key text NOT NULL REFERENCES ranks(key) ON DELETE CASCADE,
+  granted_by_admin uuid REFERENCES admin_users(id) ON DELETE SET NULL,
+  granted_by_user uuid REFERENCES users(id) ON DELETE SET NULL,
+  note text,
+  granted_at timestamptz NOT NULL DEFAULT now(),
+  expires_at timestamptz,
+  is_active boolean NOT NULL DEFAULT true,
+  revoked_at timestamptz
+);
+-- One active rank per user; expired rows are deactivated before the next grant.
+CREATE UNIQUE INDEX IF NOT EXISTS user_ranks_active_uidx ON user_ranks (user_id) WHERE is_active;
+CREATE INDEX IF NOT EXISTS user_ranks_rank_idx ON user_ranks (rank_key, is_active);
+
+CREATE TABLE IF NOT EXISTS rank_boxes (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  rank_key text NOT NULL REFERENCES ranks(key) ON DELETE CASCADE,
+  name text NOT NULL,
+  coins integer NOT NULL DEFAULT 0 CHECK (coins >= 0),
+  -- [{ "type": "coins", "amount": 5000 }, { "type": "cosmetic", "itemId": "<uuid>" }]
+  extras jsonb NOT NULL DEFAULT '[]'::jsonb,
+  image_url text,
+  is_active boolean NOT NULL DEFAULT true,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  updated_at timestamptz NOT NULL DEFAULT now()
+);
+CREATE UNIQUE INDEX IF NOT EXISTS rank_boxes_rank_uidx ON rank_boxes (rank_key);
+
+CREATE TABLE IF NOT EXISTS rank_box_claims (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  box_id uuid REFERENCES rank_boxes(id) ON DELETE SET NULL,
+  rank_key text NOT NULL,
+  claim_date date NOT NULL,
+  coins integer NOT NULL DEFAULT 0,
+  details jsonb NOT NULL DEFAULT '{}'::jsonb,
+  created_at timestamptz NOT NULL DEFAULT now()
+);
+-- One box per user per Baghdad day, enforced by the database itself.
+CREATE UNIQUE INDEX IF NOT EXISTS rank_box_claims_day_uidx ON rank_box_claims (user_id, claim_date);
+CREATE INDEX IF NOT EXISTS rank_box_claims_rank_idx ON rank_box_claims (rank_key, claim_date DESC);
+
+CREATE TABLE IF NOT EXISTS rank_audit (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  actor_kind text NOT NULL DEFAULT 'admin',
+  actor_id uuid,
+  actor_name text NOT NULL DEFAULT '',
+  action text NOT NULL,
+  target_user_id uuid REFERENCES users(id) ON DELETE SET NULL,
+  rank_key text,
+  details jsonb NOT NULL DEFAULT '{}'::jsonb,
+  created_at timestamptz NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS rank_audit_created_idx ON rank_audit (created_at DESC);
+CREATE INDEX IF NOT EXISTS rank_audit_user_idx ON rank_audit (target_user_id, created_at DESC);
+
+-- The official catalog: five ranks plus the five senior-management positions.
+-- ON CONFLICT DO NOTHING keeps every edit the administration makes in the panel.
+INSERT INTO ranks (key, name_ar, name_en, kind, tier, power, description, daily_coins, commission_percent, color, permissions, sort_order)
+SELECT * FROM (VALUES
+  ('new_user', 'المستخدم الجديد', 'New User', 'rank', 1, 10,
+   'صلاحيات المستخدم الأساسية فقط', 50000, 0, '#ffc107', '[]'::jsonb, 10),
+  ('support', 'خدمة العملاء الرسمية', 'Official Customer Service', 'rank', 2, 20,
+   'استقبال طلبات المستخدمين ومتابعة الشكاوى والاستفسارات', 100000, 0, '#3b82f6',
+   '["support_tickets","view_users"]'::jsonb, 20),
+  ('rooms_manager', 'إدارة غرف الأنشطة', 'Activity Rooms Management', 'rank', 3, 30,
+   'إدارة غرف المسابقات والفعاليات وتنظيم الجوائز', 150000, 0, '#a855f7',
+   '["manage_rooms","manage_events"]'::jsonb, 30),
+  ('recharge_agent', 'وكيل الشحن الرسمي', 'Official Recharge Agent', 'rank', 4, 40,
+   'لوحة الوكيل وطلبات الشحن والأرباح والعمولات', 200000, 5, '#22c55e',
+   '["agent_panel","view_recharge_orders"]'::jsonb, 40),
+  ('senior_admin', 'الإدارة العليا', 'Senior Management', 'rank', 5, 50,
+   'الرتبة الخامسة — مناصب إدارية مستقلة', 0, 0, '#ef4444', '[]'::jsonb, 50),
+  ('room_supervisor', 'مشرف غرف', 'Room Supervisor', 'position', 5, 55,
+   'إدارة الغرف والمستخدمين', 250000, 0, '#a855f7',
+   '["manage_rooms","support_tickets","view_users"]'::jsonb, 60),
+  ('general_supervisor', 'مشرف عام', 'General Supervisor', 'position', 5, 65,
+   'الإشراف العام والمتابعة', 300000, 0, '#22c55e',
+   '["manage_rooms","support_tickets","view_users","view_recharge_orders"]'::jsonb, 70),
+  ('general_manager', 'مدير عام', 'General Manager', 'position', 5, 75,
+   'إدارة شاملة للتطبيق', 400000, 0, '#ef4444',
+   '["manage_rooms","manage_events","support_tickets","view_users","view_recharge_orders","manage_boxes"]'::jsonb, 80),
+  ('super_admin', 'سوبر أدمن', 'Super Admin', 'position', 5, 100,
+   'صلاحيات كاملة على النظام', 500000, 0, '#3b82f6', '["*"]'::jsonb, 90),
+  ('official_admin', 'إداري رسمي', 'Official Admin', 'position', 5, 85,
+   'إدارة النظام والمحتوى والرتب', 350000, 0, '#f4b942',
+   '["manage_ranks","manage_boxes","manage_users","manage_rooms","manage_events","support_tickets","view_users","view_recharge_orders"]'::jsonb, 100)
+) AS seed(key, name_ar, name_en, kind, tier, power, description, daily_coins, commission_percent, color, permissions, sort_order)
+ON CONFLICT (key) DO NOTHING;
+
+-- One daily box per rank, starting with the official daily reward.
+INSERT INTO rank_boxes (rank_key, name, coins)
+SELECT r.key, 'بوكس ' || r.name_ar, r.daily_coins
+FROM ranks r
+ON CONFLICT (rank_key) DO NOTHING;

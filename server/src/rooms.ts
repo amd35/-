@@ -1,7 +1,16 @@
 import type { PoolClient } from 'pg';
 import { one, q } from './db';
 import { isOnline } from './realtime';
-import { FRAME_FIELDS, frameFromRow, frameJoins, type FrameInfo } from './serializers';
+import {
+  FRAME_FIELDS,
+  RANK_FIELDS,
+  frameFromRow,
+  frameJoins,
+  rankFromRow,
+  rankJoins,
+  type FrameInfo,
+  type RankInfo,
+} from './serializers';
 import { HttpError } from './utils';
 
 export const MIC_KINDS = ['host', 'speaker', 'audience'] as const;
@@ -35,6 +44,13 @@ export interface MicRow {
   frame_kind?: string | null;
   frame_image_url?: string | null;
   frame_rarity?: string | null;
+  rank_key?: string | null;
+  rank_name_ar?: string | null;
+  rank_name_en?: string | null;
+  rank_kind?: string | null;
+  rank_tier?: number | null;
+  rank_color?: string | null;
+  rank_badge_url?: string | null;
 }
 
 export interface SeatUser {
@@ -44,6 +60,7 @@ export interface SeatUser {
   avatarUrl: string | null;
   online: boolean;
   frame: FrameInfo | null;
+  rank: RankInfo | null;
 }
 
 export function serializeRoom(row: RoomRow) {
@@ -68,6 +85,7 @@ export function serializeMic(row: MicRow, meId: string) {
         avatarUrl: row.avatar_url,
         online: isOnline(row.user_id),
         frame: frameFromRow(row),
+        rank: rankFromRow(row),
       }
     : null;
   return {
@@ -83,10 +101,11 @@ export function serializeMic(row: MicRow, meId: string) {
 
 const MIC_SELECT = `
   SELECT m.id, m.room_id, m.position, m.label, m.kind, m.is_locked, m.user_id, m.joined_at,
-         u.username, u.display_name, u.avatar_url, ${FRAME_FIELDS}
+         u.username, u.display_name, u.avatar_url, ${FRAME_FIELDS}, ${RANK_FIELDS}
   FROM room_mics m
   LEFT JOIN users u ON u.id = m.user_id
-  ${frameJoins('u')}`;
+  ${frameJoins('u')}
+  ${rankJoins('u')}`;
 
 export async function roomMics(roomId: string, meId: string) {
   const rows = await q<MicRow>(`${MIC_SELECT} WHERE m.room_id = $1 ORDER BY m.position ASC`, [roomId]);
