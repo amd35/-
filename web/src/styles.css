@@ -5318,7 +5318,7 @@ table.data tr:hover td {
 
 .av-art-wing img {
   transform-origin: 31.7% 35%;
-  animation: avWingFlapL 4.4s ease-in-out infinite, avArtFire 3.2s ease-in-out infinite;
+  animation: avWingFlapL 2.6s ease-in-out infinite, avArtFire 3.2s ease-in-out infinite;
 }
 
 .av-art-wing-r img {
@@ -5348,13 +5348,13 @@ table.data tr:hover td {
     transform: rotate(0deg);
   }
   44% {
-    transform: rotate(4.8deg);
+    transform: rotate(9deg);
   }
   68% {
-    transform: rotate(1.6deg);
+    transform: rotate(3deg);
   }
   86% {
-    transform: rotate(-1.1deg);
+    transform: rotate(-2deg);
   }
 }
 
@@ -5365,13 +5365,13 @@ table.data tr:hover td {
     transform: rotate(0deg);
   }
   44% {
-    transform: rotate(-4.8deg);
+    transform: rotate(-9deg);
   }
   68% {
-    transform: rotate(-1.6deg);
+    transform: rotate(-3deg);
   }
   86% {
-    transform: rotate(1.1deg);
+    transform: rotate(2deg);
   }
 }
 
