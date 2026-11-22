@@ -159,7 +159,6 @@ export function Profile() {
           ) : (
             <h2 style={{ fontSize: 21 }}>{me.user.displayName}</h2>
           )}
-          <span className="tiny muted">#{me.user.username}</span>
           {me.user.bio ? <p className="tiny center muted">{me.user.bio}</p> : null}
           <div className="inline">
             {me.cosmetics?.id ? (
