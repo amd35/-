@@ -144,7 +144,20 @@ router.get(
   requireAuth(),
   asyncHandler(async (req, res) => {
     const me = reqUser(req).id;
-    const row = await one<FeedRow>(`${FEED_SELECT} AND u.id = $2`, [me, req.params.id]);
+    const targetId = req.params.id;
+    // The discovery feed excludes your own account, so the profile page needs a
+    // separate read to show your own stats and earnings.
+    const row =
+      targetId === me
+        ? await one<FeedRow>(
+            `SELECT u.id, u.username, u.display_name, u.avatar_url, u.bio, u.gender, u.country,
+                    u.age, u.last_seen_at, u.created_at,
+                    false AS is_favorite, false AS is_friend, false AS is_following,
+                    false AS is_blocked
+             FROM users u WHERE u.id = $1`,
+            [me]
+          )
+        : await one<FeedRow>(`${FEED_SELECT} AND u.id = $2`, [me, targetId]);
     if (!row) throw new HttpError(404, 'User not found', 'user_not_found');
 
     const counts = await one<{ friends: string; followers: string; following: string }>(

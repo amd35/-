@@ -59,13 +59,16 @@ export async function migrate(): Promise<void> {
   await pool.query(schema);
 
   // Admin credentials come from the platform secret store, never from source.
+  // Once the password is changed in the admin panel (password_source = 'custom'),
+  // the stored hash wins and a boot no longer overwrites it.
   const adminPassword = process.env.ADMIN_PASSWORD;
   if (adminPassword) {
     const hash = await bcrypt.hash(adminPassword, 10);
     await pool.query(
       `INSERT INTO admin_users (username, password_hash, display_name)
        VALUES ('admin', $1, 'Administrator')
-       ON CONFLICT (username) DO UPDATE SET password_hash = EXCLUDED.password_hash`,
+       ON CONFLICT (username) DO UPDATE SET password_hash = EXCLUDED.password_hash
+       WHERE admin_users.password_source = 'secret'`,
       [hash]
     );
   }

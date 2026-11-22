@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { Navigate, useNavigate, useParams } from 'react-router-dom';
 import { api } from '../lib/api';
 import { useAuth } from '../lib/auth';
 import { useCall } from '../lib/call';
@@ -285,8 +285,7 @@ export function UserProfile() {
   }, [id, toast]);
 
   if (me?.user.id === id) {
-    navigate('/profile', { replace: true });
-    return null;
+    return <Navigate to="/profile" replace />;
   }
 
   const patch = (changes: Partial<UserCardData>) =>

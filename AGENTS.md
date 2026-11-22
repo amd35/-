@@ -35,4 +35,6 @@
   only when `BASE44_PREVIEW_MODE === '1'`; `__VITE_ADDITIONAL_SERVER_ALLOWED_HOSTS` is passed through.
 - Without an SMS/SMTP provider, OTP codes and password-reset tokens are echoed in the API response
   **only** when `BASE44_PREVIEW_MODE === '1'`, so signup can be completed in the sandbox.
-- Admin panel: `/admin`, username `admin`, password = the `ADMIN_PASSWORD` secret.
+- Admin panel: `/admin`, username `admin`. The password starts as the `ADMIN_PASSWORD` secret; once it is
+  changed from the panel's **Security** tab, the stored hash wins (`admin_users.password_source = 'custom'`)
+  and a boot no longer overwrites it. Setting the secret again only affects a row still on `'secret'`.

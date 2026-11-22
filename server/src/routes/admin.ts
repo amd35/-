@@ -15,7 +15,7 @@ import { notify } from '../notify';
 import { confirmOrder } from '../orders';
 import { emitToUser, isOnline, onlineUserIds } from '../realtime';
 import { getSettings, updateSettings } from '../settings';
-import { HttpError, asyncHandler, intParam, iraqDateStr } from '../utils';
+import { HttpError, asyncHandler, intParam, iraqDateStr, nextIraqMidnight } from '../utils';
 import { moveCoins } from '../wallet';
 
 const router = Router();
@@ -52,6 +52,32 @@ router.get(
   '/me',
   asyncHandler(async (req, res) => {
     res.json({ admin: reqAdmin(req) });
+  })
+);
+
+router.post(
+  '/password',
+  asyncHandler(async (req, res) => {
+    const admin = reqAdmin(req);
+    const current = String(req.body?.currentPassword || '');
+    const next = String(req.body?.newPassword || '');
+    if (next.length < 8) {
+      throw new HttpError(400, 'New password must be at least 8 characters', 'weak_password');
+    }
+    if (next.length > 128) throw new HttpError(400, 'Password is too long', 'invalid_password');
+    const row = await one<{ password_hash: string }>(
+      'SELECT password_hash FROM admin_users WHERE id = $1',
+      [admin.id]
+    );
+    if (!row || !(await bcrypt.compare(current, row.password_hash))) {
+      throw new HttpError(401, 'Current password is wrong', 'invalid_credentials');
+    }
+    await q(
+      `UPDATE admin_users SET password_hash = $2, password_source = 'custom' WHERE id = $1`,
+      [admin.id, await bcrypt.hash(next, 10)]
+    );
+    await clearAttempts(`admin:${admin.username}`, 'admin_login');
+    res.json({ ok: true });
   })
 );
 
@@ -527,7 +553,7 @@ router.get(
       usage,
       totals: { used: Number(totals?.used || 0), users: Number(totals?.users || 0) },
       today,
-      nextResetAt: new Date(Date.now() + 1000).toISOString(),
+      nextResetAt: nextIraqMidnight().toISOString(),
     });
   })
 );

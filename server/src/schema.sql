@@ -275,6 +275,8 @@ CREATE TABLE IF NOT EXISTS admin_users (
   created_at timestamptz NOT NULL DEFAULT now(),
   last_login_at timestamptz
 );
+-- 'secret' = hash comes from the ADMIN_PASSWORD secret on boot; 'custom' = changed in the panel.
+ALTER TABLE admin_users ADD COLUMN IF NOT EXISTS password_source text NOT NULL DEFAULT 'secret';
 
 CREATE TABLE IF NOT EXISTS app_settings (
   key text PRIMARY KEY,

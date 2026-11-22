@@ -13,6 +13,7 @@ import OrdersTab from '../components/admin/OrdersTab';
 import FinancialTab from '../components/admin/FinancialTab';
 import ReportsTab from '../components/admin/ReportsTab';
 import BroadcastTab from '../components/admin/BroadcastTab';
+import SecurityTab from '../components/admin/SecurityTab';
 
 const TABS = [
   { id: 'overview', label: 'Overview', icon: 'chart' },
@@ -25,6 +26,7 @@ const TABS = [
   { id: 'financial', label: 'Earnings & withdrawals', icon: 'coins' },
   { id: 'reports', label: 'Reports', icon: 'alert' },
   { id: 'broadcast', label: 'Broadcast', icon: 'bell' },
+  { id: 'security', label: 'Security', icon: 'lock' },
 ] as const;
 
 type TabId = (typeof TABS)[number]['id'];
@@ -171,6 +173,7 @@ export default function Admin() {
         {tab === 'financial' ? <FinancialTab /> : null}
         {tab === 'reports' ? <ReportsTab /> : null}
         {tab === 'broadcast' ? <BroadcastTab /> : null}
+        {tab === 'security' ? <SecurityTab /> : null}
       </main>
     </div>
   );
