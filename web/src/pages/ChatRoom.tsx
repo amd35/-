@@ -6,7 +6,7 @@ import { useCall } from '../lib/call';
 import { useI18n } from '../lib/i18n';
 import { useRealtime } from '../lib/realtime';
 import { Avatar, EmptyState, formatClock, formatCoins, Icon, Sheet, Spinner, useToast } from '../lib/ui';
-import { GiftReveal, GiftCover, type GiftVisual } from '../components/GiftAnimation';
+import { GiftReveal, GiftAnimation, type GiftVisual } from '../components/GiftAnimation';
 import { GiftShop, type GiftItem, type GiftMessage } from '../components/GiftShop';
 
 interface Message {
@@ -278,7 +278,7 @@ export default function ChatRoom() {
                   })
                 }
               >
-                <GiftCover gift={message.gift} className="msg-gift-art" />
+                <GiftAnimation gift={message.gift} className="msg-gift-art" />
                 <span className="msg-gift-copy">
                   <b>{message.gift.name}</b>
                   <span className="tiny">
