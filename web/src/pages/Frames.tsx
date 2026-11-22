@@ -21,6 +21,8 @@ interface FrameItem {
   durationDays: number;
   isRare: boolean;
   category: CosmeticCategory;
+  /** 0 = anyone, 1..5 = needs an active VIP of that tier. */
+  minVip: number;
   owned: boolean;
   expiresAt: string | null;
   equipped: boolean;
@@ -83,6 +85,8 @@ export default function Frames() {
   }, [load]);
 
   const rarityLabel = (rarity: string) => t(`rarity${rarity.charAt(0).toUpperCase()}${rarity.slice(1)}`);
+  const myVipTier = me?.vip?.tier ?? 0;
+  const vipBlocked = (frame: FrameItem) => frame.minVip > 0 && myVipTier < frame.minVip;
 
   const buy = async (frame: FrameItem) => {
     setBusyId(frame.id);
@@ -92,7 +96,14 @@ export default function Frames() {
       await Promise.all([load(), refresh()]);
     } catch (error) {
       const code = (error as { code?: string }).code;
-      toast.push(code === 'already_owned' ? t('frameAlreadyOwned') : (error as Error).message, 'error');
+      toast.push(
+        code === 'already_owned'
+          ? t('frameAlreadyOwned')
+          : code === 'vip_required'
+            ? t('vipRequiredHint')
+            : (error as Error).message,
+        'error'
+      );
     } finally {
       setBusyId(null);
     }
@@ -255,6 +266,11 @@ export default function Frames() {
                   <span className={`pill rarity-${frame.rarity}`} style={{ fontSize: 10 }}>
                     {rarityLabel(frame.rarity)}
                   </span>
+                  {frame.minVip > 0 ? (
+                    <span className={`pill ${vipBlocked(frame) ? 'pill-red' : 'rarity-vip'}`} style={{ fontSize: 10 }}>
+                      <Icon name={vipBlocked(frame) ? 'lock' : 'sparkle'} size={10} /> VIP {frame.minVip}
+                    </span>
+                  ) : null}
                   <span className="tiny muted">
                     {frame.durationDays > 0 ? `${frame.durationDays} ${t('days')}` : t('permanent')}
                   </span>
@@ -280,8 +296,16 @@ export default function Frames() {
                       {t('equip')}
                     </button>
                   ) : (
-                    <button className="btn btn-primary btn-xs grow" disabled={busyId === frame.id} onClick={() => void buy(frame)}>
-                      {frame.price > 0 ? t('buy') : t('getFree')}
+                    <button
+                      className="btn btn-primary btn-xs grow"
+                      disabled={busyId === frame.id || vipBlocked(frame)}
+                      onClick={() => void buy(frame)}
+                    >
+                      {vipBlocked(frame)
+                        ? `${t('vipRequired')} ${frame.minVip}`
+                        : frame.price > 0
+                          ? t('buy')
+                          : t('getFree')}
                     </button>
                   )}
                   <button className="btn btn-ghost btn-xs" onClick={() => setTryFrame(frame)}>
@@ -320,9 +344,21 @@ export default function Frames() {
                 {t('equip')}
               </button>
             ) : (
-              <button className="btn btn-primary btn-block" onClick={() => void buy(tryFrame).then(() => setTryFrame(null))}>
-                {tryFrame.price > 0 ? `${t('buy')} • ${formatCoins(tryFrame.price)} ${t('coins')}` : t('getFree')}
-              </button>
+              <>
+                {tryFrame.minVip > 0 ? (
+                  <span className={`pill ${vipBlocked(tryFrame) ? 'pill-red' : 'rarity-vip'}`}>
+                    <Icon name={vipBlocked(tryFrame) ? 'lock' : 'sparkle'} size={11} /> {t('vipRequired')}{' '}
+                    {tryFrame.minVip}
+                  </span>
+                ) : null}
+                <button
+                  className="btn btn-primary btn-block"
+                  disabled={vipBlocked(tryFrame)}
+                  onClick={() => void buy(tryFrame).then(() => setTryFrame(null))}
+                >
+                  {tryFrame.price > 0 ? `${t('buy')} • ${formatCoins(tryFrame.price)} ${t('coins')}` : t('getFree')}
+                </button>
+              </>
             )}
           </div>
         ) : null}

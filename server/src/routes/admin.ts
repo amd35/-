@@ -852,6 +852,13 @@ function readFrameBody(body: Record<string, unknown>): Partial<FrameRow> {
   if (body.isRare !== undefined) out.is_rare = Boolean(body.isRare);
   if (body.isActive !== undefined) out.is_active = Boolean(body.isActive);
   if (body.sortOrder !== undefined) out.sort_order = Math.round(Number(body.sortOrder)) || 0;
+  if (body.minVip !== undefined) {
+    const minVip = Math.round(Number(body.minVip));
+    if (!Number.isFinite(minVip) || minVip < 0 || minVip > 5) {
+      throw new HttpError(400, 'Invalid VIP tier', 'invalid_frame');
+    }
+    out.min_vip = minVip;
+  }
   return out;
 }
 
@@ -902,8 +909,8 @@ router.post(
 
     const created = await one<FrameRow>(
       `INSERT INTO avatar_frames
-        (slug, name, name_en, kind, design, image_url, price, rarity, duration_days, is_rare, is_active, sort_order, category)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
+        (slug, name, name_en, kind, design, image_url, price, rarity, duration_days, is_rare, is_active, sort_order, category, min_vip)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
        ON CONFLICT (slug) DO NOTHING
        RETURNING *`,
       [
@@ -920,6 +927,7 @@ router.post(
         fields.is_active ?? true,
         fields.sort_order ?? 0,
         fields.category ?? 'frame',
+        fields.min_vip ?? 0,
       ]
     );
     if (!created) throw new HttpError(409, 'A frame with this slug already exists', 'frame_slug_taken');
@@ -943,7 +951,7 @@ router.patch(
     const updated = await one<FrameRow>(
       `UPDATE avatar_frames SET name = $2, name_en = $3, kind = $4, design = $5, image_url = $6,
          price = $7, rarity = $8, duration_days = $9, is_rare = $10, is_active = $11, sort_order = $12,
-         category = $13
+         category = $13, min_vip = $14
        WHERE id = $1 RETURNING *`,
       [
         existing.id,
@@ -959,6 +967,7 @@ router.patch(
         merged.is_active,
         merged.sort_order,
         merged.category,
+        merged.min_vip ?? 0,
       ]
     );
     res.json({ frame: updated ? serializeFrame(updated) : null });

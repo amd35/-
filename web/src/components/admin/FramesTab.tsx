@@ -3,6 +3,7 @@ import { api } from '../../lib/api';
 import { Avatar, formatCoins, Icon, Sheet, useToast } from '../../lib/ui';
 import { AdminCard, Empty, Field, Table, Toggle, useAdminData } from './shared';
 import { CosmeticPreview, type CosmeticCategory } from '../Cosmetics';
+import { VIP_EAGLE_DESIGNS } from '../VipEagleFrame';
 
 interface AdminFrame {
   id: string;
@@ -19,11 +20,13 @@ interface AdminFrame {
   isActive: boolean;
   sortOrder: number;
   category: string;
+  minVip: number;
   owners: number;
   equippedCount: number;
 }
 
 const DESIGN_KEYS = [
+  ...VIP_EAGLE_DESIGNS,
   'eagle-gold',
   'eagle-silver',
   'royal-crown',
@@ -88,6 +91,7 @@ const EMPTY_FORM = {
   isRare: false,
   sortOrder: 0,
   category: 'frame' as CosmeticCategory,
+  minVip: 0,
 };
 
 export default function FramesTab() {
@@ -116,6 +120,7 @@ export default function FramesTab() {
       isRare: frame.isRare,
       sortOrder: frame.sortOrder,
       category: (frame.category as CosmeticCategory) || 'frame',
+      minVip: frame.minVip ?? 0,
     });
   };
 
@@ -142,6 +147,7 @@ export default function FramesTab() {
         isRare: form.isRare,
         sortOrder: Number(form.sortOrder),
         category: form.category,
+        minVip: Number(form.minVip),
       };
       if (form.id) {
         await api(`/admin/frames/${form.id}`, { method: 'PATCH', admin: true, body });
@@ -363,6 +369,20 @@ export default function FramesTab() {
           <Field label="إطار نادر">
             <Toggle checked={form.isRare} onChange={(value) => setForm({ ...form, isRare: value })} label="نادر / VIP" />
           </Field>
+          <Field label="رتبة VIP المطلوبة" hint="0 = متاح للجميع، 1-5 = لأعضاء VIP فقط">
+            <select
+              className="select"
+              dir="ltr"
+              value={form.minVip}
+              onChange={(event) => setForm({ ...form, minVip: Number(event.target.value) })}
+            >
+              {[0, 1, 2, 3, 4, 5].map((tier) => (
+                <option key={tier} value={tier}>
+                  {tier === 0 ? 'بدون شرط' : `VIP ${tier}+`}
+                </option>
+              ))}
+            </select>
+          </Field>
         </div>
 
         <div className="inline" style={{ gap: 14 }}>
@@ -415,6 +435,7 @@ export default function FramesTab() {
               'النوع',
               'السعر',
               'الفئة',
+              'VIP',
               'المدة',
               'المالكون',
               'مفعّل',
@@ -470,6 +491,9 @@ export default function FramesTab() {
                   <span className={`pill rarity-${frame.rarity}`} style={{ fontSize: 10 }}>
                     {frame.rarity}
                   </span>
+                </td>
+                <td className="tiny" dir="ltr">
+                  {frame.minVip > 0 ? `VIP ${frame.minVip}+` : '—'}
                 </td>
                 <td className="tiny">{frame.durationDays > 0 ? `${frame.durationDays} يوم` : 'دائم'}</td>
                 <td dir="ltr">{frame.owners}</td>

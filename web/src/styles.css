@@ -527,6 +527,27 @@ p {
   animation: av-twinkle 2.6s ease-in-out infinite;
 }
 
+@keyframes av-wing {
+  0%,
+  100% {
+    transform: rotate(0deg) scale(1);
+  }
+  50% {
+    transform: rotate(-2.4deg) scale(1.015);
+  }
+}
+
+.av-wing {
+  transform-box: fill-box;
+  transform-origin: 50% 94%;
+  animation: av-wing 5.4s ease-in-out infinite;
+}
+
+/* Legendary VIP frames glow in their own colour. */
+.av-frame-vip > svg {
+  filter: drop-shadow(0 0 5px var(--vip-glow, rgba(255, 213, 94, 0.45)));
+}
+
 @keyframes av-flap {
   0%,
   100% {
@@ -580,6 +601,7 @@ p {
   .av-flash,
   .av-twinkle,
   .av-flap,
+  .av-wing,
   .av-bob,
   .av-pulse {
     animation: none;

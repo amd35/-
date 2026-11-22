@@ -2,10 +2,21 @@ import { Router } from 'express';
 import { one, q, tx } from '../db';
 import { reqUser, requireAuth } from '../auth';
 import { FrameRow, getFrameForUser, listFrames, ownsFrame } from '../frames';
+import { activeVip } from '../progression';
 import { moveCoins } from '../wallet';
 import { HttpError, asyncHandler } from '../utils';
 
 const router = Router();
+
+/** VIP-locked items need an active subscription of at least `min_vip`. */
+async function requireFrameVip(userId: string, frame: FrameRow) {
+  const minVip = Number(frame.min_vip ?? 0);
+  if (minVip <= 0) return;
+  const vip = await activeVip(userId);
+  if (!vip || vip.tier < minVip) {
+    throw new HttpError(403, `VIP ${minVip} required`, 'vip_required');
+  }
+}
 
 router.get(
   '/',
@@ -28,6 +39,9 @@ router.post(
   asyncHandler(async (req, res) => {
     const me = reqUser(req).id;
     const frameId = req.params.id;
+    const gate = await one<FrameRow>('SELECT * FROM avatar_frames WHERE id = $1 AND is_active = true', [frameId]);
+    if (!gate) throw new HttpError(404, 'Frame not found', 'frame_not_found');
+    await requireFrameVip(me, gate);
     const outcome = await tx(async (c) => {
       const found = await c.query<FrameRow>(
         'SELECT * FROM avatar_frames WHERE id = $1 AND is_active = true FOR UPDATE',
@@ -93,6 +107,7 @@ router.post(
     if (!(await ownsFrame(me, frameId))) {
       throw new HttpError(403, 'You do not own this frame', 'frame_not_owned');
     }
+    await requireFrameVip(me, frame);
     if (frame.category === 'frame') {
       await one('UPDATE users SET avatar_frame_id = $2 WHERE id = $1 RETURNING id', [me, frameId]);
     } else {

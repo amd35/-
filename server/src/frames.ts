@@ -19,6 +19,8 @@ export interface FrameRow {
   is_active: boolean;
   sort_order: number;
   category: string;
+  /** 0 = anyone, 1..5 = an active VIP of that tier is required. */
+  min_vip: number;
 }
 
 export interface FrameCatalogItem {
@@ -36,6 +38,7 @@ export interface FrameCatalogItem {
   isActive: boolean;
   sortOrder: number;
   category: string;
+  minVip: number;
   owned: boolean;
   expiresAt: string | null;
   equipped: boolean;
@@ -57,6 +60,7 @@ export function serializeFrame(row: FrameRow): Omit<FrameCatalogItem, 'owned' | 
     isActive: Boolean(row.is_active),
     sortOrder: Number(row.sort_order),
     category: row.category,
+    minVip: Number(row.min_vip ?? 0),
   };
 }
 
@@ -82,7 +86,7 @@ export async function ownsFrame(userId: string, frameId: string): Promise<boolea
 
 const CATALOG_SELECT = `
   SELECT f.id, f.slug, f.name, f.name_en, f.kind, f.design, f.image_url, f.price, f.rarity,
-         f.duration_days, f.is_rare, f.is_active, f.sort_order, f.category,
+         f.duration_days, f.is_rare, f.is_active, f.sort_order, f.category, f.min_vip,
          (uaf.user_id IS NOT NULL) AS owned,
          uaf.expires_at AS owned_expires_at,
          CASE WHEN f.category = 'frame'

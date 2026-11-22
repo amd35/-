@@ -1,5 +1,6 @@
-import { useId, type ReactNode } from 'react';
+import { useId, type CSSProperties, type ReactNode } from 'react';
 import { assetUrl } from '../lib/api';
+import { VIP_EAGLE_DESIGNS, VIP_EAGLE_FRAMES, VipEagleFrame } from './VipEagleFrame';
 
 export interface FrameInfo {
   id: string;
@@ -397,6 +398,7 @@ function Rainbow() {
 }
 
 const DESIGNS: Record<string, () => ReactNode> = {
+  ...Object.fromEntries(VIP_EAGLE_DESIGNS.map((key) => [key, () => <VipEagleFrame design={key} />])),
   'eagle-gold': GoldEagle,
   'eagle-silver': SilverEagle,
   'royal-crown': RoyalCrown,
@@ -427,8 +429,13 @@ export function AvatarFrame({ frame }: { frame: FrameInfo | null }) {
     );
   }
   const Design = DESIGNS[frame.design ?? ''] ?? DESIGNS.galaxy;
+  const glow = VIP_EAGLE_FRAMES[frame.design ?? '']?.glow;
   return (
-    <span className={`av-frame av-frame-${frame.design ?? 'galaxy'}`} aria-hidden="true">
+    <span
+      className={`av-frame av-frame-${frame.design ?? 'galaxy'}${glow ? ' av-frame-vip' : ''}`}
+      style={glow ? ({ '--vip-glow': glow } as CSSProperties) : undefined}
+      aria-hidden="true"
+    >
       <Design />
     </span>
   );

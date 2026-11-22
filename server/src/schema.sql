@@ -377,6 +377,8 @@ CREATE TABLE IF NOT EXISTS avatar_frames (
   is_rare boolean NOT NULL DEFAULT false,
   is_active boolean NOT NULL DEFAULT true,
   sort_order integer NOT NULL DEFAULT 0,
+  -- 0 = anyone can buy/equip; 1..5 = an active VIP of at least that tier is required.
+  min_vip integer NOT NULL DEFAULT 0 CHECK (min_vip BETWEEN 0 AND 5),
   created_at timestamptz NOT NULL DEFAULT now()
 );
 CREATE INDEX IF NOT EXISTS avatar_frames_order_idx ON avatar_frames (sort_order, price);
@@ -423,6 +425,7 @@ WHERE NOT EXISTS (SELECT 1 FROM avatar_frames);
 --   entry    → animation shown when entering a voice room
 ALTER TABLE avatar_frames ADD COLUMN IF NOT EXISTS category text NOT NULL DEFAULT 'frame';
 CREATE INDEX IF NOT EXISTS avatar_frames_category_idx ON avatar_frames (category, sort_order);
+ALTER TABLE avatar_frames ADD COLUMN IF NOT EXISTS min_vip integer NOT NULL DEFAULT 0;
 
 -- The item a user wears in each non-frame category (ownership stays in user_avatar_frames).
 CREATE TABLE IF NOT EXISTS user_cosmetics (
@@ -481,6 +484,21 @@ SELECT * FROM (VALUES
   ('id-silver',            'معرّف فضي',            'Silver ID',            'design', 'silver',      1400, 'epic',      0, false, 100, 'id'),
   ('id-royal',             'معرّف بنفسجي ملكي',    'Royal Purple ID',      'design', 'royal',       2200, 'legendary', 0, true,  110, 'id')
 ) AS seed(slug, name, name_en, kind, design, price, rarity, duration_days, is_rare, sort_order, category)
+ON CONFLICT (slug) DO NOTHING;
+
+-- Legendary eagle-wing VIP frames. `design` keys map to the animated vector artwork in
+-- web/src/components/VipEagleFrame.tsx; `min_vip` is the VIP tier needed to buy/equip.
+INSERT INTO avatar_frames (slug, name, name_en, kind, design, price, rarity, duration_days, is_rare, sort_order, category, min_vip)
+SELECT * FROM (VALUES
+  ('vip-eagle-royal',    'النسر الملكي الذهبي',    'Royal Gold Eagle',    'design', 'vip-eagle-royal',    12000, 'vip', 0, true, 1, 'frame', 1),
+  ('vip-eagle-sapphire', 'النسر الأزرق الملكي',   'Sapphire Eagle',      'design', 'vip-eagle-sapphire', 18000, 'vip', 0, true, 2, 'frame', 2),
+  ('vip-eagle-emerald',  'النسر الزمردي',         'Emerald Eagle',       'design', 'vip-eagle-emerald',  22000, 'vip', 0, true, 3, 'frame', 2),
+  ('vip-eagle-amethyst', 'النسر البنفسجي الملكي', 'Amethyst Eagle',      'design', 'vip-eagle-amethyst', 26000, 'vip', 0, true, 4, 'frame', 3),
+  ('vip-eagle-inferno',  'النسر الناري',          'Inferno Eagle',       'design', 'vip-eagle-inferno',  30000, 'vip', 0, true, 5, 'frame', 3),
+  ('vip-eagle-frost',    'النسر الجليدي',         'Frost Eagle',         'design', 'vip-eagle-frost',    36000, 'vip', 0, true, 6, 'frame', 4),
+  ('vip-eagle-obsidian', 'النسر الأسود الذهبي',   'Obsidian Gold Eagle', 'design', 'vip-eagle-obsidian', 42000, 'vip', 0, true, 7, 'frame', 4),
+  ('vip-eagle-diamond',  'النسر الألماسي',        'Diamond Eagle',       'design', 'vip-eagle-diamond',  60000, 'vip', 0, true, 8, 'frame', 5)
+) AS seed(slug, name, name_en, kind, design, price, rarity, duration_days, is_rare, sort_order, category, min_vip)
 ON CONFLICT (slug) DO NOTHING;
 
 -- ------------------------------------------------------- premium account IDs
