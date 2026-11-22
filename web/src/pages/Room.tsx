@@ -15,6 +15,7 @@ import {
 import type { FrameInfo } from '../components/AvatarFrame';
 import { EntryBanner } from '../components/Cosmetics';
 import { RankBadge, type RankInfo } from '../components/RankBadge';
+import { LevelBadge, VipBadge, VipEntryBanner, type VipInfo } from '../components/ProgressionBadges';
 
 interface SeatUser {
   id: string;
@@ -23,6 +24,8 @@ interface SeatUser {
   online: boolean;
   frame: FrameInfo | null;
   rank?: RankInfo | null;
+  level?: number;
+  vip?: VipInfo | null;
 }
 
 interface Mic {
@@ -200,6 +203,8 @@ export default function Room() {
       <div className="page">
         {showEntry && entryCosmetic ? (
           <EntryBanner cosmetic={entryCosmetic} name={me?.user.displayName ?? ''} />
+        ) : showEntry && me?.vip ? (
+          <VipEntryBanner vip={me.vip} name={me.user.displayName} />
         ) : null}
         {loading ? (
           <Spinner label={t('loading')} />
@@ -252,6 +257,8 @@ export default function Room() {
                       </span>
                       <span className="mic-name name-with-rank">
                         {mic.user?.rank ? <RankBadge rank={mic.user.rank} size={13} /> : null}
+                        {mic.user ? <LevelBadge level={mic.user.level ?? 1} size={13} /> : null}
+                        <VipBadge vip={mic.user?.vip} size={12} />
                         <span>{mic.user ? mic.user.displayName : mic.isLocked ? t('micLocked') : t('micFree')}</span>
                       </span>
                       <span className="mic-label">

@@ -1,4 +1,5 @@
 import { tx } from './db';
+import { awardXpSafe, getXpSettings, xpForCoins } from './progression';
 import { HttpError } from './utils';
 import { moveCoins } from './wallet';
 
@@ -26,7 +27,7 @@ export async function confirmOrder(
   providerRef: string | null,
   source: string
 ): Promise<{ order: PaymentOrderRow; credited: boolean; balanceAfter: number | null }> {
-  return tx(async (c) => {
+  const result = await tx(async (c) => {
     const { rows } = await c.query<PaymentOrderRow>(
       'SELECT * FROM payment_orders WHERE id = $1 FOR UPDATE',
       [orderId]
@@ -58,4 +59,17 @@ export async function confirmOrder(
     });
     return { order: updated.rows[0], credited: moved.applied, balanceAfter: moved.balanceAfter };
   });
+
+  // XP is awarded after the coins are committed, in its own transaction: inside
+  // the same one it would lock the user row after the wallet and risk a deadlock.
+  if (result.credited) {
+    const xpSettings = await getXpSettings();
+    await awardXpSafe({
+      userId: result.order.user_id,
+      kind: 'recharge',
+      refId: result.order.id,
+      xp: xpForCoins('recharge', Number(result.order.coins), xpSettings),
+    });
+  }
+  return result;
 }

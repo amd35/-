@@ -8,6 +8,7 @@ import { useRealtime } from '../lib/realtime';
 import { Avatar, EmptyState, formatClock, formatCoins, Icon, Sheet, Spinner, useToast } from '../lib/ui';
 import { GiftReveal, GiftAnimation, type GiftVisual } from '../components/GiftAnimation';
 import { RankBadge, type RankInfo } from '../components/RankBadge';
+import { LevelBadge, VipBadge, type VipInfo } from '../components/ProgressionBadges';
 import { GiftShop, type GiftItem, type GiftMessage } from '../components/GiftShop';
 
 interface Message {
@@ -33,6 +34,8 @@ interface Peer {
   lastSeenAt?: string | null;
   frame?: { id: string; design: string | null; kind: string; imageUrl: string | null; rarity: string } | null;
   rank?: RankInfo | null;
+  level?: number;
+  vip?: VipInfo | null;
 }
 
 export default function ChatRoom() {
@@ -238,6 +241,8 @@ export default function ChatRoom() {
         <div className="grow" style={{ minWidth: 0 }}>
           <div className="row-title name-with-rank">
             {peer?.rank ? <RankBadge rank={peer.rank} size={15} /> : null}
+            <LevelBadge level={peer?.level ?? 1} size={14} />
+            <VipBadge vip={peer?.vip} size={13} />
             <span>{peer?.displayName ?? t('loading')}</span>
           </div>
           <div className="row-sub">
@@ -299,13 +304,19 @@ export default function ChatRoom() {
               className={`msg-bubble ${
                 message.mine && me?.cosmetics?.bubble?.design ? `bubble-${me.cosmetics.bubble.design}` : ''
               }${
-                message.mine && me?.cosmetics?.bubble?.kind === 'image' && me.cosmetics.bubble.imageUrl
+                message.mine &&
+                ((me?.cosmetics?.bubble?.kind === 'image' && me.cosmetics.bubble.imageUrl) ||
+                  me?.vip?.bubbleImageUrl)
                   ? ' bubble-image'
                   : ''
               }`}
               style={
-                message.mine && me?.cosmetics?.bubble?.kind === 'image' && me.cosmetics.bubble.imageUrl
-                  ? { backgroundImage: `url(${assetUrl(me.cosmetics.bubble.imageUrl)})` }
+                message.mine
+                  ? me?.cosmetics?.bubble?.kind === 'image' && me.cosmetics.bubble.imageUrl
+                    ? { backgroundImage: `url(${assetUrl(me.cosmetics.bubble.imageUrl)})` }
+                    : me?.vip?.bubbleImageUrl
+                      ? { backgroundImage: `url(${assetUrl(me.vip.bubbleImageUrl)})` }
+                      : undefined
                   : undefined
               }
             >

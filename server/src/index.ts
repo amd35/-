@@ -22,6 +22,8 @@ import roomRoutes from './routes/rooms';
 import adminRoomRoutes from './routes/adminRooms';
 import adminRoutes from './routes/admin';
 import rankRoutes from './routes/ranks';
+import levelRoutes from './routes/levels';
+import adminProgressionRoutes from './routes/adminProgression';
 
 const PORT = Number(process.env.PORT || 4000);
 const app = express();
@@ -77,8 +79,10 @@ app.use('/api/gifts', giftRoutes);
 app.use('/api/payments', paymentRoutes);
 app.use('/api/rooms', roomRoutes);
 app.use('/api/ranks', rankRoutes);
+app.use('/api/levels', levelRoutes);
 app.use('/api/admin/rooms', adminRoomRoutes);
 app.use('/api/admin', adminRoutes);
+app.use('/api/admin', adminProgressionRoutes);
 
 app.use('/uploads', express.static(UPLOAD_DIR, { maxAge: '7d', fallthrough: true }));
 

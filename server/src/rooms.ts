@@ -4,10 +4,13 @@ import { isOnline } from './realtime';
 import {
   FRAME_FIELDS,
   RANK_FIELDS,
+  VIP_FIELDS,
   frameFromRow,
   frameJoins,
   rankFromRow,
   rankJoins,
+  vipFromRow,
+  vipJoins,
   type FrameInfo,
   type RankInfo,
 } from './serializers';
@@ -51,6 +54,18 @@ export interface MicRow {
   rank_tier?: number | null;
   rank_color?: string | null;
   rank_badge_url?: string | null;
+  level?: number | null;
+  vip_tier?: number | null;
+  vip_name_ar?: string | null;
+  vip_name_en?: string | null;
+  vip_color?: string | null;
+  vip_title_ar?: string | null;
+  vip_title_en?: string | null;
+  vip_badge_url?: string | null;
+  vip_frame_url?: string | null;
+  vip_bubble_url?: string | null;
+  vip_source?: string | null;
+  vip_expires_at?: string | null;
 }
 
 export interface SeatUser {
@@ -61,6 +76,8 @@ export interface SeatUser {
   online: boolean;
   frame: FrameInfo | null;
   rank: RankInfo | null;
+  level: number;
+  vip: import('./progression').VipInfo | null;
 }
 
 export function serializeRoom(row: RoomRow) {
@@ -86,6 +103,8 @@ export function serializeMic(row: MicRow, meId: string) {
         online: isOnline(row.user_id),
         frame: frameFromRow(row),
         rank: rankFromRow(row),
+        level: Number(row.level ?? 1) || 1,
+        vip: vipFromRow(row),
       }
     : null;
   return {
@@ -101,11 +120,12 @@ export function serializeMic(row: MicRow, meId: string) {
 
 const MIC_SELECT = `
   SELECT m.id, m.room_id, m.position, m.label, m.kind, m.is_locked, m.user_id, m.joined_at,
-         u.username, u.display_name, u.avatar_url, ${FRAME_FIELDS}, ${RANK_FIELDS}
+         u.username, u.level, u.display_name, u.avatar_url, ${FRAME_FIELDS}, ${RANK_FIELDS}, ${VIP_FIELDS}
   FROM room_mics m
   LEFT JOIN users u ON u.id = m.user_id
   ${frameJoins('u')}
-  ${rankJoins('u')}`;
+  ${rankJoins('u')}
+  ${vipJoins('u')}`;
 
 export async function roomMics(roomId: string, meId: string) {
   const rows = await q<MicRow>(`${MIC_SELECT} WHERE m.room_id = $1 ORDER BY m.position ASC`, [roomId]);

@@ -1,6 +1,7 @@
 import { one } from './db';
 import { isOnline } from './realtime';
 import type { RankInfo } from './ranks';
+import type { VipInfo } from './progression';
 
 export type { RankInfo };
 
@@ -28,6 +29,24 @@ export interface PublicUser {
   frame: FrameInfo | null;
   /** The official rank the user currently holds, or null. */
   rank: RankInfo | null;
+  /** Normal level (1..100), driven by XP only. */
+  level: number;
+  /** Active VIP subscription, or null. Independent of the level. */
+  vip: VipInfo | null;
+}
+
+interface VipColumns {
+  vip_tier?: number | null;
+  vip_name_ar?: string | null;
+  vip_name_en?: string | null;
+  vip_color?: string | null;
+  vip_title_ar?: string | null;
+  vip_title_en?: string | null;
+  vip_badge_url?: string | null;
+  vip_frame_url?: string | null;
+  vip_bubble_url?: string | null;
+  vip_source?: string | null;
+  vip_expires_at?: string | Date | null;
 }
 
 interface RankColumns {
@@ -48,9 +67,10 @@ interface FrameColumns {
   frame_rarity?: string | null;
 }
 
-interface UserLike extends FrameColumns, RankColumns {
+interface UserLike extends FrameColumns, RankColumns, VipColumns {
   id: string;
   username: string;
+  level?: number | null;
   display_name: string;
   avatar_url: string | null;
   bio?: string | null;
@@ -126,6 +146,48 @@ export function rankFromRow(row: RankColumns): RankInfo | null {
   };
 }
 
+/**
+ * Joins the user's active VIP subscription. Lapsed or paused tiers are filtered
+ * out here, so a badge never outlives the subscription that created it.
+ */
+export function vipJoins(userAlias: string): string {
+  return `
+    LEFT JOIN user_vips uv ON uv.user_id = ${userAlias}.id AND uv.is_active
+      AND (uv.expires_at IS NULL OR uv.expires_at > now())
+    LEFT JOIN vip_tiers vt ON vt.tier = uv.tier AND vt.is_active = true`;
+}
+
+/** Selected alongside `vipJoins()`. */
+export const VIP_FIELDS = `
+    vt.tier AS vip_tier,
+    vt.name_ar AS vip_name_ar,
+    vt.name_en AS vip_name_en,
+    vt.color AS vip_color,
+    vt.title_ar AS vip_title_ar,
+    vt.title_en AS vip_title_en,
+    vt.badge_image_url AS vip_badge_url,
+    vt.frame_image_url AS vip_frame_url,
+    vt.bubble_image_url AS vip_bubble_url,
+    uv.source AS vip_source,
+    uv.expires_at AS vip_expires_at`;
+
+export function vipFromRow(row: VipColumns): VipInfo | null {
+  if (!row.vip_tier) return null;
+  return {
+    tier: Number(row.vip_tier),
+    nameAr: row.vip_name_ar ?? `VIP ${row.vip_tier}`,
+    nameEn: row.vip_name_en ?? `VIP ${row.vip_tier}`,
+    color: row.vip_color ?? '#ffd75e',
+    titleAr: row.vip_title_ar ?? '',
+    titleEn: row.vip_title_en ?? '',
+    badgeImageUrl: row.vip_badge_url ?? null,
+    frameImageUrl: row.vip_frame_url ?? null,
+    bubbleImageUrl: row.vip_bubble_url ?? null,
+    source: row.vip_source ?? 'purchase',
+    expiresAt: row.vip_expires_at ? new Date(row.vip_expires_at).toISOString() : null,
+  };
+}
+
 function recentlySeen(value: string | Date | null | undefined): boolean {
   if (!value) return false;
   const ts = new Date(value).getTime();
@@ -147,14 +209,16 @@ export function toPublicUser(row: UserLike): PublicUser {
     createdAt: row.created_at ? new Date(row.created_at).toISOString() : new Date().toISOString(),
     frame: frameFromRow(row),
     rank: rankFromRow(row),
+    level: Number(row.level ?? 1) || 1,
+    vip: vipFromRow(row),
   };
 }
 
 export async function getPublicUser(userId: string): Promise<PublicUser | null> {
   const row = await one<UserLike>(
-    `SELECT u.id, u.username, u.display_name, u.avatar_url, u.bio, u.gender, u.country, u.age,
-            u.last_seen_at, u.created_at, ${FRAME_FIELDS}, ${RANK_FIELDS}
-     FROM users u ${frameJoins('u')} ${rankJoins('u')}
+    `SELECT u.id, u.username, u.level, u.display_name, u.avatar_url, u.bio, u.gender, u.country, u.age,
+            u.last_seen_at, u.created_at, ${FRAME_FIELDS}, ${RANK_FIELDS}, ${VIP_FIELDS}
+     FROM users u ${frameJoins('u')} ${rankJoins('u')} ${vipJoins('u')}
      WHERE u.id = $1`,
     [userId]
   );

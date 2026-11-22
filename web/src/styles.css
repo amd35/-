@@ -4821,3 +4821,391 @@ table.data tr:hover td {
   color: #f3e8ff;
   text-shadow: 0 0 12px rgba(168, 85, 247, 0.95);
 }
+
+/* ------------------------------------------------------------------ levels & VIP */
+.level-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  border-radius: 7px;
+  font-weight: 900;
+  color: #1a1000;
+  letter-spacing: -0.02em;
+  border: 1px solid rgba(255, 236, 179, 0.65);
+  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.35);
+}
+
+.vip-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  flex: none;
+  border-radius: 999px;
+  color: #140b02;
+  font-weight: 900;
+  line-height: 1.35;
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  box-shadow: 0 0 10px color-mix(in srgb, var(--vip-color, #ffd75e) 60%, transparent);
+}
+
+.vip-badge b {
+  font-size: 1em;
+  letter-spacing: 0.02em;
+}
+
+.vip-badge-title {
+  font-size: 0.85em;
+  opacity: 0.85;
+}
+
+.level-entry-row {
+  border: 1px solid rgba(255, 215, 94, 0.35);
+  background: linear-gradient(120deg, rgba(255, 215, 94, 0.12), rgba(20, 10, 32, 0.4));
+}
+
+.levels-page {
+  background:
+    radial-gradient(120% 60% at 50% 0%, rgba(255, 196, 61, 0.18), transparent 60%),
+    linear-gradient(180deg, #0b0704 0%, #120a1c 60%, #0a0612 100%);
+}
+
+.levels-hero {
+  position: relative;
+  border-radius: 18px;
+  overflow: hidden;
+  border: 1px solid rgba(255, 215, 94, 0.4);
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.5);
+}
+
+.levels-hero-art {
+  display: block;
+  width: 100%;
+  height: 190px;
+  object-fit: cover;
+}
+
+.levels-hero-scrim {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, rgba(6, 3, 2, 0.05) 10%, rgba(8, 4, 2, 0.92) 92%);
+}
+
+.levels-hero-copy {
+  position: absolute;
+  inset-inline: 14px;
+  bottom: 12px;
+}
+
+.levels-hero-copy h2 {
+  font-size: 20px;
+  color: #ffe8a3;
+  text-shadow: 0 2px 12px rgba(0, 0, 0, 0.8);
+}
+
+.levels-hero-copy p {
+  color: #f4dfae;
+}
+
+.levels-hero-kicker {
+  font-size: 10px;
+  letter-spacing: 0.32em;
+  color: #ffd75e;
+  opacity: 0.9;
+}
+
+.level-me-card {
+  border: 1px solid rgba(255, 215, 94, 0.35);
+  background: linear-gradient(160deg, rgba(255, 215, 94, 0.1), rgba(14, 8, 20, 0.85));
+}
+
+.level-me-head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.level-me-head > div {
+  flex: 1;
+  min-width: 0;
+}
+
+.xp-track {
+  margin-top: 10px;
+  height: 10px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 215, 94, 0.25);
+  overflow: hidden;
+}
+
+.xp-fill {
+  height: 100%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #f5a623, #ffd75e 60%, #fff2b8);
+  box-shadow: 0 0 12px rgba(255, 215, 94, 0.6);
+  transition: width 0.4s ease;
+}
+
+.xp-sources {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+  gap: 8px;
+}
+
+.xp-source {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 8px 10px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 215, 94, 0.18);
+}
+
+.xp-source b {
+  color: #ffd75e;
+  font-size: 13px;
+}
+
+.vip-grid {
+  display: grid;
+  gap: 12px;
+}
+
+.vip-card {
+  border-radius: 16px;
+  padding: 12px;
+  background: linear-gradient(160deg, rgba(255, 255, 255, 0.05), rgba(10, 6, 16, 0.9));
+  border: 1px solid color-mix(in srgb, var(--vip-color, #ffd75e) 55%, transparent);
+  box-shadow: 0 0 18px color-mix(in srgb, var(--vip-color, #ffd75e) 18%, transparent);
+}
+
+.vip-card.owned {
+  box-shadow: 0 0 24px color-mix(in srgb, var(--vip-color, #ffd75e) 45%, transparent);
+}
+
+.vip-card-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+
+.vip-card-head h3 {
+  font-size: 15px;
+  color: var(--vip-color, #ffd75e);
+}
+
+.vip-emblem {
+  position: relative;
+  width: 52px;
+  height: 58px;
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  clip-path: polygon(50% 0%, 96% 22%, 88% 82%, 50% 100%, 12% 82%, 4% 22%);
+  background: linear-gradient(165deg, color-mix(in srgb, var(--vip-color, #ffd75e) 75%, #000) 0%, #120a04 85%);
+  border: 1px solid rgba(255, 255, 255, 0.25);
+}
+
+.vip-emblem-number {
+  font-size: 20px;
+  font-weight: 900;
+  color: #fff6d6;
+  text-shadow: 0 0 10px color-mix(in srgb, var(--vip-color, #ffd75e) 80%, transparent);
+  line-height: 1;
+}
+
+.vip-emblem-label {
+  font-size: 8px;
+  letter-spacing: 0.2em;
+  color: #0e0803;
+  background: linear-gradient(90deg, #f5c451, #fff0b0, #f5c451);
+  padding: 1px 8px;
+  border-radius: 2px;
+  font-weight: 900;
+  margin-top: 2px;
+}
+
+.vip-perks {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 10px;
+  display: grid;
+  gap: 4px;
+}
+
+.vip-perks li {
+  position: relative;
+  padding-inline-start: 16px;
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.82);
+}
+
+.vip-perks li::before {
+  content: '✦';
+  position: absolute;
+  inset-inline-start: 0;
+  color: var(--vip-color, #ffd75e);
+}
+
+.level-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(74px, 1fr));
+  gap: 8px;
+}
+
+.level-chip {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  padding: 8px 4px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.035);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.level-chip.done {
+  opacity: 0.55;
+}
+
+.level-chip.current {
+  border-color: rgba(255, 215, 94, 0.75);
+  background: rgba(255, 215, 94, 0.12);
+  box-shadow: 0 0 14px rgba(255, 215, 94, 0.25);
+}
+
+.level-chip-xp {
+  font-size: 10px;
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.level-chip-reward {
+  font-size: 9px;
+  color: #ffd75e;
+}
+
+.vip-frame-preview {
+  display: flex;
+  justify-content: center;
+  padding: 8px;
+}
+
+.vip-frame-preview img {
+  max-width: 140px;
+  border-radius: 16px;
+}
+
+.vip-avatar-frame {
+  position: absolute;
+  inset: -14%;
+  width: 128%;
+  height: 128%;
+  object-fit: contain;
+  pointer-events: none;
+  filter: drop-shadow(0 0 10px rgba(255, 215, 94, 0.45));
+}
+
+.vip-entry {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  overflow: hidden;
+  margin-bottom: 10px;
+  padding: 10px 14px;
+  border-radius: 14px;
+  border: 1px solid color-mix(in srgb, var(--vip-color, #ffd75e) 65%, transparent);
+  background: linear-gradient(100deg, rgba(12, 6, 18, 0.95), color-mix(in srgb, var(--vip-color, #ffd75e) 22%, transparent));
+  box-shadow: 0 0 22px color-mix(in srgb, var(--vip-color, #ffd75e) 35%, transparent);
+  animation: vip-entry-in 0.7s ease both;
+}
+
+.vip-entry.royal {
+  animation: vip-entry-in 0.7s ease both, vip-entry-glow 2.4s ease-in-out infinite;
+}
+
+.vip-entry-beam {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(110deg, transparent 20%, rgba(255, 255, 255, 0.35) 45%, transparent 70%);
+  transform: translateX(-120%);
+  animation: vip-entry-beam 1.6s ease-out 0.2s both;
+}
+
+.vip-entry-crown {
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: linear-gradient(140deg, #fff2b8, var(--vip-color, #ffd75e));
+  box-shadow: 0 0 12px color-mix(in srgb, var(--vip-color, #ffd75e) 80%, transparent);
+}
+
+.vip-entry-name {
+  font-weight: 800;
+  color: #fff;
+  position: relative;
+}
+
+.vip-entry-tier {
+  position: relative;
+  font-size: 11px;
+  font-weight: 800;
+  color: #140b02;
+  background: linear-gradient(90deg, #f5c451, #fff0b0, #f5c451);
+  border-radius: 999px;
+  padding: 1px 8px;
+}
+
+.vip-entry-spark {
+  position: relative;
+  margin-inline-start: auto;
+  color: var(--vip-color, #ffd75e);
+  animation: vip-entry-spark 1.8s ease-in-out infinite;
+}
+
+@keyframes vip-entry-in {
+  from {
+    opacity: 0;
+    transform: translateY(-10px) scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes vip-entry-beam {
+  to {
+    transform: translateX(120%);
+  }
+}
+
+@keyframes vip-entry-glow {
+  0%,
+  100% {
+    box-shadow: 0 0 18px color-mix(in srgb, var(--vip-color, #ffd75e) 30%, transparent);
+  }
+  50% {
+    box-shadow: 0 0 30px color-mix(in srgb, var(--vip-color, #ffd75e) 60%, transparent);
+  }
+}
+
+@keyframes vip-entry-spark {
+  0%,
+  100% {
+    opacity: 0.5;
+    transform: scale(0.9);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.15);
+  }
+}

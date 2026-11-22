@@ -6,6 +6,7 @@ import { getRoomDetail, listRooms, roomMessageById, roomMessages } from '../room
 import { GiftRow, moveProfit } from '../gifts';
 import { getSettings } from '../settings';
 import { moveCoins } from '../wallet';
+import { awardXpSafe, getXpSettings, xpForCoins } from '../progression';
 import { HttpError, asyncHandler } from '../utils';
 
 const router = Router();
@@ -103,6 +104,13 @@ router.post(
       'INSERT INTO room_messages (room_id, user_id, body) VALUES ($1, $2, $3) RETURNING id',
       [roomId, me, body]
     );
+    const xpSettings = await getXpSettings();
+    await awardXpSafe({
+      userId: me,
+      kind: 'chat',
+      refId: inserted[0].id,
+      xp: xpSettings.chat_message ?? 0,
+    });
     const message = await roomMessageById(inserted[0].id);
     broadcast('room_message', { roomId, message });
     res.status(201).json({ message });
@@ -209,7 +217,15 @@ router.post(
          VALUES ($1, $2, $3, 'gift', $4) RETURNING id`,
         [roomId, me, `🎁 ${gift.name}`, send.id]
       );
-      return { messageId: message.rows[0].id, recipientCoins };
+      return { messageId: message.rows[0].id, recipientCoins, coins: price, sendId: send.id };
+    });
+
+    const xpSettings = await getXpSettings();
+    await awardXpSafe({
+      userId: me,
+      kind: 'gift',
+      refId: outcome.sendId,
+      xp: xpForCoins('gift', Number(outcome.coins), xpSettings),
     });
 
     const message = await roomMessageById(outcome.messageId);

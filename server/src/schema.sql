@@ -831,3 +831,142 @@ INSERT INTO rank_boxes (rank_key, name, coins)
 SELECT r.key, 'بوكس ' || r.name_ar, r.daily_coins
 FROM ranks r
 ON CONFLICT (rank_key) DO NOTHING;
+
+-- ============================================================================
+-- Levels (XP) & VIP — two independent systems
+-- ----------------------------------------------------------------------------
+-- LEVEL is driven by XP only. XP is written by `xp_events`, whose unique
+-- (user, kind, ref) index makes every real operation count exactly once: a
+-- replayed webhook, a retried gift request or the same chat message can never
+-- award twice. VIP is a paid/granted subscription kept in `user_vips` and has
+-- no effect on XP or on the level. Both are fully configurable from the admin
+-- panel.
+ALTER TABLE users ADD COLUMN IF NOT EXISTS xp bigint NOT NULL DEFAULT 0;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS level integer NOT NULL DEFAULT 1;
+
+CREATE TABLE IF NOT EXISTS levels (
+  level integer PRIMARY KEY CHECK (level BETWEEN 1 AND 100),
+  name_ar text NOT NULL DEFAULT '',
+  name_en text NOT NULL DEFAULT '',
+  -- Total XP needed to reach this level (level 1 = 0).
+  xp_required bigint NOT NULL DEFAULT 0 CHECK (xp_required >= 0),
+  reward_coins integer NOT NULL DEFAULT 0 CHECK (reward_coins >= 0),
+  badge_color text NOT NULL DEFAULT '#ffd75e',
+  badge_image_url text,
+  is_active boolean NOT NULL DEFAULT true,
+  updated_at timestamptz NOT NULL DEFAULT now()
+);
+
+INSERT INTO levels (level, name_ar, name_en, xp_required, reward_coins)
+SELECT n,
+       'المستوى ' || n,
+       'Level ' || n,
+       COALESCE((SELECT SUM(100 + (k - 2) * 40) FROM generate_series(2, n) AS k), 0),
+       CASE WHEN n % 10 = 0 THEN 5000 WHEN n % 5 = 0 THEN 1500 ELSE 0 END
+FROM generate_series(1, 100) AS n
+ON CONFLICT (level) DO NOTHING;
+
+CREATE TABLE IF NOT EXISTS xp_settings (
+  key text PRIMARY KEY,
+  value integer NOT NULL DEFAULT 0 CHECK (value >= 0),
+  description text NOT NULL DEFAULT ''
+);
+
+INSERT INTO xp_settings (key, value, description)
+SELECT * FROM (VALUES
+  ('daily_activity', 50, 'XP يمنح مرة واحدة في اليوم عند أول نشاط'),
+  ('recharge_per_100', 20, 'XP لكل 100 كونز يتم شحنها بعد تأكيد الدفع'),
+  ('gift_per_100', 25, 'XP لكل 100 كونز من قيمة الهدية المرسلة'),
+  ('chat_message', 2, 'XP لكل رسالة دردشة محفوظة على الخادم'),
+  ('chat_daily_cap', 100, 'أقصى XP يومي من رسائل الدردشة'),
+  ('achievement', 100, 'XP افتراضي للإنجاز أو المهمة المحققة')
+) AS seed(key, value, description)
+ON CONFLICT (key) DO NOTHING;
+
+CREATE TABLE IF NOT EXISTS xp_events (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  kind text NOT NULL,
+  ref_id text NOT NULL,
+  xp integer NOT NULL,
+  created_at timestamptz NOT NULL DEFAULT now()
+);
+-- One award per real operation. This is the anti-double-count guard.
+CREATE UNIQUE INDEX IF NOT EXISTS xp_events_unique_idx ON xp_events (user_id, kind, ref_id);
+CREATE INDEX IF NOT EXISTS xp_events_user_idx ON xp_events (user_id, created_at DESC);
+
+CREATE TABLE IF NOT EXISTS level_history (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  level integer NOT NULL,
+  xp bigint NOT NULL,
+  reward_coins integer NOT NULL DEFAULT 0,
+  source text NOT NULL DEFAULT 'xp',
+  created_at timestamptz NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS level_history_user_idx ON level_history (user_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS level_history_created_idx ON level_history (created_at DESC);
+
+CREATE TABLE IF NOT EXISTS vip_tiers (
+  tier integer PRIMARY KEY CHECK (tier BETWEEN 1 AND 5),
+  name_ar text NOT NULL DEFAULT '',
+  name_en text NOT NULL DEFAULT '',
+  price_coins integer NOT NULL DEFAULT 0 CHECK (price_coins >= 0),
+  duration_days integer NOT NULL DEFAULT 30 CHECK (duration_days > 0),
+  color text NOT NULL DEFAULT '#ffd75e',
+  badge_image_url text,
+  frame_image_url text,
+  bubble_image_url text,
+  title_ar text NOT NULL DEFAULT '',
+  title_en text NOT NULL DEFAULT '',
+  perks jsonb NOT NULL DEFAULT '[]'::jsonb,
+  is_active boolean NOT NULL DEFAULT true,
+  sort_order integer NOT NULL DEFAULT 0,
+  updated_at timestamptz NOT NULL DEFAULT now()
+);
+
+INSERT INTO vip_tiers (tier, name_ar, name_en, price_coins, duration_days, color, title_ar, title_en, perks, sort_order)
+SELECT * FROM (VALUES
+  (1, 'VIP 1', 'VIP 1', 50000, 30, '#22c55e', 'النخبة', 'Elite',
+   '["شارة VIP بجانب الاسم","إطار صورة ذهبي","لقب ملكي"]'::jsonb, 10),
+  (2, 'VIP 2', 'VIP 2', 150000, 30, '#38bdf8', 'النبيل', 'Noble',
+   '["شارة VIP مميزة","إطار متحرك","دخولية خاصة"]'::jsonb, 20),
+  (3, 'VIP 3', 'VIP 3', 400000, 30, '#ffd75e', 'الفارس الذهبي', 'Golden Knight',
+   '["تأثيرات دخول الغرف","هدايا مميزة","مظهر فاخر"]'::jsonb, 30),
+  (4, 'VIP 4', 'VIP 4', 900000, 30, '#a855f7', 'الأمير', 'Prince',
+   '["دخوليات ملكية","إطارات فاخرة","امتيازات إضافية"]'::jsonb, 40),
+  (5, 'VIP 5', 'VIP 5', 2000000, 30, '#ef4444', 'الملك', 'King',
+   '["تاج ملكي","مؤثرات أسطورية","مميزات حصرية كاملة"]'::jsonb, 50)
+) AS seed(tier, name_ar, name_en, price_coins, duration_days, color, title_ar, title_en, perks, sort_order)
+ON CONFLICT (tier) DO NOTHING;
+
+CREATE TABLE IF NOT EXISTS user_vips (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  tier integer NOT NULL REFERENCES vip_tiers(tier) ON DELETE CASCADE,
+  source text NOT NULL DEFAULT 'purchase',
+  granted_by_admin uuid REFERENCES admin_users(id) ON DELETE SET NULL,
+  starts_at timestamptz NOT NULL DEFAULT now(),
+  expires_at timestamptz,
+  is_active boolean NOT NULL DEFAULT true,
+  revoked_at timestamptz,
+  created_at timestamptz NOT NULL DEFAULT now()
+);
+-- One active VIP at a time per user.
+CREATE UNIQUE INDEX IF NOT EXISTS user_vips_active_uidx ON user_vips (user_id) WHERE is_active;
+
+CREATE TABLE IF NOT EXISTS vip_history (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  tier integer NOT NULL,
+  action text NOT NULL,
+  actor_kind text NOT NULL DEFAULT 'system',
+  actor_id uuid,
+  actor_name text NOT NULL DEFAULT '',
+  coins integer NOT NULL DEFAULT 0,
+  expires_at timestamptz,
+  note text,
+  created_at timestamptz NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS vip_history_user_idx ON vip_history (user_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS vip_history_created_idx ON vip_history (created_at DESC);

@@ -15,6 +15,7 @@ import {
 } from '../lib/ui';
 import { AppShell } from '../components/AppShell';
 import type { UserCardData } from '../components/UserCard';
+import { LevelBadge, VipBadge, type VipInfo } from '../components/ProgressionBadges';
 
 interface Conversation {
   id: string;
@@ -28,6 +29,8 @@ interface Conversation {
     online: boolean;
     lastSeenAt: string | null;
     frame?: UserCardData['frame'];
+    level?: number;
+    vip?: VipInfo | null;
   };
   lastMessage: { body: string; type: string; attachmentUrl: string | null; mine: boolean; createdAt: string } | null;
 }
@@ -122,7 +125,11 @@ export default function Chats() {
                   user={{ ...conversation.peer, online: online.has(conversation.peer.id) || conversation.peer.online }}
                 />
                 <div className="row-main">
-                  <div className="row-title">{conversation.peer.displayName}</div>
+                  <div className="row-title name-with-rank">
+                    <LevelBadge level={conversation.peer.level ?? 1} size={13} />
+                    <VipBadge vip={conversation.peer.vip} size={12} />
+                    <span>{conversation.peer.displayName}</span>
+                  </div>
                   <div className="row-sub">
                     {conversation.lastMessage
                       ? `${conversation.lastMessage.mine ? `${t('send')}: ` : ''}${

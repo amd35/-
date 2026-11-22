@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Navigate, useNavigate, useParams } from 'react-router-dom';
-import { api } from '../lib/api';
+import { api, assetUrl } from '../lib/api';
 import { useAuth } from '../lib/auth';
 import { useCall } from '../lib/call';
 import { useI18n } from '../lib/i18n';
@@ -17,6 +17,7 @@ import {
 import { AppShell } from '../components/AppShell';
 import { IdBadge, NameCard } from '../components/Cosmetics';
 import { RankTag } from '../components/RankBadge';
+import { LevelBadge, VipBadge, formatXp } from '../components/ProgressionBadges';
 import { ProfileCustomize } from '../components/ProfileCustomize';
 import type { UserCardData } from '../components/UserCard';
 
@@ -147,6 +148,9 @@ export function Profile() {
             aria-label={t('customizeProfile')}
           >
             <Avatar user={{ ...me.user, online: true }} size={104} />
+            {me.vip?.frameImageUrl ? (
+              <img className="vip-avatar-frame" src={assetUrl(me.vip.frameImageUrl)} alt="" />
+            ) : null}
             <span className="avatar-tap-badge">
               <Icon name="sparkle" size={14} />
             </span>
@@ -161,6 +165,14 @@ export function Profile() {
             <h2 style={{ fontSize: 21 }}>{me.user.displayName}</h2>
           )}
           {me.rank ? <RankTag rank={me.rank} size={18} /> : null}
+          <div className="inline" style={{ gap: 6, marginTop: 4 }}>
+            <LevelBadge
+              level={me.level?.level ?? 1}
+              size={24}
+              color={me.level?.badgeColor ?? '#ffd75e'}
+            />
+            <VipBadge vip={me.vip} size={19} showTitle />
+          </div>
           {me.user.bio ? <p className="tiny center muted">{me.user.bio}</p> : null}
           <div className="inline">
             {me.cosmetics?.id ? (
@@ -241,6 +253,17 @@ export function Profile() {
         ) : null}
 
         <section className="list">
+          <div className="row level-entry-row" onClick={() => navigate('/levels')}>
+            <span className="rank-entry-icon" aria-hidden="true">✦</span>
+            <div className="row-main">
+              <div className="row-title">{t('levelsAndVip')}</div>
+              <div className="row-sub">
+                {t('level')} {me.level?.level ?? 1} • {formatXp(me.level?.xp ?? 0)} XP
+                {me.vip ? ` • VIP ${me.vip.tier}` : ''}
+              </div>
+            </div>
+            <Icon name="arrowLeft" size={17} />
+          </div>
           <div className="row" onClick={() => navigate('/frames')}>
             <Icon name="sparkle" size={19} />
             <div className="row-main">
@@ -435,6 +458,10 @@ export function UserProfile() {
           <Avatar user={{ ...user, online: isOnline }} size={104} />
           <h2 style={{ fontSize: 21 }}>{user.displayName}</h2>
           {user.rank ? <RankTag rank={user.rank} size={17} /> : null}
+          <div className="inline" style={{ gap: 6 }}>
+            <LevelBadge level={user.level ?? 1} size={22} />
+            <VipBadge vip={user.vip} size={18} showTitle />
+          </div>
           <span className="tiny muted">
             #{user.username} • {isOnline ? t('onlineNow') : t('offline')}
           </span>

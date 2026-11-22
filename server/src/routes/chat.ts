@@ -7,13 +7,17 @@ import { notify } from '../notify';
 import {
   FRAME_FIELDS,
   RANK_FIELDS,
+  VIP_FIELDS,
   frameFromRow,
   frameJoins,
   rankFromRow,
   rankJoins,
   toPublicUser,
+  vipFromRow,
+  vipJoins,
 } from '../serializers';
 import { GIFT_MESSAGE_FIELDS, GIFT_MESSAGE_JOINS, giftFromMessageRow } from '../gifts';
+import { awardXpSafe, getXpSettings } from '../progression';
 import { HttpError, asyncHandler, intParam } from '../utils';
 
 const router = Router();
@@ -44,8 +48,9 @@ router.get(
     const rows = await q(
       `SELECT c.id, c.last_message_at,
               peer.id AS peer_id, peer.username AS peer_username, peer.display_name AS peer_name,
-              peer.avatar_url AS peer_avatar, peer.last_seen_at AS peer_last_seen, ${FRAME_FIELDS},
-              ${RANK_FIELDS},
+              peer.avatar_url AS peer_avatar, peer.last_seen_at AS peer_last_seen, peer.level AS peer_level,
+              ${FRAME_FIELDS},
+              ${RANK_FIELDS}, ${VIP_FIELDS},
               lm.body AS last_body, lm.type AS last_type, lm.sender_id AS last_sender,
               lm.created_at AS last_at, lm.attachment_url AS last_attachment,
               (SELECT count(*)::int FROM messages m2
@@ -56,6 +61,7 @@ router.get(
        JOIN users peer ON peer.id = other.user_id
        ${frameJoins('peer')}
        ${rankJoins('peer')}
+       ${vipJoins('peer')}
        LEFT JOIN LATERAL (
          SELECT body, type, sender_id, created_at, attachment_url
          FROM messages m WHERE m.conversation_id = c.id
@@ -77,6 +83,8 @@ router.get(
           avatarUrl: row.peer_avatar,
           frame: frameFromRow(row),
           rank: rankFromRow(row),
+          level: Number(row.peer_level ?? 1) || 1,
+          vip: vipFromRow(row),
           online: isOnline(row.peer_id),
           lastSeenAt: row.peer_last_seen,
         },
@@ -173,11 +181,12 @@ router.get(
       frame_image_url: string | null;
       frame_rarity: string | null;
     }>(
-      `SELECT u.id, u.username, u.display_name, u.avatar_url, u.last_seen_at, ${FRAME_FIELDS},
-              ${RANK_FIELDS}
+      `SELECT u.id, u.username, u.level, u.display_name, u.avatar_url, u.last_seen_at, ${FRAME_FIELDS},
+              ${RANK_FIELDS}, ${VIP_FIELDS}
        FROM conversation_members cm JOIN users u ON u.id = cm.user_id
        ${frameJoins('u')}
        ${rankJoins('u')}
+       ${vipJoins('u')}
        WHERE cm.conversation_id = $1 AND cm.user_id <> $2 LIMIT 1`,
       [conversationId, me]
     );
@@ -271,6 +280,14 @@ router.post(
         type,
       });
     }
+
+    const xpSettings = await getXpSettings();
+    await awardXpSafe({
+      userId: me,
+      kind: 'chat',
+      refId: message.id,
+      xp: xpSettings.chat_message ?? 0,
+    });
 
     res.status(201).json({ message: { ...payload, mine: true } });
   })

@@ -16,6 +16,7 @@ import {
 import { equippedCosmetics, equippedFrameInfo } from '../frames';
 import { getFreeCallState } from '../freecalls';
 import { notify } from '../notify';
+import { activeVip, awardDailyActivity, getLevelState } from '../progression';
 import { activeRankFor, serializeRankInfo } from '../ranks';
 import { getPublicUser } from '../serializers';
 import { getSettings } from '../settings';
@@ -93,9 +94,15 @@ export async function buildMe(userId: string) {
   );
   const settings = await getSettings();
   const rank = await activeRankFor(userId);
+  // Daily activity XP is awarded once per Baghdad day, on the first app load.
+  await awardDailyActivity(userId);
+  const level = await getLevelState(userId);
+  const vip = await activeVip(userId);
   return {
     user: serializeSelf(row, await equippedFrameInfo(userId)),
     rank: rank ? serializeRankInfo(rank) : null,
+    level,
+    vip,
     cosmetics: await equippedCosmetics(userId),
     wallet: wallet ?? { balance: 0, reserved: 0, earned: 0, spent: 0 },
     freeCalls: free,

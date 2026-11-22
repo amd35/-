@@ -6,6 +6,7 @@ import { useRealtime } from '../lib/realtime';
 import { useToast } from '../lib/ui';
 import { Avatar, formatCoins, formatDuration, Icon } from '../lib/ui';
 import { RankBadge } from './RankBadge';
+import { LevelBadge, VipBadge, type VipInfo } from './ProgressionBadges';
 
 export interface UserCardData {
   id: string;
@@ -14,6 +15,8 @@ export interface UserCardData {
   avatarUrl?: string | null;
   frame?: { id: string; design: string | null; kind: string; imageUrl: string | null; rarity: string } | null;
   rank?: import('./RankBadge').RankInfo | null;
+  level?: number;
+  vip?: VipInfo | null;
   bio?: string | null;
   online?: boolean;
   isFavorite?: boolean;
@@ -56,6 +59,8 @@ export function UserCard({
       <Avatar user={{ ...user, online: isOnline }} size={62} />
       <div className="name name-with-rank">
         {user.rank ? <RankBadge rank={user.rank} size={15} /> : null}
+        <LevelBadge level={user.level ?? 1} size={15} />
+        <VipBadge vip={user.vip} size={15} />
         <span>{user.displayName}</span>
       </div>
       <div className="handle">
@@ -107,6 +112,8 @@ export function UserRow({
       <div className="row-main">
         <div className="row-title name-with-rank">
           {user.rank ? <RankBadge rank={user.rank} size={14} /> : null}
+          <LevelBadge level={user.level ?? 1} size={14} />
+          <VipBadge vip={user.vip} size={14} />
           <span>{user.displayName}</span>
         </div>
         <div className="row-sub">#{user.username}</div>

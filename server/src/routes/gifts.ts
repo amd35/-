@@ -11,6 +11,7 @@ import {
 } from '../gifts';
 import { emitToUser } from '../realtime';
 import { notify } from '../notify';
+import { awardXpSafe, getXpSettings, xpForCoins } from '../progression';
 import { getSettings } from '../settings';
 import { moveCoins } from '../wallet';
 import { HttpError, asyncHandler } from '../utils';
@@ -213,6 +214,16 @@ router.post(
 
       return { send, gift, message, duplicate: false };
     });
+
+    if (!outcome.duplicate) {
+      const xpSettings = await getXpSettings();
+      await awardXpSafe({
+        userId: me,
+        kind: 'gift',
+        refId: outcome.send.id,
+        xp: xpForCoins('gift', Number(outcome.send.coins), xpSettings),
+      });
+    }
 
     const giftInfo: GiftMessageInfo = {
       id: outcome.send.id,
