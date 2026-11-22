@@ -3398,6 +3398,22 @@ table.data tr:hover td {
   background: var(--card-2);
 }
 
+.room-create {
+  border-style: dashed;
+  background: transparent;
+}
+
+.room-create .room-cover {
+  background: rgba(214, 51, 132, 0.16);
+  color: #ff8fc4;
+}
+
+.room-mine-pill {
+  margin-inline-start: 6px;
+  font-size: 10px;
+  vertical-align: middle;
+}
+
 .room-cover {
   width: 58px;
   height: 58px;
@@ -6729,9 +6745,7 @@ table.data tr:hover td {
   margin: auto 0;
   padding: 14px 6px;
   border-radius: 18px;
-  border: 1px solid rgba(255, 207, 64, 0.18);
-  background: rgba(6, 2, 5, 0.55);
-  backdrop-filter: blur(6px);
+  background: transparent;
 }
 
 .seat {
@@ -6768,7 +6782,7 @@ table.data tr:hover td {
   border-radius: 50%;
   padding: 2px;
   background:
-    linear-gradient(#0a0509, #0a0509) padding-box,
+    linear-gradient(transparent, transparent) padding-box,
     conic-gradient(from 0deg, #ff3b0f, #ffb347, #c8102e, #ff3b0f) border-box;
   border: 2px solid transparent;
   box-shadow:
@@ -6817,8 +6831,9 @@ table.data tr:hover td {
   width: 100%;
   height: 100%;
   border-radius: 50%;
-  background: radial-gradient(circle at 50% 30%, #1a0a10, #060206 70%);
+  background: transparent;
   color: #ffcf70;
+  filter: drop-shadow(0 0 6px rgba(255, 140, 30, 0.6));
 }
 
 .seat-num {

@@ -29,6 +29,7 @@ export interface RoomRow {
   is_active: boolean;
   sort_order: number;
   owner_id: string | null;
+  created_by: string | null;
   background: string;
   music_url: string | null;
   country: string;
@@ -284,7 +285,7 @@ export async function roomRoles(roomId: string): Promise<RoomRoleEntry[]> {
   }));
 }
 
-export async function listRooms() {
+export async function listRooms(userId?: string | null) {
   const rows = await q<RoomRow & { mic_count: string; occupied: string }>(
     `SELECT r.*,
        (SELECT count(*)::text FROM room_mics m WHERE m.room_id = r.id) AS mic_count,
@@ -297,6 +298,7 @@ export async function listRooms() {
     ...serializeRoom(row),
     micCount: Number(row.mic_count),
     occupied: Number(row.occupied),
+    mine: Boolean(userId && row.created_by === userId),
   }));
 }
 

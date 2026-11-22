@@ -8,6 +8,8 @@ import {
   roomAccess,
   roomMessageById,
   roomMessages,
+  serializeRoom,
+  type RoomRow,
 } from '../rooms';
 import { notify } from '../notify';
 import { GiftRow, moveProfit } from '../gifts';
@@ -22,8 +24,46 @@ const router = Router();
 router.get(
   '/',
   requireAuth(),
-  asyncHandler(async (_req, res) => {
-    res.json({ rooms: await listRooms() });
+  asyncHandler(async (req, res) => {
+    res.json({ rooms: await listRooms(reqUser(req).id) });
+  })
+);
+
+/** Each user may own a single room; creating it opens 15 seats like the stage. */
+router.post(
+  '/',
+  requireAuth(),
+  asyncHandler(async (req, res) => {
+    const me = reqUser(req).id;
+    const name = String(req.body?.name ?? '').trim().slice(0, 60);
+    const description = String(req.body?.description ?? '').trim().slice(0, 160);
+    if (name.length < 2) throw new HttpError(400, 'Room name is required', 'missing_name');
+
+    const existing = await one<{ id: string }>(
+      'SELECT id FROM rooms WHERE created_by = $1 AND is_active = true LIMIT 1',
+      [me]
+    );
+    if (existing) throw new HttpError(409, 'You already have a room', 'room_exists', { roomId: existing.id });
+
+    const room = await tx(async (client) => {
+      const inserted = await client.query<RoomRow>(
+        'INSERT INTO rooms (name, description, owner_id, created_by) VALUES ($1, $2, $3, $3) RETURNING *',
+        [name, description, me]
+      );
+      const created = inserted.rows[0];
+      for (let position = 1; position <= 15; position += 1) {
+        await client.query('INSERT INTO room_mics (room_id, position, label, kind) VALUES ($1, $2, $3, $4)', [
+          created.id,
+          position,
+          position === 1 ? 'المايك الرئيسي' : `مايك ${position}`,
+          position === 1 ? 'host' : 'speaker',
+        ]);
+      }
+      return created;
+    });
+
+    broadcast('room', { roomId: room.id });
+    res.status(201).json({ room: serializeRoom(room) });
   })
 );
 

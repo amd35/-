@@ -678,6 +678,8 @@ CREATE TABLE IF NOT EXISTS rooms (
 );
 -- Room owner, animated stage design and shared music track.
 ALTER TABLE rooms ADD COLUMN IF NOT EXISTS owner_id uuid REFERENCES users(id) ON DELETE SET NULL;
+-- Who created the room through the app (one user-created room per account).
+ALTER TABLE rooms ADD COLUMN IF NOT EXISTS created_by uuid REFERENCES users(id) ON DELETE SET NULL;
 ALTER TABLE rooms ADD COLUMN IF NOT EXISTS background text NOT NULL DEFAULT 'fire';
 ALTER TABLE rooms ADD COLUMN IF NOT EXISTS music_url text;
 ALTER TABLE rooms ADD COLUMN IF NOT EXISTS country text NOT NULL DEFAULT 'العراق';
