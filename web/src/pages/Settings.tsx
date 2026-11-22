@@ -177,16 +177,14 @@ export default function Settings() {
             <Icon name="arrowLeft" size={17} />
           </div>
 
-          {me?.user.isAdmin && (
-            <div className="row" onClick={() => navigate('/admin')}>
-              <Icon name="chart" size={19} />
-              <div className="row-main">
-                <div className="row-title">{t('adminPanel')}</div>
-                <div className="row-sub">{t('adminLogin')}</div>
-              </div>
-              <Icon name="arrowLeft" size={17} />
+          <div className="row" onClick={() => navigate('/admin')}>
+            <Icon name="chart" size={19} />
+            <div className="row-main">
+              <div className="row-title">{t('adminPanel')}</div>
+              <div className="row-sub">{t('adminLogin')}</div>
             </div>
-          )}
+            <Icon name="arrowLeft" size={17} />
+          </div>
         </section>
 
         <section className="list">
