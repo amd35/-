@@ -403,6 +403,37 @@ const ART_FRAMES: Record<string, string> = {
   'admin-royal': '/frames/admin-royal.png',
 };
 
+const ART_EMBERS = [5, 11, 17, 25, 75, 83, 89, 95];
+
+/** The painted artwork, brought to life: fire aura, breathing glow, shine sweep,
+ *  crown sparkles and embers rising around the wings. Pure CSS, no extra assets. */
+function ArtFrame({ src }: { src: string }) {
+  return (
+    <span className="av-frame av-frame-art" aria-hidden="true">
+      <span className="av-art-aura" />
+      <img src={src} alt="" />
+      <span className="av-art-shine" />
+      <span className="av-art-crown">
+        <i />
+        <i />
+        <i />
+      </span>
+      <span className="av-art-embers">
+        {ART_EMBERS.map((left, index) => (
+          <i
+            key={left}
+            style={{
+              left: `${left}%`,
+              animationDelay: `${(index * 0.57) % 4.2}s`,
+              animationDuration: `${3.6 + (index % 3) * 0.7}s`,
+            }}
+          />
+        ))}
+      </span>
+    </span>
+  );
+}
+
 const DESIGNS: Record<string, () => ReactNode> = {
   ...Object.fromEntries(VIP_EAGLE_DESIGNS.map((key) => [key, () => <VipEagleFrame design={key} />])),
   ...Object.fromEntries(ADMIN_DESIGNS.map((key) => [key, () => <AdminRoyalFrame design={key} />])),
@@ -436,13 +467,7 @@ export function AvatarFrame({ frame }: { frame: FrameInfo | null }) {
     );
   }
   const art = ART_FRAMES[frame.design ?? ''];
-  if (art) {
-    return (
-      <span className="av-frame av-frame-art" aria-hidden="true">
-        <img src={art} alt="" />
-      </span>
-    );
-  }
+  if (art) return <ArtFrame src={art} />;
   const Design = DESIGNS[frame.design ?? ''] ?? DESIGNS.galaxy;
   const glow = VIP_EAGLE_FRAMES[frame.design ?? '']?.glow ?? ADMIN_POSITIONS[frame.design ?? '']?.fire;
   const admin = isAdminDesign(frame.design);
