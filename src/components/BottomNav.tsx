@@ -1,60 +1,84 @@
-import { Home, Swords, Users } from 'lucide-react'
-
-export type Tab = 'home' | 'battle' | 'friends'
+import { Gamepad2, Home, MessageCircle, Mic, ShoppingBag } from 'lucide-react'
+import { NavLink } from 'react-router-dom'
 
 const ITEMS = [
-  { key: 'home' as const, label: 'الرئيسية', Icon: Home },
-  { key: 'battle' as const, label: 'المعركة', Icon: Swords },
-  { key: 'friends' as const, label: 'الأصدقاء', Icon: Users },
+  { to: '/', label: 'الرئيسية', Icon: Home },
+  { to: '/games', label: 'الألعاب', Icon: Gamepad2 },
+  { to: '/store', label: 'المتجر', Icon: ShoppingBag },
+  { to: '/messages', label: 'الرسائل', Icon: MessageCircle },
 ]
 
-export default function BottomNav({
-  tab,
-  onChange,
-  friendsBadge,
-}: {
-  tab: Tab
-  onChange: (tab: Tab) => void
-  friendsBadge?: number
-}) {
+export default function BottomNav({ messageBadge }: { messageBadge?: number }) {
   return (
     <nav className="fixed inset-x-0 bottom-0 z-40">
-      <div className="mx-auto max-w-xl px-3 pb-3">
-        <div className="glass-deep safe-bottom grid grid-cols-3 gap-1 rounded-3xl px-2 pt-2 shadow-[0_-10px_30px_-12px_rgba(190,24,93,0.55)]">
-          {ITEMS.map(({ key, label, Icon }) => {
-            const active = tab === key
-            return (
-              <button
-                key={key}
-                type="button"
-                data-testid={`tab-${key}`}
-                aria-current={active ? 'page' : undefined}
-                onClick={() => onChange(key)}
-                className={`relative flex flex-col items-center gap-1 rounded-2xl py-2.5 text-[11px] font-bold transition ${
-                  active
-                    ? 'bg-gradient-to-b from-fuchsia-500/25 to-rose-500/10 text-blush-100'
-                    : 'text-slate-400 hover:text-slate-200'
-                }`}
-              >
-                <Icon
-                  size={21}
-                  strokeWidth={active ? 2.6 : 2}
-                  className={active ? 'drop-shadow-[0_0_10px_rgba(251,113,133,0.55)]' : ''}
-                />
-                {label}
-                {key === 'friends' && !!friendsBadge && (
-                  <span className="absolute top-1 right-[calc(50%-24px)] flex size-4 items-center justify-center rounded-full bg-rose-500 text-[10px] font-bold text-white shadow-[0_0_10px_rgba(244,63,94,0.6)]">
-                    {friendsBadge}
-                  </span>
-                )}
-                {active && (
-                  <span className="absolute inset-x-7 -top-0.5 h-0.5 rounded-full bg-gradient-to-l from-rose-400 via-fuchsia-400 to-amber-300" />
-                )}
-              </button>
-            )
-          })}
+      <div className="mx-auto max-w-[440px] px-3 pb-3">
+        <div className="nav-glass safe-bottom grid grid-cols-5 items-end rounded-[26px] px-2 pt-1.5 shadow-[0_-14px_34px_-16px_rgba(124,58,237,0.85)]">
+          {ITEMS.slice(0, 2).map(({ to, label, Icon }) => (
+            <NavItem key={to} to={to} label={label} Icon={Icon} />
+          ))}
+
+          <NavLink
+            to="/add-item"
+            data-testid="tab-live"
+            className="relative -mt-7 flex flex-col items-center gap-1 pb-1"
+          >
+            <span className="purple-btn flex size-14 items-center justify-center rounded-full ring-4 ring-[#0e0622]">
+              <Mic size={23} />
+            </span>
+            <span className="text-[10px] font-bold text-blush-200">ميكروفون</span>
+          </NavLink>
+
+          {ITEMS.slice(2).map(({ to, label, Icon }) => (
+            <NavItem
+              key={to}
+              to={to}
+              label={label}
+              Icon={Icon}
+              badge={to === '/messages' ? messageBadge : undefined}
+            />
+          ))}
         </div>
       </div>
     </nav>
+  )
+}
+
+function NavItem({
+  to,
+  label,
+  Icon,
+  badge,
+}: {
+  to: string
+  label: string
+  Icon: typeof Home
+  badge?: number
+}) {
+  return (
+    <NavLink
+      to={to}
+      end={to === '/'}
+      data-testid={`tab-${to.replace('/', '') || 'home'}`}
+      className={({ isActive }) =>
+        `relative flex flex-col items-center gap-1 rounded-2xl py-2.5 text-[10px] font-bold transition ${
+          isActive ? 'text-gold' : 'text-blush-200/55'
+        }`
+      }
+    >
+      {({ isActive }) => (
+        <>
+          <Icon size={21} strokeWidth={isActive ? 2.6 : 2} />
+          <span>{label}</span>
+          {!!badge && badge > 0 && (
+            <span className="absolute top-1 right-[calc(50%-22px)] flex min-w-4 items-center justify-center rounded-full bg-neon px-1 text-[9px] font-black text-white shadow-[0_0_10px_rgba(255,59,212,0.8)]">
+              {badge}
+            </span>
+          )}
+          {isActive && (
+            <span className="absolute inset-x-6 -top-0.5 h-0.5 rounded-full bg-gradient-to-l from-gold via-amber-200 to-gold" />
+          )}
+        </>
+      )}
+    </NavLink>
   )
 }

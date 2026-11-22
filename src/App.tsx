@@ -6,13 +6,19 @@ import AnalyticsPage from './pages/AnalyticsPage'
 import ContactPage from './pages/ContactPage'
 import DashboardPage from './pages/DashboardPage'
 import DataListPage from './pages/DataListPage'
+import DiamondPage from './pages/DiamondPage'
 import FaqPage from './pages/FaqPage'
+import FriendsPage from './pages/FriendsPage'
+import GamesPage from './pages/GamesPage'
 import HelpPage from './pages/HelpPage'
 import MainApp from './pages/MainApp'
+import MessagesPage from './pages/MessagesPage'
 import NotificationsPage from './pages/NotificationsPage'
 import ProfilePage from './pages/ProfilePage'
 import SettingsPage from './pages/SettingsPage'
+import StorePage from './pages/StorePage'
 import TasksPage from './pages/TasksPage'
+import VCoinPage from './pages/VCoinPage'
 
 export default function App() {
   return (
@@ -20,6 +26,12 @@ export default function App() {
       <Routes>
         <Route element={<AppShell />}>
           <Route index element={<MainApp />} />
+          <Route path="/messages" element={<MessagesPage />} />
+          <Route path="/games" element={<GamesPage />} />
+          <Route path="/store" element={<StorePage />} />
+          <Route path="/diamond" element={<DiamondPage />} />
+          <Route path="/vcoin" element={<VCoinPage />} />
+          <Route path="/friends" element={<FriendsPage />} />
           <Route path="/dashboard" element={<DashboardPage />} />
           <Route path="/data-list" element={<DataListPage />} />
           <Route path="/systems" element={<Navigate to="/" replace />} />

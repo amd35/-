@@ -4,19 +4,20 @@
   --font-sans: 'Cairo', 'Segoe UI', Tahoma, sans-serif;
   --font-display: 'Amiri', 'Cairo', 'Segoe UI', serif;
 
-  /* Romantic design tokens — يلا فون */
-  --color-night-950: #07030f;
-  --color-night-900: #0b0614;
-  --color-night-800: #120a1d;
-  --color-night-700: #1a0f27;
-  --color-plum-600: #241133;
-  --color-blush-100: #fdf2f8;
-  --color-blush-200: #fbcfe8;
-  --color-blush-300: #f9a8d4;
-  --color-rose-glow: #fb7185;
-  --color-gold: #fcd34d;
+  /* Yalla Phone — deep violet / neon / gold tokens */
+  --color-night-950: #080314;
+  --color-night-900: #110826;
+  --color-night-800: #170d31;
+  --color-night-700: #231248;
+  --color-plum-600: #2c1758;
+  --color-blush-100: #f6efff;
+  --color-blush-200: #cdb8f5;
+  --color-blush-300: #a98ae8;
+  --color-rose-glow: #a855f7;
+  --color-gold: #ffd166;
+  --color-neon: #ff3bd4;
 
-  --radius-romance: 1.75rem;
+  --radius-romance: 1.5rem;
 }
 
 html {
@@ -27,10 +28,18 @@ body {
   margin: 0;
   font-family: var(--font-sans);
   color: #f8fafc;
-  background-color: #07030f;
-  background-image: radial-gradient(circle at 15% 0%, rgba(190, 24, 93, 0.22), transparent 45%),
-    radial-gradient(circle at 90% 12%, rgba(147, 51, 234, 0.18), transparent 42%);
+  background-color: #080314;
+  background-image: radial-gradient(circle at 85% -8%, rgba(124, 58, 237, 0.32), transparent 46%),
+    radial-gradient(circle at 0% 24%, rgba(255, 59, 212, 0.12), transparent 42%);
   background-attachment: fixed;
+}
+
+/* App surface used by the phone-shaped screens */
+.app-bg {
+  background-color: #0b0518;
+  background-image: radial-gradient(circle at 82% -6%, rgba(124, 58, 237, 0.4), transparent 48%),
+    radial-gradient(circle at 0% 30%, rgba(255, 59, 212, 0.12), transparent 44%),
+    linear-gradient(180deg, #0e0622 0%, #0a0418 58%, #080314 100%);
 }
 
 /* ---------- Photographic backgrounds (bundled assets) ----------
@@ -43,30 +52,30 @@ body {
 
 .photo-couple {
   background-image:
-    radial-gradient(circle at 88% -15%, rgba(244, 114, 182, 0.42), transparent 55%),
-    linear-gradient(180deg, rgba(10, 4, 16, 0.25), rgba(10, 4, 16, 0.88)),
+    radial-gradient(circle at 88% -15%, rgba(168, 85, 247, 0.5), transparent 55%),
+    linear-gradient(180deg, rgba(11, 5, 24, 0.3), rgba(11, 5, 24, 0.9)),
     url('./assets/couple.jpg');
   background-position: center 22%;
 }
 
 .photo-roses {
   background-image:
-    radial-gradient(circle at 20% -20%, rgba(251, 113, 133, 0.38), transparent 58%),
-    linear-gradient(200deg, rgba(10, 4, 16, 0.18), rgba(12, 5, 18, 0.9)),
+    radial-gradient(circle at 20% -20%, rgba(255, 59, 212, 0.32), transparent 58%),
+    linear-gradient(200deg, rgba(11, 5, 24, 0.22), rgba(12, 5, 28, 0.92)),
     url('./assets/roses.jpg');
 }
 
 .photo-petals {
   background-image:
-    radial-gradient(circle at 70% -10%, rgba(236, 72, 153, 0.35), transparent 55%),
-    linear-gradient(160deg, rgba(18, 6, 20, 0.28), rgba(8, 3, 14, 0.92)),
+    radial-gradient(circle at 70% -10%, rgba(124, 58, 237, 0.42), transparent 55%),
+    linear-gradient(160deg, rgba(18, 6, 32, 0.3), rgba(8, 3, 20, 0.94)),
     url('./assets/petals.jpg');
 }
 
 .photo-evening {
   background-image:
-    radial-gradient(circle at 80% -10%, rgba(244, 114, 182, 0.25), transparent 55%),
-    linear-gradient(180deg, rgba(8, 3, 14, 0.5), rgba(8, 3, 14, 0.96)),
+    radial-gradient(circle at 80% -10%, rgba(255, 209, 102, 0.18), transparent 55%),
+    linear-gradient(180deg, rgba(8, 3, 20, 0.55), rgba(8, 3, 20, 0.96)),
     url('./assets/evening.jpg');
 }
 
@@ -81,27 +90,34 @@ body {
   position: absolute;
   inset: 0;
   background:
-    radial-gradient(circle at 50% -10%, rgba(253, 164, 175, 0.22), transparent 62%),
-    linear-gradient(180deg, rgba(7, 3, 15, 0.04) 0%, rgba(7, 3, 15, 0.42) 52%, rgba(7, 3, 15, 0.97) 100%);
+    radial-gradient(circle at 50% -10%, rgba(168, 85, 247, 0.24), transparent 62%),
+    linear-gradient(180deg, rgba(8, 3, 20, 0.06) 0%, rgba(8, 3, 20, 0.5) 52%, rgba(8, 3, 20, 0.97) 100%);
 }
 
 /* ---------- Surfaces ---------- */
 .glass {
-  background: linear-gradient(160deg, rgba(255, 255, 255, 0.11), rgba(255, 255, 255, 0.035));
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: linear-gradient(160deg, rgba(60, 32, 110, 0.5), rgba(20, 10, 42, 0.62));
+  border: 1px solid rgba(168, 132, 255, 0.16);
   -webkit-backdrop-filter: blur(18px) saturate(130%);
   backdrop-filter: blur(18px) saturate(130%);
 }
 
 .glass-deep {
-  background: linear-gradient(165deg, rgba(36, 17, 51, 0.78), rgba(11, 6, 20, 0.72));
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: linear-gradient(165deg, rgba(44, 23, 88, 0.92), rgba(14, 7, 32, 0.9));
+  border: 1px solid rgba(168, 132, 255, 0.16);
   -webkit-backdrop-filter: blur(22px) saturate(135%);
   backdrop-filter: blur(22px) saturate(135%);
 }
 
+.nav-glass {
+  background: linear-gradient(180deg, rgba(26, 13, 51, 0.94), rgba(11, 5, 24, 0.97));
+  border: 1px solid rgba(168, 132, 255, 0.16);
+  -webkit-backdrop-filter: blur(20px) saturate(140%);
+  backdrop-filter: blur(20px) saturate(140%);
+}
+
 .hairline-gold {
-  background: linear-gradient(90deg, transparent, rgba(252, 211, 77, 0.55), transparent);
+  background: linear-gradient(90deg, transparent, rgba(255, 209, 102, 0.55), transparent);
 }
 
 /* ---------- Typography ---------- */
@@ -109,11 +125,35 @@ body {
   font-family: var(--font-display);
 }
 
-.text-romance-gradient {
-  background: linear-gradient(100deg, #fdf2f8, #f9a8d4 45%, #fcd34d);
+.gold-text {
+  background: linear-gradient(180deg, #fff6d0 0%, #ffd166 48%, #dfa22a 100%);
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
+}
+
+.text-romance-gradient {
+  background: linear-gradient(100deg, #ffffff, #ffd166 50%, #ff3bd4);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+/* ---------- Buttons ---------- */
+.gold-btn {
+  background: linear-gradient(180deg, #ffeaa9 0%, #ffc93c 55%, #e2a318 100%);
+  color: #2a1600;
+  box-shadow:
+    0 10px 24px -10px rgba(255, 201, 60, 0.8),
+    inset 0 1px 0 rgba(255, 255, 255, 0.65);
+}
+
+.purple-btn {
+  background: linear-gradient(180deg, #a855f7 0%, #7c3aed 60%, #5b21b6 100%);
+  color: #fff;
+  box-shadow:
+    0 12px 28px -12px rgba(124, 58, 237, 0.9),
+    inset 0 1px 0 rgba(255, 255, 255, 0.25);
 }
 
 /* ---------- Bits ---------- */
@@ -126,23 +166,27 @@ body {
 
 .blush-glow {
   box-shadow:
-    0 18px 40px -18px rgba(190, 24, 93, 0.55),
+    0 18px 40px -18px rgba(124, 58, 237, 0.7),
     0 0 0 1px rgba(255, 255, 255, 0.06) inset;
 }
 
+.gift-glow {
+  filter: drop-shadow(0 0 14px rgba(255, 209, 102, 0.75));
+}
+
 .safe-bottom {
-  padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 0.75rem);
+  padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 0.5rem);
 }
 
 @keyframes romance-float {
   0%,
   100% {
     transform: translateY(0) rotate(0deg);
-    opacity: 0.5;
+    opacity: 0.55;
   }
   50% {
     transform: translateY(-10px) rotate(6deg);
-    opacity: 0.8;
+    opacity: 0.9;
   }
 }
 
@@ -158,6 +202,16 @@ body {
   }
 }
 
+@keyframes gift-pulse {
+  0%,
+  100% {
+    transform: translateY(0) scale(1);
+  }
+  50% {
+    transform: translateY(-6px) scale(1.06);
+  }
+}
+
 .animate-romance-float {
   animation: romance-float 7s ease-in-out infinite;
 }
@@ -166,9 +220,14 @@ body {
   animation: romance-sheen 6s ease-in-out infinite;
 }
 
+.animate-gift-pulse {
+  animation: gift-pulse 2.6s ease-in-out infinite;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .animate-romance-float,
-  .animate-romance-sheen {
+  .animate-romance-sheen,
+  .animate-gift-pulse {
     animation: none;
   }
 }

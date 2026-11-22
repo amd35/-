@@ -4,17 +4,17 @@ import Avatar from './Avatar'
 export type RoomSeat = { name: string; mic: boolean; hand: boolean; host: boolean }
 
 const COLUMNS = 4
-const ROWS = 8
+const ROWS = 4
 const SEATS = COLUMNS * ROWS
 
-/** شبكة المقاعد الأساسية للغرفة: 4 أعمدة × 8 صفوف = 32 مقعدًا. */
+/** شبكة المقاعد الدائرية للغرفة: ٤ أعمدة × ٤ صفوف = ١٦ مقعدًا. */
 export default function SeatGrid({ seats }: { seats: RoomSeat[] }) {
   const slots = Array.from({ length: SEATS }, (_, index) => index)
 
   return (
     <div
       data-testid="seat-grid"
-      className="glass-deep grid w-full grid-cols-4 gap-x-1.5 gap-y-3 rounded-[1.25rem] p-2.5 sm:mx-auto sm:max-w-lg sm:gap-x-2.5 sm:gap-y-4 sm:rounded-[1.75rem] sm:p-3.5 lg:max-w-2xl lg:gap-x-4 lg:gap-y-5 lg:p-4"
+      className="grid w-full grid-cols-4 gap-x-2 gap-y-3 rounded-[22px] border border-white/10 bg-black/25 p-2.5 backdrop-blur-md"
     >
       {slots.map((index) => {
         const seat = index < seats.length ? seats[index] : null
@@ -29,17 +29,20 @@ export default function SeatGrid({ seats }: { seats: RoomSeat[] }) {
             {seat ? (
               <>
                 <div className="relative">
-                  <Avatar name={seat.name} size={44} />
+                  <span className="block rounded-full bg-gradient-to-br from-amber-300/80 to-fuchsia-600 p-[1.5px]">
+                    <Avatar name={seat.name} size={44} />
+                  </span>
                   {seat.host && (
                     <Crown
-                      size={14}
-                      className="absolute -top-2 left-1/2 -translate-x-1/2 text-amber-300"
+                      size={13}
+                      className="absolute -top-2 left-1/2 -translate-x-1/2 text-gold"
+                      fill="currentColor"
                     />
                   )}
                   {seat.hand && (
                     <span
                       data-testid="seat-hand"
-                      className="absolute -top-2 right-0 flex size-4 items-center justify-center rounded-full bg-amber-300 text-[9px] text-[#1a0f27]"
+                      className="absolute -top-2 right-0 flex size-4 items-center justify-center rounded-full bg-gold text-[9px] text-[#1a0b2e]"
                     >
                       <Hand size={9} />
                     </span>
@@ -47,7 +50,7 @@ export default function SeatGrid({ seats }: { seats: RoomSeat[] }) {
                   <span
                     data-testid="seat-mic"
                     data-on={seat.mic ? 'true' : 'false'}
-                    className={`absolute -bottom-1 left-1/2 flex size-4 -translate-x-1/2 items-center justify-center rounded-full ring-2 ring-[#0b0614] ${
+                    className={`absolute -bottom-1 left-1/2 flex size-4 -translate-x-1/2 items-center justify-center rounded-full ring-2 ring-[#120a24] ${
                       seat.mic ? 'bg-emerald-500' : 'bg-slate-600'
                     }`}
                   >
@@ -58,16 +61,16 @@ export default function SeatGrid({ seats }: { seats: RoomSeat[] }) {
                     )}
                   </span>
                 </div>
-                <span className="w-full truncate text-center text-[10px] leading-tight text-slate-200 sm:text-[11px]">
+                <span className="w-full truncate text-center text-[10px] leading-tight text-slate-200">
                   {seat.name}
                 </span>
               </>
             ) : (
               <>
-                <span className="flex size-10 items-center justify-center rounded-full border border-dashed border-white/25 bg-white/[0.03] text-white/40 sm:size-11">
+                <span className="flex size-11 items-center justify-center rounded-full border border-dashed border-violet-300/30 bg-white/[0.04] text-violet-200/50">
                   <Mic size={15} />
                 </span>
-                <span className="text-[10px] leading-tight text-slate-500 sm:text-[11px]">فارغ</span>
+                <span className="text-[10px] leading-tight text-slate-500">فارغ</span>
               </>
             )}
           </div>
