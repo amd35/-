@@ -16,9 +16,10 @@ import { confirmOrder } from '../orders';
 import { emitToUser, isOnline, onlineUserIds } from '../realtime';
 import { getSettings, updateSettings } from '../settings';
 import { FRAME_RARITIES, FrameRow, serializeFrame } from '../frames';
+import { GIFT_RARITIES, GiftRow, moveProfit, serializeGift } from '../gifts';
 import { HttpError, asyncHandler, intParam, iraqDateStr, nextIraqMidnight } from '../utils';
 import { moveCoins } from '../wallet';
-import { upload } from './uploads';
+import { giftUpload, upload } from './uploads';
 
 const router = Router();
 
@@ -452,26 +453,91 @@ router.post(
 );
 
 router.post(
+  '/withdrawals/:id/paid',
+  asyncHandler(async (req, res) => {
+    const result = await tx(async (c) => {
+      const { rows } = await c.query<{
+        id: string;
+        user_id: string;
+        coins: number;
+        source: string;
+        amount: string;
+        currency: string;
+      }>(
+        `UPDATE withdrawal_requests
+         SET status = 'paid', processed_at = now(),
+             note = COALESCE(NULLIF($2::text, ''), note)
+         WHERE id = $1 AND status = 'approved' RETURNING *`,
+        [req.params.id, String(req.body?.note || '').slice(0, 200)]
+      );
+      const row = rows[0];
+      if (!row) throw new HttpError(404, 'Approved withdrawal not found', 'withdrawal_not_found');
+      if (row.source === 'profit') {
+        await moveProfit(c, {
+          userId: row.user_id,
+          type: 'withdrawal_paid',
+          amount: 0,
+          hold: -Number(row.coins),
+          settle: Number(row.coins),
+          refType: 'withdrawal_request',
+          refId: row.id,
+          meta: { amount: Number(row.amount), currency: row.currency },
+        });
+      }
+      return row;
+    });
+    emitToUser(result.user_id, 'profit:update', {});
+    await notify(
+      result.user_id,
+      'withdrawal_paid',
+      'تم دفع السحب',
+      `تم تحويل ${Number(result.amount)} ${result.currency} — ${result.coins} كونز`,
+      { coins: result.coins, amount: Number(result.amount), currency: result.currency }
+    );
+    res.json({ ok: true });
+  })
+);
+
+router.post(
   '/withdrawals/:id/reject',
   asyncHandler(async (req, res) => {
     const result = await tx(async (c) => {
-      const { rows } = await c.query<{ id: string; user_id: string; coins: number }>(
-        `UPDATE withdrawal_requests SET status = 'rejected', processed_at = now(), note = $2
-         WHERE id = $1 AND status = 'pending' RETURNING id, user_id, coins`,
+      const { rows } = await c.query<{
+        id: string;
+        user_id: string;
+        coins: number;
+        source: string;
+      }>(
+        `UPDATE withdrawal_requests SET status = 'rejected', processed_at = now(), note = $2::text
+         WHERE id = $1 AND status = 'pending' RETURNING id, user_id, coins, source`,
         [req.params.id, String(req.body?.note || 'rejected').slice(0, 200)]
       );
       if (!rows[0]) throw new HttpError(404, 'Pending withdrawal not found', 'withdrawal_not_found');
+      const row = rows[0];
+      if (row.source === 'profit') {
+        await moveProfit(c, {
+          userId: row.user_id,
+          type: 'withdrawal_refund',
+          amount: Number(row.coins),
+          hold: -Number(row.coins),
+          refType: 'withdrawal_request',
+          refId: row.id,
+          meta: { reason: 'rejected' },
+        });
+        return { withdrawal: row, balance: null };
+      }
       const moved = await moveCoins(c, {
-        userId: rows[0].user_id,
-        amount: rows[0].coins,
+        userId: row.user_id,
+        amount: row.coins,
         type: 'withdrawal_refund',
         refType: 'withdrawal_request',
-        refId: rows[0].id,
+        refId: row.id,
         meta: { reason: 'rejected' },
       });
-      return { withdrawal: rows[0], balance: moved.balanceAfter };
+      return { withdrawal: row, balance: moved.balanceAfter };
     });
     emitToUser(result.withdrawal.user_id, 'wallet:update', { balance: result.balance });
+    emitToUser(result.withdrawal.user_id, 'profit:update', {});
     await notify(
       result.withdrawal.user_id,
       'withdrawal_rejected',
@@ -833,6 +899,230 @@ router.patch(
       ]
     );
     res.json({ frame: updated ? serializeFrame(updated) : null });
+  })
+);
+
+// --------------------------------------------------------------------- gifts
+function readGiftBody(body: Record<string, unknown>): Partial<GiftRow> {
+  const out: Partial<GiftRow> = {};
+  if (body.name !== undefined) {
+    const name = String(body.name).trim().slice(0, 80);
+    if (!name) throw new HttpError(400, 'Gift name is required', 'invalid_gift');
+    out.name = name;
+  }
+  if (body.nameEn !== undefined) out.name_en = String(body.nameEn).trim().slice(0, 80);
+  if (body.description !== undefined) out.description = String(body.description).trim().slice(0, 300);
+  if (body.design !== undefined) {
+    const design = String(body.design).trim();
+    if (design && !/^[a-z0-9-]{2,40}$/.test(design)) {
+      throw new HttpError(400, 'Invalid gift design key', 'invalid_gift');
+    }
+    out.design = design || null;
+  }
+  if (body.videoUrl !== undefined) out.video_url = String(body.videoUrl).trim().slice(0, 500) || null;
+  if (body.coverUrl !== undefined) out.cover_url = String(body.coverUrl).trim().slice(0, 500) || null;
+  if (body.price !== undefined) {
+    const price = Math.round(Number(body.price));
+    if (!Number.isFinite(price) || price < 0) {
+      throw new HttpError(400, 'Invalid gift price', 'invalid_gift');
+    }
+    out.price = price;
+  }
+  if (body.recipientPercent !== undefined) {
+    if (body.recipientPercent === null || body.recipientPercent === '') {
+      out.recipient_percent = null;
+    } else {
+      const percent = Math.round(Number(body.recipientPercent));
+      if (!Number.isFinite(percent) || percent < 0 || percent > 100) {
+        throw new HttpError(400, 'Invalid recipient percent', 'invalid_gift');
+      }
+      out.recipient_percent = percent;
+    }
+  }
+  if (body.rarity !== undefined) {
+    const rarity = String(body.rarity);
+    if (!(GIFT_RARITIES as readonly string[]).includes(rarity)) {
+      throw new HttpError(400, 'Invalid gift rarity', 'invalid_gift');
+    }
+    out.rarity = rarity;
+  }
+  if (body.isActive !== undefined) out.is_active = Boolean(body.isActive);
+  if (body.sortOrder !== undefined) out.sort_order = Math.round(Number(body.sortOrder)) || 0;
+  return out;
+}
+
+router.get(
+  '/gifts',
+  asyncHandler(async (_req, res) => {
+    const rows = await q<
+      GiftRow & { sends: number; revenue: number; recipient_payout: number; admin_share: number }
+    >(
+      `SELECT g.*,
+        (SELECT count(*)::int FROM gift_sends s WHERE s.gift_id = g.id) AS sends,
+        (SELECT COALESCE(SUM(s.coins), 0)::int FROM gift_sends s WHERE s.gift_id = g.id) AS revenue,
+        (SELECT COALESCE(SUM(s.recipient_coins), 0)::int FROM gift_sends s WHERE s.gift_id = g.id) AS recipient_payout,
+        (SELECT COALESCE(SUM(s.admin_coins), 0)::int FROM gift_sends s WHERE s.gift_id = g.id) AS admin_share
+       FROM gifts g ORDER BY g.sort_order, g.created_at`
+    );
+    res.json({
+      gifts: rows.map((row) => ({
+        ...serializeGift(row),
+        sends: Number(row.sends || 0),
+        revenue: Number(row.revenue || 0),
+        recipientPayout: Number(row.recipient_payout || 0),
+        adminShare: Number(row.admin_share || 0),
+      })),
+    });
+  })
+);
+
+router.post(
+  '/gifts/upload',
+  giftUpload.single('file'),
+  asyncHandler(async (req, res) => {
+    if (!req.file) throw new HttpError(400, 'No file received', 'missing_file');
+    const mime = req.file.mimetype || '';
+    res.status(201).json({
+      url: `/uploads/${req.file.filename}`,
+      name: req.file.originalname,
+      mime,
+      kind: mime.startsWith('video/') ? 'video' : 'image',
+    });
+  })
+);
+
+router.post(
+  '/gifts',
+  asyncHandler(async (req, res) => {
+    const body = (req.body ?? {}) as Record<string, unknown>;
+    const fields = readGiftBody(body);
+    if (!fields.name) throw new HttpError(400, 'Gift name is required', 'invalid_gift');
+    if (!fields.design && !fields.video_url) {
+      throw new HttpError(400, 'Choose an animation or upload a video', 'invalid_gift');
+    }
+    const slug =
+      String(body.slug || '')
+        .trim()
+        .toLowerCase()
+        .replace(/[^a-z0-9-]/g, '')
+        .slice(0, 50) || `gift-${crypto.randomBytes(3).toString('hex')}`;
+
+    const created = await one<GiftRow>(
+      `INSERT INTO gifts
+         (slug, name, name_en, description, design, video_url, cover_url, price,
+          recipient_percent, rarity, is_active, sort_order)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+       ON CONFLICT (slug) DO NOTHING
+       RETURNING *`,
+      [
+        slug,
+        fields.name,
+        fields.name_en || fields.name,
+        fields.description || '',
+        fields.design ?? null,
+        fields.video_url ?? null,
+        fields.cover_url ?? null,
+        fields.price ?? 0,
+        fields.recipient_percent ?? null,
+        fields.rarity ?? 'common',
+        fields.is_active ?? true,
+        fields.sort_order ?? 0,
+      ]
+    );
+    if (!created) throw new HttpError(409, 'A gift with this slug already exists', 'gift_slug_taken');
+    res.status(201).json({ gift: serializeGift(created) });
+  })
+);
+
+router.patch(
+  '/gifts/:id',
+  asyncHandler(async (req, res) => {
+    const existing = await one<GiftRow>('SELECT * FROM gifts WHERE id = $1', [req.params.id]);
+    if (!existing) throw new HttpError(404, 'Gift not found', 'gift_not_found');
+    const fields = readGiftBody((req.body ?? {}) as Record<string, unknown>);
+    const merged = { ...existing, ...fields };
+    if (!merged.design && !merged.video_url) {
+      throw new HttpError(400, 'Choose an animation or upload a video', 'invalid_gift');
+    }
+    const updated = await one<GiftRow>(
+      `UPDATE gifts SET
+         name = $2, name_en = $3, description = $4, design = $5, video_url = $6,
+         cover_url = $7, price = $8, recipient_percent = $9, rarity = $10,
+         is_active = $11, sort_order = $12
+       WHERE id = $1 RETURNING *`,
+      [
+        existing.id,
+        merged.name,
+        merged.name_en,
+        merged.description,
+        merged.design,
+        merged.video_url,
+        merged.cover_url,
+        merged.price,
+        merged.recipient_percent,
+        merged.rarity,
+        merged.is_active,
+        merged.sort_order,
+      ]
+    );
+    res.json({ gift: updated ? serializeGift(updated) : null });
+  })
+);
+
+router.delete(
+  '/gifts/:id',
+  asyncHandler(async (req, res) => {
+    // Soft delete keeps the financial history of gifts already sent intact.
+    const row = await one(
+      'UPDATE gifts SET is_active = false WHERE id = $1 RETURNING id',
+      [req.params.id]
+    );
+    if (!row) throw new HttpError(404, 'Gift not found', 'gift_not_found');
+    res.json({ ok: true });
+  })
+);
+
+router.get(
+  '/gift-transactions',
+  asyncHandler(async (_req, res) => {
+    const totals = await one<{
+      revenue: string;
+      recipient_payout: string;
+      admin_share: string;
+      today: string;
+      count: string;
+    }>(
+      `SELECT COALESCE(SUM(coins), 0)::text AS revenue,
+              COALESCE(SUM(recipient_coins), 0)::text AS recipient_payout,
+              COALESCE(SUM(admin_coins), 0)::text AS admin_share,
+              COALESCE(SUM(CASE WHEN (created_at AT TIME ZONE 'Asia/Baghdad')::date = $1::date
+                                THEN admin_coins ELSE 0 END), 0)::text AS today,
+              count(*)::text AS count
+       FROM gift_sends`,
+      [iraqDateStr()]
+    );
+    const rows = await q(
+      `SELECT s.id, s.gift_name, s.coins, s.recipient_coins, s.admin_coins,
+              s.recipient_percent, s.admin_percent, s.created_at,
+              sender.display_name AS sender_name, sender.username AS sender_username,
+              recipient.display_name AS recipient_name, recipient.username AS recipient_username,
+              g.design, g.video_url, g.cover_url, g.rarity
+       FROM gift_sends s
+       JOIN users sender ON sender.id = s.sender_id
+       JOIN users recipient ON recipient.id = s.recipient_id
+       JOIN gifts g ON g.id = s.gift_id
+       ORDER BY s.created_at DESC LIMIT 100`
+    );
+    res.json({
+      totals: {
+        revenue: Number(totals?.revenue || 0),
+        recipientPayout: Number(totals?.recipient_payout || 0),
+        adminShare: Number(totals?.admin_share || 0),
+        today: Number(totals?.today || 0),
+        count: Number(totals?.count || 0),
+      },
+      transactions: rows,
+    });
   })
 );
 

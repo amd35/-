@@ -12,6 +12,10 @@ export interface AppSettings {
   host_percent: number;
   min_withdrawal_coins: number;
   coin_to_iqd_rate: number;
+  coin_to_usd_rate: number;
+  gifts_enabled: boolean;
+  gift_recipient_percent: number;
+  gift_admin_percent: number;
   app_name: string;
   support_contact: string;
 }
@@ -28,6 +32,10 @@ export const SETTINGS_DEFAULTS: AppSettings = {
   host_percent: 50,
   min_withdrawal_coins: 1000,
   coin_to_iqd_rate: 5,
+  coin_to_usd_rate: 0.001,
+  gifts_enabled: true,
+  gift_recipient_percent: 60,
+  gift_admin_percent: 40,
   app_name: 'Connect+',
   support_contact: 'support@connectplus.app',
 };
@@ -63,6 +71,10 @@ const COERCE: Record<string, (value: unknown) => unknown> = {
   host_percent: (v) => Math.min(100, Math.max(0, Math.trunc(Number(v) || 0))),
   min_withdrawal_coins: (v) => Math.max(0, Math.trunc(Number(v) || 0)),
   coin_to_iqd_rate: (v) => Math.max(0, Number(v) || 0),
+  coin_to_usd_rate: (v) => Math.max(0, Number(v) || 0),
+  gifts_enabled: (v) => Boolean(v),
+  gift_recipient_percent: (v) => Math.min(100, Math.max(0, Math.trunc(Number(v) || 0))),
+  gift_admin_percent: (v) => Math.min(100, Math.max(0, Math.trunc(Number(v) || 0))),
   app_name: (v) => String(v || 'Connect+').slice(0, 60),
   support_contact: (v) => String(v || '').slice(0, 120),
 };
@@ -79,6 +91,10 @@ export async function updateSettings(patch: Record<string, unknown>): Promise<Ap
   if ('admin_percent' in patch || 'host_percent' in patch) {
     const admin = Number(next.admin_percent);
     next.host_percent = 100 - admin;
+  }
+  if ('gift_recipient_percent' in patch || 'gift_admin_percent' in patch) {
+    const recipient = Number(next.gift_recipient_percent);
+    next.gift_admin_percent = 100 - recipient;
   }
   for (const [key, value] of Object.entries(next)) {
     if (!(key in COERCE)) continue;

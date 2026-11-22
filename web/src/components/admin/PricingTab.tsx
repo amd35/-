@@ -14,6 +14,10 @@ interface SettingsResponse {
     host_percent: number;
     min_withdrawal_coins: number;
     coin_to_iqd_rate: number;
+    coin_to_usd_rate: number;
+    gifts_enabled: boolean;
+    gift_recipient_percent: number;
+    gift_admin_percent: number;
     app_name: string;
     support_contact: string;
   };
@@ -107,6 +111,30 @@ export default function PricingTab() {
               dir="ltr"
             />
           </Field>
+          <Field label="سعر تحويل الكونز للدولار" hint="قيمة الدولار الواحد بالكونز = 1 ÷ هذا الرقم">
+            <input
+              className="input"
+              type="number"
+              step="0.0001"
+              value={form.coin_to_usd_rate}
+              onChange={(event) => set('coin_to_usd_rate', Number(event.target.value))}
+              dir="ltr"
+            />
+          </Field>
+          <Field
+            label="نسبة أرباح مستلم الهدية (%)"
+            hint={`عمولة التطبيق ${form.gift_admin_percent}% — تُطبَّق على الهدايا التي لا تحدد نسبة خاصة`}
+          >
+            <input
+              className="input"
+              type="number"
+              min={0}
+              max={100}
+              value={form.gift_recipient_percent}
+              onChange={(event) => set('gift_recipient_percent', Number(event.target.value))}
+              dir="ltr"
+            />
+          </Field>
           <Field label="اسم التطبيق">
             <input className="input" value={form.app_name} onChange={(event) => set('app_name', event.target.value)} />
           </Field>
@@ -128,6 +156,11 @@ export default function PricingTab() {
           checked={form.free_calls_enabled}
           onChange={(value) => set('free_calls_enabled', value)}
           label="تشغيل المحاولات المجانية"
+        />
+        <Toggle
+          checked={form.gifts_enabled}
+          onChange={(value) => set('gifts_enabled', value)}
+          label="تشغيل إرسال الهدايا داخل المحادثات"
         />
         <button className="btn btn-primary" style={{ alignSelf: 'flex-start' }} onClick={() => void save()} disabled={busy}>
           حفظ الإعدادات

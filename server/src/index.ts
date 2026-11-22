@@ -16,6 +16,7 @@ import walletRoutes from './routes/wallet';
 import notificationRoutes from './routes/notifications';
 import uploadRoutes from './routes/uploads';
 import frameRoutes from './routes/frames';
+import giftRoutes from './routes/gifts';
 import paymentRoutes from './routes/payments';
 import adminRoutes from './routes/admin';
 
@@ -69,6 +70,7 @@ app.use('/api/wallet', walletRoutes);
 app.use('/api/notifications', notificationRoutes);
 app.use('/api/uploads', uploadRoutes);
 app.use('/api/frames', frameRoutes);
+app.use('/api/gifts', giftRoutes);
 app.use('/api/payments', paymentRoutes);
 app.use('/api/admin', adminRoutes);
 

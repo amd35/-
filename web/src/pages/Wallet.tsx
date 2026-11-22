@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { api } from '../lib/api';
 import { useAuth } from '../lib/auth';
 import { useI18n } from '../lib/i18n';
@@ -78,6 +79,7 @@ const TX_LABELS: Record<string, string> = {
   withdrawal_refund: 'إرجاع سحب',
   admin_adjust: 'تعديل إداري',
   gift_code: 'كود هدية',
+  gift_send: 'إرسال هدية',
 };
 
 export default function Wallet() {
@@ -85,6 +87,7 @@ export default function Wallet() {
   const { me, refresh } = useAuth();
   const { on } = useRealtime();
   const toast = useToast();
+  const navigate = useNavigate();
 
   const [data, setData] = useState<WalletData | null>(null);
   const [packages, setPackages] = useState<Package[]>([]);
@@ -230,6 +233,9 @@ export default function Wallet() {
               <Icon name="wallet" size={15} /> {t('withdraw')}
             </button>
           </div>
+          <button className="btn btn-ghost btn-sm btn-block" style={{ marginTop: 8 }} onClick={() => navigate('/earnings')}>
+            <Icon name="gift" size={15} /> {t('giftEarnings')}
+          </button>
           <p className="tiny muted" style={{ marginTop: 8 }}>
             {t('walletReservedHint')}
           </p>

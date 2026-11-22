@@ -46,6 +46,22 @@ export const upload = multer({
   },
 });
 
+// Gift media: MP4/WebM animations and cover images. Bigger limit than chat files.
+const GIFT_ALLOWED = new Set(['.mp4', '.webm', '.png', '.jpg', '.jpeg', '.webp', '.gif']);
+
+export const giftUpload = multer({
+  storage,
+  limits: { fileSize: 60 * 1024 * 1024 },
+  fileFilter: (_req, file, cb) => {
+    const ext = path.extname(file.originalname).toLowerCase();
+    if (!GIFT_ALLOWED.has(ext)) {
+      cb(new HttpError(400, 'Only MP4/WebM video or PNG/WebP/GIF images are allowed', 'unsupported_file'));
+      return;
+    }
+    cb(null, true);
+  },
+});
+
 const router = Router();
 
 router.post('/', requireAuth(), upload.single('file'), (req, res) => {

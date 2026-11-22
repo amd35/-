@@ -2726,3 +2726,543 @@ table.data tr:hover td {
     transform: none;
   }
 }
+
+/* ============================================================ gift system */
+.pill-blue {
+  background: rgba(79, 70, 229, 0.18);
+  color: #c7d2fe;
+  border: 1px solid rgba(129, 140, 248, 0.4);
+}
+
+.gift-btn {
+  color: var(--gold);
+  background: radial-gradient(circle at 30% 25%, rgba(255, 215, 94, 0.35), rgba(214, 51, 132, 0.25));
+  border: 1px solid rgba(255, 215, 94, 0.45);
+  box-shadow: 0 0 18px -6px rgba(255, 215, 94, 0.65);
+}
+
+.gift-scene {
+  width: 100%;
+  height: 100%;
+  display: grid;
+  place-items: center;
+  perspective: 600px;
+}
+
+.gift-scene svg {
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+
+.gift-video video {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  border-radius: inherit;
+}
+
+.gift-float {
+  animation: giftFloat 3.8s ease-in-out infinite;
+  transform-box: fill-box;
+  transform-origin: center;
+}
+.gift-wheel {
+  animation: giftWheel 1.4s linear infinite;
+  transform-box: fill-box;
+  transform-origin: center;
+}
+.gift-speed {
+  animation: giftSpeed 0.9s ease-in-out infinite;
+}
+.gift-shine-line {
+  animation: giftShineLine 2.6s ease-in-out infinite;
+}
+.gift-drift {
+  animation: giftDrift 7s ease-in-out infinite;
+  transform-box: fill-box;
+}
+.gift-cloud {
+  animation: giftDrift 9s ease-in-out infinite;
+}
+.gift-cloud.slow {
+  animation-duration: 12s;
+  animation-direction: reverse;
+}
+.gift-wave {
+  animation: giftWave 3.4s ease-in-out infinite;
+}
+.gift-wave.slow {
+  animation-duration: 4.6s;
+  animation-direction: reverse;
+}
+.gift-sway {
+  animation: giftSway 3.2s ease-in-out infinite;
+  transform-box: fill-box;
+  transform-origin: bottom center;
+}
+.gift-sway.slow {
+  animation-duration: 4.4s;
+}
+.gift-petal {
+  animation: giftPetal 3.6s ease-in-out infinite;
+  opacity: 0;
+}
+.gift-heart {
+  animation: giftHeart 3.4s ease-in-out infinite;
+  opacity: 0;
+}
+.gift-sparkle {
+  animation: giftSparkle 2.4s ease-in-out infinite;
+  transform-box: fill-box;
+  transform-origin: center;
+}
+.gift-blink {
+  animation: giftBlink 1.8s ease-in-out infinite;
+}
+.gift-pulse {
+  animation: giftPulse 2.2s ease-in-out infinite;
+  transform-box: fill-box;
+  transform-origin: center;
+}
+.gift-pulse-slow {
+  animation: giftPulse 3.6s ease-in-out infinite;
+  transform-box: fill-box;
+  transform-origin: center;
+}
+.gift-diamond {
+  animation: giftDiamond 7s linear infinite;
+  transform-box: fill-box;
+  transform-origin: center;
+}
+.gift-wing {
+  animation: giftWing 1.8s ease-in-out infinite;
+  transform-box: fill-box;
+}
+.gift-wing.left {
+  transform-origin: right center;
+}
+.gift-wing.right {
+  transform-origin: left center;
+  animation-direction: reverse;
+}
+.gift-rays {
+  animation: giftRays 9s linear infinite;
+  transform-box: fill-box;
+  transform-origin: center;
+}
+.gift-lid {
+  animation: giftLid 2.8s ease-in-out infinite;
+  transform-box: fill-box;
+  transform-origin: bottom center;
+}
+.gift-fire {
+  animation: giftFire 1.6s ease-in-out infinite;
+  transform-box: fill-box;
+  transform-origin: center;
+}
+
+@keyframes giftFloat {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-7px); }
+}
+@keyframes giftWheel {
+  to { transform: rotate(360deg); }
+}
+@keyframes giftSpeed {
+  0%, 100% { opacity: 0.25; transform: translateX(6px); }
+  50% { opacity: 1; transform: translateX(-4px); }
+}
+@keyframes giftShineLine {
+  0%, 100% { opacity: 0.2; }
+  50% { opacity: 0.85; }
+}
+@keyframes giftDrift {
+  0%, 100% { transform: translateX(-6px); }
+  50% { transform: translateX(10px); }
+}
+@keyframes giftWave {
+  0%, 100% { transform: translateX(-6px); }
+  50% { transform: translateX(6px); }
+}
+@keyframes giftSway {
+  0%, 100% { transform: rotate(-4deg); }
+  50% { transform: rotate(5deg); }
+}
+@keyframes giftPetal {
+  0% { opacity: 0; transform: translateY(0) rotate(0deg); }
+  30% { opacity: 0.9; }
+  100% { opacity: 0; transform: translateY(-46px) rotate(120deg); }
+}
+@keyframes giftHeart {
+  0% { opacity: 0; transform: translateY(0) scale(0.7); }
+  25% { opacity: 0.9; }
+  100% { opacity: 0; transform: translateY(-110px) scale(1.2); }
+}
+@keyframes giftSparkle {
+  0%, 100% { opacity: 0.15; transform: scale(0.6); }
+  50% { opacity: 1; transform: scale(1.25); }
+}
+@keyframes giftBlink {
+  0%, 100% { opacity: 0.35; }
+  50% { opacity: 1; }
+}
+@keyframes giftPulse {
+  0%, 100% { transform: scale(0.94); opacity: 0.75; }
+  50% { transform: scale(1.08); opacity: 1; }
+}
+@keyframes giftDiamond {
+  0% { transform: rotateY(0deg); }
+  100% { transform: rotateY(360deg); }
+}
+@keyframes giftWing {
+  0%, 100% { transform: rotate(0deg) scaleY(1); }
+  50% { transform: rotate(-7deg) scaleY(0.92); }
+}
+@keyframes giftRays {
+  to { transform: rotate(360deg); }
+}
+@keyframes giftLid {
+  0%, 100% { transform: rotate(0deg); }
+  50% { transform: rotate(-26deg); }
+}
+@keyframes giftFire {
+  0%, 100% { transform: scale(1) translateY(0); opacity: 0.7; }
+  50% { transform: scale(1.15) translateY(-4px); opacity: 1; }
+}
+
+/* ------------------------------------------------------------- gift shop */
+.gift-shop {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  max-height: 72dvh;
+  overflow-y: auto;
+  padding-bottom: 4px;
+}
+
+.gift-shop-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.gift-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.gift-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 10px 8px 9px;
+  border-radius: 18px;
+  border: 1px solid var(--line);
+  background: linear-gradient(160deg, rgba(139, 92, 246, 0.14), rgba(214, 51, 132, 0.08) 60%, rgba(10, 6, 16, 0.6));
+  cursor: pointer;
+  transition: transform 0.18s ease, border-color 0.18s ease, box-shadow 0.18s ease;
+  overflow: hidden;
+}
+
+.gift-card:hover,
+.gift-card:active {
+  transform: translateY(-3px);
+  border-color: rgba(255, 215, 94, 0.5);
+  box-shadow: 0 16px 30px -18px rgba(255, 215, 94, 0.6);
+}
+
+.gift-card.locked {
+  opacity: 0.72;
+}
+
+.gift-rarity-pill {
+  position: absolute;
+  top: 6px;
+  inset-inline-start: 6px;
+  font-size: 8.5px;
+  letter-spacing: 0.03em;
+  padding: 2px 6px;
+  border-radius: 999px;
+  border: 1px solid var(--line-strong);
+  background: rgba(10, 6, 16, 0.7);
+  color: var(--text);
+  z-index: 2;
+}
+
+.gift-card-art {
+  width: 78px;
+  height: 78px;
+}
+
+.gift-card-name {
+  font-size: 11.5px;
+  font-weight: 600;
+  text-align: center;
+  line-height: 1.25;
+}
+
+.gift-card-price {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  font-size: 11px;
+  color: var(--gold);
+  font-weight: 700;
+}
+
+.gift-detail {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.gift-detail-stage {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 16 / 11;
+  border-radius: 20px;
+  border: 1px solid var(--line);
+  background:
+    radial-gradient(circle at 50% 40%, rgba(139, 92, 246, 0.28), transparent 65%),
+    radial-gradient(circle at 50% 90%, rgba(214, 51, 132, 0.22), transparent 60%),
+    rgba(10, 6, 16, 0.65);
+  overflow: hidden;
+}
+
+.gift-rarity {
+  position: absolute;
+  top: 10px;
+  inset-inline-end: 10px;
+  font-size: 10px;
+}
+
+.gift-detail-copy h3 {
+  margin: 0 0 4px;
+  font-size: 19px;
+}
+
+.gift-detail-copy p {
+  margin: 0 0 10px;
+}
+
+.gift-detail-facts {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+
+.gift-detail-facts > div {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding: 10px 12px;
+  border-radius: 14px;
+  background: var(--card);
+  border: 1px solid var(--line);
+}
+
+.gift-detail-facts b {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 15px;
+}
+
+.gift-send-btn {
+  box-shadow: 0 16px 32px -16px rgba(214, 51, 132, 0.8);
+}
+
+/* ------------------------------------------------------- gift in messages */
+.msg-gift {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 190px;
+  padding: 10px 12px;
+  border-radius: 18px;
+  border: 1px solid rgba(255, 215, 94, 0.35);
+  background:
+    linear-gradient(135deg, rgba(139, 92, 246, 0.28), rgba(214, 51, 132, 0.18)),
+    rgba(20, 11, 34, 0.9);
+  box-shadow: 0 14px 34px -20px rgba(255, 215, 94, 0.7);
+  cursor: pointer;
+  text-align: start;
+  color: var(--text);
+}
+
+.msg-gift-art {
+  width: 58px;
+  height: 58px;
+  flex: 0 0 auto;
+}
+
+.msg-gift-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.msg-gift-copy b {
+  font-size: 13.5px;
+}
+
+.msg-gift-copy .tiny {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  color: var(--gold);
+  font-weight: 700;
+}
+
+.msg-gift-play {
+  margin-inline-start: auto;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: rgba(255, 255, 255, 0.12);
+  color: var(--gold);
+}
+
+/* ---------------------------------------------------------- gift reveal */
+.gift-reveal {
+  position: fixed;
+  inset: 0;
+  z-index: 140;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 24px;
+  background: rgba(6, 3, 12, 0.88);
+  backdrop-filter: blur(10px);
+  animation: giftRevealIn 0.35s ease;
+  cursor: pointer;
+}
+
+.gift-reveal-glow {
+  position: absolute;
+  width: min(120vw, 620px);
+  aspect-ratio: 1;
+  border-radius: 50%;
+  background:
+    radial-gradient(circle, rgba(255, 215, 94, 0.28), rgba(214, 51, 132, 0.16) 45%, transparent 68%);
+  animation: giftPulse 3.2s ease-in-out infinite;
+  pointer-events: none;
+}
+
+.gift-reveal-stage {
+  position: relative;
+  width: min(76vw, 340px);
+  aspect-ratio: 1;
+  animation: giftStageIn 0.6s cubic-bezier(0.2, 0.9, 0.3, 1.2);
+}
+
+.gift-reveal-copy {
+  position: relative;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  animation: giftStageIn 0.7s ease;
+}
+
+.gift-reveal-copy h2 {
+  margin: 0;
+  font-size: 24px;
+  background: linear-gradient(135deg, #ffe89a, #ff8ec4 55%, #c4b5fd);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.gift-reveal-copy p {
+  margin: 0;
+  color: var(--muted);
+}
+
+.gift-reveal-price {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 14px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 215, 94, 0.4);
+  background: rgba(255, 215, 94, 0.1);
+  color: var(--gold);
+  font-weight: 700;
+}
+
+@keyframes giftRevealIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@keyframes giftStageIn {
+  from { opacity: 0; transform: scale(0.75) translateY(14px); }
+  to { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+/* ------------------------------------------------------- earnings wallet */
+.earnings-hero {
+  padding: 18px;
+  border-radius: var(--radius);
+  border: 1px solid var(--line);
+  background:
+    radial-gradient(120% 120% at 100% 0%, rgba(34, 197, 94, 0.18), transparent 55%),
+    radial-gradient(120% 120% at 0% 100%, rgba(139, 92, 246, 0.24), transparent 60%),
+    rgba(20, 11, 34, 0.85);
+  box-shadow: var(--shadow);
+}
+
+.gift-thumb {
+  width: 50px;
+  height: 50px;
+  flex: 0 0 auto;
+  border-radius: 14px;
+  border: 1px solid var(--line);
+  background: rgba(10, 6, 16, 0.6);
+  overflow: hidden;
+}
+
+.gift-received-row {
+  align-items: center;
+}
+
+/* --------------------------------------------------------- admin previews */
+.gift-admin-thumb {
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  border: 1px solid var(--line);
+  background: rgba(10, 6, 16, 0.6);
+  overflow: hidden;
+}
+
+.gift-admin-preview {
+  width: 110px;
+  height: 90px;
+  border-radius: 16px;
+  border: 1px solid var(--line);
+  background: radial-gradient(circle at 50% 40%, rgba(139, 92, 246, 0.25), transparent 65%), rgba(10, 6, 16, 0.6);
+  overflow: hidden;
+}
+
+@media (max-width: 380px) {
+  .gift-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .gift-card-art {
+    width: 88px;
+    height: 88px;
+  }
+}

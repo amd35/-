@@ -5,6 +5,7 @@ import { botIntro, botUserId, ensureBotConversation, scheduleBotReply } from '..
 import { emitToUser, isOnline } from '../realtime';
 import { notify } from '../notify';
 import { FRAME_FIELDS, frameFromRow, frameJoins, toPublicUser } from '../serializers';
+import { GIFT_MESSAGE_FIELDS, GIFT_MESSAGE_JOINS, giftFromMessageRow } from '../gifts';
 import { HttpError, asyncHandler, intParam } from '../utils';
 
 const router = Router();
@@ -140,8 +141,9 @@ router.get(
     const before = req.query.before ? String(req.query.before) : null;
     const params: unknown[] = [conversationId];
     let sql = `SELECT m.id, m.conversation_id, m.sender_id, m.body, m.type, m.attachment_url,
-                      m.attachment_name, m.created_at, m.read_at
-               FROM messages m WHERE m.conversation_id = $1`;
+                      m.attachment_name, m.created_at, m.read_at, ${GIFT_MESSAGE_FIELDS}
+               FROM messages m ${GIFT_MESSAGE_JOINS}
+               WHERE m.conversation_id = $1`;
     if (before) {
       params.push(before);
       sql += ` AND m.created_at < $${params.length}`;
@@ -179,6 +181,7 @@ router.get(
           createdAt: row.created_at,
           readAt: row.read_at,
           mine: row.sender_id === me,
+          gift: giftFromMessageRow(row),
         }))
         .reverse(),
       peer: peer ? toPublicUser(peer) : null,

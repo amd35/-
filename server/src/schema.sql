@@ -394,8 +394,115 @@ SELECT * FROM (VALUES
 ) AS seed(slug, name, name_en, kind, design, price, rarity, duration_days, is_rare, sort_order)
 WHERE NOT EXISTS (SELECT 1 FROM avatar_frames);
 
+-- ------------------------------------------------------------------- gifts
+-- Animated gift catalog. `design` renders one of the built-in animated scenes;
+-- `video_url` (MP4/WebM uploaded from the admin panel) takes priority when set.
+CREATE TABLE IF NOT EXISTS gifts (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  slug text NOT NULL UNIQUE,
+  name text NOT NULL,
+  name_en text NOT NULL DEFAULT '',
+  description text NOT NULL DEFAULT '',
+  design text,
+  video_url text,
+  cover_url text,
+  price integer NOT NULL DEFAULT 0 CHECK (price >= 0),
+  -- NULL = use the global `gift_recipient_percent` setting.
+  recipient_percent integer CHECK (recipient_percent BETWEEN 0 AND 100),
+  rarity text NOT NULL DEFAULT 'common',
+  is_active boolean NOT NULL DEFAULT true,
+  sort_order integer NOT NULL DEFAULT 0,
+  created_at timestamptz NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS gifts_order_idx ON gifts (sort_order, price);
+
+-- One row per gift sent inside a private chat. `request_id` makes the client's
+-- retried request idempotent: a second insert hits the unique index and the
+-- original send (charge + earnings) is returned instead of charging twice.
+CREATE TABLE IF NOT EXISTS gift_sends (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  request_id text NOT NULL UNIQUE,
+  gift_id uuid NOT NULL REFERENCES gifts(id) ON DELETE RESTRICT,
+  conversation_id uuid REFERENCES conversations(id) ON DELETE SET NULL,
+  message_id uuid,
+  sender_id uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  recipient_id uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  coins integer NOT NULL CHECK (coins >= 0),
+  recipient_coins integer NOT NULL DEFAULT 0,
+  admin_coins integer NOT NULL DEFAULT 0,
+  recipient_percent integer NOT NULL DEFAULT 0,
+  admin_percent integer NOT NULL DEFAULT 0,
+  gift_name text NOT NULL DEFAULT '',
+  created_at timestamptz NOT NULL DEFAULT now(),
+  CHECK (sender_id <> recipient_id)
+);
+CREATE INDEX IF NOT EXISTS gift_sends_sender_idx ON gift_sends (sender_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS gift_sends_recipient_idx ON gift_sends (recipient_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS gift_sends_conversation_idx ON gift_sends (conversation_id, created_at DESC);
+
+-- Gift messages reference the send so the thread can render the animation.
+ALTER TABLE messages ADD COLUMN IF NOT EXISTS gift_send_id uuid REFERENCES gift_sends(id) ON DELETE SET NULL;
+CREATE INDEX IF NOT EXISTS messages_gift_idx ON messages (gift_send_id) WHERE gift_send_id IS NOT NULL;
+
+-- ---------------------------------------------------------- earnings wallet
+-- Independent wallet for gift earnings. Coins here are profit, not spendable
+-- balance: available can be withdrawn, pending is held by an open request.
+CREATE TABLE IF NOT EXISTS profit_wallets (
+  user_id uuid PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+  total_earned integer NOT NULL DEFAULT 0,
+  available integer NOT NULL DEFAULT 0 CHECK (available >= 0),
+  pending integer NOT NULL DEFAULT 0 CHECK (pending >= 0),
+  withdrawn integer NOT NULL DEFAULT 0,
+  updated_at timestamptz NOT NULL DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS profit_transactions (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  type text NOT NULL,
+  amount integer NOT NULL,
+  balance_after integer NOT NULL,
+  ref_type text,
+  ref_id uuid,
+  meta jsonb NOT NULL DEFAULT '{}'::jsonb,
+  created_at timestamptz NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS profit_transactions_user_idx ON profit_transactions (user_id, created_at DESC);
+CREATE UNIQUE INDEX IF NOT EXISTS profit_transactions_unique_ref_idx
+  ON profit_transactions (user_id, type, ref_id);
+
+-- Withdrawals can come from the spendable coin wallet ('coins') or from gift
+-- earnings ('profit'). `amount` is the payout in the chosen currency.
+ALTER TABLE withdrawal_requests ADD COLUMN IF NOT EXISTS source text NOT NULL DEFAULT 'coins';
+ALTER TABLE withdrawal_requests ADD COLUMN IF NOT EXISTS currency text NOT NULL DEFAULT 'IQD';
+ALTER TABLE withdrawal_requests ADD COLUMN IF NOT EXISTS payment_method text NOT NULL DEFAULT 'manual';
+ALTER TABLE withdrawal_requests ADD COLUMN IF NOT EXISTS payout_details text NOT NULL DEFAULT '';
+ALTER TABLE withdrawal_requests ADD COLUMN IF NOT EXISTS amount numeric NOT NULL DEFAULT 0;
+CREATE INDEX IF NOT EXISTS withdrawal_requests_user_idx ON withdrawal_requests (user_id, created_at DESC);
+
+INSERT INTO gifts (slug, name, name_en, description, design, price, rarity, sort_order)
+SELECT * FROM (VALUES
+  ('sports-car',   'سيارة رياضية فخمة',  'Luxury Sports Car',  'سيارة خارقة تنطلق وسط أضواء النيون', 'sports-car',   5000,  'epic',      10),
+  ('golden-car',   'سيارة ذهبية',        'Golden Supercar',    'سيارة من ذهب خالص تلمع تحت الأضواء',  'golden-car',   8000,  'legendary', 20),
+  ('private-jet',  'طائرة خاصة',         'Private Jet',        'طائرة خاصة تحلق بين الغيوم',          'private-jet',  12000, 'legendary', 30),
+  ('royal-yacht',  'يخت ملكي',           'Royal Yacht',        'يخت فاخر يبحر على أمواج ذهبية',       'royal-yacht',  15000, 'vip',       40),
+  ('royal-crown',  'تاج ملكي',           'Royal Crown',        'تاج مرصع بالجواهر يتلألأ',            'royal-crown',  3000,  'epic',      50),
+  ('roses',        'باقة ورود متحركة',   'Animated Roses',     'باقة ورود حمراء تتطاير بتلاتها',      'roses',        500,   'common',    60),
+  ('golden-lion',  'أسد ذهبي',           'Golden Lion',        'أسد من ذهب بزئير يهز المكان',         'golden-lion',  6000,  'legendary', 70),
+  ('golden-eagle', 'نسر بأجنحة ذهبية',   'Golden Eagle',       'نسر يحلق بأجنحة من ذهب',              'golden-eagle', 7000,  'legendary', 80),
+  ('diamond',      'ألماس وماسات',       'Diamonds',           'ماسة دوارة تنشر ألوان الطيف',         'diamond',      2000,  'rare',      90),
+  ('treasure',     'صندوق كنوز',         'Treasure Chest',     'صندوق كنز ينفتح على بريق الذهب',      'treasure',     4000,  'epic',      100),
+  ('hearts',       'قلوب متحركة',        'Floating Hearts',    'موجة من القلوب المتطايرة',            'hearts',       300,   'common',    110),
+  ('legend-dragon','التنين الأسطوري',     'Legendary Dragon',   'تنين أسطوري بلهب بنفسجي',             'legend-dragon',25000, 'vip',       120)
+) AS seed(slug, name, name_en, description, design, price, rarity, sort_order)
+WHERE NOT EXISTS (SELECT 1 FROM gifts);
+
 -- ---------------------------------------------------------------- settings
 INSERT INTO app_settings (key, value) VALUES
+  ('gifts_enabled', 'true'::jsonb),
+  ('gift_recipient_percent', '60'::jsonb),
+  ('gift_admin_percent', '40'::jsonb),
+  ('coin_to_usd_rate', '0.001'::jsonb),
   ('voice_price', '100'::jsonb),
   ('video_price', '100'::jsonb),
   ('paid_calls_enabled', 'true'::jsonb),

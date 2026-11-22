@@ -351,6 +351,139 @@ async function main(): Promise<void> {
     const stored = aliceMessages.data.messages.find((message: any) => message.id === sent.data.message.id);
     ok(Boolean(stored?.readAt), 'sender sees the read receipt');
 
+    section('Gifts: catalog, send, earnings, idempotency');
+    const catalog = await call('/gifts', { token: alice.token });
+    ok(catalog.status === 200 && catalog.data.gifts.length >= 12, 'gift catalog is served', catalog.data.gifts?.length);
+    const hearts = catalog.data.gifts.find((gift: any) => gift.slug === 'hearts');
+    ok(Boolean(hearts) && hearts.price === 300, 'seeded hearts gift costs 300 coins', hearts);
+    const defaultPercent = catalog.data.defaultRecipientPercent;
+
+    const aliceBeforeGift = await me(alice.token);
+    const bobEarningsBefore = await call('/gifts/earnings', { token: bob.token });
+    const requestId = `e2e-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+    const giftSend = await call('/gifts/send', {
+      method: 'POST',
+      token: alice.token,
+      body: { giftId: hearts.id, conversationId, requestId },
+    });
+    const expectedRecipient = Math.floor((hearts.price * defaultPercent) / 100);
+    ok(giftSend.status === 201 && giftSend.data.message.type === 'gift', 'gift message is created', giftSend.data);
+    ok(
+      giftSend.data.message.gift && giftSend.data.message.gift.design === 'hearts',
+      'gift message carries the animation payload'
+    );
+    const aliceAfterGift = await me(alice.token);
+    ok(
+      aliceAfterGift.wallet.balance === aliceBeforeGift.wallet.balance - hearts.price,
+      'sender is charged the gift price exactly once',
+      { before: aliceBeforeGift.wallet.balance, after: aliceAfterGift.wallet.balance }
+    );
+    const bobEarningsAfter = await call('/gifts/earnings', { token: bob.token });
+    ok(
+      bobEarningsAfter.data.wallet.available ===
+        bobEarningsBefore.data.wallet.available + expectedRecipient,
+      'recipient earnings wallet is credited with the configured share',
+      { before: bobEarningsBefore.data.wallet.available, after: bobEarningsAfter.data.wallet.available }
+    );
+    ok(
+      bobEarningsAfter.data.received[0]?.giftName === hearts.name,
+      'received-gift history lists the gift'
+    );
+
+    const duplicate = await call('/gifts/send', {
+      method: 'POST',
+      token: alice.token,
+      body: { giftId: hearts.id, conversationId, requestId },
+    });
+    ok(duplicate.status === 200 && duplicate.data.duplicate === true, 'a retried request returns the original send');
+    ok(
+      (await me(alice.token)).wallet.balance === aliceAfterGift.wallet.balance,
+      'a retried request never charges twice'
+    );
+    ok(
+      (await call('/gifts/earnings', { token: bob.token })).data.wallet.available ===
+        bobEarningsAfter.data.wallet.available,
+      'a retried request never credits twice'
+    );
+
+    const thread = await call(`/chat/conversations/${conversationId}/messages`, { token: bob.token });
+    ok(
+      thread.data.messages.some((message: any) => message.type === 'gift' && message.gift?.id),
+      'the gift appears in the conversation for the recipient'
+    );
+
+    const expensive = catalog.data.gifts.find((gift: any) => gift.price >= 25000);
+    if (expensive) {
+      const broke = await call('/gifts/send', {
+        method: 'POST',
+        token: bob.token,
+        body: {
+          giftId: expensive.id,
+          conversationId,
+          requestId: `e2e-broke-${Date.now()}`,
+        },
+      });
+      ok(broke.status === 402 && broke.data.code === 'insufficient_coins', 'a gift without enough coins is refused', broke.data);
+    }
+
+    section('Gift earnings withdrawal: hold, approve, pay');
+    await call(`/admin/users/${alice.id}/coins`, {
+      method: 'POST',
+      token: adminToken,
+      body: { amount: 30000, note: 'e2e gift float' },
+    });
+    const legend = catalog.data.gifts.find((gift: any) => gift.slug === 'legend-dragon');
+    if (legend) {
+      const big = await call('/gifts/send', {
+        method: 'POST',
+        token: alice.token,
+        body: { giftId: legend.id, conversationId, requestId: `e2e-legend-${Date.now()}` },
+      });
+      ok(big.status === 201, 'expensive gift is sent after top-up', big.data);
+    }
+    const bobProfit = await call('/gifts/earnings', { token: bob.token });
+    ok(bobProfit.data.wallet.available >= 1000, 'recipient can now withdraw earnings', bobProfit.data.wallet);
+
+    const profitWithdrawal = await call('/gifts/withdrawals', {
+      method: 'POST',
+      token: bob.token,
+      body: { coins: 1000, currency: 'IQD', method: 'zaincash', details: '07700000000' },
+    });
+    ok(profitWithdrawal.status === 201, 'earnings withdrawal request created', profitWithdrawal.data);
+    const bobHeld = await call('/gifts/earnings', { token: bob.token });
+    ok(bobHeld.data.wallet.pending === 1000, 'requested coins are held as pending');
+    ok(
+      bobHeld.data.wallet.available === bobProfit.data.wallet.available - 1000,
+      'requested coins leave the available balance'
+    );
+
+    const approved = await call(`/admin/withdrawals/${profitWithdrawal.data.withdrawal.id}/approve`, {
+      method: 'POST',
+      token: adminToken,
+      body: {},
+    });
+    ok(approved.status === 200, 'admin approves the earnings withdrawal');
+    const paidOut = await call(`/admin/withdrawals/${profitWithdrawal.data.withdrawal.id}/paid`, {
+      method: 'POST',
+      token: adminToken,
+      body: {},
+    });
+    ok(paidOut.status === 200, 'admin records the actual payment');
+    const bobPaidOut = await call('/gifts/earnings', { token: bob.token });
+    ok(bobPaidOut.data.wallet.pending === 0, 'pending is cleared once paid');
+    ok(bobPaidOut.data.wallet.withdrawn === 1000, 'withdrawn total is recorded');
+    ok(
+      bobPaidOut.data.withdrawals[0]?.status === 'paid',
+      'the user sees the paid status',
+      bobPaidOut.data.withdrawals[0]
+    );
+
+    const giftAdmin = await call('/admin/gifts', { token: adminToken });
+    ok(giftAdmin.status === 200 && giftAdmin.data.gifts.length >= 12, 'admin gift catalog is served');
+    const giftLog = await call('/admin/gift-transactions', { token: adminToken });
+    ok(giftLog.status === 200 && giftLog.data.totals.revenue >= 300, 'admin gift ledger reports revenue', giftLog.data.totals);
+    ok(giftLog.data.totals.adminShare > 0, 'admin commission from gifts is recorded');
+
     section('Ban blocks access');
     await call(`/admin/users/${bob.id}/ban`, {
       method: 'POST',

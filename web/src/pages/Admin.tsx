@@ -11,6 +11,7 @@ import PricingTab from '../components/admin/PricingTab';
 import PackagesTab from '../components/admin/PackagesTab';
 import GiftCodesTab from '../components/admin/GiftCodesTab';
 import FramesTab from '../components/admin/FramesTab';
+import GiftsTab from '../components/admin/GiftsTab';
 import OrdersTab from '../components/admin/OrdersTab';
 import FinancialTab from '../components/admin/FinancialTab';
 import ReportsTab from '../components/admin/ReportsTab';
@@ -26,6 +27,7 @@ const TABS = [
   { id: 'packages', label: 'باقات الشحن', icon: 'package' },
   { id: 'gifts', label: 'أكواد الهدايا', icon: 'gift' },
   { id: 'frames', label: 'إطارات الصور الشخصية', icon: 'sparkle' },
+  { id: 'gift-store', label: 'متجر الهدايا المتحركة', icon: 'gift' },
   { id: 'orders', label: 'طلبات الشحن', icon: 'card' },
   { id: 'financial', label: 'الأرباح والسحوبات', icon: 'coins' },
   { id: 'reports', label: 'البلاغات', icon: 'alert' },
@@ -174,6 +176,7 @@ export default function Admin() {
         {tab === 'packages' ? <PackagesTab /> : null}
         {tab === 'gifts' ? <GiftCodesTab /> : null}
         {tab === 'frames' ? <FramesTab /> : null}
+        {tab === 'gift-store' ? <GiftsTab /> : null}
         {tab === 'orders' ? <OrdersTab /> : null}
         {tab === 'financial' ? <FinancialTab /> : null}
         {tab === 'reports' ? <ReportsTab /> : null}

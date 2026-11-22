@@ -5,19 +5,22 @@ import { useAuth } from '../lib/auth';
 import { useCall } from '../lib/call';
 import { useI18n } from '../lib/i18n';
 import { useRealtime } from '../lib/realtime';
-import { Avatar, EmptyState, formatClock, Icon, Sheet, Spinner, useToast } from '../lib/ui';
+import { Avatar, EmptyState, formatClock, formatCoins, Icon, Sheet, Spinner, useToast } from '../lib/ui';
+import { GiftReveal, GiftAnimation, type GiftVisual } from '../components/GiftAnimation';
+import { GiftShop, type GiftItem, type GiftMessage } from '../components/GiftShop';
 
 interface Message {
   id: string;
   conversationId: string;
   senderId: string;
   body: string;
-  type: 'text' | 'image' | 'file';
+  type: 'text' | 'image' | 'file' | 'gift';
   attachmentUrl: string | null;
   attachmentName?: string | null;
   createdAt: string;
   readAt: string | null;
   mine: boolean;
+  gift?: GiftMessage['gift'];
 }
 
 interface Peer {
@@ -46,6 +49,10 @@ export default function ChatRoom() {
   const [peerTyping, setPeerTyping] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [sending, setSending] = useState(false);
+  const [giftOpen, setGiftOpen] = useState(false);
+  const [reveal, setReveal] = useState<{ gift: GiftVisual; senderName: string; recipientName?: string } | null>(
+    null
+  );
 
   const listRef = useRef<HTMLDivElement | null>(null);
   const fileRef = useRef<HTMLInputElement | null>(null);
@@ -93,6 +100,9 @@ export default function ChatRoom() {
       appendMessage({ ...incoming, mine: incoming.senderId === me?.user.id });
       if (incoming.senderId !== me?.user.id) {
         setPeerTyping(false);
+        if (incoming.type === 'gift' && incoming.gift) {
+          setReveal({ gift: incoming.gift, senderName: peer?.displayName ?? '' });
+        }
         void api(`/chat/conversations/${id}/read`, { method: 'POST' })
           .then(() => refresh())
           .catch(() => undefined);
@@ -257,6 +267,29 @@ export default function ChatRoom() {
         ) : null}
         {messages.map((message) => (
           <div key={message.id} className={`msg ${message.mine ? 'msg-mine' : ''}`}>
+            {message.type === 'gift' && message.gift ? (
+              <button
+                className={`msg-gift rarity-${message.gift.rarity}`}
+                onClick={() =>
+                  setReveal({
+                    gift: message.gift!,
+                    senderName: message.mine ? me?.user.displayName ?? '' : peer?.displayName ?? '',
+                    recipientName: message.mine ? peer?.displayName : me?.user.displayName,
+                  })
+                }
+              >
+                <GiftAnimation gift={message.gift} className="msg-gift-art" />
+                <span className="msg-gift-copy">
+                  <b>{message.gift.name}</b>
+                  <span className="tiny">
+                    <Icon name="coins" size={12} /> {formatCoins(message.gift.price)}
+                  </span>
+                </span>
+                <span className="msg-gift-play">
+                  <Icon name="play" size={14} />
+                </span>
+              </button>
+            ) : (
             <div className="msg-bubble">
               {message.type === 'image' && message.attachmentUrl ? (
                 <img src={assetUrl(message.attachmentUrl)} alt={message.attachmentName || 'image'} />
@@ -274,6 +307,7 @@ export default function ChatRoom() {
                 ) : null}
               </div>
             </div>
+            )}
           </div>
         ))}
         {peerTyping ? (
@@ -291,6 +325,15 @@ export default function ChatRoom() {
           accept="image/*,.pdf,.doc,.docx,.txt"
           onChange={(event) => void onFile(event)}
         />
+        <button
+          type="button"
+          className="icon-btn gift-btn"
+          onClick={() => setGiftOpen(true)}
+          aria-label={t('giftShop')}
+          disabled={!peer}
+        >
+          <Icon name="gift" size={20} />
+        </button>
         <button
           type="button"
           className="icon-btn"
@@ -315,6 +358,32 @@ export default function ChatRoom() {
           <Icon name="send" size={19} />
         </button>
       </form>
+
+      {id && peer ? (
+        <GiftShop
+          open={giftOpen}
+          onClose={() => setGiftOpen(false)}
+          conversationId={id}
+          peerName={peer.displayName}
+          onSent={(message: GiftMessage, gift: GiftItem) => {
+            appendMessage({ ...message, mine: true });
+            setReveal({
+              gift: { ...gift, price: gift.price },
+              senderName: me?.user.displayName ?? '',
+              recipientName: peer.displayName,
+            });
+          }}
+        />
+      ) : null}
+
+      {reveal ? (
+        <GiftReveal
+          gift={reveal.gift}
+          senderName={reveal.senderName}
+          recipientName={reveal.recipientName}
+          onClose={() => setReveal(null)}
+        />
+      ) : null}
 
       <Sheet open={menuOpen} onClose={() => setMenuOpen(false)} title={peer?.displayName}>
         <div className="stack">
