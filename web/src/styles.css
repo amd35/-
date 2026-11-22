@@ -1724,6 +1724,34 @@ p {
   border: 1px solid var(--line);
 }
 
+.avatar-tap {
+  position: relative;
+  display: inline-flex;
+  padding: 0;
+  border: 0;
+  background: none;
+  cursor: pointer;
+}
+
+.avatar-tap:active {
+  transform: scale(0.97);
+}
+
+.avatar-tap-badge {
+  position: absolute;
+  inset-inline-end: -2px;
+  bottom: -2px;
+  width: 28px;
+  height: 28px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--grad);
+  color: #fff;
+  border: 2px solid #140b22;
+  box-shadow: 0 6px 16px -6px rgba(214, 51, 132, 0.9);
+}
+
 .profile-stats {
   display: grid;
   grid-template-columns: repeat(3, 1fr);

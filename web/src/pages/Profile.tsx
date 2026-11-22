@@ -16,6 +16,7 @@ import {
 } from '../lib/ui';
 import { AppShell } from '../components/AppShell';
 import { IdBadge, NameCard } from '../components/Cosmetics';
+import { ProfileCustomize } from '../components/ProfileCustomize';
 import type { UserCardData } from '../components/UserCard';
 
 interface ProfileResponse {
@@ -32,6 +33,7 @@ export function Profile() {
   const navigate = useNavigate();
   const toast = useToast();
   const [editOpen, setEditOpen] = useState(false);
+  const [customizeOpen, setCustomizeOpen] = useState(false);
   const [requests, setRequests] = useState<{ id: string; user: UserCardData }[]>([]);
   const [stats, setStats] = useState<ProfileResponse | null>(null);
   const [name, setName] = useState(me?.user.displayName ?? '');
@@ -137,7 +139,17 @@ export function Profile() {
     >
       <div className="page page-tight">
         <section className="profile-head">
-          <Avatar user={{ ...me.user, online: true }} size={104} />
+          <button
+            type="button"
+            className="avatar-tap"
+            onClick={() => setCustomizeOpen(true)}
+            aria-label={t('customizeProfile')}
+          >
+            <Avatar user={{ ...me.user, online: true }} size={104} />
+            <span className="avatar-tap-badge">
+              <Icon name="sparkle" size={14} />
+            </span>
+          </button>
           {me.cosmetics?.namecard ? (
             <NameCard
               cosmetic={me.cosmetics.namecard}
@@ -298,6 +310,12 @@ export function Profile() {
           </button>
         </div>
       </Sheet>
+
+      <ProfileCustomize
+        open={customizeOpen}
+        onClose={() => setCustomizeOpen(false)}
+        onEditInfo={() => setEditOpen(true)}
+      />
     </AppShell>
   );
 }
