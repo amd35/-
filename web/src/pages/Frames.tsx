@@ -27,14 +27,23 @@ interface FrameItem {
 }
 
 type Tab = 'all' | 'owned' | 'rare';
+type CategoryKey = 'all' | CosmeticCategory | 'premium';
 
-const CATEGORIES: { key: 'all' | CosmeticCategory; label: string }[] = [
+interface PremiumIdItem {
+  id: string;
+  code: string;
+  price: number;
+  mine: boolean;
+}
+
+const CATEGORIES: { key: CategoryKey; label: string }[] = [
   { key: 'all', label: 'catAll' },
   { key: 'frame', label: 'catFrames' },
   { key: 'id', label: 'catIds' },
   { key: 'namecard', label: 'catNameCards' },
   { key: 'bubble', label: 'catBubbles' },
   { key: 'entry', label: 'catEntry' },
+  { key: 'premium', label: 'catPremium' },
 ];
 
 function frameInfoOf(frame: FrameItem): FrameInfo {
@@ -49,14 +58,19 @@ export default function Frames() {
   const [frames, setFrames] = useState<FrameItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [tab, setTab] = useState<Tab>('all');
-  const [category, setCategory] = useState<'all' | CosmeticCategory>('all');
+  const [category, setCategory] = useState<CategoryKey>('all');
   const [busyId, setBusyId] = useState<string | null>(null);
   const [tryFrame, setTryFrame] = useState<FrameItem | null>(null);
+  const [premiumIds, setPremiumIds] = useState<PremiumIdItem[]>([]);
 
   const load = useCallback(async () => {
     try {
-      const response = await api<{ frames: FrameItem[] }>('/frames');
+      const [response, premium] = await Promise.all([
+        api<{ frames: FrameItem[] }>('/frames'),
+        api<{ ids: PremiumIdItem[] }>('/frames/premium-ids'),
+      ]);
       setFrames(response.frames);
+      setPremiumIds(premium.ids);
     } catch (error) {
       toast.push((error as Error).message, 'error');
     } finally {
@@ -110,7 +124,21 @@ export default function Frames() {
     }
   };
 
+  const buyPremiumId = async (item: PremiumIdItem) => {
+    setBusyId(item.id);
+    try {
+      const response = await api<{ code: string }>(`/frames/premium-ids/${item.id}/buy`, { method: 'POST' });
+      toast.push(`${t('premiumIdBought')} — #${response.code}`, 'success');
+      await Promise.all([load(), refresh()]);
+    } catch (error) {
+      toast.push((error as Error).message, 'error');
+    } finally {
+      setBusyId(null);
+    }
+  };
+
   const visible = useMemo(() => {
+    if (category === 'premium') return [];
     const inCategory = (frame: FrameItem) =>
       category === 'all' || (frame.category ?? 'frame') === category;
     if (tab === 'owned') return frames.filter((frame) => frame.owned && inCategory(frame));
@@ -168,6 +196,42 @@ export default function Frames() {
 
         {loading ? (
           <Spinner label={t('loading')} />
+        ) : category === 'premium' ? (
+          premiumIds.length === 0 ? (
+            <EmptyState icon="sparkle" title={t('premiumIdEmpty')} />
+          ) : (
+            <div className="frames-grid">
+              {premiumIds.map((item) => (
+                <div key={item.id} className={`premium-id-card ${item.mine ? 'on' : ''}`}>
+                  <span className="premium-id-code">#{item.code}</span>
+                  <span className="frame-price">
+                    {item.price > 0 ? (
+                      <>
+                        <Icon name="coins" size={13} /> {formatCoins(item.price)}
+                      </>
+                    ) : (
+                      <span className="pill pill-green" style={{ fontSize: 10 }}>
+                        {t('freeFrame')}
+                      </span>
+                    )}
+                  </span>
+                  {item.mine ? (
+                    <span className="pill pill-green" style={{ fontSize: 10 }}>
+                      {t('premiumIdOwned')}
+                    </span>
+                  ) : (
+                    <button
+                      className="btn btn-primary btn-xs grow"
+                      disabled={busyId === item.id}
+                      onClick={() => void buyPremiumId(item)}
+                    >
+                      {item.price > 0 ? t('buy') : t('getFree')}
+                    </button>
+                  )}
+                </div>
+              ))}
+            </div>
+          )
         ) : visible.length === 0 ? (
           <EmptyState icon="sparkle" title={tab === 'owned' ? t('noOwnedFrames') : t('noFrames')} />
         ) : (
@@ -182,6 +246,7 @@ export default function Frames() {
                       cosmetic={frameInfoOf(frame)}
                       category={frame.category}
                       sampleName={me?.user.displayName ?? ''}
+                      avatarUrl={me?.user.avatarUrl ?? null}
                     />
                   )}
                 </div>
@@ -244,6 +309,7 @@ export default function Frames() {
                 cosmetic={frameInfoOf(tryFrame)}
                 category={tryFrame.category}
                 sampleName={me?.user.displayName ?? ''}
+                avatarUrl={me?.user.avatarUrl ?? null}
               />
             )}
             <span className="tiny muted">{t('tryFrameHint')}</span>

@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { one, tx } from '../db';
+import { one, q, tx } from '../db';
 import { reqUser, requireAuth } from '../auth';
 import { FrameRow, getFrameForUser, listFrames, ownsFrame } from '../frames';
 import { moveCoins } from '../wallet';
@@ -123,6 +123,77 @@ router.post(
       ]);
     }
     res.json({ frame: null });
+  })
+);
+
+interface PremiumIdRow {
+  id: string;
+  code: string;
+  price: number;
+  is_sold: boolean;
+  sold_to: string | null;
+}
+
+// Special numeric account IDs for sale. A sold one only stays visible to its owner.
+router.get(
+  '/premium-ids',
+  requireAuth(),
+  asyncHandler(async (req, res) => {
+    const me = reqUser(req).id;
+    const rows = await q<PremiumIdRow>(
+      `SELECT id, code, price, is_sold, sold_to FROM premium_ids
+       WHERE is_sold = false OR sold_to = $1
+       ORDER BY is_sold, price, code`,
+      [me]
+    );
+    res.json({
+      ids: rows.map((row) => ({
+        id: row.id,
+        code: row.code,
+        price: Number(row.price),
+        mine: row.sold_to === me,
+      })),
+    });
+  })
+);
+
+router.post(
+  '/premium-ids/:id/buy',
+  requireAuth(),
+  asyncHandler(async (req, res) => {
+    const me = reqUser(req).id;
+    const outcome = await tx(async (c) => {
+      const found = await c.query<PremiumIdRow>('SELECT * FROM premium_ids WHERE id = $1 FOR UPDATE', [
+        req.params.id,
+      ]);
+      const row = found.rows[0];
+      if (!row) throw new HttpError(404, 'Premium ID not found', 'premium_id_not_found');
+      if (row.is_sold) throw new HttpError(409, 'This ID is already sold', 'premium_id_sold');
+      const taken = await c.query('SELECT 1 FROM users WHERE username = $1 AND id <> $2', [row.code, me]);
+      if (taken.rowCount) throw new HttpError(409, 'This ID is already in use', 'code_taken');
+
+      let balanceAfter: number | null = null;
+      if (Number(row.price) > 0) {
+        const moved = await moveCoins(c, {
+          userId: me,
+          amount: -Number(row.price),
+          type: 'premium_id_purchase',
+          refType: 'premium_id',
+          refId: row.id,
+          meta: { code: row.code },
+        });
+        if (!moved.applied) throw new HttpError(409, 'This ID is already sold', 'premium_id_sold');
+        balanceAfter = moved.balanceAfter;
+      }
+
+      await c.query('UPDATE premium_ids SET is_sold = true, sold_to = $2, sold_at = now() WHERE id = $1', [
+        row.id,
+        me,
+      ]);
+      await c.query('UPDATE users SET username = $2 WHERE id = $1', [me, row.code]);
+      return { balanceAfter, code: row.code };
+    });
+    res.status(201).json({ code: outcome.code, balance: outcome.balanceAfter });
   })
 );
 

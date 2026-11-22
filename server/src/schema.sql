@@ -455,6 +455,59 @@ SELECT * FROM (VALUES
 ) AS seed(slug, name, name_en, kind, design, price, rarity, duration_days, is_rare, sort_order, category)
 ON CONFLICT (slug) DO NOTHING;
 
+-- Premium designs added with the 3D cosmetic collection.
+INSERT INTO avatar_frames (slug, name, name_en, kind, design, price, rarity, duration_days, is_rare, sort_order, category)
+SELECT * FROM (VALUES
+  ('bubble-glass-gold',    'فقاعة زجاجية ذهبية',   'Golden Glass Bubble',  'design', 'glass-gold',  900,  'rare',      0, false, 50, 'bubble'),
+  ('bubble-glass-silver',  'فقاعة زجاجية فضية',    'Silver Glass Bubble',  'design', 'glass-silver',800,  'rare',      0, false, 60, 'bubble'),
+  ('bubble-royal',         'فقاعة ملكية بنفسجية',  'Royal Purple Bubble',  'design', 'royal',       1200, 'epic',      0, false, 70, 'bubble'),
+  ('bubble-eagle',         'فقاعة أجنحة النسر',    'Eagle Wing Bubble',    'design', 'eagle',       2600, 'legendary', 0, true,  80, 'bubble'),
+  ('bubble-hearts',        'فقاعة القلوب الوردية', 'Pink Hearts Bubble',   'design', 'hearts',      1000, 'epic',      0, false, 90, 'bubble'),
+  ('bubble-stars',         'فقاعة النجوم',         'Star Bubble',          'design', 'stars',       1100, 'epic',      0, false, 100, 'bubble'),
+  ('bubble-ice',           'فقاعة ثلجية',          'Ice Bubble',           'design', 'ice',         900,  'rare',      0, false, 110, 'bubble'),
+  ('bubble-crimson',       'فقاعة ياقوتية حمراء',  'Crimson Bubble',       'design', 'crimson',     950,  'rare',      0, false, 120, 'bubble'),
+  ('bubble-black-gold',    'فقاعة سوداء بإضاءة ذهبية','Black Gold Bubble', 'design', 'black-gold',  2200, 'vip',       0, true,  130, 'bubble'),
+  ('card-eagle-gold',      'بطاقة أجنحة النسر الذهبية','Golden Eagle Card','design', 'eagle-gold',  3000, 'legendary', 0, true,  50, 'namecard'),
+  ('card-crown',           'بطاقة التاج والألماس', 'Crown Diamond Card',   'design', 'crown',       4000, 'vip',       0, true,  60, 'namecard'),
+  ('card-fire',            'بطاقة نارية متحركة',   'Animated Fire Card',   'design', 'fire',        2200, 'legendary', 0, true,  70, 'namecard'),
+  ('card-ice',             'بطاقة ثلجية زرقاء',    'Ice Blue Card',        'design', 'ice',         1800, 'epic',      0, false, 80, 'namecard'),
+  ('card-purple',          'بطاقة بنفسجية',        'Purple Card',          'design', 'purple',      1400, 'epic',      0, false, 90, 'namecard'),
+  ('card-pink',            'بطاقة وردية',          'Pink Card',            'design', 'pink',        1400, 'epic',      0, false, 100, 'namecard'),
+  ('card-black-gold',      'بطاقة سوداء فاخرة',    'Black Gold Card',      'design', 'black-gold',  2600, 'vip',       0, true,  110, 'namecard'),
+  ('id-crown',             'معرّف التاج الملكي',    'Royal Crown ID',       'design', 'crown',       2500, 'vip',       0, true,  60, 'id'),
+  ('id-eagle',             'معرّف أجنحة النسر',    'Eagle Wing ID',        'design', 'eagle',       2800, 'legendary', 0, true,  70, 'id'),
+  ('id-glass',             'معرّف زجاجي شفاف',     'Glass ID',             'design', 'glass',       900,  'rare',      0, false, 80, 'id'),
+  ('id-flame',             'معرّف اللهب والبرق',   'Flame Lightning ID',   'design', 'flame',       1800, 'epic',      0, false, 90, 'id'),
+  ('id-silver',            'معرّف فضي',            'Silver ID',            'design', 'silver',      1400, 'epic',      0, false, 100, 'id'),
+  ('id-royal',             'معرّف بنفسجي ملكي',    'Royal Purple ID',      'design', 'royal',       2200, 'legendary', 0, true,  110, 'id')
+) AS seed(slug, name, name_en, kind, design, price, rarity, duration_days, is_rare, sort_order, category)
+ON CONFLICT (slug) DO NOTHING;
+
+-- ------------------------------------------------------- premium account IDs
+-- Special numeric account IDs sold in the store. Buying one moves its code into
+-- `users.username` (still unique across users) and marks the row sold.
+CREATE TABLE IF NOT EXISTS premium_ids (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  code text NOT NULL UNIQUE,
+  price integer NOT NULL DEFAULT 0 CHECK (price >= 0),
+  is_sold boolean NOT NULL DEFAULT false,
+  sold_to uuid REFERENCES users(id) ON DELETE SET NULL,
+  sold_at timestamptz,
+  created_at timestamptz NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS premium_ids_available_idx ON premium_ids (is_sold, price);
+
+INSERT INTO premium_ids (code, price)
+SELECT * FROM (VALUES
+  ('111111', 5000),
+  ('222222', 5000),
+  ('555555', 6000),
+  ('777777', 8000),
+  ('999999', 8000),
+  ('123456', 3000)
+) AS seed(code, price)
+ON CONFLICT (code) DO NOTHING;
+
 -- ------------------------------------------------------------------- gifts
 -- Animated gift catalog. `design` renders one of the built-in animated scenes;
 -- `video_url` (MP4/WebM uploaded from the admin panel) takes priority when set.

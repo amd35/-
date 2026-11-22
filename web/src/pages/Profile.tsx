@@ -139,7 +139,11 @@ export function Profile() {
         <section className="profile-head">
           <Avatar user={{ ...me.user, online: true }} size={104} />
           {me.cosmetics?.namecard ? (
-            <NameCard cosmetic={me.cosmetics.namecard} name={me.user.displayName} />
+            <NameCard
+              cosmetic={me.cosmetics.namecard}
+              name={me.user.displayName}
+              avatarUrl={me.user.avatarUrl}
+            />
           ) : (
             <h2 style={{ fontSize: 21 }}>{me.user.displayName}</h2>
           )}

@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { api } from '../../lib/api';
-import { Avatar, formatCoins, Icon, useToast } from '../../lib/ui';
+import { Avatar, formatCoins, Icon, Sheet, useToast } from '../../lib/ui';
 import { AdminCard, Empty, Field, Table, Toggle, useAdminData } from './shared';
 import { CosmeticPreview, type CosmeticCategory } from '../Cosmetics';
 
@@ -41,9 +41,35 @@ const DESIGN_KEYS = [
 
 const SECTIONS: { key: CosmeticCategory; label: string; designs: string[] }[] = [
   { key: 'frame', label: 'إطارات الصور', designs: DESIGN_KEYS },
-  { key: 'id', label: 'المعرّفات', designs: ['neon', 'gold', 'blue', 'fire', 'diamond'] },
-  { key: 'namecard', label: 'بطاقات الأسماء', designs: ['glass', 'neon', 'gold', 'holo'] },
-  { key: 'bubble', label: 'فقاعات الدردشة', designs: ['glass', 'neon', 'gradient', 'fire'] },
+  {
+    key: 'id',
+    label: 'المعرّفات',
+    designs: ['neon', 'gold', 'blue', 'fire', 'diamond', 'crown', 'eagle', 'glass', 'flame', 'silver', 'royal'],
+  },
+  {
+    key: 'namecard',
+    label: 'بطاقات الأسماء',
+    designs: ['glass', 'neon', 'gold', 'holo', 'eagle-gold', 'crown', 'fire', 'ice', 'purple', 'pink', 'black-gold'],
+  },
+  {
+    key: 'bubble',
+    label: 'فقاعات الدردشة',
+    designs: [
+      'glass',
+      'neon',
+      'gradient',
+      'fire',
+      'glass-gold',
+      'glass-silver',
+      'royal',
+      'eagle',
+      'hearts',
+      'stars',
+      'ice',
+      'crimson',
+      'black-gold',
+    ],
+  },
   { key: 'entry', label: 'دخوليات الغرفة', designs: ['rose', 'lightning', 'fireworks', 'crown'] },
 ];
 
@@ -70,6 +96,9 @@ export default function FramesTab() {
   const [form, setForm] = useState(EMPTY_FORM);
   const [busy, setBusy] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [grantFor, setGrantFor] = useState<AdminFrame | null>(null);
+  const [grantUser, setGrantUser] = useState('');
+  const [granting, setGranting] = useState(false);
 
   const reset = () => setForm(EMPTY_FORM);
 
@@ -140,6 +169,41 @@ export default function FramesTab() {
       await reload();
     } catch (error) {
       toast.push((error as Error).message, 'error');
+    }
+  };
+
+  const remove = async (frame: AdminFrame) => {
+    if (!window.confirm(`حذف "${frame.name}"؟ سيُسحب من جميع المستخدمين.`)) return;
+    try {
+      await api(`/admin/frames/${frame.id}`, { method: 'DELETE', admin: true });
+      toast.push('تم حذف التصميم', 'success');
+      await reload();
+    } catch (error) {
+      toast.push((error as Error).message, 'error');
+    }
+  };
+
+  const grant = async () => {
+    if (!grantFor) return;
+    if (!grantUser.trim()) {
+      toast.push('أدخل آي دي المستخدم', 'error');
+      return;
+    }
+    setGranting(true);
+    try {
+      await api(`/admin/frames/${grantFor.id}/grant`, {
+        method: 'POST',
+        admin: true,
+        body: { user: grantUser.trim() },
+      });
+      toast.push('تم منح التصميم للمستخدم', 'success');
+      setGrantFor(null);
+      setGrantUser('');
+      await reload();
+    } catch (error) {
+      toast.push((error as Error).message, 'error');
+    } finally {
+      setGranting(false);
     }
   };
 
@@ -343,7 +407,21 @@ export default function FramesTab() {
         ) : (data?.frames.length ?? 0) === 0 ? (
           <Empty text="لا توجد إطارات" />
         ) : (
-          <Table head={['معاينة', 'الاسم', 'القسم', 'النوع', 'السعر', 'الفئة', 'المدة', 'المالكون', 'الحالة', 'إجراءات']}>
+          <Table
+            head={[
+              'معاينة',
+              'الاسم',
+              'القسم',
+              'النوع',
+              'السعر',
+              'الفئة',
+              'المدة',
+              'المالكون',
+              'مفعّل',
+              'الحالة',
+              'إجراءات',
+            ]}
+          >
             {data?.frames.map((frame) => (
               <tr key={frame.id}>
                 <td>
@@ -395,6 +473,7 @@ export default function FramesTab() {
                 </td>
                 <td className="tiny">{frame.durationDays > 0 ? `${frame.durationDays} يوم` : 'دائم'}</td>
                 <td dir="ltr">{frame.owners}</td>
+                <td dir="ltr">{frame.equippedCount}</td>
                 <td>
                   <span className={`pill ${frame.isActive ? 'pill-green' : 'pill-red'}`} style={{ fontSize: 10 }}>
                     {frame.isActive ? 'نشط' : 'معطّل'}
@@ -408,6 +487,12 @@ export default function FramesTab() {
                     <button className="btn btn-ghost btn-xs" onClick={() => void toggle(frame)}>
                       {frame.isActive ? 'تعطيل' : 'تفعيل'}
                     </button>
+                    <button className="btn btn-ghost btn-xs" onClick={() => setGrantFor(frame)}>
+                      <Icon name="user" size={13} /> منح
+                    </button>
+                    <button className="btn btn-ghost btn-xs" onClick={() => void remove(frame)}>
+                      <Icon name="trash" size={13} /> حذف
+                    </button>
                   </div>
                 </td>
               </tr>
@@ -415,6 +500,31 @@ export default function FramesTab() {
           </Table>
         )}
       </AdminCard>
+
+      <Sheet
+        open={Boolean(grantFor)}
+        onClose={() => {
+          setGrantFor(null);
+          setGrantUser('');
+        }}
+        title={grantFor ? `منح "${grantFor.name}"` : 'منح تصميم'}
+        center
+      >
+        <div className="stack">
+          <Field label="آي دي المستخدم" hint="رقم الحساب (6-8 أرقام) أو المعرّف الداخلي">
+            <input
+              className="input"
+              dir="ltr"
+              value={grantUser}
+              onChange={(event) => setGrantUser(event.target.value)}
+              placeholder="123456"
+            />
+          </Field>
+          <button className="btn btn-primary btn-block" disabled={granting} onClick={() => void grant()}>
+            <Icon name="check" size={16} /> {granting ? 'جارٍ المنح…' : 'منح التصميم مجاناً'}
+          </button>
+        </div>
+      </Sheet>
     </div>
   );
 }

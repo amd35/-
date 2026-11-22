@@ -965,6 +965,130 @@ router.patch(
   })
 );
 
+router.delete(
+  '/frames/:id',
+  asyncHandler(async (req, res) => {
+    const deleted = await one('DELETE FROM avatar_frames WHERE id = $1 RETURNING id', [req.params.id]);
+    if (!deleted) throw new HttpError(404, 'Frame not found', 'frame_not_found');
+    res.json({ deleted: true });
+  })
+);
+
+// Grants a design to one user without charging coins (duration still applies).
+router.post(
+  '/frames/:id/grant',
+  asyncHandler(async (req, res) => {
+    const frame = await one<FrameRow>('SELECT * FROM avatar_frames WHERE id = $1', [req.params.id]);
+    if (!frame) throw new HttpError(404, 'Frame not found', 'frame_not_found');
+    const target = String(req.body?.user || '').trim();
+    if (!target) throw new HttpError(400, 'Enter a user ID', 'invalid_user');
+    const user = await one<{ id: string }>(
+      `SELECT id FROM users WHERE is_bot = false AND (id::text = $1 OR username = $1) LIMIT 1`,
+      [target]
+    );
+    if (!user) throw new HttpError(404, 'User not found', 'user_not_found');
+    const expiresAt =
+      Number(frame.duration_days) > 0
+        ? new Date(Date.now() + Number(frame.duration_days) * 86_400_000)
+        : null;
+    await q(
+      `INSERT INTO user_avatar_frames (user_id, frame_id, expires_at) VALUES ($1, $2, $3)
+       ON CONFLICT (user_id, frame_id)
+       DO UPDATE SET expires_at = EXCLUDED.expires_at, acquired_at = now()`,
+      [user.id, frame.id, expiresAt]
+    );
+    await notify(user.id, 'cosmetic_granted', 'تصميم جديد', `تم منحك "${frame.name}" في Connect+`, {
+      frameId: frame.id,
+    });
+    res.json({ granted: true, userId: user.id });
+  })
+);
+
+// ------------------------------------------------------------- premium IDs
+function readPremiumCode(value: unknown): string {
+  const code = String(value ?? '').trim();
+  if (!/^\d{1,12}$/.test(code)) {
+    throw new HttpError(400, 'الآي دي يجب أن يكون أرقاماً فقط (حتى 12 رقماً)', 'invalid_code');
+  }
+  return code;
+}
+
+router.get(
+  '/premium-ids',
+  asyncHandler(async (_req, res) => {
+    const rows = await q<{
+      id: string;
+      code: string;
+      price: number;
+      is_sold: boolean;
+      sold_at: string | null;
+      owner_name: string | null;
+    }>(
+      `SELECT p.id, p.code, p.price, p.is_sold, p.sold_at, u.display_name AS owner_name
+       FROM premium_ids p LEFT JOIN users u ON u.id = p.sold_to
+       ORDER BY p.is_sold, p.price, p.code`
+    );
+    res.json({
+      ids: rows.map((row) => ({
+        id: row.id,
+        code: row.code,
+        price: Number(row.price),
+        isSold: row.is_sold,
+        soldAt: row.sold_at ? new Date(row.sold_at).toISOString() : null,
+        ownerName: row.owner_name,
+      })),
+    });
+  })
+);
+
+router.post(
+  '/premium-ids',
+  asyncHandler(async (req, res) => {
+    const code = readPremiumCode(req.body?.code);
+    const price = Math.round(Number(req.body?.price ?? 0));
+    if (!Number.isFinite(price) || price < 0) {
+      throw new HttpError(400, 'سعر غير صالح', 'invalid_price');
+    }
+    const used = await one('SELECT 1 FROM users WHERE username = $1', [code]);
+    if (used) throw new HttpError(409, 'هذا الرقم مستخدم كآي دي لحساب', 'code_taken');
+    const created = await one<{ id: string }>(
+      `INSERT INTO premium_ids (code, price) VALUES ($1, $2)
+       ON CONFLICT (code) DO NOTHING RETURNING id`,
+      [code, price]
+    );
+    if (!created) throw new HttpError(409, 'هذا الرقم موجود في المتجر', 'code_exists');
+    res.status(201).json({ id: created.id, code, price });
+  })
+);
+
+router.patch(
+  '/premium-ids/:id',
+  asyncHandler(async (req, res) => {
+    const price = Math.round(Number(req.body?.price ?? 0));
+    if (!Number.isFinite(price) || price < 0) {
+      throw new HttpError(400, 'سعر غير صالح', 'invalid_price');
+    }
+    const updated = await one(
+      'UPDATE premium_ids SET price = $2 WHERE id = $1 AND is_sold = false RETURNING id',
+      [req.params.id, price]
+    );
+    if (!updated) throw new HttpError(404, 'الرقم غير موجود أو مُباع', 'premium_id_not_found');
+    res.json({ ok: true });
+  })
+);
+
+router.delete(
+  '/premium-ids/:id',
+  asyncHandler(async (req, res) => {
+    const deleted = await one(
+      'DELETE FROM premium_ids WHERE id = $1 AND is_sold = false RETURNING id',
+      [req.params.id]
+    );
+    if (!deleted) throw new HttpError(404, 'الرقم غير موجود أو مُباع', 'premium_id_not_found');
+    res.json({ deleted: true });
+  })
+);
+
 // --------------------------------------------------------------------- gifts
 function readGiftBody(body: Record<string, unknown>): Partial<GiftRow> {
   const out: Partial<GiftRow> = {};

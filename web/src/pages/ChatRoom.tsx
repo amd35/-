@@ -293,7 +293,16 @@ export default function ChatRoom() {
             <div
               className={`msg-bubble ${
                 message.mine && me?.cosmetics?.bubble?.design ? `bubble-${me.cosmetics.bubble.design}` : ''
+              }${
+                message.mine && me?.cosmetics?.bubble?.kind === 'image' && me.cosmetics.bubble.imageUrl
+                  ? ' bubble-image'
+                  : ''
               }`}
+              style={
+                message.mine && me?.cosmetics?.bubble?.kind === 'image' && me.cosmetics.bubble.imageUrl
+                  ? { backgroundImage: `url(${assetUrl(me.cosmetics.bubble.imageUrl)})` }
+                  : undefined
+              }
             >
               {message.type === 'image' && message.attachmentUrl ? (
                 <img src={assetUrl(message.attachmentUrl)} alt={message.attachmentName || 'image'} />
