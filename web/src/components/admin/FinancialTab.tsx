@@ -196,11 +196,11 @@ export default function FinancialTab() {
                 </td>
                 <td>
                   <div style={{ fontWeight: 600 }}>{row.sender_name}</div>
-                  <div className="tiny muted">@{row.sender_username}</div>
+                  <div className="tiny muted">#{row.sender_username}</div>
                 </td>
                 <td>
                   <div style={{ fontWeight: 600 }}>{row.recipient_name}</div>
-                  <div className="tiny muted">@{row.recipient_username}</div>
+                  <div className="tiny muted">#{row.recipient_username}</div>
                 </td>
                 <td className="amount">{formatCoins(row.coins)}</td>
                 <td className="amount plus">
@@ -223,7 +223,7 @@ export default function FinancialTab() {
                 <td className="tiny">{new Date(row.created_at).toLocaleString('ar-IQ')}</td>
                 <td>
                   <div style={{ fontWeight: 600 }}>{row.user_name}</div>
-                  <div className="tiny muted">@{row.user_username}</div>
+                  <div className="tiny muted">#{row.user_username}</div>
                 </td>
                 <td>
                   <span className={`pill ${row.source === 'profit' ? 'pill-green' : 'pill-gold'}`} style={{ fontSize: 10 }}>
@@ -281,7 +281,7 @@ export default function FinancialTab() {
                 <tr key={host.id}>
                   <td>
                     <div style={{ fontWeight: 600 }}>{host.display_name}</div>
-                    <div className="tiny muted">@{host.username}</div>
+                    <div className="tiny muted">#{host.username}</div>
                   </td>
                   <td className="amount plus">{formatCoins(host.coins)}</td>
                 </tr>

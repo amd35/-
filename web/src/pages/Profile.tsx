@@ -34,7 +34,6 @@ export function Profile() {
   const [requests, setRequests] = useState<{ id: string; user: UserCardData }[]>([]);
   const [stats, setStats] = useState<ProfileResponse | null>(null);
   const [name, setName] = useState(me?.user.displayName ?? '');
-  const [username, setUsername] = useState(me?.user.username ?? '');
   const [bio, setBio] = useState(me?.user.bio ?? '');
   const [age, setAge] = useState(me?.user.age ? String(me.user.age) : '');
   const [busy, setBusy] = useState(false);
@@ -54,7 +53,6 @@ export function Profile() {
   useEffect(() => {
     if (!me) return;
     setName(me.user.displayName);
-    setUsername(me.user.username);
     setBio(me.user.bio ?? '');
     setAge(me.user.age ? String(me.user.age) : '');
     void loadStats();
@@ -84,7 +82,7 @@ export function Profile() {
     try {
       await api('/auth/me', {
         method: 'PATCH',
-        body: { displayName: name, username, bio, age: age ? Number(age) : undefined },
+        body: { displayName: name, bio, age: age ? Number(age) : undefined },
       });
       await refresh();
       setEditOpen(false);
@@ -140,11 +138,11 @@ export function Profile() {
         <section className="profile-head">
           <Avatar user={{ ...me.user, online: true }} size={104} />
           <h2 style={{ fontSize: 21 }}>{me.user.displayName}</h2>
-          <span className="tiny muted">@{me.user.username}</span>
+          <span className="tiny muted">#{me.user.username}</span>
           {me.user.bio ? <p className="tiny center muted">{me.user.bio}</p> : null}
           <div className="inline">
             <span className="pill pill-pink">
-              <Icon name="user" size={12} /> {t('id')}: {me.user.id.slice(0, 6)}
+              <Icon name="user" size={12} /> {t('id')}: {me.user.username}
             </span>
             <span className="pill pill-green">
               <Icon name="coins" size={12} /> {formatCoins(me.wallet.balance)}
@@ -205,7 +203,7 @@ export function Profile() {
                   <Avatar user={request.user} />
                   <div className="row-main">
                     <div className="row-title">{request.user.displayName}</div>
-                    <div className="row-sub">@{request.user.username}</div>
+                    <div className="row-sub">#{request.user.username}</div>
                   </div>
                   <button className="btn btn-primary btn-xs" onClick={() => void acceptRequest(request.id)}>
                     {t('accept')}
@@ -265,10 +263,6 @@ export function Profile() {
           <div className="field">
             <label>{t('name')}</label>
             <input className="input" value={name} onChange={(event) => setName(event.target.value)} />
-          </div>
-          <div className="field">
-            <label>{t('username')}</label>
-            <input className="input" value={username} onChange={(event) => setUsername(event.target.value)} dir="ltr" />
           </div>
           <div className="field">
             <label>{t('age')}</label>
@@ -396,7 +390,7 @@ export function UserProfile() {
   return (
     <AppShell
       title={user.displayName}
-      subtitle={`@${user.username}`}
+      subtitle={`#${user.username}`}
       active="home"
       right={
         <button className="icon-btn" onClick={() => navigate(-1)} aria-label="back">
@@ -409,12 +403,12 @@ export function UserProfile() {
           <Avatar user={{ ...user, online: isOnline }} size={104} />
           <h2 style={{ fontSize: 21 }}>{user.displayName}</h2>
           <span className="tiny muted">
-            @{user.username} • {isOnline ? t('onlineNow') : t('offline')}
+            #{user.username} • {isOnline ? t('onlineNow') : t('offline')}
           </span>
           {user.bio ? <p className="tiny center muted">{user.bio}</p> : null}
           <div className="inline">
             <span className="pill pill-pink">
-              <Icon name="user" size={12} /> {t('id')}: {user.id.slice(0, 6)}
+              <Icon name="user" size={12} /> {t('id')}: {user.username}
             </span>
             {user.isBlocked ? <span className="pill pill-red">{t('blocked')}</span> : null}
           </div>

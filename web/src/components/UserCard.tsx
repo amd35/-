@@ -54,7 +54,7 @@ export function UserCard({
       <Avatar user={{ ...user, online: isOnline }} size={62} />
       <div className="name">{user.displayName}</div>
       <div className="handle">
-        {user.age ? `${user.age} ${t('years')}` : `@${user.username}`}
+        {user.age ? `${user.age} ${t('years')}` : `#${user.username}`}
         {isOnline ? <span style={{ color: 'var(--green)' }}> • {t('onlineNow')}</span> : null}
       </div>
       <div className="actions">
@@ -101,7 +101,7 @@ export function UserRow({
       <Avatar user={{ ...user, online: isOnline }} />
       <div className="row-main">
         <div className="row-title">{user.displayName}</div>
-        <div className="row-sub">@{user.username}</div>
+        <div className="row-sub">#{user.username}</div>
       </div>
       {right}
     </div>

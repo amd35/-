@@ -64,7 +64,7 @@ export default function OrdersTab() {
               <td className="tiny">{new Date(order.created_at).toLocaleString('ar-IQ')}</td>
               <td>
                 <div style={{ fontWeight: 600 }}>{order.user_name}</div>
-                <div className="tiny muted">@{order.user_username}</div>
+                <div className="tiny muted">#{order.user_username}</div>
               </td>
               <td>{order.package_name ?? '—'}</td>
               <td className="amount plus">{formatCoins(order.coins)}</td>

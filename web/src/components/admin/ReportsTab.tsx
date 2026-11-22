@@ -57,7 +57,7 @@ export default function ReportsTab() {
               <td>{report.reporter_name}</td>
               <td>
                 <div style={{ fontWeight: 600 }}>{report.target_name}</div>
-                <div className="tiny muted">@{report.target_username}</div>
+                <div className="tiny muted">#{report.target_username}</div>
               </td>
               <td>{report.reason}</td>
               <td className="tiny" style={{ maxWidth: 220, whiteSpace: 'normal' }}>

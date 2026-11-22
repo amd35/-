@@ -6,7 +6,8 @@ import { emitToUser } from './realtime';
  * every chat surface (list, thread, unread badge, realtime) works unchanged.
  * Replies are generated locally, so the assistant needs no external AI credit.
  */
-export const BOT_USERNAME = 'lina';
+// Accounts carry a 6-digit ID; the companion keeps a reserved one.
+export const BOT_USERNAME = '000001';
 const BOT_DISPLAY_NAME = 'لينا';
 
 const BOT_AVATAR =
@@ -36,13 +37,15 @@ let cachedBotId: string | null = null;
 
 export async function ensureBotUser(): Promise<string> {
   if (cachedBotId) return cachedBotId;
-  const existing = await one<{ id: string }>('SELECT id FROM users WHERE username = $1', [
-    BOT_USERNAME,
-  ]);
+  const existing = await one<{ id: string }>(
+    'SELECT id FROM users WHERE username = $1 OR is_bot = true LIMIT 1',
+    [BOT_USERNAME]
+  );
   if (existing) {
     await q(
-      `UPDATE users SET is_bot = true, avatar_url = COALESCE(NULLIF(avatar_url, ''), $2) WHERE id = $1`,
-      [existing.id, BOT_AVATAR]
+      `UPDATE users SET is_bot = true, username = $2,
+         avatar_url = COALESCE(NULLIF(avatar_url, ''), $3) WHERE id = $1`,
+      [existing.id, BOT_USERNAME, BOT_AVATAR]
     );
     cachedBotId = existing.id;
     return existing.id;

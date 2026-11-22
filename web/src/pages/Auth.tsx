@@ -106,7 +106,6 @@ export function Register() {
   const toast = useToast();
   const [mode, setMode] = useState<'email' | 'phone'>('email');
   const [name, setName] = useState('');
-  const [username, setUsername] = useState('');
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
   const [password, setPassword] = useState('');
@@ -170,7 +169,6 @@ export function Register() {
     try {
       await register({
         displayName: name,
-        username: username || undefined,
         password,
         email: mode === 'email' ? email : undefined,
         phone: mode === 'phone' ? phone : undefined,
@@ -200,17 +198,6 @@ export function Register() {
         <div className="field">
           <label>{t('name')}</label>
           <input className="input" value={name} onChange={(event) => setName(event.target.value)} placeholder="Ali" />
-        </div>
-        <div className="field">
-          <label>{t('username')}</label>
-          <input
-            className="input"
-            value={username}
-            onChange={(event) => setUsername(event.target.value)}
-            placeholder="ali_99"
-            dir="ltr"
-          />
-          <span className="hint">{t('usernameHint')}</span>
         </div>
 
         {mode === 'email' ? (

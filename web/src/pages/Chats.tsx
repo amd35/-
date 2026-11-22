@@ -166,7 +166,7 @@ export default function Chats() {
                 <Avatar user={{ ...person, online: online.has(person.id) || person.online }} />
                 <div className="row-main">
                   <div className="row-title">{person.displayName}</div>
-                  <div className="row-sub">@{person.username}</div>
+                  <div className="row-sub">#{person.username}</div>
                 </div>
                 <Icon name="chat" size={18} />
               </div>

@@ -64,6 +64,20 @@ export default function UsersTab() {
     }
   };
 
+  // Sends the user their own 6-digit account ID as an in-app notification.
+  const sendId = async (user: AdminUser) => {
+    try {
+      const response = await api<{ code: string }>(`/admin/users/${user.id}/send-id`, {
+        method: 'POST',
+        admin: true,
+        body: {},
+      });
+      toast.push(`تم إرسال الآي دي ${response.code} إلى ${user.display_name}`, 'success');
+    } catch (error) {
+      toast.push((error as Error).message, 'error');
+    }
+  };
+
   const adjustCoins = async () => {
     if (!selected) return;
     try {
@@ -113,7 +127,7 @@ export default function UsersTab() {
             <tr key={user.id}>
               <td>
                 <div style={{ fontWeight: 600 }}>{user.display_name}</div>
-                <div className="tiny muted">@{user.username}</div>
+                <div className="tiny muted">#{user.username}</div>
               </td>
               <td className="tiny" dir="ltr">
                 {user.email || user.phone || '—'}
@@ -135,6 +149,9 @@ export default function UsersTab() {
                 <div className="inline">
                   <button className="btn btn-ghost btn-xs" onClick={() => setSelected(user)}>
                     كونز
+                  </button>
+                  <button className="btn btn-ghost btn-xs" onClick={() => void sendId(user)}>
+                    إرسال الآي دي
                   </button>
                   <button
                     className={`btn btn-xs ${user.is_banned ? 'btn-outline' : 'btn-danger'}`}

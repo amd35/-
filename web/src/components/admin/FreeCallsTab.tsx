@@ -116,7 +116,7 @@ export default function FreeCallsTab() {
               <tr key={row.id}>
                 <td>
                   <div style={{ fontWeight: 600 }}>{row.display_name}</div>
-                  <div className="tiny muted">@{row.username}</div>
+                  <div className="tiny muted">#{row.username}</div>
                 </td>
                 <td>{row.used}</td>
                 <td>{row.voice_used}</td>

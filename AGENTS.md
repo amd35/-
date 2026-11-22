@@ -14,6 +14,12 @@
 - The admin account is upserted from the `ADMIN_PASSWORD` secret on every boot (`admin_users.username = 'admin'`).
 - `uploads/` is a named volume at `/workspace/uploads`; it is gitignored.
 
+## Accounts
+- Users have **no username**: each account is identified by a 6-digit numeric ID kept in
+  `users.username`, handed out by the `user_code_seq` sequence (column default), and used to log in
+  (`/auth/login` matches email, phone or that ID). The companion bot keeps the reserved ID `000001`.
+- Admins can push that ID to a user as an in-app notification: `POST /api/admin/users/:id/send-id`.
+
 ## Billing invariants (do not break)
 - Free attempts live in `daily_free_calls`, keyed by **Baghdad date** computed with `Intl` on the server.
   `free_call_uses.call_id` is a primary key, so one attempt can never be linked to two calls.

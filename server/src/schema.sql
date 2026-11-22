@@ -29,6 +29,13 @@ ALTER TABLE users ADD COLUMN IF NOT EXISTS age integer;
 -- Automated companion account (Lina); hidden from discovery and admin user lists.
 ALTER TABLE users ADD COLUMN IF NOT EXISTS is_bot boolean NOT NULL DEFAULT false;
 
+-- Accounts are identified by a 6-digit numeric ID (kept in `username`); users no
+-- longer choose a username. The sequence hands out one unused code per signup.
+CREATE SEQUENCE IF NOT EXISTS user_code_seq START WITH 100000;
+ALTER TABLE users ALTER COLUMN username SET DEFAULT lpad(nextval('user_code_seq')::text, 6, '0');
+UPDATE users SET username = lpad(nextval('user_code_seq')::text, 6, '0')
+WHERE is_bot = false AND username !~ '^[0-9]{6}$';
+
 -- Public profile data, exposed as a view over `users` so there is a single source of truth.
 CREATE OR REPLACE VIEW profiles AS
   SELECT id AS user_id, username, display_name, avatar_url, bio, country, gender,

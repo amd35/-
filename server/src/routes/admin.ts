@@ -225,6 +225,26 @@ router.post(
   })
 );
 
+// Send a user their own 6-digit account ID as an in-app notification.
+router.post(
+  '/users/:id/send-id',
+  asyncHandler(async (req, res) => {
+    const user = await one<{ id: string; username: string }>(
+      'SELECT id, username FROM users WHERE id = $1 AND is_bot = false',
+      [req.params.id]
+    );
+    if (!user) throw new HttpError(404, 'User not found', 'user_not_found');
+    await notify(
+      user.id,
+      'account_id',
+      'آي دي حسابك',
+      `آي دي حسابك في Connect+ هو ${user.username} — استخدمه لتسجيل الدخول`,
+      { code: user.username }
+    );
+    res.json({ code: user.username });
+  })
+);
+
 router.get(
   '/calls',
   asyncHandler(async (req, res) => {
