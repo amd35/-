@@ -40,7 +40,7 @@ export default function PackagesTab() {
           isActive: Boolean(value(pack, 'is_active')),
         },
       });
-      toast.push('Package saved', 'success');
+      toast.push('تم حفظ الباقة', 'success');
       setDrafts((current) => {
         const next = { ...current };
         delete next[pack.id];
@@ -55,7 +55,7 @@ export default function PackagesTab() {
   const create = async () => {
     try {
       await api('/admin/packages', { method: 'POST', admin: true, body: newPack });
-      toast.push('Package created', 'success');
+      toast.push('تم إنشاء الباقة', 'success');
       setNewPack({ name: '', coins: 500, bonusCoins: 0, priceIqd: 2500, priceUsdCents: 199 });
       await reload();
     } catch (error) {
@@ -66,7 +66,7 @@ export default function PackagesTab() {
   const deactivate = async (pack: Pack) => {
     try {
       await api(`/admin/packages/${pack.id}`, { method: 'DELETE', admin: true });
-      toast.push('Package deactivated', 'success');
+      toast.push('تم إيقاف الباقة', 'success');
       await reload();
     } catch (error) {
       toast.push((error as Error).message, 'error');
@@ -75,13 +75,13 @@ export default function PackagesTab() {
 
   return (
     <div className="stack">
-      <AdminCard title="Recharge packages" subtitle="Prices shown in the app immediately">
+      <AdminCard title="باقات الشحن" subtitle="الأسعار تظهر في التطبيق فوراً">
         {loading ? (
           <div className="skeleton" style={{ height: 180 }} />
         ) : (data?.packages.length ?? 0) === 0 ? (
-          <Empty text="No packages" />
+          <Empty text="لا توجد باقات" />
         ) : (
-          <Table head={['Name', 'Coins', 'Bonus', 'Price IQD', 'Price USD ¢', 'Active', 'Actions']}>
+          <Table head={['الاسم', 'الكونز', 'البونص', 'السعر بالدينار', 'السعر بالسنت', 'مفعّلة', 'إجراءات']}>
             {data?.packages.map((pack) => (
               <tr key={pack.id}>
                 <td>
@@ -142,10 +142,10 @@ export default function PackagesTab() {
                 <td>
                   <div className="inline">
                     <button className="btn btn-primary btn-xs" onClick={() => void save(pack)}>
-                      Save
+                      حفظ
                     </button>
                     <button className="btn btn-ghost btn-xs" onClick={() => void deactivate(pack)}>
-                      Off
+                      إيقاف
                     </button>
                   </div>
                 </td>
@@ -155,16 +155,16 @@ export default function PackagesTab() {
         )}
       </AdminCard>
 
-      <AdminCard title="New package">
+      <AdminCard title="باقة جديدة">
         <div className="stat-grid" style={{ gridTemplateColumns: 'repeat(auto-fit,minmax(150px,1fr))' }}>
-          <Field label="Name">
+          <Field label="الاسم">
             <input
               className="input"
               value={newPack.name}
               onChange={(event) => setNewPack({ ...newPack, name: event.target.value })}
             />
           </Field>
-          <Field label="Coins">
+          <Field label="الكونز">
             <input
               className="input"
               type="number"
@@ -173,7 +173,7 @@ export default function PackagesTab() {
               dir="ltr"
             />
           </Field>
-          <Field label="Bonus">
+          <Field label="البونص">
             <input
               className="input"
               type="number"
@@ -182,7 +182,7 @@ export default function PackagesTab() {
               dir="ltr"
             />
           </Field>
-          <Field label="Price IQD">
+          <Field label="السعر بالدينار">
             <input
               className="input"
               type="number"
@@ -191,7 +191,7 @@ export default function PackagesTab() {
               dir="ltr"
             />
           </Field>
-          <Field label="Price USD ¢">
+          <Field label="السعر بالسنت">
             <input
               className="input"
               type="number"
@@ -203,10 +203,10 @@ export default function PackagesTab() {
         </div>
         <div className="inline" style={{ justifyContent: 'space-between' }}>
           <span className="tiny muted">
-            Total: {formatCoins(newPack.coins + newPack.bonusCoins)} coins
+            الإجمالي: {formatCoins(newPack.coins + newPack.bonusCoins)} كونز
           </span>
           <button className="btn btn-primary" onClick={() => void create()}>
-            Create package
+            إنشاء الباقة
           </button>
         </div>
       </AdminCard>

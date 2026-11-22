@@ -40,7 +40,7 @@ export default function GiftCodesTab() {
         },
       });
       setFresh(response.codes);
-      toast.push(`${response.codes.length} code(s) created`, 'success');
+      toast.push(`تم إنشاء ${response.codes.length} كود`, 'success');
       await reload();
     } catch (error) {
       toast.push((error as Error).message, 'error');
@@ -52,9 +52,9 @@ export default function GiftCodesTab() {
   const copy = async (code: string) => {
     try {
       await navigator.clipboard.writeText(code);
-      toast.push('Copied', 'success');
+      toast.push('تم النسخ', 'success');
     } catch {
-      toast.push('Copy failed', 'error');
+      toast.push('فشل النسخ', 'error');
     }
   };
 
@@ -74,8 +74,8 @@ export default function GiftCodesTab() {
   return (
     <div className="stack">
       <AdminCard
-        title="Create gift codes"
-        subtitle="Users redeem the code from the app and the coins land in their wallet"
+        title="إنشاء أكواد هدايا"
+        subtitle="يسترد المستخدمون الكود من التطبيق وتُضاف الكونز إلى محفظتهم"
       >
         <div
           style={{
@@ -84,7 +84,7 @@ export default function GiftCodesTab() {
             gap: 12,
           }}
         >
-          <Field label="Coins per code">
+          <Field label="الكونز لكل كود">
             <input
               className="input"
               type="number"
@@ -94,7 +94,7 @@ export default function GiftCodesTab() {
               onChange={(event) => setForm({ ...form, coins: Number(event.target.value) })}
             />
           </Field>
-          <Field label="How many codes (max 50)">
+          <Field label="عدد الأكواد (بحد أقصى 50)">
             <input
               className="input"
               type="number"
@@ -105,7 +105,7 @@ export default function GiftCodesTab() {
               onChange={(event) => setForm({ ...form, count: Number(event.target.value) })}
             />
           </Field>
-          <Field label="Uses per code">
+          <Field label="عدد مرات الاستخدام لكل كود">
             <input
               className="input"
               type="number"
@@ -115,7 +115,7 @@ export default function GiftCodesTab() {
               onChange={(event) => setForm({ ...form, maxUses: Number(event.target.value) })}
             />
           </Field>
-          <Field label="Expiry (optional)">
+          <Field label="تاريخ الانتهاء (اختياري)">
             <input
               className="input"
               type="datetime-local"
@@ -124,29 +124,29 @@ export default function GiftCodesTab() {
               onChange={(event) => setForm({ ...form, expiresAt: event.target.value })}
             />
           </Field>
-          <Field label="Note (optional)">
+          <Field label="ملاحظة (اختياري)">
             <input
               className="input"
               value={form.note}
               onChange={(event) => setForm({ ...form, note: event.target.value })}
-              placeholder="Ramadan campaign"
+              placeholder="حملة رمضان"
             />
           </Field>
         </div>
         <div className="inline">
           <button className="btn btn-primary" onClick={() => void create()} disabled={busy}>
-            <Icon name="gift" size={16} /> {busy ? 'Creating…' : 'Generate codes'}
+            <Icon name="gift" size={16} /> {busy ? 'جارٍ الإنشاء…' : 'إنشاء الأكواد'}
           </button>
         </div>
 
         {fresh.length > 0 ? (
           <div className="stack">
-            <span className="tiny muted">New codes — copy and share them:</span>
+            <span className="tiny muted">أكواد جديدة — انسخها وشاركها:</span>
             <div className="gift-code-list">
               {fresh.map((gift) => (
                 <button key={gift.id} className="gift-code-pill" onClick={() => void copy(gift.code)}>
                   <b dir="ltr">{gift.code}</b>
-                  <span className="tiny muted">{formatCoins(gift.coins)} coins</span>
+                  <span className="tiny muted">{formatCoins(gift.coins)} كونز</span>
                   <Icon name="copy" size={13} />
                 </button>
               ))}
@@ -155,13 +155,13 @@ export default function GiftCodesTab() {
         ) : null}
       </AdminCard>
 
-      <AdminCard title="Issued codes" subtitle="Latest 200">
+      <AdminCard title="الأكواد الصادرة" subtitle="أحدث 200">
         {loading ? (
           <div className="skeleton" style={{ height: 160 }} />
         ) : (data?.codes.length ?? 0) === 0 ? (
-          <Empty text="No gift codes yet" />
+          <Empty text="لا توجد أكواد هدايا بعد" />
         ) : (
-          <Table head={['Code', 'Coins', 'Used', 'Status', 'Expires', 'Note', 'Actions']}>
+          <Table head={['الكود', 'الكونز', 'الاستخدام', 'الحالة', 'ينتهي', 'ملاحظة', 'إجراءات']}>
             {data?.codes.map((gift) => {
               const expired = gift.expires_at ? new Date(gift.expires_at).getTime() < Date.now() : false;
               const done = gift.used_count >= gift.max_uses;
@@ -181,7 +181,7 @@ export default function GiftCodesTab() {
                       }`}
                       style={{ fontSize: 10 }}
                     >
-                      {!gift.is_active ? 'disabled' : expired ? 'expired' : done ? 'used up' : 'active'}
+                      {!gift.is_active ? 'معطّل' : expired ? 'منتهي' : done ? 'استُهلك' : 'نشط'}
                     </span>
                   </td>
                   <td className="tiny" dir="ltr">
@@ -191,10 +191,10 @@ export default function GiftCodesTab() {
                   <td>
                     <div className="inline">
                       <button className="btn btn-ghost btn-xs" onClick={() => void copy(gift.code)}>
-                        <Icon name="copy" size={13} /> Copy
+                        <Icon name="copy" size={13} /> نسخ
                       </button>
                       <button className="btn btn-ghost btn-xs" onClick={() => void toggle(gift)}>
-                        {gift.is_active ? 'Disable' : 'Enable'}
+                        {gift.is_active ? 'تعطيل' : 'تفعيل'}
                       </button>
                     </div>
                   </td>

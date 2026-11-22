@@ -21,7 +21,7 @@ export default function ReportsTab() {
   const resolve = async (report: Report) => {
     try {
       await api(`/admin/reports/${report.id}/resolve`, { method: 'POST', admin: true, body: {} });
-      toast.push('Report resolved', 'success');
+      toast.push('تم حل البلاغ', 'success');
       await reload();
     } catch (error) {
       toast.push((error as Error).message, 'error');
@@ -33,10 +33,10 @@ export default function ReportsTab() {
       await api(`/admin/users/${report.target_id}/ban`, {
         method: 'POST',
         admin: true,
-        body: { reason: `Report: ${report.reason}` },
+        body: { reason: `بلاغ: ${report.reason}` },
       });
       await api(`/admin/reports/${report.id}/resolve`, { method: 'POST', admin: true, body: {} });
-      toast.push('User banned and report resolved', 'success');
+      toast.push('تم حظر المستخدم وحل البلاغ', 'success');
       await reload();
     } catch (error) {
       toast.push((error as Error).message, 'error');
@@ -44,16 +44,16 @@ export default function ReportsTab() {
   };
 
   return (
-    <AdminCard title="Reports" subtitle="User-submitted abuse reports">
+    <AdminCard title="البلاغات" subtitle="بلاغات الإساءة المرسلة من المستخدمين">
       {loading ? (
         <div className="skeleton" style={{ height: 160 }} />
       ) : (data?.reports.length ?? 0) === 0 ? (
-        <Empty text="No reports" />
+        <Empty text="لا توجد بلاغات" />
       ) : (
-        <Table head={['When', 'Reporter', 'Target', 'Reason', 'Details', 'Status', 'Actions']}>
+        <Table head={['الوقت', 'المُبلِّغ', 'الهدف', 'السبب', 'التفاصيل', 'الحالة', 'إجراءات']}>
           {data?.reports.map((report) => (
             <tr key={report.id}>
-              <td className="tiny">{new Date(report.created_at).toLocaleString('en-GB')}</td>
+              <td className="tiny">{new Date(report.created_at).toLocaleString('ar-IQ')}</td>
               <td>{report.reporter_name}</td>
               <td>
                 <div style={{ fontWeight: 600 }}>{report.target_name}</div>
@@ -65,16 +65,16 @@ export default function ReportsTab() {
               </td>
               <td>
                 <span className={`pill ${report.status === 'open' ? 'pill-gold' : 'pill-green'}`} style={{ fontSize: 10 }}>
-                  {report.status}
+                  {report.status === 'open' ? 'مفتوح' : 'محلول'}
                 </span>
               </td>
               <td>
                 <div className="inline">
                   <button className="btn btn-ghost btn-xs" onClick={() => void resolve(report)}>
-                    Resolve
+                    حل
                   </button>
                   <button className="btn btn-danger btn-xs" onClick={() => void ban(report)}>
-                    Ban user
+                    حظر المستخدم
                   </button>
                 </div>
               </td>

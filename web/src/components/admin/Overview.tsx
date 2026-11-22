@@ -72,7 +72,7 @@ function AreaChart({
 export default function Overview() {
   const { data, loading, error } = useAdminData<OverviewResponse>('/admin/overview');
 
-  if (loading) return <AdminLoading label="Loading overview…" />;
+  if (loading) return <AdminLoading label="جارٍ تحميل النظرة العامة…" />;
   if (error) return <div className="error-text">{error}</div>;
   if (!data) return null;
 
@@ -81,36 +81,36 @@ export default function Overview() {
   return (
     <div className="stack">
       <div className="stat-grid">
-        <Stat label="Calls today" value={formatCoins(s.calls_today)} hint={`${s.voice_today} voice • ${s.video_today} video`} />
-        <Stat label="Coins consumed today" value={formatCoins(s.coins_today)} accent="#ffd75e" hint={`Total ${formatCoins(s.coins_total)}`} />
-        <Stat label="Admin profit today" value={formatCoins(s.admin_profit_today)} accent="#86efac" hint={`Total ${formatCoins(s.admin_profit_total)}`} />
-        <Stat label="Host earnings today" value={formatCoins(s.host_profit_today)} />
-        <Stat label="Revenue today (IQD)" value={formatCoins(s.revenue_iqd_today)} />
-        <Stat label="Coins sold today" value={formatCoins(s.coins_sold_today)} />
-        <Stat label="Active calls" value={s.active_calls} accent="#c4b5fd" />
-        <Stat label="Users" value={formatCoins(s.total_users)} hint={`${data.onlineUsers} online • ${s.banned_users} banned`} />
-        <Stat label="Free attempts used today" value={formatCoins(s.free_used_today)} hint={`Limit ${data.settings.free_calls_per_day} per user`} />
-        <Stat label="Messages today" value={formatCoins(s.messages_today)} />
-        <Stat label="Open reports" value={s.open_reports} accent="#fca5a5" />
-        <Stat label="Pending withdrawals" value={s.pending_withdrawals} accent="#ffd75e" />
+        <Stat label="مكالمات اليوم" value={formatCoins(s.calls_today)} hint={`${s.voice_today} صوتية • ${s.video_today} فيديو`} />
+        <Stat label="الكونز المستهلكة اليوم" value={formatCoins(s.coins_today)} accent="#ffd75e" hint={`الإجمالي ${formatCoins(s.coins_total)}`} />
+        <Stat label="أرباح الإدارة اليوم" value={formatCoins(s.admin_profit_today)} accent="#86efac" hint={`الإجمالي ${formatCoins(s.admin_profit_total)}`} />
+        <Stat label="أرباح المستضيفين اليوم" value={formatCoins(s.host_profit_today)} />
+        <Stat label="الإيرادات اليوم (دينار)" value={formatCoins(s.revenue_iqd_today)} />
+        <Stat label="الكونز المبيعة اليوم" value={formatCoins(s.coins_sold_today)} />
+        <Stat label="المكالمات النشطة" value={s.active_calls} accent="#c4b5fd" />
+        <Stat label="المستخدمون" value={formatCoins(s.total_users)} hint={`${data.onlineUsers} متصل • ${s.banned_users} محظور`} />
+        <Stat label="المحاولات المجانية المستخدمة اليوم" value={formatCoins(s.free_used_today)} hint={`الحد ${data.settings.free_calls_per_day} لكل مستخدم`} />
+        <Stat label="الرسائل اليوم" value={formatCoins(s.messages_today)} />
+        <Stat label="بلاغات مفتوحة" value={s.open_reports} accent="#fca5a5" />
+        <Stat label="طلبات سحب معلّقة" value={s.pending_withdrawals} accent="#ffd75e" />
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(300px,1fr))', gap: 12 }}>
-        <AdminCard title="Coins consumed — last 7 days" subtitle="Per Baghdad day">
+        <AdminCard title="الكونز المستهلكة — آخر 7 أيام" subtitle="حسب يوم بغداد">
           <AreaChart data={data.series} valueKey="coins" color="#d63384" />
         </AdminCard>
-        <AdminCard title="Calls — last 7 days" subtitle="All call attempts">
+        <AdminCard title="المكالمات — آخر 7 أيام" subtitle="جميع محاولات الاتصال">
           <AreaChart data={data.series} valueKey="calls" color="#8b5cf6" />
         </AdminCard>
       </div>
 
-      <AdminCard title="Current pricing" subtitle="Applied to new calls only">
+      <AdminCard title="الأسعار الحالية" subtitle="تُطبَّق على المكالمات الجديدة فقط">
         <div className="stat-grid">
-          <Stat label="Voice price / min" value={`${data.settings.voice_price} coins`} />
-          <Stat label="Video price / min" value={`${data.settings.video_price} coins`} />
-          <Stat label="Free attempts / day" value={String(data.settings.free_calls_per_day)} />
-          <Stat label="Admin share" value={`${data.settings.admin_percent}%`} />
-          <Stat label="Host share" value={`${data.settings.host_percent}%`} />
+          <Stat label="سعر الصوت / دقيقة" value={`${data.settings.voice_price} كونز`} />
+          <Stat label="سعر الفيديو / دقيقة" value={`${data.settings.video_price} كونز`} />
+          <Stat label="محاولات مجانية / يوم" value={String(data.settings.free_calls_per_day)} />
+          <Stat label="نسبة الإدارة" value={`${data.settings.admin_percent}%`} />
+          <Stat label="نسبة المستضيف" value={`${data.settings.host_percent}%`} />
         </div>
       </AdminCard>
     </div>

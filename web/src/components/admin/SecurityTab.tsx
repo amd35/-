@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { api } from '../../lib/api';
 import { Icon } from '../../lib/ui';
-import { AdminCard, Field } from './shared';
+import { AdminCard, Field, adminError } from './shared';
 
 export default function SecurityTab() {
   const [currentPassword, setCurrentPassword] = useState('');
@@ -16,7 +16,7 @@ export default function SecurityTab() {
     setError(null);
     setSaved(false);
     if (newPassword !== confirmPassword) {
-      setError('The two passwords do not match');
+      setError('كلمتا المرور غير متطابقتين');
       return;
     }
     setBusy(true);
@@ -31,7 +31,7 @@ export default function SecurityTab() {
       setNewPassword('');
       setConfirmPassword('');
     } catch (err) {
-      setError((err as Error).message);
+      setError(adminError(err));
     } finally {
       setBusy(false);
     }
@@ -39,9 +39,9 @@ export default function SecurityTab() {
 
   return (
     <div className="stack">
-      <AdminCard title="Admin password" subtitle="Change the password used to sign in to this panel">
+      <AdminCard title="كلمة مرور الإدارة" subtitle="غيّر كلمة المرور المستخدمة لتسجيل الدخول إلى هذه اللوحة">
         <form className="stack" onSubmit={submit}>
-          <Field label="Current password">
+          <Field label="كلمة المرور الحالية">
             <input
               className="input"
               type="password"
@@ -51,7 +51,7 @@ export default function SecurityTab() {
               autoComplete="current-password"
             />
           </Field>
-          <Field label="New password" hint="At least 8 characters">
+          <Field label="كلمة المرور الجديدة" hint="8 أحرف على الأقل">
             <input
               className="input"
               type="password"
@@ -61,7 +61,7 @@ export default function SecurityTab() {
               autoComplete="new-password"
             />
           </Field>
-          <Field label="Confirm new password">
+          <Field label="تأكيد كلمة المرور الجديدة">
             <input
               className="input"
               type="password"
@@ -74,23 +74,22 @@ export default function SecurityTab() {
           {error ? <div className="error-text">{error}</div> : null}
           {saved ? (
             <div className="tiny" style={{ color: '#86efac' }}>
-              <Icon name="check" size={13} /> Password changed — use it the next time you sign in
+              <Icon name="check" size={13} /> تم تغيير كلمة المرور — استخدمها في تسجيل الدخول القادم
             </div>
           ) : null}
           <button
             className="btn btn-primary"
             disabled={busy || !currentPassword || !newPassword || !confirmPassword}
           >
-            {busy ? <span className="spinner" /> : 'Change password'}
+            {busy ? <span className="spinner" /> : 'تغيير كلمة المرور'}
           </button>
         </form>
       </AdminCard>
 
-      <AdminCard title="Forgot the current password?">
+      <AdminCard title="نسيت كلمة المرور الحالية؟">
         <p className="tiny muted" style={{ lineHeight: 1.8 }}>
-          If you cannot sign in, update the <code>ADMIN_PASSWORD</code> secret from the workspace
-          Secrets page and restart the API. That value becomes the admin password again on the next
-          boot.
+          إذا لم تستطع تسجيل الدخول، حدّث سرّ <code>ADMIN_PASSWORD</code> من صفحة الأسرار في مساحة
+          العمل ثم أعد تشغيل الـ API. ستصبح تلك القيمة كلمة مرور الإدارة مجدداً عند التشغيل التالي.
         </p>
       </AdminCard>
     </div>

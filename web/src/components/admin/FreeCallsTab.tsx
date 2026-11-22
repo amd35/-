@@ -57,7 +57,7 @@ export default function FreeCallsTab() {
             .filter(Boolean),
         },
       });
-      toast.push('Free-call settings saved', 'success');
+      toast.push('تم حفظ إعدادات المحاولات المجانية', 'success');
       await reload();
     } catch (error) {
       toast.push((error as Error).message, 'error');
@@ -71,17 +71,17 @@ export default function FreeCallsTab() {
   return (
     <div className="stack">
       <div className="stat-grid">
-        <Stat label="Attempts used today" value={formatCoins(data?.totals.used ?? 0)} accent="#ffd75e" />
-        <Stat label="Accounts using free calls" value={formatCoins(data?.totals.users ?? 0)} />
-        <Stat label="Baghdad day" value={data?.today ?? '—'} />
-        <Stat label="Renews" value="00:00 Baghdad" hint="Server-side, device clock ignored" />
+        <Stat label="المحاولات المستخدمة اليوم" value={formatCoins(data?.totals.used ?? 0)} accent="#ffd75e" />
+        <Stat label="حسابات تستخدم المجاني" value={formatCoins(data?.totals.users ?? 0)} />
+        <Stat label="يوم بغداد" value={data?.today ?? '—'} />
+        <Stat label="التجديد" value="00:00 بتوقيت بغداد" hint="من السيرفر، يُتجاهل وقت الجهاز" />
       </div>
 
-      <AdminCard title="Free attempts system" subtitle="Applies to calls accepted after saving">
+      <AdminCard title="نظام المحاولات المجانية" subtitle="يُطبَّق على المكالمات المقبولة بعد الحفظ">
         <div className="stat-grid" style={{ gridTemplateColumns: 'repeat(auto-fit,minmax(220px,1fr))' }}>
-          <Toggle checked={enabled} onChange={setEnabled} label="Enable free attempts" />
-          <Toggle checked={shared} onChange={setShared} label="Shared between voice and video" />
-          <Field label="Attempts per day">
+          <Toggle checked={enabled} onChange={setEnabled} label="تشغيل المحاولات المجانية" />
+          <Toggle checked={shared} onChange={setShared} label="مشتركة بين الصوت والفيديو" />
+          <Field label="المحاولات لكل يوم">
             <input
               className="input"
               type="number"
@@ -92,7 +92,7 @@ export default function FreeCallsTab() {
               dir="ltr"
             />
           </Field>
-          <Field label="Exempt user IDs" hint="Comma separated — these accounts never consume attempts">
+          <Field label="معرّفات مستخدمين معفيين" hint="مفصولة بفاصلة — هذه الحسابات لا تستهلك محاولات أبداً">
             <input
               className="input"
               value={exempt}
@@ -103,15 +103,15 @@ export default function FreeCallsTab() {
           </Field>
         </div>
         <button className="btn btn-primary" style={{ alignSelf: 'flex-start' }} onClick={() => void save()} disabled={busy}>
-          Save free-call settings
+          حفظ إعدادات المحاولات المجانية
         </button>
       </AdminCard>
 
-      <AdminCard title="Usage today" subtitle="Who consumed free attempts and what they earned">
+      <AdminCard title="الاستخدام اليوم" subtitle="من استهلك المحاولات المجانية وماذا ربح">
         {(data?.usage.length ?? 0) === 0 ? (
-          <Empty text="No usage yet" />
+          <Empty text="لا يوجد استخدام بعد" />
         ) : (
-          <Table head={['User', 'Used today', 'Voice', 'Video', 'Free calls total', 'Earnings']}>
+          <Table head={['المستخدم', 'المستخدم اليوم', 'صوتية', 'فيديو', 'إجمالي المجاني', 'الأرباح']}>
             {data?.usage.map((row) => (
               <tr key={row.id}>
                 <td>

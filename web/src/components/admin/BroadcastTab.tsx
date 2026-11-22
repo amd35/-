@@ -17,7 +17,7 @@ export default function BroadcastTab() {
         admin: true,
         body: { title, body },
       });
-      toast.push(`Sent to ${response.sent} users`, 'success');
+      toast.push(`أُرسل إلى ${response.sent} مستخدم`, 'success');
       setTitle('');
       setBody('');
     } catch (error) {
@@ -28,16 +28,16 @@ export default function BroadcastTab() {
   };
 
   return (
-    <AdminCard title="Broadcast notification" subtitle="Delivered instantly to every active account">
+    <AdminCard title="إشعار عام" subtitle="يُسلَّم فوراً لكل حساب نشط">
       <div className="stack" style={{ maxWidth: 560 }}>
-        <Field label="Title">
+        <Field label="العنوان">
           <input className="input" value={title} onChange={(event) => setTitle(event.target.value)} />
         </Field>
-        <Field label="Message">
+        <Field label="الرسالة">
           <textarea className="textarea" value={body} onChange={(event) => setBody(event.target.value)} />
         </Field>
         <button className="btn btn-primary" style={{ alignSelf: 'flex-start' }} onClick={() => void send()} disabled={busy}>
-          Send to all users
+          إرسال لكل المستخدمين
         </button>
       </div>
     </AdminCard>

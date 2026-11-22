@@ -55,10 +55,10 @@ export default function UsersTab() {
       await api(`/admin/users/${user.id}/${user.is_banned ? 'unban' : 'ban'}`, {
         method: 'POST',
         admin: true,
-        body: user.is_banned ? {} : { reason: 'Policy violation' },
+        body: user.is_banned ? {} : { reason: 'مخالفة السياسات' },
       });
       await load();
-      toast.push(user.is_banned ? 'Unbanned' : 'Banned', 'success');
+      toast.push(user.is_banned ? 'تم رفع الحظر' : 'تم الحظر', 'success');
     } catch (error) {
       toast.push((error as Error).message, 'error');
     }
@@ -72,7 +72,7 @@ export default function UsersTab() {
         admin: true,
         body: { amount: Number(amount), note },
       });
-      toast.push('Balance updated', 'success');
+      toast.push('تم تحديث الرصيد', 'success');
       setSelected(null);
       setAmount('');
       setNote('');
@@ -84,21 +84,21 @@ export default function UsersTab() {
 
   return (
     <AdminCard
-      title="Users"
-      subtitle={`${users.length} accounts`}
+      title="المستخدمون"
+      subtitle={`${users.length} حساب`}
       actions={
         <div className="inline">
           <input
             className="input"
             style={{ width: 220, padding: '8px 12px' }}
-            placeholder="Search name, email, phone, ID…"
+            placeholder="ابحث بالاسم أو البريد أو الهاتف أو المعرّف…"
             value={query}
             onChange={(event) => setQuery(event.target.value)}
           />
           <select className="select" style={{ width: 120 }} value={status} onChange={(event) => setStatus(event.target.value)}>
-            <option value="all">All</option>
-            <option value="active">Active</option>
-            <option value="banned">Banned</option>
+            <option value="all">الكل</option>
+            <option value="active">نشط</option>
+            <option value="banned">محظور</option>
           </select>
         </div>
       }
@@ -106,9 +106,9 @@ export default function UsersTab() {
       {loading ? (
         <div className="skeleton" style={{ height: 200 }} />
       ) : users.length === 0 ? (
-        <Empty text="No users found" />
+        <Empty text="لا يوجد مستخدمون" />
       ) : (
-        <Table head={['User', 'Contact', 'Balance', 'Earned', 'Calls', 'Free today', 'Status', 'Actions']}>
+        <Table head={['المستخدم', 'وسيلة التواصل', 'الرصيد', 'الأرباح', 'المكالمات', 'المجاني اليوم', 'الحالة', 'إجراءات']}>
           {users.map((user) => (
             <tr key={user.id}>
               <td>
@@ -124,23 +124,23 @@ export default function UsersTab() {
               <td>{user.free_used_today}</td>
               <td>
                 {user.is_banned ? (
-                  <span className="pill pill-red">banned</span>
+                  <span className="pill pill-red">محظور</span>
                 ) : user.online ? (
-                  <span className="pill pill-green">online</span>
+                  <span className="pill pill-green">متصل</span>
                 ) : (
-                  <span className="pill">offline</span>
+                  <span className="pill">غير متصل</span>
                 )}
               </td>
               <td>
                 <div className="inline">
                   <button className="btn btn-ghost btn-xs" onClick={() => setSelected(user)}>
-                    Coins
+                    كونز
                   </button>
                   <button
                     className={`btn btn-xs ${user.is_banned ? 'btn-outline' : 'btn-danger'}`}
                     onClick={() => void toggleBan(user)}
                   >
-                    {user.is_banned ? 'Unban' : 'Ban'}
+                    {user.is_banned ? 'رفع الحظر' : 'حظر'}
                   </button>
                 </div>
               </td>
@@ -149,9 +149,9 @@ export default function UsersTab() {
         </Table>
       )}
 
-      <Sheet open={Boolean(selected)} onClose={() => setSelected(null)} title={`Adjust coins — ${selected?.display_name ?? ''}`}>
+      <Sheet open={Boolean(selected)} onClose={() => setSelected(null)} title={`تعديل الكونز — ${selected?.display_name ?? ''}`}>
         <div className="stack">
-          <Field label="Amount (negative to deduct)" hint="Every adjustment is written to the wallet ledger">
+          <Field label="المبلغ (سالب للخصم)" hint="كل تعديل يُسجَّل في سجل المحفظة">
             <input
               className="input"
               type="number"
@@ -161,11 +161,11 @@ export default function UsersTab() {
               dir="ltr"
             />
           </Field>
-          <Field label="Note">
+          <Field label="ملاحظة">
             <input className="input" value={note} onChange={(event) => setNote(event.target.value)} />
           </Field>
           <button className="btn btn-primary btn-block" onClick={() => void adjustCoins()}>
-            Apply
+            تطبيق
           </button>
         </div>
       </Sheet>

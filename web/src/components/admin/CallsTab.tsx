@@ -26,26 +26,37 @@ export default function CallsTab() {
 
   const calls = data?.calls ?? [];
 
+  const kindLabel: Record<string, string> = { voice: 'صوتية', video: 'فيديو' };
+  const statusLabel: Record<string, string> = {
+    ringing: 'يرن',
+    accepted: 'مقبولة',
+    ended: 'منتهية',
+    rejected: 'مرفوضة',
+    missed: 'فائتة',
+    cancelled: 'ملغاة',
+    failed: 'فاشلة',
+  };
+
   return (
     <AdminCard
-      title="Calls"
-      subtitle="Every call attempt with its billing outcome"
+      title="المكالمات"
+      subtitle="كل محاولة اتصال مع نتيجة الفوترة"
       actions={
         <div className="inline">
           <select className="select" style={{ width: 120 }} value={kind} onChange={(event) => setKind(event.target.value)}>
-            <option value="all">All types</option>
-            <option value="voice">Voice</option>
-            <option value="video">Video</option>
+            <option value="all">كل الأنواع</option>
+            <option value="voice">صوتية</option>
+            <option value="video">فيديو</option>
           </select>
           <select className="select" style={{ width: 130 }} value={status} onChange={(event) => setStatus(event.target.value)}>
-            <option value="all">All statuses</option>
-            <option value="ringing">Ringing</option>
-            <option value="accepted">Accepted</option>
-            <option value="ended">Ended</option>
-            <option value="rejected">Rejected</option>
-            <option value="missed">Missed</option>
-            <option value="cancelled">Cancelled</option>
-            <option value="failed">Failed</option>
+            <option value="all">كل الحالات</option>
+            <option value="ringing">يرن</option>
+            <option value="accepted">مقبولة</option>
+            <option value="ended">منتهية</option>
+            <option value="rejected">مرفوضة</option>
+            <option value="missed">فائتة</option>
+            <option value="cancelled">ملغاة</option>
+            <option value="failed">فاشلة</option>
           </select>
         </div>
       }
@@ -53,20 +64,20 @@ export default function CallsTab() {
       {loading ? (
         <div className="skeleton" style={{ height: 200 }} />
       ) : calls.length === 0 ? (
-        <Empty text="No calls yet" />
+        <Empty text="لا توجد مكالمات بعد" />
       ) : (
-        <Table head={['When', 'Type', 'Caller → Callee', 'Status', 'Duration', 'Charged', 'Refund', 'Billing']}>
+        <Table head={['الوقت', 'النوع', 'المتصل ← المستقبل', 'الحالة', 'المدة', 'المخصوم', 'المسترجع', 'الفوترة']}>
           {calls.map((call) => (
             <tr key={call.id}>
-              <td className="tiny">{new Date(call.created_at).toLocaleString('en-GB')}</td>
+              <td className="tiny">{new Date(call.created_at).toLocaleString('ar-IQ')}</td>
               <td>
                 <span className="inline" style={{ gap: 5 }}>
                   <Icon name={call.kind === 'video' ? 'video' : 'phone'} size={14} />
-                  {call.kind}
+                  {kindLabel[call.kind] ?? call.kind}
                 </span>
               </td>
               <td>
-                {call.caller_name} → {call.callee_name}
+                {call.caller_name} ← {call.callee_name}
               </td>
               <td>
                 <span
@@ -79,7 +90,7 @@ export default function CallsTab() {
                   }`}
                   style={{ fontSize: 10 }}
                 >
-                  {call.status}
+                  {statusLabel[call.status] ?? call.status}
                 </span>
               </td>
               <td>{formatDuration(call.duration_seconds)}</td>
@@ -87,7 +98,7 @@ export default function CallsTab() {
               <td className="amount plus">{formatCoins(call.coins_refunded)}</td>
               <td>
                 <span className={`pill ${call.is_free ? 'pill-green' : 'pill-gold'}`} style={{ fontSize: 10 }}>
-                  {call.is_free ? 'free' : `${call.rate_per_minute}/min`}
+                  {call.is_free ? 'مجانية' : `${call.rate_per_minute}/دقيقة`}
                 </span>
               </td>
             </tr>

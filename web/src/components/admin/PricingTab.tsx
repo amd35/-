@@ -38,7 +38,7 @@ export default function PricingTab() {
     setBusy(true);
     try {
       await api('/admin/settings', { method: 'PUT', admin: true, body: form });
-      toast.push('Settings saved — applied to new calls', 'success');
+      toast.push('تم حفظ الإعدادات — تُطبَّق على المكالمات الجديدة', 'success');
       await reload();
     } catch (error) {
       toast.push((error as Error).message, 'error');
@@ -49,9 +49,9 @@ export default function PricingTab() {
 
   return (
     <div className="stack">
-      <AdminCard title="Pricing" subtitle="Changes apply to new calls; running calls keep their rate">
+      <AdminCard title="الأسعار" subtitle="التغييرات تُطبَّق على المكالمات الجديدة؛ المكالمات الجارية تحتفظ بسعرها">
         <div className="stat-grid" style={{ gridTemplateColumns: 'repeat(auto-fit,minmax(200px,1fr))' }}>
-          <Field label="Voice call price (coins / minute)">
+          <Field label="سعر المكالمة الصوتية (كونز / دقيقة)">
             <input
               className="input"
               type="number"
@@ -60,7 +60,7 @@ export default function PricingTab() {
               dir="ltr"
             />
           </Field>
-          <Field label="Video call price (coins / minute)">
+          <Field label="سعر مكالمة الفيديو (كونز / دقيقة)">
             <input
               className="input"
               type="number"
@@ -69,7 +69,7 @@ export default function PricingTab() {
               dir="ltr"
             />
           </Field>
-          <Field label="Free attempts per day">
+          <Field label="المحاولات المجانية لكل يوم">
             <input
               className="input"
               type="number"
@@ -78,7 +78,7 @@ export default function PricingTab() {
               dir="ltr"
             />
           </Field>
-          <Field label="Admin share (%)" hint={`Host receives ${form.host_percent}%`}>
+          <Field label="نسبة الإدارة (%)" hint={`المستضيف يستلم ${form.host_percent}%`}>
             <input
               className="input"
               type="number"
@@ -89,7 +89,7 @@ export default function PricingTab() {
               dir="ltr"
             />
           </Field>
-          <Field label="Minimum withdrawal (coins)">
+          <Field label="الحد الأدنى للسحب (كونز)">
             <input
               className="input"
               type="number"
@@ -98,7 +98,7 @@ export default function PricingTab() {
               dir="ltr"
             />
           </Field>
-          <Field label="Coin → IQD rate">
+          <Field label="سعر تحويل الكونز للدينار">
             <input
               className="input"
               type="number"
@@ -107,10 +107,10 @@ export default function PricingTab() {
               dir="ltr"
             />
           </Field>
-          <Field label="App name">
+          <Field label="اسم التطبيق">
             <input className="input" value={form.app_name} onChange={(event) => set('app_name', event.target.value)} />
           </Field>
-          <Field label="Support contact">
+          <Field label="جهة الدعم">
             <input
               className="input"
               value={form.support_contact}
@@ -122,15 +122,15 @@ export default function PricingTab() {
         <Toggle
           checked={form.paid_calls_enabled}
           onChange={(value) => set('paid_calls_enabled', value)}
-          label="Enable paid calls (coins)"
+          label="تشغيل المكالمات المدفوعة (كونز)"
         />
         <Toggle
           checked={form.free_calls_enabled}
           onChange={(value) => set('free_calls_enabled', value)}
-          label="Enable free attempts"
+          label="تشغيل المحاولات المجانية"
         />
         <button className="btn btn-primary" style={{ alignSelf: 'flex-start' }} onClick={() => void save()} disabled={busy}>
-          Save settings
+          حفظ الإعدادات
         </button>
       </AdminCard>
     </div>

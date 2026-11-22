@@ -97,6 +97,23 @@ export function AdminLoading({ label }: { label?: string }) {
   return <Spinner label={label} />;
 }
 
+const ADMIN_ERRORS: [RegExp, string][] = [
+  [/Wrong admin credentials/i, 'بيانات الدخول غير صحيحة'],
+  [/Enter credentials/i, 'أدخل اسم المستخدم وكلمة المرور'],
+  [/Current password is wrong/i, 'كلمة المرور الحالية غير صحيحة'],
+  [/at least 8/i, 'كلمة المرور الجديدة يجب أن تكون 8 أحرف على الأقل'],
+  [/Password is too long/i, 'كلمة المرور طويلة جداً'],
+  [/Too many attempts/i, 'محاولات كثيرة — حاول لاحقاً'],
+];
+
+export function adminError(err: unknown): string {
+  const message = err instanceof Error ? err.message : String(err);
+  for (const [pattern, arabic] of ADMIN_ERRORS) {
+    if (pattern.test(message)) return arabic;
+  }
+  return message;
+}
+
 export function Field({
   label,
   children,

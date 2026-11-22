@@ -1,8 +1,8 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { api, getAdminToken, setAdminToken } from '../lib/api';
-import { useI18n } from '../lib/i18n';
 import { Icon, useToast } from '../lib/ui';
+import { adminError } from '../components/admin/shared';
 import Overview from '../components/admin/Overview';
 import UsersTab from '../components/admin/UsersTab';
 import CallsTab from '../components/admin/CallsTab';
@@ -17,18 +17,18 @@ import BroadcastTab from '../components/admin/BroadcastTab';
 import SecurityTab from '../components/admin/SecurityTab';
 
 const TABS = [
-  { id: 'overview', label: 'Overview', icon: 'chart' },
-  { id: 'users', label: 'Users', icon: 'users' },
-  { id: 'calls', label: 'Calls', icon: 'phone' },
-  { id: 'free', label: 'Free attempts', icon: 'gift' },
-  { id: 'pricing', label: 'Pricing & split', icon: 'percent' },
-  { id: 'packages', label: 'Packages', icon: 'package' },
-  { id: 'gifts', label: 'Gift codes', icon: 'gift' },
-  { id: 'orders', label: 'Recharge orders', icon: 'card' },
-  { id: 'financial', label: 'Earnings & withdrawals', icon: 'coins' },
-  { id: 'reports', label: 'Reports', icon: 'alert' },
-  { id: 'broadcast', label: 'Broadcast', icon: 'bell' },
-  { id: 'security', label: 'Security', icon: 'lock' },
+  { id: 'overview', label: 'نظرة عامة', icon: 'chart' },
+  { id: 'users', label: 'المستخدمون', icon: 'users' },
+  { id: 'calls', label: 'المكالمات', icon: 'phone' },
+  { id: 'free', label: 'المحاولات المجانية', icon: 'gift' },
+  { id: 'pricing', label: 'الأسعار والأرباح', icon: 'percent' },
+  { id: 'packages', label: 'باقات الشحن', icon: 'package' },
+  { id: 'gifts', label: 'أكواد الهدايا', icon: 'gift' },
+  { id: 'orders', label: 'طلبات الشحن', icon: 'card' },
+  { id: 'financial', label: 'الأرباح والسحوبات', icon: 'coins' },
+  { id: 'reports', label: 'البلاغات', icon: 'alert' },
+  { id: 'broadcast', label: 'إشعار عام', icon: 'bell' },
+  { id: 'security', label: 'الأمان', icon: 'lock' },
 ] as const;
 
 type TabId = (typeof TABS)[number]['id'];
@@ -51,30 +51,30 @@ function AdminLogin({ onDone }: { onDone: (token: string) => void }) {
       });
       onDone(response.token);
     } catch (err) {
-      setError((err as Error).message);
+      setError(adminError(err));
     } finally {
       setBusy(false);
     }
   };
 
   return (
-    <div className="admin-login">
+    <div className="admin-login" dir="rtl">
       <form className="auth-card" style={{ width: '100%', maxWidth: 400 }} onSubmit={submit}>
         <div className="brand" style={{ marginBottom: 6 }}>
           <div className="brand-mark">
             <Icon name="shield" size={20} />
           </div>
           <div>
-            <h2 style={{ fontSize: 20 }}>Connect+ Admin</h2>
-            <span className="tiny muted">Control panel</span>
+            <h2 style={{ fontSize: 20 }}>لوحة تحكم Connect+</h2>
+            <span className="tiny muted">لوحة الإدارة</span>
           </div>
         </div>
         <div className="field">
-          <label>Username</label>
+          <label>اسم المستخدم</label>
           <input className="input" value={username} onChange={(event) => setUsername(event.target.value)} dir="ltr" />
         </div>
         <div className="field">
-          <label>Password</label>
+          <label>كلمة المرور</label>
           <input
             className="input"
             type="password"
@@ -86,10 +86,10 @@ function AdminLogin({ onDone }: { onDone: (token: string) => void }) {
         </div>
         {error ? <div className="error-text">{error}</div> : null}
         <button className="btn btn-primary btn-block" disabled={busy}>
-          {busy ? <span className="spinner" /> : 'Sign in'}
+          {busy ? <span className="spinner" /> : 'تسجيل الدخول'}
         </button>
         <button type="button" className="btn btn-ghost btn-block btn-sm" onClick={() => navigate('/')}>
-          Back to app
+          العودة للتطبيق
         </button>
       </form>
     </div>
@@ -100,7 +100,6 @@ export default function Admin() {
   const [token, setTokenState] = useState<string | null>(getAdminToken());
   const [tab, setTab] = useState<TabId>('overview');
   const [nonce, setNonce] = useState(0);
-  const { t } = useI18n();
 
   if (!token) {
     return (
@@ -114,7 +113,7 @@ export default function Admin() {
   }
 
   return (
-    <div className="admin-shell">
+    <div className="admin-shell" dir="rtl">
       <aside className="admin-sidebar">
         <div className="brand" style={{ padding: '4px 8px 14px' }}>
           <div className="brand-mark">
@@ -122,7 +121,7 @@ export default function Admin() {
           </div>
           <div>
             <div style={{ fontWeight: 700 }}>Connect+</div>
-            <div className="tiny muted">Admin panel</div>
+            <div className="tiny muted">لوحة التحكم</div>
           </div>
         </div>
         {TABS.map((item) => (
@@ -138,7 +137,7 @@ export default function Admin() {
         <div style={{ marginTop: 'auto', display: 'flex', flexDirection: 'column', gap: 6 }}>
           <button className="admin-nav-item" onClick={() => setNonce((value) => value + 1)}>
             <Icon name="refresh" size={17} />
-            Refresh data
+            تحديث البيانات
           </button>
           <button
             className="admin-nav-item"
@@ -148,7 +147,7 @@ export default function Admin() {
             }}
           >
             <Icon name="logout" size={17} />
-            {t('logout')}
+            تسجيل الخروج
           </button>
         </div>
       </aside>
@@ -158,10 +157,10 @@ export default function Admin() {
           <h1>{TABS.find((item) => item.id === tab)?.label}</h1>
           <div className="spacer" />
           <span className="pill">
-            <Icon name="clock" size={13} /> Baghdad time
+            <Icon name="clock" size={13} /> بتوقيت بغداد
           </span>
           <a className="btn btn-ghost btn-sm" href="/">
-            <Icon name="home" size={15} /> App
+            <Icon name="home" size={15} /> التطبيق
           </a>
         </div>
 
