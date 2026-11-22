@@ -1,0 +1,260 @@
+import { useCallback, useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { api } from '../lib/api';
+import { useAuth } from '../lib/auth';
+import { useI18n } from '../lib/i18n';
+import { useRealtime } from '../lib/realtime';
+import {
+  EmptyState,
+  formatCoins,
+  formatCountdown,
+  Icon,
+  useCountdown,
+  useDebounced,
+  useToast,
+} from '../lib/ui';
+import { AppShell, BellButton, CoinPill } from '../components/AppShell';
+import { UserCard, type UserCardData } from '../components/UserCard';
+
+type Tab = 'all' | 'online' | 'favorites';
+
+export default function Home() {
+  const { t, lang } = useI18n();
+  const { me } = useAuth();
+  const { online } = useRealtime();
+  const navigate = useNavigate();
+  const toast = useToast();
+
+  const [tab, setTab] = useState<Tab>('all');
+  const [query, setQuery] = useState('');
+  const debouncedQuery = useDebounced(query);
+  const [users, setUsers] = useState<UserCardData[]>([]);
+  const [suggestions, setSuggestions] = useState<UserCardData[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  const loadUsers = useCallback(async () => {
+    setLoading(true);
+    try {
+      const response = await api<{ users: UserCardData[] }>(
+        `/users?filter=${tab}&q=${encodeURIComponent(debouncedQuery)}`
+      );
+      setUsers(response.users);
+    } catch (error) {
+      toast.push((error as Error).message, 'error');
+    } finally {
+      setLoading(false);
+    }
+  }, [tab, debouncedQuery, toast]);
+
+  useEffect(() => {
+    void loadUsers();
+  }, [loadUsers]);
+
+  useEffect(() => {
+    api<{ users: UserCardData[] }>('/users/suggestions')
+      .then((response) => setSuggestions(response.users))
+      .catch(() => undefined);
+  }, []);
+
+  const toggleFavorite = async (user: UserCardData) => {
+    try {
+      const response = await api<{ favorite: boolean }>(`/users/${user.id}/favorite`, {
+        method: 'POST',
+      });
+      const patch = (list: UserCardData[]) =>
+        list.map((item) => (item.id === user.id ? { ...item, isFavorite: response.favorite } : item));
+      setUsers(patch);
+      setSuggestions(patch);
+    } catch (error) {
+      toast.push((error as Error).message, 'error');
+    }
+  };
+
+  const free = me?.freeCalls;
+  const countdown = useCountdown(free?.nextResetAt);
+  const percent = free ? Math.round((free.remaining / Math.max(1, free.perDay)) * 100) : 0;
+  const hour = new Date().getHours();
+  const greeting =
+    hour < 12 ? (lang === 'ar' ? 'صباح الخير' : 'Good morning') : hour < 18 ? (lang === 'ar' ? 'مساء الخير' : 'Good afternoon') : lang === 'ar' ? 'مساء الخير' : 'Good evening';
+
+  return (
+    <AppShell
+      title={me?.config.appName || 'Connect+'}
+      subtitle={greeting}
+      active="home"
+      right={
+        <div className="inline">
+          <CoinPill balance={me?.wallet.balance ?? 0} />
+          <BellButton />
+        </div>
+      }
+    >
+      <div className="page">
+        <section className="hero">
+          <div className="hero-row">
+            <div className="grow">
+              <div className="tiny muted">{t('freeAttempts')}</div>
+              <div style={{ display: 'flex', alignItems: 'baseline', gap: 6 }}>
+                <span style={{ fontSize: 30, fontWeight: 800 }}>
+                  {free?.remaining ?? 0}
+                  <span style={{ fontSize: 16, color: 'var(--muted)' }}> / {free?.perDay ?? 5}</span>
+                </span>
+              </div>
+            </div>
+            <div className="pill pill-gold">
+              <Icon name="gift" size={14} />
+              {t('remaining')}
+            </div>
+          </div>
+
+          <div className="free-meter">
+            <div className="meter-track">
+              <div className="meter-fill" style={{ width: `${percent}%` }} />
+            </div>
+            <div className="inline" style={{ justifyContent: 'space-between' }}>
+              <span className="tiny muted">
+                {t('used')}: {free?.used ?? 0} • {t('renewsIn')} {formatCountdown(countdown, lang)}
+              </span>
+              <span className="tiny" style={{ color: '#ffd75e' }}>
+                {me?.config.voicePrice ?? 100} {t('coins')} / {t('minutes')}
+              </span>
+            </div>
+          </div>
+
+          {free && free.remaining === 0 ? (
+            <div
+              className="tiny"
+              style={{
+                marginTop: 12,
+                padding: '9px 12px',
+                borderRadius: 12,
+                background: 'rgba(239,68,68,0.14)',
+                border: '1px solid rgba(239,68,68,0.3)',
+                color: '#fecaca',
+              }}
+            >
+              {t('freeCallsExhausted')}
+            </div>
+          ) : free && free.remaining === 1 ? (
+            <div className="tiny" style={{ marginTop: 12, color: '#ffd75e' }}>
+              {t('freeCallsLast')}
+            </div>
+          ) : (
+            <div className="tiny muted" style={{ marginTop: 12 }}>
+              {t('nextCallPaid')}
+            </div>
+          )}
+        </section>
+
+        <div className="search">
+          <Icon name="search" size={18} />
+          <input
+            value={query}
+            onChange={(event) => setQuery(event.target.value)}
+            placeholder={t('search')}
+          />
+          {query ? (
+            <button className="icon-btn plain" onClick={() => setQuery('')} aria-label="clear">
+              <Icon name="x" size={16} />
+            </button>
+          ) : null}
+        </div>
+
+        <div className="tabs">
+          <button className={`tab ${tab === 'all' ? 'active' : ''}`} onClick={() => setTab('all')}>
+            {t('all')}
+          </button>
+          <button className={`tab ${tab === 'online' ? 'active' : ''}`} onClick={() => setTab('online')}>
+            {t('online')}
+          </button>
+          <button
+            className={`tab ${tab === 'favorites' ? 'active' : ''}`}
+            onClick={() => setTab('favorites')}
+          >
+            {t('favorites')}
+          </button>
+        </div>
+
+        {suggestions.length > 0 && tab === 'all' && !query ? (
+          <section className="stack">
+            <div className="section-head">
+              <h2>{t('suggestions')}</h2>
+              <span className="tiny muted">{suggestions.length}</span>
+            </div>
+            <div className="hscroll">
+              {suggestions.map((user) => (
+                <div
+                  key={user.id}
+                  className="suggest-card"
+                  onClick={() => navigate(`/u/${user.id}`)}
+                  role="button"
+                >
+                  <AvatarMini user={user} online={online.has(user.id) || user.online} />
+                  <span className="tiny" style={{ fontWeight: 600 }}>
+                    {user.displayName}
+                  </span>
+                  <button
+                    className="btn btn-ghost btn-xs"
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      void api(`/users/${user.id}/friend`, { method: 'POST' })
+                        .then(() => toast.push(t('friendRequested'), 'success'))
+                        .catch((error: Error) => toast.push(error.message, 'error'));
+                    }}
+                  >
+                    <Icon name="plus" size={12} /> {t('addFriend')}
+                  </button>
+                </div>
+              ))}
+            </div>
+          </section>
+        ) : null}
+
+        <section className="stack">
+          <div className="section-head">
+            <h2>{tab === 'favorites' ? t('favorites') : t('users')}</h2>
+            <span className="tiny muted">
+              {users.filter((user) => online.has(user.id) || user.online).length} {t('online')}
+            </span>
+          </div>
+
+          {loading ? (
+            <div className="user-grid">
+              {[0, 1, 2, 3].map((index) => (
+                <div key={index} className="skeleton" style={{ height: 168 }} />
+              ))}
+            </div>
+          ) : users.length === 0 ? (
+            <EmptyState
+              icon="users"
+              title={query ? t('noResults') : t('noUsers')}
+              hint={query ? undefined : t('freeCallsInfo')}
+            />
+          ) : (
+            <div className="user-grid">
+              {users.map((user) => (
+                <UserCard key={user.id} user={user} onToggleFavorite={(item) => void toggleFavorite(item)} />
+              ))}
+            </div>
+          )}
+        </section>
+
+        <div className="tiny muted center" style={{ paddingBottom: 10 }}>
+          {t('freeCallsInfo')}
+        </div>
+      </div>
+    </AppShell>
+  );
+}
+
+function AvatarMini({ user, online }: { user: UserCardData; online?: boolean }) {
+  return (
+    <div
+      className="avatar"
+      style={{ width: 52, height: 52, fontSize: 19 }}
+    >
+      {user.avatarUrl ? <img src={user.avatarUrl} alt={user.displayName} /> : user.displayName.charAt(0)}
+      {online ? <span className="online-dot" /> : null}
+    </div>
+  );
+}

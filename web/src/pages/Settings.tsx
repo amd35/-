@@ -1,0 +1,264 @@
+import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { api } from '../lib/api';
+import { useAuth } from '../lib/auth';
+import { useI18n } from '../lib/i18n';
+import { formatCoins, formatCountdown, Icon, Sheet, useCountdown, useToast } from '../lib/ui';
+import { AppShell } from '../components/AppShell';
+
+type SheetKind = 'password' | 'privacy' | 'support' | 'about' | 'delete' | null;
+
+export default function Settings() {
+  const { me, refresh, logout } = useAuth();
+  const { t, lang, setLang } = useI18n();
+  const navigate = useNavigate();
+  const toast = useToast();
+  const [sheet, setSheet] = useState<SheetKind>(null);
+  const [currentPassword, setCurrentPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [deletePassword, setDeletePassword] = useState('');
+  const [busy, setBusy] = useState(false);
+  const free = me?.freeCalls;
+  const countdown = useCountdown(free?.nextResetAt);
+
+  const changePassword = async () => {
+    setBusy(true);
+    try {
+      await api('/auth/change-password', {
+        method: 'POST',
+        body: { currentPassword, newPassword },
+      });
+      toast.push(t('saved'), 'success');
+      setSheet(null);
+      setCurrentPassword('');
+      setNewPassword('');
+    } catch (error) {
+      toast.push((error as Error).message, 'error');
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const deleteAccount = async () => {
+    setBusy(true);
+    try {
+      await api('/auth/me', { method: 'DELETE', body: { password: deletePassword } });
+      logout();
+      navigate('/welcome', { replace: true });
+    } catch (error) {
+      toast.push((error as Error).message, 'error');
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const markAll = async () => {
+    await api('/notifications/read-all', { method: 'POST' }).catch(() => undefined);
+    await refresh();
+    toast.push(t('saved'), 'success');
+  };
+
+  return (
+    <AppShell
+      title={t('settings')}
+      active="profile"
+      right={
+        <button className="icon-btn" onClick={() => navigate(-1)} aria-label="back">
+          <Icon name="arrowRight" size={19} />
+        </button>
+      }
+    >
+      <div className="page page-tight">
+        <section className="card stack">
+          <div className="inline" style={{ justifyContent: 'space-between' }}>
+            <div>
+              <div className="row-title">{t('freeAttempts')}</div>
+              <div className="row-sub">
+                {free?.remaining ?? 0} / {free?.perDay ?? 5} • {t('renewsIn')}{' '}
+                {formatCountdown(countdown, lang)}
+              </div>
+            </div>
+            <span className="pill pill-gold">
+              <Icon name="gift" size={13} /> {t('free')}
+            </span>
+          </div>
+          <div className="divider" />
+          <div className="inline" style={{ justifyContent: 'space-between' }}>
+            <span className="row-sub">{t('priceVoice')}</span>
+            <strong>
+              {me?.config.voicePrice ?? 100} {t('coins')} / {t('minutes')}
+            </strong>
+          </div>
+          <div className="inline" style={{ justifyContent: 'space-between' }}>
+            <span className="row-sub">{t('priceVideo')}</span>
+            <strong>
+              {me?.config.videoPrice ?? 100} {t('coins')} / {t('minutes')}
+            </strong>
+          </div>
+          <div className="inline" style={{ justifyContent: 'space-between' }}>
+            <span className="row-sub">{t('balance')}</span>
+            <strong>
+              {formatCoins(me?.wallet.balance ?? 0)} {t('coins')}
+            </strong>
+          </div>
+        </section>
+
+        <section className="list">
+          <div className="row" onClick={() => setLang(lang === 'ar' ? 'en' : 'ar')}>
+            <Icon name="globe" size={19} />
+            <div className="row-main">
+              <div className="row-title">{t('language')}</div>
+              <div className="row-sub">{lang === 'ar' ? 'العربية' : 'English'}</div>
+            </div>
+            <span className="pill">{lang === 'ar' ? 'EN' : 'AR'}</span>
+          </div>
+
+          <div className="row" onClick={() => setSheet('password')}>
+            <Icon name="lock" size={19} />
+            <div className="row-main">
+              <div className="row-title">{t('changePassword')}</div>
+              <div className="row-sub">{t('security')}</div>
+            </div>
+            <Icon name="arrowLeft" size={17} />
+          </div>
+
+          <div className="row" onClick={() => navigate('/notifications')}>
+            <Icon name="bell" size={19} />
+            <div className="row-main">
+              <div className="row-title">{t('notifications')}</div>
+              <div className="row-sub">
+                {me?.unreadNotifications ?? 0} • {t('markAllRead')}
+              </div>
+            </div>
+            <button
+              className="btn btn-ghost btn-xs"
+              onClick={(event) => {
+                event.stopPropagation();
+                void markAll();
+              }}
+            >
+              {t('markAllRead')}
+            </button>
+          </div>
+
+          <div className="row" onClick={() => setSheet('privacy')}>
+            <Icon name="shield" size={19} />
+            <div className="row-main">
+              <div className="row-title">{t('privacy')}</div>
+            </div>
+            <Icon name="arrowLeft" size={17} />
+          </div>
+
+          <div className="row" onClick={() => setSheet('support')}>
+            <Icon name="chat" size={19} />
+            <div className="row-main">
+              <div className="row-title">{t('support')}</div>
+            </div>
+            <Icon name="arrowLeft" size={17} />
+          </div>
+
+          <div className="row" onClick={() => setSheet('about')}>
+            <Icon name="sparkle" size={19} />
+            <div className="row-main">
+              <div className="row-title">{t('about')}</div>
+              <div className="row-sub">Connect+ 1.0.0</div>
+            </div>
+            <Icon name="arrowLeft" size={17} />
+          </div>
+
+          <div className="row" onClick={() => navigate('/admin')}>
+            <Icon name="chart" size={19} />
+            <div className="row-main">
+              <div className="row-title">{t('adminPanel')}</div>
+              <div className="row-sub">{t('adminLogin')}</div>
+            </div>
+            <Icon name="arrowLeft" size={17} />
+          </div>
+        </section>
+
+        <section className="list">
+          <button
+            className="btn btn-ghost btn-block"
+            onClick={() => {
+              logout();
+              navigate('/welcome', { replace: true });
+            }}
+          >
+            <Icon name="logout" size={17} /> {t('logout')}
+          </button>
+          <button className="btn btn-danger btn-block" onClick={() => setSheet('delete')}>
+            <Icon name="trash" size={17} /> {t('deleteAccount')}
+          </button>
+        </section>
+      </div>
+
+      <Sheet open={sheet === 'password'} onClose={() => setSheet(null)} title={t('changePassword')}>
+        <div className="stack">
+          <div className="field">
+            <label>{t('currentPassword')}</label>
+            <input
+              className="input"
+              type="password"
+              value={currentPassword}
+              onChange={(event) => setCurrentPassword(event.target.value)}
+              dir="ltr"
+            />
+          </div>
+          <div className="field">
+            <label>{t('newPassword')}</label>
+            <input
+              className="input"
+              type="password"
+              value={newPassword}
+              onChange={(event) => setNewPassword(event.target.value)}
+              dir="ltr"
+            />
+          </div>
+          <button className="btn btn-primary btn-block" onClick={() => void changePassword()} disabled={busy}>
+            {t('save')}
+          </button>
+        </div>
+      </Sheet>
+
+      <Sheet open={sheet === 'privacy'} onClose={() => setSheet(null)} title={t('privacy')}>
+        <p className="tiny muted" style={{ lineHeight: 1.9 }}>
+          {t('privacyBody')}
+        </p>
+      </Sheet>
+
+      <Sheet open={sheet === 'support'} onClose={() => setSheet(null)} title={t('support')}>
+        <p className="tiny muted" style={{ lineHeight: 1.9 }}>
+          {t('supportBody')}
+        </p>
+        <p className="tiny" style={{ marginTop: 8 }} dir="ltr">
+          {me?.config.supportContact}
+        </p>
+      </Sheet>
+
+      <Sheet open={sheet === 'about'} onClose={() => setSheet(null)} title={t('about')}>
+        <p className="tiny muted" style={{ lineHeight: 1.9 }}>
+          {t('aboutBody')}
+        </p>
+      </Sheet>
+
+      <Sheet open={sheet === 'delete'} onClose={() => setSheet(null)} title={t('deleteAccount')}>
+        <div className="stack">
+          <div className="error-text">{t('confirmDelete')}</div>
+          <div className="field">
+            <label>{t('password')}</label>
+            <input
+              className="input"
+              type="password"
+              value={deletePassword}
+              onChange={(event) => setDeletePassword(event.target.value)}
+              dir="ltr"
+            />
+          </div>
+          <button className="btn btn-danger btn-block" onClick={() => void deleteAccount()} disabled={busy}>
+            {t('deleteAccount')}
+          </button>
+        </div>
+      </Sheet>
+    </AppShell>
+  );
+}

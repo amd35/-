@@ -83,3 +83,14 @@ lint/generated/
 lint/outputs/
 lint/tmp/
 # lint/reports/
+
+# Node / web tooling
+node_modules/
+dist/
+.vite/
+*.tsbuildinfo
+
+# Runtime data (uploads are stored outside git in a volume in compose)
+uploads/
+.env
+.env.local
