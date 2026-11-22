@@ -4,10 +4,12 @@ import { useAuth } from '../lib/auth';
 import { useI18n } from '../lib/i18n';
 import { useToast } from '../lib/ui';
 import { api } from '../lib/api';
+import { googleCredential } from '../lib/google';
 import { Icon } from '../lib/ui';
 
 interface Providers {
   google: boolean;
+  googleClientId: string | null;
   apple: boolean;
 }
 
@@ -90,7 +92,12 @@ export default function Welcome() {
   const navigate = useNavigate();
   const { token, applyAuth } = useAuth();
   const toast = useToast();
-  const [providers, setProviders] = useState<Providers>({ google: false, apple: false });
+  const [providers, setProviders] = useState<Providers>({
+    google: false,
+    googleClientId: null,
+    apple: false,
+  });
+  const [googleBusy, setGoogleBusy] = useState(false);
 
   useEffect(() => {
     if (token) navigate('/', { replace: true });
@@ -103,18 +110,22 @@ export default function Welcome() {
   }, []);
 
   const google = async () => {
-    if (!providers.google) {
+    if (!providers.google || !providers.googleClientId) {
       toast.push(t('comingSoon'), 'info');
       return;
     }
+    setGoogleBusy(true);
     try {
+      const credential = await googleCredential(providers.googleClientId);
       const response = await api<{ token: string }>('/auth/google', {
         method: 'POST',
-        body: { idToken: '' },
+        body: credential,
       });
       if (response.token) applyAuth(response as never);
     } catch (error) {
       toast.push((error as Error).message, 'error');
+    } finally {
+      setGoogleBusy(false);
     }
   };
 
@@ -149,7 +160,7 @@ export default function Welcome() {
         <div className="social-block">
           <div className="social-label">{t('orContinueWith')}</div>
           <div className="social-row">
-            <button className="social-btn" onClick={() => void google()}>
+            <button className="social-btn" onClick={() => void google()} disabled={googleBusy}>
               <GoogleMark />
               <span>{t('google')}</span>
               {!providers.google ? <span className="social-soon">{t('comingSoon')}</span> : null}

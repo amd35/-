@@ -17,6 +17,7 @@ import { getFreeCallState } from '../freecalls';
 import { notify } from '../notify';
 import { getPublicUser } from '../serializers';
 import { getSettings } from '../settings';
+import { sendSms, smsConfigured } from '../sms';
 import {
   HttpError,
   asyncHandler,
@@ -131,6 +132,7 @@ async function uniqueUsername(desired?: string): Promise<string> {
 router.get('/providers', (_req, res) => {
   res.json({
     google: Boolean(process.env.GOOGLE_CLIENT_ID),
+    googleClientId: process.env.GOOGLE_CLIENT_ID || null,
     apple: false,
   });
 });
@@ -262,28 +264,22 @@ router.post(
     );
     await recordAttempt(phone, 'otp');
 
-    const smsConfigured = Boolean(process.env.SMS_PROVIDER_URL && process.env.SMS_PROVIDER_KEY);
-    if (smsConfigured) {
+    const smsReady = smsConfigured();
+    if (smsReady) {
       try {
-        await fetch(process.env.SMS_PROVIDER_URL as string, {
-          method: 'POST',
-          headers: {
-            'content-type': 'application/json',
-            authorization: `Bearer ${process.env.SMS_PROVIDER_KEY}`,
-          },
-          body: JSON.stringify({ to: phone, message: `Connect+ code: ${code}` }),
-        });
+        await sendSms(phone, `${code} is your Connect+ verification code. It expires in 5 minutes.`);
       } catch (error) {
         console.error('[auth] sms delivery failed', (error as Error).message);
+        throw new HttpError(502, 'Could not send the SMS code, please try again', 'sms_failed');
       }
     }
 
     res.json({
       sent: true,
       expiresInSeconds: 300,
-      delivery: smsConfigured ? 'sms' : 'unconfigured',
+      delivery: smsReady ? 'sms' : 'unconfigured',
       // Preview-only convenience: without an SMS gateway the code is echoed to the app.
-      devCode: isPreview && !smsConfigured ? code : undefined,
+      devCode: isPreview && !smsReady ? code : undefined,
     });
   })
 );
@@ -318,6 +314,7 @@ router.post(
   '/google',
   asyncHandler(async (req, res) => {
     const idToken = String(req.body?.idToken || '');
+    const accessToken = String(req.body?.accessToken || '');
     const clientId = process.env.GOOGLE_CLIENT_ID;
     if (!clientId) {
       throw new HttpError(
@@ -326,16 +323,19 @@ router.post(
         'google_not_configured'
       );
     }
-    if (!idToken) throw new HttpError(400, 'Missing Google credential', 'missing_token');
+    if (!idToken && !accessToken) throw new HttpError(400, 'Missing Google credential', 'missing_token');
 
-    const response = await fetch(
-      `https://oauth2.googleapis.com/tokeninfo?id_token=${encodeURIComponent(idToken)}`
-    );
+    // The browser gets an ID token (implicit flow) or an access token (popup flow);
+    // tokeninfo validates either and reports the audience it was issued for.
+    const query = idToken
+      ? `id_token=${encodeURIComponent(idToken)}`
+      : `access_token=${encodeURIComponent(accessToken)}`;
+    const response = await fetch(`https://oauth2.googleapis.com/tokeninfo?${query}`);
     if (!response.ok) throw new HttpError(401, 'Google token rejected', 'invalid_google_token');
     const info = (await response.json()) as {
       aud?: string;
       email?: string;
-      email_verified?: string;
+      email_verified?: string | boolean;
       name?: string;
       picture?: string;
     };
