@@ -404,7 +404,6 @@ export function UserProfile() {
       <div className="page page-tight">
         <section className="royal-profile">
           <div className="royal-name-row">
-            <h2 className="royal-name">{user.displayName}</h2>
             <span className="royal-status">
               <i className={`royal-status-dot${isOnline ? '' : ' is-off'}`} aria-hidden="true" />
               {isOnline ? t('onlineNow') : t('offline')}
