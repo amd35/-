@@ -102,6 +102,17 @@
 - Admin: the «هدايا الحظ 🍀» tab edits the price/ladder (weights → % shown live) and lists spins via
   `GET /api/admin/lucky-gifts`.
 
+## Country-flag gifts (أعلام الدول)
+- `ensureFlagGifts()` (`server/src/flagGifts.ts`, called at boot) seeds one gift row per country from
+  `server/src/flagCountries.ts` — generated from `web/src/lib/countries.ts`, so add a country there and
+  regenerate the list. Slug `flag-<iso>`, `design = 'flag:<iso>'`, price 1000 diamonds,
+  `ON CONFLICT (slug) DO NOTHING` (admin edits survive a boot).
+- The default-cover `UPDATE` in `schema.sql` skips `design LIKE 'flag:%'`, so a flag keeps a NULL cover and
+  the client draws its scene instead of the shared artwork.
+- Client: `web/src/components/FlagGift.tsx` renders the flag from `flag-icons` (self-hosted SVGs, imported
+  CSS) as a waving cloth in a gold frame with a liquid SVG ripple and two water sheens; `GiftCatalog.tsx`
+  holds the «الهدايا» / «أعلام الدول» sections plus country search, shared by `GiftShop` and `RoomGiftSheet`.
+
 ## Room levels (مستوى الغرفة)
 - `rooms.level_xp` is the only stored value; the level (1..100) is a pure function of it
   (`server/src/roomLevels.ts`), so it can always be recomputed and never drifts.

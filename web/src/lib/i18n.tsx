@@ -329,6 +329,9 @@ const ar: Record<string, string> = {
   // gifts & earnings
   giftShop: 'متجر الهدايا',
   giftShopHint: 'اختر هدية متحركة وأرسلها في المحادثة',
+  giftTabGifts: 'الهدايا',
+  giftTabFlags: 'أعلام الدول',
+  giftSearchCountry: 'ابحث عن دولة…',
   giftPrice: 'سعر الهدية',
   giftRecipientShare: 'حصة المستلم',
   giftToPeer: 'ستُرسل إلى {name} وتظهر للطرفين فوراً',
@@ -773,6 +776,9 @@ const en: Record<string, string> = {
   // gifts & earnings
   giftShop: 'Gift shop',
   giftShopHint: 'Pick an animated gift and send it in the chat',
+  giftTabGifts: 'Gifts',
+  giftTabFlags: 'Country flags',
+  giftSearchCountry: 'Search a country…',
   giftPrice: 'Gift price',
   giftRecipientShare: 'Recipient share',
   giftToPeer: 'Sent to {name} and shown to both of you instantly',

@@ -4,6 +4,7 @@ import { api } from '../lib/api';
 import { useI18n } from '../lib/i18n';
 import { formatCoins, Icon, Sheet, Spinner, useToast } from '../lib/ui';
 import { GiftAnimation, GiftCover, type GiftVisual } from './GiftAnimation';
+import { GiftCatalog, type GiftCategory } from './GiftCatalog';
 import { CurrencyIcon } from './CurrencyIcon';
 
 export interface GiftItem extends Omit<GiftVisual, 'price' | 'rarity'> {
@@ -80,6 +81,7 @@ export function GiftShop({
   const [defaultPercent, setDefaultPercent] = useState(60);
   const [loading, setLoading] = useState(false);
   const [selected, setSelected] = useState<GiftItem | null>(null);
+  const [category, setCategory] = useState<GiftCategory>('gifts');
   const [sending, setSending] = useState(false);
   const requestRef = useRef('');
 
@@ -109,6 +111,7 @@ export function GiftShop({
   useEffect(() => {
     if (!open) return;
     setSelected(null);
+    setCategory('gifts');
     requestRef.current = '';
     void load();
   }, [open, load]);
@@ -233,30 +236,14 @@ export function GiftShop({
             )}
           </div>
         ) : (
-          <div className="gift-grid">
-            {gifts.map((gift) => (
-              <button
-                key={gift.id}
-                className={`gift-card ${activeBalance < gift.price ? 'locked' : ''}`}
-                onClick={() => setSelected(gift)}
-              >
-                <span className={`gift-rarity-pill rarity-${gift.rarity}`}>
-                  {RARITY_LABEL[gift.rarity] ?? gift.rarity}
-                </span>
-                <GiftCover gift={gift} className="gift-card-art" />
-                <span className="gift-card-name">{gift.name}</span>
-                <span className="gift-card-price">
-                  <CurrencyIcon code={currency === 'gold' ? 'GOLD' : 'DIAMOND'} size={12} /> {formatCoins(gift.price)}
-                </span>
-              </button>
-            ))}
-            {gifts.length === 0 ? (
-              <div className="empty" style={{ gridColumn: '1 / -1' }}>
-                <Icon name="gift" size={22} />
-                <span className="tiny">{t('noResults')}</span>
-              </div>
-            ) : null}
-          </div>
+          <GiftCatalog
+            gifts={gifts}
+            balance={activeBalance}
+            currency={currency}
+            category={category}
+            onCategoryChange={setCategory}
+            onSelect={setSelected}
+          />
         )}
       </div>
     </Sheet>

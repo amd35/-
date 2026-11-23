@@ -8,6 +8,7 @@ import { registerSocketHandlers } from './wsHandlers';
 import { recoverStaleCalls, startBillingLoop } from './calls';
 import { startRoomLevelLoop, syncAllRoomMics } from './roomLevels';
 import { ensureBotUser } from './bot';
+import { ensureFlagGifts } from './flagGifts';
 import { UPLOAD_DIR } from './routes/uploads';
 import { HttpError } from './utils';
 import authRoutes from './routes/auth';
@@ -163,6 +164,9 @@ async function bootstrap(): Promise<void> {
   await waitForDatabase();
   await migrate();
   await ensureBotUser().catch((error) => console.error('[bot] seed failed', (error as Error).message));
+  await ensureFlagGifts().catch((error) =>
+    console.error('[gifts] flag seed failed', (error as Error).message)
+  );
   await recoverStaleCalls();
   await syncAllRoomMics();
   startBillingLoop();

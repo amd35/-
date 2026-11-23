@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom';
 import { assetUrl } from '../lib/api';
 import { playGiftSound } from '../lib/giftSound';
 import { formatCoins, Icon } from '../lib/ui';
+import { FlagScene, isFlagGift } from './FlagGift';
 
 export interface GiftVisual {
   name: string;
@@ -52,6 +53,9 @@ export function GiftAnimation({
   }
   if (gift.design === 'photo' && gift.coverUrl) {
     return <GiftCover gift={gift} className={className} />;
+  }
+  if (isFlagGift(gift)) {
+    return <FlagScene design={gift.design} className={className} />;
   }
   return (
     <div className={`gift-scene ${className}`}>

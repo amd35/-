@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { api, assetUrl } from '../lib/api';
 import { useI18n } from '../lib/i18n';
 import { formatCoins, Icon, Sheet, Spinner, useToast } from '../lib/ui';
-import { GiftCover } from './GiftAnimation';
+import { GiftCatalog, type GiftCategory } from './GiftCatalog';
 import { CurrencyIcon } from './CurrencyIcon';
 import { LuckyClover } from './room/LuckyClover';
 import type { GiftItem } from './GiftShop';
@@ -57,14 +57,6 @@ export interface LuckyGiftInfo {
   prizes: number[];
 }
 
-const RARITY_LABEL: Record<string, string> = {
-  common: 'عادي',
-  rare: 'نادر',
-  epic: 'ملحمي',
-  legendary: 'أسطوري',
-  vip: 'VIP',
-};
-
 /** Quick quantity picks for one gift send. */
 const QUANTITIES = [1, 7, 17, 77, 777, 999, 1000, 2000];
 
@@ -98,6 +90,7 @@ export function RoomGiftSheet({
   const [goldGiftsEnabled, setGoldGiftsEnabled] = useState(false);
   const [currency, setCurrency] = useState<'diamond' | 'gold'>('diamond');
   const [tab, setTab] = useState<'gifts' | 'lucky'>('gifts');
+  const [category, setCategory] = useState<GiftCategory>('gifts');
   const [lucky, setLucky] = useState<LuckyGiftInfo | null>(null);
   const [loading, setLoading] = useState(false);
   const [recipientId, setRecipientId] = useState('');
@@ -115,6 +108,7 @@ export function RoomGiftSheet({
     setSelected(null);
     setQuantity(1);
     setTab('gifts');
+    setCategory('gifts');
     setRecipientId((current) => initialRecipientId || current || firstSpeakerId);
     requestRef.current = '';
     setLoading(true);
@@ -319,31 +313,15 @@ export function RoomGiftSheet({
             {loading ? (
               <Spinner label={t('loading')} />
             ) : (
-              <div className="gift-grid">
-                {gifts.map((gift) => (
-                  <button
-                    key={gift.id}
-                    type="button"
-                    className={`gift-card ${activeBalance < gift.price ? 'locked' : ''} ${selected?.id === gift.id ? 'selected' : ''}`}
-                    onClick={() => setSelected(gift)}
-                  >
-                    <span className={`gift-rarity-pill rarity-${gift.rarity}`}>
-                      {RARITY_LABEL[gift.rarity] ?? gift.rarity}
-                    </span>
-                    <GiftCover gift={gift} className="gift-card-art" />
-                    <span className="gift-card-name">{gift.name}</span>
-                    <span className="gift-card-price">
-                      <CurrencyIcon code={currency === 'gold' ? 'GOLD' : 'DIAMOND'} size={12} /> {formatCoins(gift.price)}
-                    </span>
-                  </button>
-                ))}
-                {gifts.length === 0 ? (
-                  <div className="empty" style={{ gridColumn: '1 / -1' }}>
-                    <Icon name="gift" size={22} />
-                    <span className="tiny">{t('noResults')}</span>
-                  </div>
-                ) : null}
-              </div>
+              <GiftCatalog
+                gifts={gifts}
+                balance={activeBalance}
+                currency={currency}
+                category={category}
+                onCategoryChange={setCategory}
+                selectedId={selected?.id}
+                onSelect={setSelected}
+              />
             )}
 
             <div className="gift-qty">
