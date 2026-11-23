@@ -13,6 +13,7 @@ import {
   useToast,
 } from '../lib/ui';
 import { AppShell } from '../components/AppShell';
+import { CurrencyIcon } from '../components/CurrencyIcon';
 import { GiftCover } from '../components/GiftAnimation';
 
 interface ReceivedGift {
@@ -21,6 +22,7 @@ interface ReceivedGift {
   price: number;
   coins: number;
   percent: number;
+  currency: string;
   design: string | null;
   videoUrl: string | null;
   coverUrl: string | null;
@@ -188,6 +190,7 @@ export default function Earnings() {
             </span>
           </div>
           <div className="balance">
+            <CurrencyIcon code="BEANS" size={26} />
             <strong>{formatCoins(wallet.available)}</strong>
             <span className="muted tiny">
               {t('beans')} ≈{' '}
@@ -222,6 +225,11 @@ export default function Earnings() {
             <h2>{t('receivedGifts')}</h2>
             <span className="tiny muted">{data?.received.length ?? 0}</span>
           </div>
+          <p className="tiny muted">
+            {lang === 'ar'
+              ? 'أرباح كل هدية تُرسل بالذهب أو الماس تُحوَّل إلى فاصوليا وتُضاف هنا.'
+              : 'Profits from every gift paid in gold or diamond are converted into beans here.'}
+          </p>
           {loading ? (
             <Spinner />
           ) : (data?.received.length ?? 0) === 0 ? (
@@ -248,8 +256,13 @@ export default function Earnings() {
                     </div>
                   </div>
                   <div className="row-meta">
-                    <span className="amount plus">+{formatCoins(gift.coins)}</span>
-                    <span className="tiny muted">{gift.percent}%</span>
+                    <span className="amount plus">
+                      +{formatCoins(gift.coins)} {t('beans')}
+                    </span>
+                    <span className="tiny muted inline" style={{ gap: 4 }}>
+                      <CurrencyIcon code={gift.currency === 'gold' ? 'GOLD' : 'DIAMOND'} size={12} />
+                      {gift.currency === 'gold' ? t('gold') : lang === 'ar' ? 'ماس' : 'diamond'}
+                    </span>
                   </div>
                 </div>
               ))}

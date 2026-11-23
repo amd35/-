@@ -75,6 +75,11 @@ export function Profile() {
     if (!userId) return;
     const offNotification = on('notification', () => void loadStats());
     const offWallet = on('wallet:update', () => void loadStats());
+    // The profits card reads the beans balance from the session payload.
+    const offProfit = on('profit:update', () => {
+      void loadStats();
+      void refresh();
+    });
     const onVisible = () => {
       if (document.visibilityState === 'visible') void loadStats();
     };
@@ -82,9 +87,10 @@ export function Profile() {
     return () => {
       offNotification();
       offWallet();
+      offProfit();
       document.removeEventListener('visibilitychange', onVisible);
     };
-  }, [userId, on, loadStats]);
+  }, [userId, on, loadStats, refresh]);
 
   if (!me) return null;
 

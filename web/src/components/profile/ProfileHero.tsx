@@ -2,7 +2,7 @@
  * Royal profile screen — laid out in the reference order:
  * top bar (status + settings) → gold name plaque → framed avatar with wings
  * and a level ribbon → level / VIP / position badges → ID bar with copy →
- * identity card → VCoins & Diamonds balances → six counters → four actions.
+ * identity card → VCoins & Beans balances → six counters → four actions.
  *
  * Every figure comes from the signed-in account (`/auth/me` + `/users/:id`);
  * nothing here is placeholder data.
@@ -11,6 +11,7 @@ import type { Me } from '../../lib/auth';
 import { assetUrl } from '../../lib/api';
 import { useI18n } from '../../lib/i18n';
 import { Avatar, formatCoins, Icon, useToast } from '../../lib/ui';
+import { CurrencyIcon } from '../CurrencyIcon';
 import { NameCard } from '../Cosmetics';
 import { rankName } from '../RankBadge';
 import { LevelBadge, formatXp } from '../ProgressionBadges';
@@ -18,7 +19,6 @@ import {
   CoinSvg,
   CrownSvg,
   EditSvg,
-  GemSvg,
   GiftSvg,
   ShieldSvg,
   TrophySvg,
@@ -290,15 +290,17 @@ export function ProfileHero({
             <Icon name="plus" size={13} />
           </span>
         </button>
-        <button className="rp-wallet is-gems" type="button" onClick={onEarnings}>
+        <button className="rp-wallet is-beans" type="button" onClick={onEarnings}>
           <span className="rp-wallet-head">
-            <GemSvg className="rp-wallet-icon" />
+            <span className="rp-wallet-icon">
+              <CurrencyIcon code="BEANS" size={24} />
+            </span>
             <span className="rp-wallet-name">
-              {t('diamonds')}
+              {t('beans')}
               <small>{t('earnings')}</small>
             </span>
           </span>
-          <b className="rp-wallet-value">{formatCoins(me.wallet.earned)}</b>
+          <b className="rp-wallet-value">{formatCoins(me.wallet.beans ?? 0)}</b>
           <span className="rp-wallet-plus" aria-hidden="true">
             <Icon name="plus" size={13} />
           </span>

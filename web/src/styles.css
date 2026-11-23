@@ -1683,6 +1683,10 @@ p {
   margin-top: 14px;
 }
 
+.wallet-split.is-single {
+  grid-template-columns: minmax(0, 1fr);
+}
+
 .wallet-split div {
   background: rgba(0, 0, 0, 0.25);
   border: 1px solid var(--line);
@@ -1706,6 +1710,10 @@ p {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 8px;
+}
+
+.currency-grid.is-single {
+  grid-template-columns: minmax(0, 1fr);
 }
 
 .currency-card {
@@ -10606,6 +10614,11 @@ table.data tr:hover td {
 .rp-wallet.is-gems {
   border-color: rgba(96, 165, 250, 0.45);
   background: linear-gradient(160deg, rgba(30, 58, 138, 0.55), rgba(6, 10, 24, 0.94));
+}
+
+.rp-wallet.is-beans {
+  border-color: rgba(214, 149, 2, 0.5);
+  background: linear-gradient(160deg, rgba(80, 55, 6, 0.6), rgba(12, 9, 4, 0.94));
 }
 
 .rp-wallet:active {

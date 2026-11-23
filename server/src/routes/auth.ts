@@ -99,6 +99,10 @@ export async function buildMe(userId: string) {
     spent: number;
     gold: number;
   }>('SELECT balance, reserved, earned, spent, gold FROM wallets WHERE user_id = $1', [userId]);
+  const profit = await one<{ available: number }>(
+    'SELECT available FROM profit_wallets WHERE user_id = $1',
+    [userId]
+  );
   const free = await getFreeCallState(userId);
   const unread = await one<{ count: string }>(
     'SELECT count(*)::text AS count FROM notifications WHERE user_id = $1 AND read_at IS NULL',
@@ -128,7 +132,11 @@ export async function buildMe(userId: string) {
     vip,
     cosmetics: await equippedCosmetics(userId),
     adminLook: await adminLookForUser(userId),
-    wallet: wallet ?? { balance: 0, reserved: 0, earned: 0, spent: 0, gold: 0 },
+    wallet: {
+      ...(wallet ?? { balance: 0, reserved: 0, earned: 0, spent: 0, gold: 0 }),
+      // Beans are the withdrawable gift profits (profit_wallets.available).
+      beans: Number(profit?.available ?? 0),
+    },
     // Recharge agency (null for a regular user). The panel is only rendered when active.
     agent: agent && agent.status !== 'revoked'
       ? {

@@ -381,7 +381,7 @@ router.get(
 
     const received = await q(
       `SELECT gs.id, gs.coins, gs.recipient_coins, gs.recipient_percent, gs.gift_name,
-              gs.created_at, u.display_name AS sender_name, u.username AS sender_username,
+              gs.currency, gs.created_at, u.display_name AS sender_name, u.username AS sender_username,
               u.avatar_url AS sender_avatar, g.design, g.video_url, g.cover_url, g.rarity
        FROM gift_sends gs
        JOIN users u ON u.id = gs.sender_id
@@ -417,6 +417,7 @@ router.get(
         price: Number(row.coins),
         coins: Number(row.recipient_coins),
         percent: Number(row.recipient_percent),
+        currency: String(row.currency || 'diamond'),
         design: row.design,
         videoUrl: row.video_url,
         coverUrl: row.cover_url,
