@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { api } from '../../lib/api';
 import { useRealtime } from '../../lib/realtime';
 import { Avatar, formatCoins, Sheet } from '../../lib/ui';
+import { CurrencyIcon } from '../CurrencyIcon';
 
 type CupPeriod = 'daily' | 'weekly' | 'monthly';
 
@@ -36,6 +37,8 @@ interface CupSnapshot {
   myRank: number | null;
   totalCoins: number;
   totalGifts: number;
+  /** Diamonds spent inside the room, all time. */
+  diamondsSpent: number;
   history: { id: string; period: CupPeriod; startsAt: string; endsAt: string; winners: CupWinner[] }[];
 }
 
@@ -101,28 +104,31 @@ export function RoomCup({ roomId }: { roomId: string }) {
 
   if (!data?.enabled) return null;
 
-  const leader = data.standings[0] ?? null;
   const remaining = remainingLabel(data.competition?.endsAt, now);
   const podium = data.standings.slice(0, 3);
 
   return (
     <>
-      <button type="button" className="room-cup-bar" onClick={() => setOpen(true)} aria-label="كأس الغرفة">
-        <img className="room-cup-bar-art" src="/cup/room-cup.png" alt="" />
-        <span className="room-cup-bar-copy">
-          <span className="room-cup-bar-title">كأس الغرفة</span>
-          <span className="room-cup-bar-sub">
-            {leader ? `المتصدر: ${leader.displayName} • ${formatCoins(leader.coins)} ذهب` : 'لا إنفاق بعد — كن الأول'}
-          </span>
-        </span>
-        <span className="room-cup-bar-timer">
-          <span className="room-cup-bar-timer-label">ينتهي خلال</span>
-          <span className="room-cup-bar-timer-value">{remaining || '—'}</span>
-        </span>
+      <button type="button" className="room-cup-fab" onClick={() => setOpen(true)} aria-label="كأس الغرفة">
+        <span className="room-cup-fab-glow" aria-hidden="true" />
+        <img className="room-cup-fab-art" src="/cup/room-cup.png" alt="" />
       </button>
 
       <Sheet open={open} onClose={() => setOpen(false)} title="🏆 كأس الغرفة">
         <div className="cup-panel" dir="rtl">
+          <div className="cup-diamonds">
+            <span className="cup-diamonds-shine" aria-hidden="true" />
+            <span className="cup-diamonds-icon">
+              <CurrencyIcon code="DIAMOND" size={30} />
+            </span>
+            <span className="cup-diamonds-copy">
+              <span className="cup-diamonds-label">الألماس المنفَق في الغرفة</span>
+              <span className="cup-diamonds-value">{formatCoins(data.diamondsSpent)}</span>
+            </span>
+            <span className="cup-diamonds-spark cup-diamonds-spark-a" aria-hidden="true" />
+            <span className="cup-diamonds-spark cup-diamonds-spark-b" aria-hidden="true" />
+          </div>
+
           <div className="cup-hero">
             <div className="cup-hero-art-wrap">
               <img className="cup-hero-art" src="/cup/room-cup.png" alt="كأس الغرفة الذهبي" />

@@ -435,6 +435,16 @@ export async function cupSnapshot(roomId: string, meId: string) {
 
   const myRank = standings.find((row) => row.userId === meId)?.rank ?? null;
 
+  // Diamonds spent inside the room, all time (gift sends paid in diamonds).
+  // Chat clearing never touches the cup ledger, so this total stays accurate.
+  const diamonds = await one<{ total: string }>(
+    `SELECT COALESCE(SUM(l.coins), 0)::text AS total
+     FROM room_cup_ledger l
+     JOIN gift_sends g ON g.id = l.gift_send_id
+     WHERE l.room_id = $1 AND l.status = 'settled' AND g.currency = 'diamond'`,
+    [roomId]
+  );
+
   return {
     enabled,
     period: cupPeriod(settings),
@@ -453,6 +463,7 @@ export async function cupSnapshot(roomId: string, meId: string) {
     myRank,
     totalCoins,
     totalGifts,
+    diamondsSpent: Number(diamonds?.total ?? 0),
     history: await cupHistory(roomId, 5),
   };
 }
