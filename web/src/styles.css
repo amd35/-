@@ -10089,9 +10089,19 @@ table.data tr:hover td {
   pointer-events: none;
 }
 
-.rp-shell > * {
+.rp-shell > :not(.admin-profile-aura) {
   position: relative;
   z-index: 1;
+}
+
+/* The admin aura is a decoration: keep it out of the flow so it cannot push
+   the profile content down and leave an empty block at the top of the card. */
+.rp-shell > .admin-profile-aura {
+  position: absolute;
+  top: -70px;
+  inset-inline: 8%;
+  height: 230px;
+  z-index: 0;
 }
 
 .rp-shell.is-admin {
