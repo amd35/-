@@ -160,9 +160,9 @@ export function ProfileHero({
 
       {/* 1 — status and settings */}
       <div className="rp-topbar">
-        <span className="rp-status">
+        <span className="rp-status rp-status-name" title={t('onlineNow')}>
           <i className="rp-status-dot" aria-hidden="true" />
-          {t('onlineNow')}
+          <b>{me.user.displayName}</b>
         </span>
         <button className="rp-gear" type="button" onClick={onSettings} aria-label={t('settings')}>
           <Icon name="settings" size={18} />

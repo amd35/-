@@ -10138,6 +10138,18 @@ table.data tr:hover td {
   box-shadow: 0 0 8px #34d399;
 }
 
+.rp-status-name {
+  max-width: 70%;
+}
+
+.rp-status-name b {
+  overflow: hidden;
+  font-weight: 800;
+  color: #f4ecff;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .rp-gear {
   display: grid;
   place-items: center;
