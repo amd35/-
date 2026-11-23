@@ -74,6 +74,7 @@ interface Overview {
   levels: AdminLevel[];
   tiers: AdminTier[];
   totalVip: number;
+  levelUpEffects: boolean;
   xpSettings: XpSetting[];
   levelUps: LevelUpRow[];
   vipHistory: VipLogRow[];
@@ -122,6 +123,7 @@ export default function LevelsVipTab() {
   const [grantTier, setGrantTier] = useState(1);
   const [grantDays, setGrantDays] = useState(30);
   const [busy, setBusy] = useState(false);
+  const [uploadingLevel, setUploadingLevel] = useState<number | null>(null);
 
   useEffect(() => {
     if (!data) return;
@@ -149,6 +151,7 @@ export default function LevelsVipTab() {
           xpRequired: draft.xpRequired,
           rewardCoins: draft.rewardCoins,
           badgeColor: draft.badgeColor,
+          badgeImageUrl: draft.badgeImageUrl,
           isActive: draft.isActive,
         },
       });
@@ -182,6 +185,42 @@ export default function LevelsVipTab() {
       await reload();
     } catch (err) {
       toast.push(adminError(err), 'error');
+    }
+  };
+
+  const saveEffects = async (value: boolean) => {
+    try {
+      await api('/admin/settings', { method: 'PUT', admin: true, body: { level_up_effects: value } });
+      toast.push(value ? 'تم تفعيل مؤثرات الترقية' : 'تم إيقاف مؤثرات الترقية', 'success');
+      await reload();
+    } catch (err) {
+      toast.push(adminError(err), 'error');
+    }
+  };
+
+  /** Uploads the artwork for one level; the ladder's save button applies it. */
+  const uploadLevelArt = async (level: number, event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    const body = new FormData();
+    body.append('file', file);
+    setUploadingLevel(level);
+    try {
+      const response = await api<{ url: string }>('/admin/rooms/upload', {
+        method: 'POST',
+        admin: true,
+        form: body,
+      });
+      setLevelDrafts((current) => ({
+        ...current,
+        [level]: { ...current[level], badgeImageUrl: response.url },
+      }));
+      toast.push('تم رفع صورة المستوى — اضغط حفظ لتثبيتها', 'success');
+    } catch (err) {
+      toast.push(adminError(err), 'error');
+    } finally {
+      setUploadingLevel(null);
+      event.target.value = '';
     }
   };
 
@@ -291,6 +330,19 @@ export default function LevelsVipTab() {
         <Stat label="ترقيات مسجلة" value={data.levelUps.length} hint="آخر 50" />
       </div>
 
+      <AdminCard title="مؤثرات الترقية" subtitle="الاحتفال الملكي الذي يظهر للمستخدم لحظة انتقاله لمستوى جديد">
+        <div className="inline" style={{ justifyContent: 'space-between', gap: 12 }}>
+          <span className="tiny muted">
+            عند الإيقاف يبقى إشعار التهنئة وسجل الترقيات، ويُخفى الاحتفال بالحركة والصوت.
+          </span>
+          <Toggle
+            checked={Boolean(data.levelUpEffects)}
+            label="تفعيل مؤثرات الترقية"
+            onChange={(value) => void saveEffects(value)}
+          />
+        </div>
+      </AdminCard>
+
       <AdminCard title="معدلات نقاط الخبرة" subtitle="تُطبَّق على العمليات الحقيقية المؤكدة فقط">
         <div className="grid-2">
           {data.xpSettings.map((row) => (
@@ -318,7 +370,19 @@ export default function LevelsVipTab() {
             return (
               <tr key={raw.level}>
                 <td>
-                  <LevelBadge level={raw.level} size={24} color={row.badgeColor} />
+                  <div className="inline" style={{ gap: 6 }}>
+                    <LevelBadge level={raw.level} size={30} color={row.badgeColor} imageUrl={row.badgeImageUrl} />
+                    <label className="btn btn-outline btn-xs" title="رفع صورة المستوى">
+                      <Icon name="image" size={13} />
+                      {uploadingLevel === raw.level ? '…' : ''}
+                      <input
+                        type="file"
+                        accept="image/png,image/webp"
+                        hidden
+                        onChange={(event) => void uploadLevelArt(raw.level, event)}
+                      />
+                    </label>
+                  </div>
                 </td>
                 <td>
                   <input

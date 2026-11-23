@@ -666,6 +666,7 @@ INSERT INTO app_settings (key, value) VALUES
   ('gift_announcement_gift_ids', '[]'::jsonb),
   ('gift_announcement_rarity_effects', '{"common":"light","rare":"medium","epic":"strong","legendary":"strong","vip":"strong"}'::jsonb),
   ('profile_show_balances', 'true'::jsonb),
+  ('level_up_effects', 'true'::jsonb),
   ('coin_to_usd_rate', '0.001'::jsonb),
   ('voice_price', '100'::jsonb),
   ('video_price', '100'::jsonb),
@@ -1025,6 +1026,12 @@ SELECT n,
        CASE WHEN n % 10 = 0 THEN 5000 WHEN n % 5 = 0 THEN 1500 ELSE 0 END
 FROM generate_series(1, 100) AS n
 ON CONFLICT (level) DO NOTHING;
+
+-- Every level ships its own royal badge artwork (web/public/levels, served by the web
+-- app and by the API at the same path for the Android shell). Admins can override any.
+UPDATE levels
+   SET badge_image_url = '/levels/level-' || level || '.png'
+ WHERE badge_image_url IS NULL OR badge_image_url = '';
 
 CREATE TABLE IF NOT EXISTS xp_settings (
   key text PRIMARY KEY,

@@ -1,4 +1,5 @@
-import type { CSSProperties } from 'react';
+import { useState, type CSSProperties } from 'react';
+import { assetUrl } from '../lib/api';
 
 /** Level (1..100) driven by XP only. */
 export interface LevelState {
@@ -58,18 +59,46 @@ export interface LevelRowInfo {
   isActive: boolean;
 }
 
-/** Gold level medallion shown next to a user's name. */
+/** The royal badge artwork shipped with the app: one transparent PNG per level. */
+export function levelArtUrl(level: number): string {
+  const n = Math.min(100, Math.max(1, Math.trunc(Number(level) || 1)));
+  return assetUrl(`/levels/level-${n}.png`) as string;
+}
+
+/**
+ * Level badge shown next to a user's name. Uses the level's own artwork (crown,
+ * number and wings that grow with the level); falls back to the gold medallion
+ * when the image cannot load.
+ */
 export function LevelBadge({
   level,
   size = 22,
   color = '#ffd75e',
+  imageUrl,
   className,
 }: {
   level: number;
   size?: number;
   color?: string;
+  imageUrl?: string | null;
   className?: string;
 }) {
+  const [broken, setBroken] = useState(false);
+  const src = assetUrl(imageUrl || levelArtUrl(level));
+  if (src && !broken) {
+    return (
+      <img
+        className={`level-badge-img ${className ?? ''}`}
+        style={{ width: size, height: size }}
+        src={src}
+        alt=""
+        title={`Level ${level}`}
+        loading="lazy"
+        decoding="async"
+        onError={() => setBroken(true)}
+      />
+    );
+  }
   return (
     <span
       className={`level-badge ${className ?? ''}`}

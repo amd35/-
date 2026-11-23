@@ -15,6 +15,7 @@ import {
   serializeVipTier,
   vipHistory,
 } from '../progression';
+import { getSettings } from '../settings';
 import { HttpError, asyncHandler, intParam } from '../utils';
 
 const router = Router();
@@ -60,8 +61,10 @@ router.get(
          ORDER BY uv.tier DESC, uv.expires_at ASC NULLS LAST LIMIT 100`
       ),
     ]);
+    const settings = await getSettings();
     res.json({
       ...overview,
+      levelUpEffects: settings.level_up_effects,
       xpSettings,
       levelUps,
       vipHistory: vipLog,

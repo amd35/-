@@ -9368,3 +9368,121 @@ table.data tr:hover td {
 .room-frame-confirm-actions .btn {
   flex: 1;
 }
+
+/* Level badge artwork: one royal PNG per level, wings growing with the level. */
+.level-badge-img {
+  display: inline-block;
+  flex: none;
+  object-fit: contain;
+  vertical-align: middle;
+  filter: drop-shadow(0 0 5px rgba(255, 206, 90, 0.45));
+}
+
+/* Royal level-up celebration, shown the moment the server levels the user up. */
+.levelup-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 150;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  overflow: hidden;
+  background: radial-gradient(circle at 50% 45%, rgba(88, 28, 8, 0.96), rgba(9, 5, 12, 0.98) 64%);
+  animation: levelup-fade 0.25s ease both;
+}
+
+.levelup-rays {
+  position: absolute;
+  inset: -40%;
+  pointer-events: none;
+  background: conic-gradient(
+    from 0deg,
+    transparent 0 7deg,
+    rgba(255, 205, 90, 0.16) 7deg 11deg,
+    transparent 11deg 20deg,
+    rgba(255, 110, 50, 0.14) 20deg 24deg,
+    transparent 24deg 33deg
+  );
+  animation: levelup-spin 16s linear infinite;
+}
+
+.levelup-card {
+  position: relative;
+  display: grid;
+  justify-items: center;
+  gap: 10px;
+  text-align: center;
+  animation: levelup-rise 0.5s ease both;
+}
+
+.levelup-kicker {
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.34em;
+  text-transform: uppercase;
+  color: #ffd75e;
+  text-shadow: 0 0 14px rgba(255, 190, 60, 0.65);
+}
+
+.levelup-badge-wrap {
+  animation: levelup-pop 0.75s cubic-bezier(0.2, 1.4, 0.4, 1) both;
+  filter: drop-shadow(0 0 30px rgba(255, 180, 60, 0.55));
+}
+
+.levelup-title {
+  margin: 0;
+  font-size: 24px;
+  font-weight: 900;
+  background: linear-gradient(180deg, #fff6d8 0%, #ffc93c 55%, #b06a08 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.levelup-sub {
+  margin: 0;
+  font-size: 13px;
+  color: #f5e9d0;
+  opacity: 0.85;
+}
+
+@keyframes levelup-fade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes levelup-rise {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes levelup-pop {
+  0% {
+    opacity: 0;
+    transform: scale(0.4);
+  }
+  60% {
+    opacity: 1;
+    transform: scale(1.08);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes levelup-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}

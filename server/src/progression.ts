@@ -2,6 +2,8 @@ import crypto from 'node:crypto';
 import type { PoolClient } from 'pg';
 import { one, q, tx } from './db';
 import { notify, notifyWith } from './notify';
+import { emitToUser } from './realtime';
+import { getSettings } from './settings';
 import { moveCoins } from './wallet';
 import { HttpError, iraqDateStr } from './utils';
 
@@ -315,6 +317,17 @@ export async function awardXp(
       `وصلت إلى ${row.name_ar || `المستوى ${level}`}${reward > 0 ? ` وحصلت على ${reward} كونز` : ''}`,
       { level, xp: totalXp, rewardCoins: reward }
     );
+  }
+  // Royal celebration on the user's open screens; the admin switch silences it.
+  const settings = await getSettings();
+  if (settings.level_up_effects) {
+    const reached = active.find((row) => Number(row.level) === state.level);
+    emitToUser(userId, 'level:up', {
+      level: state.level,
+      nameAr: reached?.name_ar || `المستوى ${state.level}`,
+      nameEn: reached?.name_en || `Level ${state.level}`,
+      badgeImageUrl: reached?.badge_image_url ?? null,
+    });
   }
   return { awarded: amount, levelUp: state.level, level: state.level };
 }

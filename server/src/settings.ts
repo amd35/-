@@ -43,6 +43,8 @@ export interface AppSettings {
   gift_announcement_rarity_effects: Record<string, GiftAnnouncementEffect>;
   /** Show a user's coin balance to other users on their profile card. */
   profile_show_balances: boolean;
+  /** Play the royal level-up celebration (animation + sound) when a user levels up. */
+  level_up_effects: boolean;
   cup_enabled: boolean;
   /** Share of the gold spent inside a room that goes to its owner (rest → admin). */
   cup_owner_percent: number;
@@ -79,6 +81,7 @@ export const SETTINGS_DEFAULTS: AppSettings = {
   gift_announcement_gift_ids: [],
   gift_announcement_rarity_effects: { ...GIFT_RARITY_EFFECT_DEFAULTS },
   profile_show_balances: true,
+  level_up_effects: true,
   cup_enabled: true,
   cup_owner_percent: 50,
   cup_period: 'weekly',
@@ -152,6 +155,7 @@ const COERCE: Record<string, (value: unknown) => unknown> = {
   gift_announcement_gift_ids: (v) => (Array.isArray(v) ? v.map(String).slice(0, 500) : []),
   gift_announcement_rarity_effects: (v) => readRarityEffects(v),
   profile_show_balances: (v) => Boolean(v),
+  level_up_effects: (v) => Boolean(v),
   cup_enabled: (v) => Boolean(v),
   cup_owner_percent: (v) => Math.min(100, Math.max(0, Math.trunc(Number(v) || 0))),
   cup_period: (v) =>

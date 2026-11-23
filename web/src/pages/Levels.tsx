@@ -135,7 +135,7 @@ export default function Levels() {
 
         <section className="card level-me-card">
           <div className="level-me-head">
-            <LevelBadge level={level.level} size={52} color={level.badgeColor} />
+            <LevelBadge level={level.level} size={52} color={level.badgeColor} imageUrl={level.badgeImageUrl} />
             <div>
               <div className="tiny muted">{t('myLevel')}</div>
               <h2 style={{ fontSize: 20 }}>{level.nameAr}</h2>
@@ -237,7 +237,7 @@ export default function Levels() {
                 key={row.level}
                 className={`level-chip ${row.level === level.level ? 'current' : ''} ${row.level < level.level ? 'done' : ''}`}
               >
-                <LevelBadge level={row.level} size={26} color={row.badgeColor} />
+                <LevelBadge level={row.level} size={26} color={row.badgeColor} imageUrl={row.badgeImageUrl} />
                 <span className="level-chip-xp">{formatXp(row.xpRequired)}</span>
                 {row.rewardCoins > 0 ? (
                   <span className="level-chip-reward">+{formatCoins(row.rewardCoins)}</span>

@@ -96,6 +96,11 @@ app.use(
   '/gifts',
   express.static(path.join(process.cwd(), '..', 'web', 'public', 'gifts'), { maxAge: '7d', fallthrough: true })
 );
+// Level badge artwork shipped inside the web app (web/public/levels) — same paths work in the Android shell.
+app.use(
+  '/levels',
+  express.static(path.join(process.cwd(), '..', 'web', 'public', 'levels'), { maxAge: '7d', fallthrough: true })
+);
 
 app.use((req, res) => {
   res.status(404).json({ error: `No route for ${req.method} ${req.path}`, code: 'not_found' });
