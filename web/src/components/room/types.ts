@@ -84,6 +84,13 @@ export interface RoomData {
   country: string;
   language: string;
   ownerId: string | null;
+  /** Room level 1..100, derived on the server from real activity inside the room. */
+  level: number;
+  levelXp: number;
+  levelXpFloor: number;
+  levelXpNext: number | null;
+  /** Mic seats the level opens (5 → 10 → 15). */
+  micSlots: number;
   owner: SeatUser | null;
   role: 'owner' | 'admin' | 'supervisor' | 'member';
   canManage: boolean;

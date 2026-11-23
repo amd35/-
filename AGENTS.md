@@ -89,6 +89,23 @@
   `/admin/users/:id/...`), and deleting any chat message with `DELETE /api/chat/messages/:id`
   (sender or `users.is_admin`; pushes `message:deleted` to the other members).
 
+## Room levels (مستوى الغرفة)
+- `rooms.level_xp` is the only stored value; the level (1..100) is a pure function of it
+  (`server/src/roomLevels.ts`), so it can always be recomputed and never drifts.
+- XP comes only from real, server-observed activity inside the room: an accepted chat message
+  (`ROOM_CHAT_XP = 2`, capped at `ROOM_CHAT_DAILY_CAP = 200` messages per user/room/Baghdad day)
+  and each full minute a *connected* user sits on a mic (`ROOM_MIC_MINUTE_XP = 3`, capped at 240
+  minutes per seat session). `room_xp_events` has a unique `(room_id, kind, ref_id)` index, so a
+  retried request or replayed tick counts once; the client can never claim points.
+- `startRoomLevelLoop()` ticks `creditMicMinutes()` every 60 s; `room_mics.xp_minutes` records how
+  far the current session is paid and a trigger resets it whenever the seat changes hands.
+- Curve: `xpForRoomLevel(L) = 100*(L-1) + 10*(L-1)^2` (level 10 ≈ 1.7k XP, level 50 ≈ 29k, level 100 ≈ 108k).
+- Seats follow the level: 5 from level 1, 10 from level 10, 15 from level 50 (`micSlotsForLevel`).
+  `syncRoomMics()` adds seats on a level-up (never kicks anyone) and `syncAllRoomMics()` trims empty
+  seats above the allowance at boot; admin-created rooms start at 5 too.
+- The client shows the level, progress bar and seat count in the room header and an `LV` pill on the
+  room list; a level-up broadcasts `room`, so every open stage re-renders with its new seats.
+
 ## Official recharge agents (وكلاء الشحن)
 - `agents` is the single source of truth for an agency: `status` (`active` | `suspended` | `revoked`),
   commission rate, and the coins/gold stock. The admin panel (`/admin` → إدارة الوكلاء) is the only writer;

@@ -3963,6 +3963,13 @@ table.data tr:hover td {
   margin-top: 2px;
 }
 
+.room-level-pill {
+  background: linear-gradient(135deg, #7b3ff2, #ff3d9a);
+  color: #fff;
+  font-weight: 800;
+  letter-spacing: 0.4px;
+}
+
 .mic-grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -7424,6 +7431,45 @@ table.data tr:hover td {
   font-weight: 700;
   letter-spacing: 0.6px;
   direction: ltr;
+  color: rgba(255, 231, 179, 0.62);
+}
+
+/* Room level: the activity XP the room earned, and the seats it opens. */
+.room-head-level {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 2px;
+  font-size: 9.5px;
+  font-weight: 800;
+  color: rgba(255, 231, 179, 0.85);
+}
+
+.room-head-level-badge {
+  padding: 1px 6px;
+  border-radius: 999px;
+  background: linear-gradient(135deg, #7b3ff2, #ff3d9a);
+  color: #fff;
+  letter-spacing: 0.4px;
+  box-shadow: 0 0 10px rgba(255, 61, 154, 0.45);
+}
+
+.room-head-level-bar {
+  width: 62px;
+  height: 4px;
+  border-radius: 999px;
+  overflow: hidden;
+  background: rgba(255, 255, 255, 0.18);
+}
+
+.room-head-level-bar > span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, #ffd75e, #ff3d9a);
+}
+
+.room-head-level-seats {
   color: rgba(255, 231, 179, 0.62);
 }
 

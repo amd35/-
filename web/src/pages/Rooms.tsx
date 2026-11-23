@@ -12,6 +12,8 @@ export interface RoomItem {
   coverUrl: string | null;
   micCount: number;
   occupied: number;
+  /** Room level 1..100 (from real activity inside the room). */
+  level: number;
   mine?: boolean;
 }
 
@@ -118,6 +120,7 @@ export default function Rooms() {
                       </span>
                       <span className="tiny muted room-desc">{room.description}</span>
                       <span className="room-meta">
+                        <span className="pill pill-pink room-level-pill">LV {room.level ?? 1}</span>
                         <span className="pill pill-pink">
                           <Icon name="mic" size={12} /> {room.occupied} / {room.micCount}
                         </span>

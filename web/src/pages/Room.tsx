@@ -728,6 +728,11 @@ export default function Room() {
             name={room.name}
             code={room.code}
             avatar={room.avatarUrl}
+            level={room.level}
+            levelXp={room.levelXp}
+            levelXpFloor={room.levelXpFloor}
+            levelXpNext={room.levelXpNext}
+            micSlots={room.micSlots}
             owner={room.owner}
             occupied={occupied}
             total={room.mics.length}

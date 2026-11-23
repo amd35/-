@@ -6,6 +6,7 @@ import { pool, migrate, waitForDatabase } from './db';
 import { attachRealtime, closeRealtime } from './realtime';
 import { registerSocketHandlers } from './wsHandlers';
 import { recoverStaleCalls, startBillingLoop } from './calls';
+import { startRoomLevelLoop, syncAllRoomMics } from './roomLevels';
 import { ensureBotUser } from './bot';
 import { UPLOAD_DIR } from './routes/uploads';
 import { HttpError } from './utils';
@@ -157,8 +158,10 @@ async function bootstrap(): Promise<void> {
   await migrate();
   await ensureBotUser().catch((error) => console.error('[bot] seed failed', (error as Error).message));
   await recoverStaleCalls();
+  await syncAllRoomMics();
   startBillingLoop();
   startCupLoop();
+  startRoomLevelLoop();
   server.listen(PORT, '0.0.0.0', () => {
     console.log(`[api] listening on 0.0.0.0:${PORT}`);
   });

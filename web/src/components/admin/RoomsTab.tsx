@@ -43,7 +43,7 @@ const EMPTY_FORM = {
   micColor: '#ff3b0f',
   country: 'العراق',
   language: 'العربية',
-  micCount: 15,
+  micCount: 5,
 };
 
 const KINDS = [

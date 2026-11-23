@@ -45,7 +45,7 @@ router.post(
   '/',
   asyncHandler(async (req, res) => {
     const fields = readRoom((req.body ?? {}) as Record<string, unknown>);
-    const micCount = Math.min(20, Math.max(0, Number(req.body?.micCount ?? 15) || 0));
+    const micCount = Math.min(20, Math.max(0, Number(req.body?.micCount ?? 5) || 0));
 
     const room = await tx(async (client) => {
       const inserted = await client.query<RoomRow>(

@@ -10,6 +10,11 @@ export function RoomHeader({
   name,
   code,
   avatar,
+  level,
+  levelXp,
+  levelXpFloor,
+  levelXpNext,
+  micSlots,
   canManage,
   onBack,
   onSettings,
@@ -18,6 +23,11 @@ export function RoomHeader({
   name: string;
   code: string;
   avatar?: string | null;
+  level?: number;
+  levelXp?: number;
+  levelXpFloor?: number;
+  levelXpNext?: number | null;
+  micSlots?: number;
   owner?: unknown;
   occupied?: number;
   total?: number;
@@ -33,6 +43,20 @@ export function RoomHeader({
   onStore?: () => void;
 }) {
   const photo = avatar && /^(https?:|\/uploads\/)/.test(avatar) ? assetUrl(avatar) : null;
+  const levelPercent =
+    levelXpNext == null
+      ? 100
+      : Math.max(
+          0,
+          Math.min(
+            100,
+            Math.round(
+              ((Number(levelXp ?? 0) - Number(levelXpFloor ?? 0)) /
+                Math.max(1, levelXpNext - Number(levelXpFloor ?? 0))) *
+                100
+            )
+          )
+        );
 
   const picture = (
     <>
@@ -79,6 +103,22 @@ export function RoomHeader({
         <span className="room-head-meta">
           <span className="room-head-name">{name}</span>
           <span className="room-head-code">ID: {code}</span>
+          {level ? (
+            <span
+              className="room-head-level"
+              title={
+                levelXpNext == null
+                  ? `المستوى ${level} — أعلى مستوى`
+                  : `${levelXp ?? 0} / ${levelXpNext} نقطة تفاعل`
+              }
+            >
+              <span className="room-head-level-badge">LV {level}</span>
+              <span className="room-head-level-bar" aria-hidden="true">
+                <span style={{ width: `${levelPercent}%` }} />
+              </span>
+              <span className="room-head-level-seats">{micSlots ?? 5} مايك</span>
+            </span>
+          ) : null}
         </span>
       </div>
     </header>

@@ -15,6 +15,7 @@ import { notify } from '../notify';
 import { GiftRow, moveProfit } from '../gifts';
 import { cupSnapshot, ensureCompetition, recordCupGift } from '../roomCup';
 import { ROOM_FRAME_DURATION_SECONDS, listRoomFrames, type RoomFrameRow } from '../roomFrames';
+import { awardRoomChatXp, micSlotsForLevel } from '../roomLevels';
 import {
   joinRoomMember,
   leaveRoomMember,
@@ -80,7 +81,8 @@ router.post(
         [name, description, me]
       );
       const created = inserted.rows[0];
-      for (let position = 1; position <= 15; position += 1) {
+      // A new room starts at level 1, which opens the first five mic seats.
+      for (let position = 1; position <= micSlotsForLevel(1); position += 1) {
         await client.query('INSERT INTO room_mics (room_id, position, label, kind) VALUES ($1, $2, $3, $4)', [
           created.id,
           position,
@@ -334,6 +336,8 @@ router.post(
       refId: inserted[0].id,
       xp: xpSettings.chat_message ?? 0,
     });
+    // Room level: only a message that passed moderation counts, and only once.
+    await awardRoomChatXp(roomId, me, inserted[0].id);
     const message = await roomMessageById(inserted[0].id);
     broadcast('room_message', { roomId, message });
     res.status(201).json({ message });

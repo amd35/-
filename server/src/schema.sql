@@ -746,8 +746,44 @@ CREATE TABLE IF NOT EXISTS room_mics (
   created_at timestamptz NOT NULL DEFAULT now()
 );
 ALTER TABLE room_mics ADD COLUMN IF NOT EXISTS muted boolean NOT NULL DEFAULT false;
+-- Minutes of room XP already paid for the current occupancy of this seat.
+ALTER TABLE room_mics ADD COLUMN IF NOT EXISTS xp_minutes integer NOT NULL DEFAULT 0;
 CREATE UNIQUE INDEX IF NOT EXISTS room_mics_position_uidx ON room_mics (room_id, position);
 CREATE INDEX IF NOT EXISTS room_mics_user_idx ON room_mics (user_id);
+
+-- A seat changing hands starts a fresh XP session for the new occupant.
+CREATE OR REPLACE FUNCTION room_mics_reset_xp_minutes() RETURNS trigger AS $$
+BEGIN
+  IF NEW.user_id IS DISTINCT FROM OLD.user_id THEN
+    NEW.xp_minutes := 0;
+  END IF;
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+DROP TRIGGER IF EXISTS room_mics_xp_reset ON room_mics;
+CREATE TRIGGER room_mics_xp_reset
+BEFORE UPDATE ON room_mics
+FOR EACH ROW EXECUTE FUNCTION room_mics_reset_xp_minutes();
+
+-- Room level (1..100) is a pure function of this XP: only real activity inside
+-- the room earns it (an accepted chat message, or a full minute on a mic while
+-- connected). The level decides how many mic seats the room has.
+ALTER TABLE rooms ADD COLUMN IF NOT EXISTS level_xp integer NOT NULL DEFAULT 0;
+
+CREATE TABLE IF NOT EXISTS room_xp_events (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  room_id uuid NOT NULL REFERENCES rooms(id) ON DELETE CASCADE,
+  user_id uuid REFERENCES users(id) ON DELETE SET NULL,
+  kind text NOT NULL CHECK (kind IN ('chat', 'mic_minute')),
+  -- Chat: the message id. Mic minute: "<mic id>:<session epoch>:<minute>".
+  ref_id text NOT NULL,
+  xp integer NOT NULL CHECK (xp >= 0),
+  created_at timestamptz NOT NULL DEFAULT now(),
+  UNIQUE (room_id, kind, ref_id)
+);
+CREATE INDEX IF NOT EXISTS room_xp_events_room_idx ON room_xp_events (room_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS room_xp_events_chat_idx ON room_xp_events (room_id, kind, user_id, created_at DESC);
 
 -- Room chat: the message list inside a voice room. A row with `type = 'gift'`
 -- points at the gift send so the client can replay the gift animation.

@@ -3,6 +3,7 @@ import { one, q } from './db';
 import { activeRankFor, isOfficialAdmin } from './ranks';
 import { isOnline } from './realtime';
 import { activeRoomFrames } from './roomFrames';
+import { roomLevelInfo } from './roomLevels';
 import { isRoomMember, roomCapacity, roomLikeState, roomStaff } from './roomMembers';
 import {
   FRAME_FIELDS,
@@ -43,6 +44,7 @@ export interface RoomRow {
   language: string;
   mic_style: string;
   mic_color: string;
+  level_xp: number;
   created_at: string;
 }
 
@@ -121,6 +123,7 @@ export function serializeRoom(row: RoomRow) {
     micStyle: row.mic_style || 'fire',
     micColor: row.mic_color || '#ff3b0f',
     ownerId: row.owner_id,
+    ...roomLevelInfo(row.level_xp),
     createdAt: row.created_at,
   };
 }
