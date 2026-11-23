@@ -271,6 +271,14 @@ const ICONS: Record<string, ReactNode> = {
     </>
   ),
   play: <path d="M8 5.5v13l11-6.5z" />,
+  game: (
+    <>
+      <path d="M7.6 8h8.8A4.6 4.6 0 0 1 21 12.6v.5a4.4 4.4 0 0 1-7.7 3l-.4-.5h-1.8l-.4.5a4.4 4.4 0 0 1-7.7-3v-.5A4.6 4.6 0 0 1 7.6 8z" />
+      <path d="M7.8 11.8h3M9.3 10.3v3" />
+      <circle cx="15.6" cy="11.4" r=".9" />
+      <circle cx="17.4" cy="13.2" r=".9" />
+    </>
+  ),
 };
 
 export function Icon({

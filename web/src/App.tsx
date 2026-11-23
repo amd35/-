@@ -28,6 +28,7 @@ import AdDetails from './pages/AdDetails';
 import Admin from './pages/Admin';
 import AgentPanel from './pages/AgentPanel';
 import Agents from './pages/Agents';
+import Games from './pages/Games';
 import Game from './pages/Game';
 import GameMatch from './pages/GameMatch';
 
@@ -198,6 +199,14 @@ export default function App() {
           element={
             <Protected>
               <Agents />
+            </Protected>
+          }
+        />
+        <Route
+          path="/games"
+          element={
+            <Protected>
+              <Games />
             </Protected>
           }
         />

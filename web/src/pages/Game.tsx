@@ -168,7 +168,7 @@ export default function Game() {
   };
 
   return (
-    <AppShell title="أم الحجار" subtitle="لعبة الحجارة الأسطورية" active="home">
+    <AppShell title="أم الحجار" subtitle="لعبة الحجارة الأسطورية" active="games">
       <div className="page game-page" dir="rtl">
         <section className="game-hero">
           <span className="game-hero-crown" aria-hidden="true">

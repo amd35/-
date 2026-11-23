@@ -1025,3 +1025,156 @@
     animation: none !important;
   }
 }
+
+/* ---------------------------------------------------------------- games section */
+.games-page {
+  gap: 12px;
+}
+
+.games-stats {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.games-stat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 10px 6px;
+  border-radius: 16px;
+  border: 1px solid rgba(255, 207, 64, 0.22);
+  background: linear-gradient(180deg, rgba(28, 19, 8, 0.92), rgba(10, 7, 3, 0.92));
+  text-align: center;
+}
+
+.games-stat b {
+  font-size: 16px;
+  color: #ffe7a8;
+}
+
+.games-stat span {
+  font-size: 10px;
+  color: rgba(255, 236, 196, 0.6);
+}
+
+.games-tile {
+  width: 100%;
+  display: grid;
+  grid-template-columns: 74px minmax(0, 1fr);
+  gap: 8px 12px;
+  align-items: center;
+  padding: 14px;
+  border-radius: 22px;
+  border: 1px solid rgba(255, 207, 64, 0.35);
+  background:
+    radial-gradient(120% 100% at 0% 0%, rgba(255, 199, 92, 0.16), transparent 60%),
+    linear-gradient(180deg, #14100a, #070504);
+  color: #fff;
+  text-align: start;
+  font: inherit;
+  cursor: pointer;
+  box-shadow: 0 14px 34px -22px rgba(0, 0, 0, 0.9), inset 0 0 30px rgba(0, 0, 0, 0.5);
+  transition: transform 0.18s ease, border-color 0.18s ease;
+}
+
+.games-tile:active {
+  transform: scale(0.985);
+}
+
+.games-tile-art {
+  position: relative;
+  width: 74px;
+  height: 74px;
+  border-radius: 20px;
+  border: 1px solid rgba(255, 207, 64, 0.3);
+  background: radial-gradient(circle at 50% 30%, rgba(255, 199, 92, 0.22), rgba(0, 0, 0, 0.65));
+  overflow: hidden;
+}
+
+.games-tile-stone {
+  position: absolute;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.6);
+}
+
+.games-tile-stone.white {
+  inset-block-start: 12px;
+  inset-inline-start: 12px;
+  background: radial-gradient(circle at 34% 28%, #ffffff, #efeef6 55%, #a9a9b8);
+}
+
+.games-tile-stone.black {
+  inset-block-start: 38px;
+  inset-inline-start: 34px;
+  background: radial-gradient(circle at 34% 28%, #4a4a55, #16161c 60%, #000000);
+}
+
+.games-tile-stone.gold {
+  width: 22px;
+  height: 22px;
+  inset-block-start: 14px;
+  inset-inline-end: 10px;
+  background: radial-gradient(circle at 34% 28%, #fff3c4, #ffcf40 55%, #9a6a10);
+}
+
+.games-tile-body {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+
+.games-tile-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 10px;
+  font-weight: 700;
+  color: #ffd76a;
+}
+
+.games-tile-name {
+  font-size: 19px;
+  font-weight: 900;
+  background: linear-gradient(180deg, #fff6cf, #ffd24a 55%, #a86a12);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.games-tile-sub {
+  font-size: 11px;
+  color: rgba(255, 236, 196, 0.7);
+}
+
+.games-tile-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px 12px;
+  margin-top: 2px;
+  font-size: 10.5px;
+  color: rgba(255, 236, 196, 0.65);
+}
+
+.games-tile-meta b {
+  color: #ffe7a8;
+}
+
+.games-tile-cta {
+  grid-column: 1 / -1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 10px;
+  border-radius: 14px;
+  font-size: 12.5px;
+  font-weight: 800;
+  color: #2a1700;
+  background: linear-gradient(180deg, #ffe08a, #ffb524);
+  box-shadow: 0 10px 22px -14px rgba(255, 178, 44, 0.9);
+}

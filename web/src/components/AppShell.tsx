@@ -9,6 +9,7 @@ const NAV = [
   { key: 'home', path: '/', icon: 'home' },
   { key: 'chats', path: '/chats', icon: 'chat' },
   { key: 'calls', path: '/calls', icon: 'phone' },
+  { key: 'games', path: '/games', icon: 'game' },
   { key: 'profile', path: '/profile', icon: 'user' },
 ] as const;
 
