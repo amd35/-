@@ -237,8 +237,13 @@ export default function Levels() {
                 key={row.level}
                 className={`level-chip ${row.level === level.level ? 'current' : ''} ${row.level < level.level ? 'done' : ''}`}
               >
-                <LevelBadge level={row.level} size={26} color={row.badgeColor} imageUrl={row.badgeImageUrl} />
-                <span className="level-chip-xp">{formatXp(row.xpRequired)}</span>
+                <div className="level-chip-art">
+                  <LevelBadge level={row.level} size={56} color={row.badgeColor} imageUrl={row.badgeImageUrl} />
+                </div>
+                <span className="level-chip-level">
+                  {t('level')} {row.level}
+                </span>
+                <span className="level-chip-xp">{formatXp(row.xpRequired)} XP</span>
                 {row.rewardCoins > 0 ? (
                   <span className="level-chip-reward">+{formatCoins(row.rewardCoins)}</span>
                 ) : null}

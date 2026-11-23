@@ -5300,25 +5300,52 @@ table.data tr:hover td {
   color: var(--vip-color, #ffd75e);
 }
 
+/* Level ladder: one independent card per level, 2 columns on phones,
+   3 on wider screens. */
 .level-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(74px, 1fr));
-  gap: 8px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+  align-items: stretch;
+}
+
+@media (min-width: 480px) {
+  .level-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 16px;
+  }
 }
 
 .level-chip {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 3px;
-  padding: 8px 4px;
-  border-radius: 12px;
-  background: rgba(255, 255, 255, 0.035);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  justify-content: flex-start;
+  gap: 6px;
+  min-width: 0;
+  padding: 14px 8px 12px;
+  border-radius: 16px;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.06), rgba(255, 255, 255, 0.02));
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.35);
+  text-align: center;
+}
+
+.level-chip-art {
+  display: grid;
+  place-items: center;
+  width: 100%;
+  height: 60px;
+}
+
+.level-chip-art .level-badge-img,
+.level-chip-art .level-badge {
+  width: 56px;
+  height: 56px;
 }
 
 .level-chip.done {
-  opacity: 0.55;
+  opacity: 0.62;
 }
 
 .level-chip.current {
@@ -5327,14 +5354,39 @@ table.data tr:hover td {
   box-shadow: 0 0 14px rgba(255, 215, 94, 0.25);
 }
 
+.level-chip-level {
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  color: rgba(255, 255, 255, 0.9);
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .level-chip-xp {
-  font-size: 10px;
+  font-size: 11px;
   color: rgba(255, 255, 255, 0.6);
+  font-variant-numeric: tabular-nums;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .level-chip-reward {
-  font-size: 9px;
+  font-size: 10px;
+  font-weight: 700;
   color: #ffd75e;
+  padding: 1px 8px;
+  border-radius: 999px;
+  background: rgba(255, 215, 94, 0.12);
+  border: 1px solid rgba(255, 215, 94, 0.3);
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .vip-frame-preview {
