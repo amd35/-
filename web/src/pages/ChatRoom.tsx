@@ -75,6 +75,16 @@ export default function ChatRoom() {
     );
   };
 
+  // الأدمن يحذف أي رسالة من داخل المحادثة مباشرة.
+  const deleteMessage = async (messageId: string) => {
+    try {
+      await api(`/chat/messages/${messageId}`, { method: 'DELETE' });
+      setMessages((current) => current.filter((message) => message.id !== messageId));
+    } catch (error) {
+      toast.push((error as Error).message, 'error');
+    }
+  };
+
   useEffect(() => {
     if (!id) return;
     let alive = true;
@@ -136,6 +146,10 @@ export default function ChatRoom() {
         )
       );
     });
+    const offDeleted = on('message:deleted', (data) => {
+      if (String(data.conversationId) !== id) return;
+      setMessages((current) => current.filter((message) => message.id !== String(data.messageId)));
+    });
     const offTyping = on('chat:typing', (data) => {
       if (String(data.conversationId) !== id) return;
       setPeerTyping(true);
@@ -146,6 +160,7 @@ export default function ChatRoom() {
       offNew();
       offRead();
       offDelivered();
+      offDeleted();
       offTyping();
       if (typingTimer.current) clearTimeout(typingTimer.current);
     };
@@ -435,6 +450,16 @@ export default function ChatRoom() {
                       message.readAt ? 'tick tick-read' : message.deliveredAt ? 'tick tick-delivered' : 'tick tick-sent'
                     }
                   />
+                ) : null}
+                {me?.user.isAdmin ? (
+                  <button
+                    type="button"
+                    className="msg-del"
+                    onClick={() => void deleteMessage(message.id)}
+                    aria-label="delete message"
+                  >
+                    <Icon name="trash" size={12} />
+                  </button>
                 ) : null}
               </div>
             </div>

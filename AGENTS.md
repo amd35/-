@@ -79,6 +79,16 @@
   changed from the panel's **Security** tab, the stored hash wins (`admin_users.password_source = 'custom'`)
   and a boot no longer overwrites it. Setting the secret again only affects a row still on `'secret'`.
 
+## In-app admin mode (وضع الأدمن)
+- `users.is_admin = true` lets that app account call every `/api/admin/*` route with its **own user token**
+  (`currentAdmin` accepts it and returns the general `admin_users` row, so audit columns that reference
+  `admin_users(id)` stay valid). The admin panel row in Settings is rendered only for such accounts.
+- Activation: `POST /api/auth/admin-mode { password }` checks the password against `admin_users.username = 'admin'`
+  (bcrypt, throttled) and sets the flag; `DELETE /api/auth/admin-mode` turns it off. Nothing else sets the flag.
+- In-app powers currently wired: admin tools sheet on another user's profile (ban/unban, coin adjust via
+  `/admin/users/:id/...`), and deleting any chat message with `DELETE /api/chat/messages/:id`
+  (sender or `users.is_admin`; pushes `message:deleted` to the other members).
+
 ## Official recharge agents (وكلاء الشحن)
 - `agents` is the single source of truth for an agency: `status` (`active` | `suspended` | `revoked`),
   commission rate, and the coins/gold stock. The admin panel (`/admin` → إدارة الوكلاء) is the only writer;

@@ -393,6 +393,39 @@ router.post(
   })
 );
 
+// حذف رسالة واحدة: صاحبها يحذفها، والأدمن (users.is_admin) يحذف أي رسالة من داخل التطبيق.
+router.delete(
+  '/messages/:id',
+  requireAuth(),
+  asyncHandler(async (req, res) => {
+    const me = reqUser(req).id;
+    const messageId = req.params.id;
+    if (!isUuid(messageId)) throw new HttpError(404, 'Message not found', 'message_not_found');
+    const message = await one<{ id: string; conversation_id: string; sender_id: string }>(
+      'SELECT id, conversation_id, sender_id FROM messages WHERE id = $1',
+      [messageId]
+    );
+    if (!message) throw new HttpError(404, 'Message not found', 'message_not_found');
+    if (message.sender_id !== me) {
+      const row = await one<{ is_admin: boolean }>('SELECT is_admin FROM users WHERE id = $1', [me]);
+      if (!row?.is_admin) throw new HttpError(403, 'Not allowed', 'forbidden');
+    }
+    await q('DELETE FROM messages WHERE id = $1', [messageId]);
+    const members = await q<{ user_id: string }>(
+      'SELECT user_id FROM conversation_members WHERE conversation_id = $1',
+      [message.conversation_id]
+    );
+    for (const row of members) {
+      if (row.user_id === me) continue;
+      emitToUser(row.user_id, 'message:deleted', {
+        conversationId: message.conversation_id,
+        messageId,
+      });
+    }
+    res.json({ deleted: true });
+  })
+);
+
 router.delete(
   '/conversations/:id',
   requireAuth(),

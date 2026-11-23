@@ -128,13 +128,27 @@ export async function currentAdmin(req: Request) {
   } catch {
     throw new HttpError(401, 'Session expired, please sign in again', 'invalid_token');
   }
-  if (payload.kind !== 'admin') throw new HttpError(403, 'Admin access required', 'forbidden');
-  const admin = await one<{ id: string; username: string; display_name: string }>(
-    'SELECT id, username, display_name FROM admin_users WHERE id = $1',
-    [payload.sub]
+  if (payload.kind === 'admin') {
+    const admin = await one<{ id: string; username: string; display_name: string }>(
+      'SELECT id, username, display_name FROM admin_users WHERE id = $1',
+      [payload.sub]
+    );
+    if (!admin) throw new HttpError(401, 'Admin account not found', 'account_missing');
+    return admin;
+  }
+  if (payload.kind !== 'user') throw new HttpError(403, 'Admin access required', 'forbidden');
+  // An app account flagged as admin (users.is_admin) manages everything from inside
+  // the app with its own session, using the general admin account as its identity so
+  // every audit column that references admin_users stays valid.
+  const flagged = await one<{ is_admin: boolean }>('SELECT is_admin FROM users WHERE id = $1', [
+    payload.sub,
+  ]);
+  if (!flagged?.is_admin) throw new HttpError(403, 'Admin access required', 'forbidden');
+  const general = await one<{ id: string; username: string; display_name: string }>(
+    'SELECT id, username, display_name FROM admin_users ORDER BY created_at LIMIT 1'
   );
-  if (!admin) throw new HttpError(401, 'Admin account not found', 'account_missing');
-  return admin;
+  if (!general) throw new HttpError(403, 'Admin access required', 'forbidden');
+  return general;
 }
 
 export function requireAdmin() {

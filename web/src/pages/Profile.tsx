@@ -343,6 +343,10 @@ export function UserProfile() {
   const [loading, setLoading] = useState(true);
   const [reportOpen, setReportOpen] = useState(false);
   const [reason, setReason] = useState('harassment');
+  const [adminOpen, setAdminOpen] = useState(false);
+  const [adminCoins, setAdminCoins] = useState('');
+  const [adminNote, setAdminNote] = useState('');
+  const [adminBusy, setAdminBusy] = useState(false);
 
   useEffect(() => {
     if (!id) return;
@@ -397,6 +401,46 @@ export function UserProfile() {
     const response = await api<{ blocked: boolean }>(`/users/${id}/block`, { method: 'POST' });
     patch({ isBlocked: response.blocked });
     toast.push(response.blocked ? t('blocked') : t('unblock'), 'success');
+  };
+
+  const adminSetBan = async (ban: boolean) => {
+    if (!id) return;
+    setAdminBusy(true);
+    try {
+      await api(`/admin/users/${id}/${ban ? 'ban' : 'unban'}`, {
+        method: 'POST',
+        body: ban ? { reason: 'مخالفة السياسات' } : {},
+      });
+      toast.push(ban ? 'تم حظر الحساب' : 'تم رفع الحظر', 'success');
+    } catch (error) {
+      toast.push((error as Error).message, 'error');
+    } finally {
+      setAdminBusy(false);
+    }
+  };
+
+  const adminGiveCoins = async () => {
+    if (!id) return;
+    const amount = Math.trunc(Number(adminCoins));
+    if (!Number.isFinite(amount) || amount === 0) {
+      toast.push('أدخل مبلغاً غير صفري', 'error');
+      return;
+    }
+    setAdminBusy(true);
+    try {
+      await api(`/admin/users/${id}/coins`, {
+        method: 'POST',
+        body: { amount, note: adminNote || 'Admin adjustment' },
+      });
+      toast.push(`تم تعديل الرصيد: ${amount}`, 'success');
+      setAdminCoins('');
+      setAdminNote('');
+      setAdminOpen(false);
+    } catch (error) {
+      toast.push((error as Error).message, 'error');
+    } finally {
+      setAdminBusy(false);
+    }
   };
 
   const submitReport = async () => {
@@ -545,6 +589,11 @@ export function UserProfile() {
               <Icon name="alert" size={13} /> {t('report')}
             </button>
           </div>
+          {me?.user.isAdmin ? (
+            <button className="btn btn-outline btn-sm btn-block" onClick={() => setAdminOpen(true)}>
+              <Icon name="lock" size={15} /> أدوات الأدمن
+            </button>
+          ) : null}
         </section>
 
         {data.earnings ? (
@@ -576,6 +625,50 @@ export function UserProfile() {
           </div>
           <button className="btn btn-danger btn-block" onClick={() => void submitReport()}>
             {t('send')}
+          </button>
+        </div>
+      </Sheet>
+
+      <Sheet open={adminOpen} onClose={() => setAdminOpen(false)} title="أدوات الأدمن">
+        <div className="stack">
+          <div className="field">
+            <label>تعديل رصيد الكونز (موجب للإضافة، سالب للخصم)</label>
+            <input
+              className="input"
+              type="number"
+              value={adminCoins}
+              onChange={(event) => setAdminCoins(event.target.value)}
+              dir="ltr"
+            />
+          </div>
+          <div className="field">
+            <label>ملاحظة</label>
+            <input
+              className="input"
+              value={adminNote}
+              onChange={(event) => setAdminNote(event.target.value)}
+            />
+          </div>
+          <button
+            className="btn btn-primary btn-block"
+            onClick={() => void adminGiveCoins()}
+            disabled={adminBusy}
+          >
+            تطبيق الرصيد
+          </button>
+          <button
+            className="btn btn-danger btn-block"
+            onClick={() => void adminSetBan(true)}
+            disabled={adminBusy}
+          >
+            حظر الحساب
+          </button>
+          <button
+            className="btn btn-ghost btn-block"
+            onClick={() => void adminSetBan(false)}
+            disabled={adminBusy}
+          >
+            رفع الحظر
           </button>
         </div>
       </Sheet>

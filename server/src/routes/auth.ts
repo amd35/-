@@ -468,6 +468,39 @@ router.get(
   })
 );
 
+// "وضع الأدمن" داخل التطبيق: يحوّل حساب التطبيق إلى أدمن بعد إدخال كلمة سر
+// لوحة التحكم مرة واحدة، فيقدر يدير كل شيء من داخل التطبيق بدون فتح اللوحة.
+router.post(
+  '/admin-mode',
+  requireAuth(),
+  asyncHandler(async (req, res) => {
+    const me = reqUser(req).id;
+    const password = String(req.body?.password || '');
+    if (!password) throw new HttpError(400, 'أدخل كلمة سر الأدمن', 'missing_password');
+    await assertNotThrottled(`admin-mode:${me}`, 'admin_mode');
+    const admin = await one<{ password_hash: string }>(
+      "SELECT password_hash FROM admin_users WHERE username = 'admin' LIMIT 1"
+    );
+    const valid = admin ? await bcrypt.compare(password, admin.password_hash) : false;
+    if (!valid) {
+      await recordAttempt(`admin-mode:${me}`, 'admin_mode');
+      throw new HttpError(401, 'كلمة سر الأدمن غير صحيحة', 'invalid_credentials');
+    }
+    await clearAttempts(`admin-mode:${me}`, 'admin_mode');
+    await q('UPDATE users SET is_admin = true WHERE id = $1', [me]);
+    res.json({ isAdmin: true });
+  })
+);
+
+router.delete(
+  '/admin-mode',
+  requireAuth(),
+  asyncHandler(async (req, res) => {
+    await q('UPDATE users SET is_admin = false WHERE id = $1', [reqUser(req).id]);
+    res.json({ isAdmin: false });
+  })
+);
+
 router.patch(
   '/me',
   requireAuth(),
