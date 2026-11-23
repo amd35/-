@@ -231,9 +231,14 @@ export default function Room() {
       if (data.roomId !== id) return;
       setMessages((current) => current.filter((item) => item.id !== data.messageId));
     });
+    const offClear = on('room_messages_cleared', (data) => {
+      if (data.roomId !== id) return;
+      setMessages([]);
+    });
     return () => {
       offMessage();
       offDelete();
+      offClear();
     };
   }, [on, id, append]);
 
@@ -487,6 +492,17 @@ export default function Room() {
     try {
       await api(`/rooms/${id}/messages/${messageId}/delete`, { method: 'POST' });
       setMessages((current) => current.filter((item) => item.id !== messageId));
+    } catch (error) {
+      toast.push((error as Error).message, 'error');
+    }
+  };
+
+  /** Owner or vice-owner wipes the whole room chat. */
+  const clearMessages = async () => {
+    try {
+      await api(`/rooms/${id}/messages/clear`, { method: 'POST' });
+      setMessages([]);
+      toast.push('تم مسح رسائل الغرفة', 'success');
     } catch (error) {
       toast.push((error as Error).message, 'error');
     }
@@ -830,8 +846,10 @@ export default function Room() {
             canModerate={room.canModerate}
             sending={sending}
             canAnnounce={isAdminUser}
+            canClear={room.canManage}
             onSend={sendMessage}
             onDelete={(messageId) => void deleteMessage(messageId)}
+            onClear={() => void clearMessages()}
           />
           <RoomMembersPanel
             open={panel === 'members'}

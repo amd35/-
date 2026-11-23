@@ -11,23 +11,29 @@ export function RoomChatPanel({
   messages,
   meId,
   canModerate,
+  canClear,
   sending,
   canAnnounce,
   onSend,
   onDelete,
+  onClear,
 }: {
   open: boolean;
   onClose: () => void;
   messages: RoomMessageData[];
   meId: string | null;
   canModerate: boolean;
+  /** Owner or vice-owner: may wipe the whole room chat. */
+  canClear: boolean;
   sending: boolean;
   canAnnounce: boolean;
   onSend: (body: string, announcement: boolean) => Promise<boolean>;
   onDelete: (messageId: string) => void;
+  onClear: () => void;
 }) {
   const [draft, setDraft] = useState('');
   const [announce, setAnnounce] = useState(false);
+  const [confirmClear, setConfirmClear] = useState(false);
   const listRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
@@ -48,6 +54,31 @@ export function RoomChatPanel({
   return (
     <Sheet open={open} onClose={onClose} title="دردشة الغرفة">
       <div className="room-chat-panel">
+        {canClear && messages.length > 0 ? (
+          <div className="room-chat-tools">
+            {confirmClear ? (
+              <>
+                <button
+                  type="button"
+                  className="room-chat-clear is-confirm"
+                  onClick={() => {
+                    setConfirmClear(false);
+                    onClear();
+                  }}
+                >
+                  تأكيد المسح
+                </button>
+                <button type="button" className="btn btn-ghost btn-sm" onClick={() => setConfirmClear(false)}>
+                  إلغاء
+                </button>
+              </>
+            ) : (
+              <button type="button" className="room-chat-clear" onClick={() => setConfirmClear(true)}>
+                <Icon name="trash" size={12} /> مسح الرسائل
+              </button>
+            )}
+          </div>
+        ) : null}
         <div className="room-chat-list" ref={listRef}>
           {messages.length === 0 ? <p className="tiny muted center">لا توجد رسائل بعد</p> : null}
           {messages.map((message) => {

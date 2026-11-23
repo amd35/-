@@ -963,6 +963,23 @@ router.post(
   })
 );
 
+/** Clear the whole room chat — owner or vice-owner only. */
+router.post(
+  '/:id/messages/clear',
+  requireAuth(),
+  asyncHandler(async (req, res) => {
+    const me = reqUser(req).id;
+    const roomId = req.params.id;
+    const { access } = await moderateAccess(roomId, me);
+    if (!access.canManage) {
+      throw new HttpError(403, 'Only the owner or a vice-owner can clear the chat', 'not_room_manager');
+    }
+    await q('DELETE FROM room_messages WHERE room_id = $1', [roomId]);
+    broadcast('room_messages_cleared', { roomId });
+    res.json({ ok: true });
+  })
+);
+
 /** Delete one room message (staff only). */
 router.post(
   '/:id/messages/:messageId/delete',
