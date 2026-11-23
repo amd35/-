@@ -1,4 +1,4 @@
-import { useEffect, useId, type ReactNode } from 'react';
+import { useEffect, useId, useRef, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import { assetUrl } from '../lib/api';
 import { playGiftSound } from '../lib/giftSound';
@@ -23,21 +23,25 @@ const GOLD = '#ffd75e';
 export function GiftAnimation({
   gift,
   className = '',
+  sound = false,
+  loop = true,
 }: {
   gift: GiftVisual;
   className?: string;
+  /** Play the uploaded clip's original audio (big gift reveal / admin preview). */
+  sound?: boolean;
+  /** Loop an uploaded clip (off for the admin preview so the sound plays once). */
+  loop?: boolean;
 }) {
   const uid = useId().replace(/[:]/g, '');
   if (gift.videoUrl) {
     return (
       <div className={`gift-scene gift-video ${className}`}>
-        <video
+        <GiftVideo
           src={assetUrl(gift.videoUrl)}
           poster={assetUrl(gift.coverUrl)}
-          autoPlay
-          loop
-          muted
-          playsInline
+          sound={sound}
+          loop={loop}
         />
       </div>
     );
@@ -49,6 +53,46 @@ export function GiftAnimation({
     <div className={`gift-scene ${className}`}>
       {renderScene(gift.design || 'hearts', uid)}
     </div>
+  );
+}
+
+/**
+ * Uploaded gift clip. With `sound` it plays the clip's own audio; if the browser
+ * blocks autoplay with audio it falls back to muted playback instead of freezing.
+ */
+function GiftVideo({
+  src,
+  poster,
+  sound,
+  loop,
+}: {
+  src: string | undefined;
+  poster: string | undefined;
+  sound: boolean;
+  loop: boolean;
+}) {
+  const ref = useRef<HTMLVideoElement>(null);
+
+  useEffect(() => {
+    const element = ref.current;
+    if (!element || !sound) return;
+    element.muted = false;
+    void element.play().catch(() => {
+      element.muted = true;
+      void element.play().catch(() => undefined);
+    });
+  }, [sound, src]);
+
+  return (
+    <video
+      ref={ref}
+      src={src}
+      poster={poster}
+      autoPlay
+      loop={loop}
+      muted={!sound}
+      playsInline
+    />
   );
 }
 
@@ -507,10 +551,11 @@ export function GiftReveal({
   recipientName?: string;
   onClose: () => void;
 }) {
-  const soundKey = `${gift.name}|${gift.design ?? ''}`;
+  const soundKey = `${gift.name}|${gift.design ?? ''}|${gift.videoUrl ?? ''}`;
 
   useEffect(() => {
-    playGiftSound(gift);
+    // An uploaded clip plays its own original audio instead of the synth effect.
+    if (!gift.videoUrl) playGiftSound(gift);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [soundKey]);
 
@@ -523,7 +568,7 @@ export function GiftReveal({
     <div className="gift-reveal" onClick={onClose}>
       <div className="gift-reveal-glow" />
       <div className="gift-reveal-stage">
-        <GiftAnimation gift={gift} />
+        <GiftAnimation gift={gift} sound />
       </div>
       <div className="gift-reveal-copy">
         <span className={`pill rarity-${gift.rarity || 'common'}`}>

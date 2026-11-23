@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { api } from '../../lib/api';
 import { formatCoins, Icon, useToast } from '../../lib/ui';
-import { GiftCover } from '../GiftAnimation';
+import { GiftAnimation, GiftCover } from '../GiftAnimation';
 import { AdminCard, Empty, Field, Table, Toggle, useAdminData } from './shared';
 
 interface AdminGift {
@@ -336,15 +336,29 @@ export default function GiftsTab() {
 
         <div className="inline" style={{ gap: 14 }}>
           <div className="gift-admin-preview">
-            <GiftCover
-              gift={{
-                name: form.name || 'Gift',
-                design: form.media === 'design' ? form.design : null,
-                videoUrl: form.media === 'video' ? form.videoUrl : null,
-                coverUrl: form.coverUrl,
-                rarity: form.rarity,
-              }}
-            />
+            {form.media === 'video' && form.videoUrl ? (
+              <GiftAnimation
+                sound
+                loop={false}
+                gift={{
+                  name: form.name || 'Gift',
+                  design: null,
+                  videoUrl: form.videoUrl,
+                  coverUrl: form.coverUrl,
+                  rarity: form.rarity,
+                }}
+              />
+            ) : (
+              <GiftCover
+                gift={{
+                  name: form.name || 'Gift',
+                  design: form.media === 'design' ? form.design : null,
+                  videoUrl: form.media === 'video' ? form.videoUrl : null,
+                  coverUrl: form.coverUrl,
+                  rarity: form.rarity,
+                }}
+              />
+            )}
           </div>
           <button className="btn btn-primary" onClick={() => void save()} disabled={busy}>
             <Icon name="check" size={16} /> {busy ? 'جارٍ الحفظ…' : form.id ? 'حفظ التعديلات' : 'نشر الهدية'}

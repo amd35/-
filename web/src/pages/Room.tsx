@@ -109,7 +109,8 @@ export default function Room() {
     if (!message.gift) return;
     if (flashTimer.current) clearTimeout(flashTimer.current);
     setPlaying({ gift: message.gift, name: message.displayName });
-    playGiftSound(message.gift);
+    // A gift video carries its own original audio, so skip the synth effect.
+    if (!message.gift.videoUrl) playGiftSound(message.gift);
     flashTimer.current = setTimeout(() => setPlaying(null), 6000);
   }, []);
 

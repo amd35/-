@@ -11,7 +11,7 @@ export function RoomGiftFlash({ gift, sender }: { gift: RoomGiftInfo; sender: st
     <div className="room-gift-flash" role="status" aria-live="polite">
       <div className="room-gift-flash-glow" aria-hidden="true" />
       <div className="room-gift-flash-art">
-        <GiftAnimation gift={gift} />
+        <GiftAnimation gift={gift} sound />
       </div>
       <div className="room-gift-flash-label">
         <span className="room-gift-flash-sender">{sender}</span>
