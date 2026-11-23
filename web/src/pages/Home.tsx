@@ -124,17 +124,6 @@ export default function Home() {
           <Icon name="arrowLeft" size={18} />
         </button>
 
-        <button type="button" className="game-home-card" onClick={() => navigate('/game')}>
-          <span className="game-home-crown" aria-hidden="true">
-            👑
-          </span>
-          <span className="room-main">
-            <span className="room-name">أم الحجار</span>
-            <span className="tiny muted room-desc">لعبة الحجارة — أونلاين مع لاعبين حقيقيين</span>
-          </span>
-          <Icon name="play" size={18} />
-        </button>
-
         <div className="search">
           <Icon name="search" size={18} />
           <input
