@@ -17,7 +17,7 @@ import { AppShell } from '../components/AppShell';
 import { CurrencyIcon } from '../components/CurrencyIcon';
 import { GiftCodeButton } from '../components/GiftCodeSheet';
 
-type LedgerTab = 'coins' | 'beans';
+type LedgerTab = 'diamond' | 'beans';
 
 interface LedgerRow {
   id: string;
@@ -99,7 +99,7 @@ interface Order {
   package_name: string | null;
 }
 
-const COIN_LABELS: Record<string, string> = {
+const DIAMOND_LABELS: Record<string, string> = {
   call_charge: 'خصم مكالمة',
   call_reserve: 'حجز مكالمة',
   call_refund: 'إرجاع رصيد',
@@ -146,7 +146,7 @@ export default function Wallet() {
   const [methods, setMethods] = useState<Method[]>([]);
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
-  const [ledgerTab, setLedgerTab] = useState<LedgerTab>('coins');
+  const [ledgerTab, setLedgerTab] = useState<LedgerTab>('diamond');
   const [selected, setSelected] = useState<Package | null>(null);
   const [currency, setCurrency] = useState<'IQD' | 'USD'>('IQD');
   const [provider, setProvider] = useState('manual');
@@ -282,7 +282,7 @@ export default function Wallet() {
   const aboveAvailable = beansRequested > beans.available;
 
   const ledgerRows = ledgerTab === 'beans' ? data?.beanTransactions ?? [] : data?.transactions ?? [];
-  const ledgerLabels = ledgerTab === 'beans' ? BEAN_LABELS : COIN_LABELS;
+  const ledgerLabels = ledgerTab === 'beans' ? BEAN_LABELS : DIAMOND_LABELS;
 
   return (
     <AppShell title={t('wallet')} active="wallet">
@@ -295,9 +295,9 @@ export default function Wallet() {
             </span>
           </div>
           <div className="balance">
-            <Icon name="coins" size={26} />
+            <CurrencyIcon code="DIAMOND" size={30} />
             <strong>{formatCoins(diamond.balance)}</strong>
-            <span className="muted tiny">{t('vcoins')}</span>
+            <span className="muted tiny">{lang === 'ar' ? 'ماس' : 'Diamond'}</span>
           </div>
           <div className="wallet-split">
             <div>
@@ -322,8 +322,8 @@ export default function Wallet() {
           </button>
           <p className="tiny muted" style={{ marginTop: 8 }}>
             {lang === 'ar'
-              ? 'الكوزنز للشحن والهدايا، والفاصوليا أرباح قابلة للسحب.'
-              : 'VCoins are for recharge and gifts; beans are withdrawable profits.'}
+              ? 'الماس للهدايا والألعاب، والفاصوليا أرباح قابلة للسحب.'
+              : 'Diamond is for gifts and games; beans are withdrawable profits.'}
           </p>
           <GiftCodeButton block onRedeemed={() => void load()} />
         </section>
@@ -333,11 +333,11 @@ export default function Wallet() {
             <h2>{lang === 'ar' ? 'العملات' : 'Currencies'}</h2>
           </div>
           <div className="currency-grid">
-            <div className="currency-card coins">
-              <Icon name="coins" size={24} />
-              <span>{t('vcoins')}</span>
+            <div className="currency-card diamond">
+              <CurrencyIcon code="DIAMOND" size={26} />
+              <span>{lang === 'ar' ? 'DIAMOND · الماس' : 'DIAMOND'}</span>
               <b>{formatCoins(diamond.balance)}</b>
-              <span className="tiny muted">{lang === 'ar' ? 'الشحن والهدايا' : 'Recharge & gifts'}</span>
+              <span className="tiny muted">{lang === 'ar' ? 'هدايا الغرف والدردشة' : 'Room & chat gifts'}</span>
             </div>
             <div className="currency-card beans">
               <CurrencyIcon code="BEANS" size={26} />
@@ -397,7 +397,7 @@ export default function Wallet() {
                   </div>
                   <div className="row-main">
                     <div className="row-title">
-                      {formatCoins(order.coins)} {lang === 'ar' ? 'كونز' : 'coins'} • {formatCoins(order.amount)}{' '}
+                      {formatCoins(order.coins)} {lang === 'ar' ? 'ماس' : 'diamond'} • {formatCoins(order.amount)}{' '}
                       {order.currency}
                     </div>
                     <div className="row-sub">
@@ -441,8 +441,8 @@ export default function Wallet() {
             </span>
           </div>
           <div className="seg">
-            <button className={ledgerTab === 'coins' ? 'active' : ''} onClick={() => setLedgerTab('coins')}>
-              {t('vcoins')}
+            <button className={ledgerTab === 'diamond' ? 'active' : ''} onClick={() => setLedgerTab('diamond')}>
+              {lang === 'ar' ? 'الماس' : 'Diamond'}
             </button>
             <button className={ledgerTab === 'beans' ? 'active' : ''} onClick={() => setLedgerTab('beans')}>
               {t('beans')}
@@ -460,7 +460,7 @@ export default function Wallet() {
                     {ledgerTab === 'beans' ? (
                       <CurrencyIcon code="BEANS" size={18} />
                     ) : (
-                      <Icon name="coins" size={18} />
+                      <CurrencyIcon code="DIAMOND" size={18} />
                     )}
                   </div>
                   <div className="row-main">
@@ -529,7 +529,7 @@ export default function Wallet() {
           setSelected(null);
           setCreatedOrder(null);
         }}
-        title={selected ? `${selected.name} • ${formatCoins(selected.totalCoins)} ${lang === 'ar' ? 'كونز' : 'coins'}` : ''}
+        title={selected ? `${selected.name} • ${formatCoins(selected.totalCoins)} ${lang === 'ar' ? 'ماس' : 'diamond'}` : ''}
       >
         {selected ? (
           <div className="stack">
@@ -577,9 +577,9 @@ export default function Wallet() {
                 </strong>
               </div>
               <div className="inline" style={{ justifyContent: 'space-between', marginTop: 6 }}>
-                <span className="muted tiny">{lang === 'ar' ? 'الكوزنز' : 'coins'}</span>
+                <span className="muted tiny">{lang === 'ar' ? 'الماس' : 'diamond'}</span>
                 <strong>
-                  {formatCoins(selected.totalCoins)} {lang === 'ar' ? 'كونز' : 'coins'}
+                  {formatCoins(selected.totalCoins)} {lang === 'ar' ? 'ماس' : 'diamond'}
                 </strong>
               </div>
             </div>

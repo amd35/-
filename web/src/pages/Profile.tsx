@@ -75,11 +75,6 @@ export function Profile() {
     if (!userId) return;
     const offNotification = on('notification', () => void loadStats());
     const offWallet = on('wallet:update', () => void loadStats());
-    // The beans card is read from the session payload, so refresh it when profits move.
-    const offProfit = on('profit:update', () => {
-      void loadStats();
-      void refresh();
-    });
     const onVisible = () => {
       if (document.visibilityState === 'visible') void loadStats();
     };
@@ -87,10 +82,9 @@ export function Profile() {
     return () => {
       offNotification();
       offWallet();
-      offProfit();
       document.removeEventListener('visibilitychange', onVisible);
     };
-  }, [userId, on, loadStats, refresh]);
+  }, [userId, on, loadStats]);
 
   if (!me) return null;
 

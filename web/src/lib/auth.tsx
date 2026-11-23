@@ -40,8 +40,6 @@ export interface WalletInfo {
   spent: number;
   /** Second currency, credited by official recharge agents. */
   gold?: number;
-  /** Withdrawable profit balance (beans). */
-  beans?: number;
 }
 
 /** Official recharge agency, present only while the admin keeps it active. */

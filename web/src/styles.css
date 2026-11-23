@@ -1728,10 +1728,6 @@ p {
   box-shadow: inset 0 0 40px -18px rgba(81, 165, 232, 0.9);
 }
 
-.currency-card.coins {
-  box-shadow: inset 0 0 40px -18px rgba(255, 215, 94, 0.9);
-}
-
 .currency-card.beans {
   box-shadow: inset 0 0 40px -18px rgba(214, 149, 2, 0.9);
 }
@@ -10610,11 +10606,6 @@ table.data tr:hover td {
 .rp-wallet.is-gems {
   border-color: rgba(96, 165, 250, 0.45);
   background: linear-gradient(160deg, rgba(30, 58, 138, 0.55), rgba(6, 10, 24, 0.94));
-}
-
-.rp-wallet.is-beans {
-  border-color: rgba(214, 149, 2, 0.5);
-  background: linear-gradient(160deg, rgba(80, 55, 6, 0.6), rgba(12, 9, 4, 0.94));
 }
 
 .rp-wallet:active {
