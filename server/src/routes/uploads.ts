@@ -78,6 +78,22 @@ export const giftUpload = multer({
   },
 });
 
+// Ads: an image or a short video, uploaded from the admin panel.
+const AD_ALLOWED = new Set(['.png', '.jpg', '.jpeg', '.webp', '.gif', '.mp4', '.webm']);
+
+export const adUpload = multer({
+  storage,
+  limits: { fileSize: 80 * 1024 * 1024 },
+  fileFilter: (_req, file, cb) => {
+    const ext = path.extname(file.originalname).toLowerCase();
+    if (!AD_ALLOWED.has(ext)) {
+      cb(new HttpError(400, 'Only PNG/JPG/WebP/GIF images or MP4/WebM videos are allowed', 'unsupported_file'));
+      return;
+    }
+    cb(null, true);
+  },
+});
+
 const router = Router();
 
 router.post('/', requireAuth(), upload.single('file'), (req, res) => {

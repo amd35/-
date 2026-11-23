@@ -1360,6 +1360,44 @@ ALTER TABLE app_backgrounds ADD COLUMN IF NOT EXISTS published_at timestamptz;
 CREATE INDEX IF NOT EXISTS app_backgrounds_slot_idx ON app_backgrounds (slot, created_at DESC);
 CREATE INDEX IF NOT EXISTS app_backgrounds_active_idx ON app_backgrounds (is_active);
 
+-- Ads & events managed from the admin panel: one row per ad, shown in the home
+-- carousel, as the app-open popup and on the dedicated ads page.
+CREATE TABLE IF NOT EXISTS ads (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  title_ar text NOT NULL DEFAULT '',
+  title_en text NOT NULL DEFAULT '',
+  body_ar text NOT NULL DEFAULT '',
+  body_en text NOT NULL DEFAULT '',
+  media_type text NOT NULL DEFAULT 'image' CHECK (media_type IN ('image', 'video')),
+  media_url text NOT NULL,
+  link_url text,
+  starts_at timestamptz,
+  ends_at timestamptz,
+  sort_order integer NOT NULL DEFAULT 0,
+  is_active boolean NOT NULL DEFAULT true,
+  show_banner boolean NOT NULL DEFAULT true,
+  show_popup boolean NOT NULL DEFAULT false,
+  view_count integer NOT NULL DEFAULT 0,
+  click_count integer NOT NULL DEFAULT 0,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  updated_at timestamptz NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS ads_live_idx ON ads (is_active, sort_order, created_at DESC);
+
+-- One row per tracked interaction. The partial unique index makes a view count
+-- once per user per day; clicks are always inserted.
+CREATE TABLE IF NOT EXISTS ad_events (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  ad_id uuid NOT NULL REFERENCES ads(id) ON DELETE CASCADE,
+  user_id uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  kind text NOT NULL CHECK (kind IN ('view', 'click')),
+  day date NOT NULL DEFAULT CURRENT_DATE,
+  created_at timestamptz NOT NULL DEFAULT now()
+);
+CREATE UNIQUE INDEX IF NOT EXISTS ad_events_daily_view_idx
+  ON ad_events (ad_id, user_id, day) WHERE kind = 'view';
+CREATE INDEX IF NOT EXISTS ad_events_ad_idx ON ad_events (ad_id, created_at DESC);
+
 -- Deleting a frame from the admin panel must not erase the send/charge history,
 -- so the log keeps its own copy of the name and the catalog link may go away.
 ALTER TABLE room_frame_sends ADD COLUMN IF NOT EXISTS frame_name text NOT NULL DEFAULT '';

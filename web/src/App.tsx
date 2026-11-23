@@ -24,6 +24,7 @@ import Levels from './pages/Levels';
 import Earnings from './pages/Earnings';
 import Rooms from './pages/Rooms';
 import Room from './pages/Room';
+import Ads from './pages/Ads';
 import Admin from './pages/Admin';
 
 function Protected({ children }: { children: ReactNode }) {
@@ -169,6 +170,14 @@ export default function App() {
           element={
             <Protected>
               <Room />
+            </Protected>
+          }
+        />
+        <Route
+          path="/ads"
+          element={
+            <Protected>
+              <Ads />
             </Protected>
           }
         />

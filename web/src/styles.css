@@ -10771,3 +10771,192 @@ table.data tr:hover td {
     border-inline-end: 0;
   }
 }
+
+/* ---------------------------------------------------------------- ads & events */
+.ad-carousel {
+  position: relative;
+  border-radius: var(--radius);
+  overflow: hidden;
+  border: 1px solid var(--line);
+  background: var(--card);
+  box-shadow: var(--shadow);
+}
+
+.ad-slide {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+}
+
+.ad-media {
+  position: relative;
+  aspect-ratio: 16 / 9;
+  background: rgba(0, 0, 0, 0.4);
+  overflow: hidden;
+}
+
+.ad-media img,
+.ad-media video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.ad-slide-body {
+  padding: 12px 14px 30px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.ad-slide-body strong {
+  font-size: 15px;
+}
+
+/* Transparent link layer over a linked slide; arrows and dots sit above it. */
+.ad-hit {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+}
+
+.ad-nav {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 2;
+  width: 32px;
+  height: 32px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  border: 1px solid var(--line-strong);
+  background: rgba(10, 6, 16, 0.55);
+  color: var(--text);
+  cursor: pointer;
+  backdrop-filter: blur(6px);
+}
+
+.ad-nav-prev {
+  inset-inline-start: 8px;
+}
+
+.ad-nav-next {
+  inset-inline-end: 8px;
+}
+
+.ad-dots {
+  position: absolute;
+  inset-block-end: 8px;
+  inset-inline: 0;
+  z-index: 2;
+  display: flex;
+  justify-content: center;
+  gap: 6px;
+}
+
+.ad-dot {
+  width: 7px;
+  height: 7px;
+  padding: 0;
+  border: none;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.4);
+  cursor: pointer;
+  transition: width 0.2s ease, background 0.2s ease;
+}
+
+.ad-dot.active {
+  width: 18px;
+  background: var(--grad);
+}
+
+.ads-list {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.ad-card {
+  display: flex;
+  flex-direction: column;
+  border-radius: var(--radius);
+  overflow: hidden;
+  border: 1px solid var(--line);
+  background: var(--card);
+}
+
+.ad-card-body {
+  padding: 12px 14px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  align-items: flex-start;
+}
+
+.ad-card-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  width: 100%;
+  justify-content: space-between;
+}
+
+.ad-popup {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.ad-popup-close {
+  position: absolute;
+  inset-block-start: -6px;
+  inset-inline-end: -6px;
+  z-index: 2;
+}
+
+.ad-popup-media {
+  border-radius: 16px;
+}
+
+.ad-popup-title {
+  font-size: 18px;
+  font-weight: 700;
+  padding-inline-end: 24px;
+}
+
+.ad-admin-preview {
+  display: flex;
+  align-items: flex-end;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.ad-admin-preview img,
+.ad-admin-preview video {
+  width: 220px;
+  max-width: 100%;
+  border-radius: 12px;
+  border: 1px solid var(--line);
+  display: block;
+}
+
+.ad-admin-thumb {
+  width: 72px;
+  height: 48px;
+  border-radius: 8px;
+  overflow: hidden;
+  background: rgba(0, 0, 0, 0.35);
+  border: 1px solid var(--line);
+}
+
+.ad-admin-thumb img,
+.ad-admin-thumb video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}

@@ -405,6 +405,18 @@ const ar: Record<string, string> = {
   levelHistory: 'سجل الترقيات',
   reachedLevel: 'وصلت للمستوى',
   vipHistory: 'سجل VIP',
+  // ads & events
+  adsTitle: 'الإعلانات والأحداث',
+  adsSubtitle: 'كل ما هو جديد ومميز في التطبيق',
+  adsHomeHint: 'شاهد كل الإعلانات والفعاليات',
+  adsEmpty: 'لا توجد إعلانات حالياً',
+  adsEmptyHint: 'ستظهر الإعلانات والأحداث هنا عند نشرها',
+  adsOpen: 'فتح الرابط',
+  adsPrev: 'السابق',
+  adsNext: 'التالي',
+  adsLive: 'متاح الآن',
+  adsStarts: 'يبدأ {date}',
+  adsEnds: 'ينتهي {date}',
 };
 
 const en: Record<string, string> = {
@@ -810,6 +822,18 @@ const en: Record<string, string> = {
   levelHistory: 'Upgrade history',
   reachedLevel: 'Reached level',
   vipHistory: 'VIP history',
+  // ads & events
+  adsTitle: 'Ads & Events',
+  adsSubtitle: 'Everything new and featured in the app',
+  adsHomeHint: 'See all ads and events',
+  adsEmpty: 'No ads right now',
+  adsEmptyHint: 'Ads and events show up here once they are published',
+  adsOpen: 'Open link',
+  adsPrev: 'Previous',
+  adsNext: 'Next',
+  adsLive: 'Available now',
+  adsStarts: 'Starts {date}',
+  adsEnds: 'Ends {date}',
 };
 
 const dictionaries: Record<Lang, Record<string, string>> = { ar, en };
