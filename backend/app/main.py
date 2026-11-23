@@ -1,10 +1,12 @@
+import asyncio
 import os
 import time
 from collections import Counter
-from contextlib import asynccontextmanager
+from contextlib import asynccontextmanager, suppress
 
 from fastapi import FastAPI, HTTPException, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 from sqlalchemy import select
 from sqlalchemy.exc import OperationalError
@@ -24,6 +26,10 @@ from .models import (
     now_iso,
 )
 from .bootstrap import prepare_database
+from .events_admin import UPLOAD_DIR
+from .events_admin import router as events_admin_router
+from .events_public import router as events_public_router
+from .events_ws import events_worker, router as events_ws_router
 from .realtime import RoomHub
 
 GAMES = [
@@ -44,13 +50,24 @@ async def lifespan(_: FastAPI):
             if attempt == 14:
                 raise
             time.sleep(2)
-    yield
+    worker = asyncio.create_task(events_worker())
+    try:
+        yield
+    finally:
+        worker.cancel()
+        with suppress(asyncio.CancelledError):
+            await worker
 
 
 app = FastAPI(title="يلا فون API", lifespan=lifespan)
 
 # حضور الغرف وإشارات المكالمة الصوتية (WebRTC) في الذاكرة.
 hub = RoomHub()
+
+app.include_router(events_public_router)
+app.include_router(events_admin_router)
+app.include_router(events_ws_router)
+app.mount("/api/uploads", StaticFiles(directory=str(UPLOAD_DIR)), name="uploads")
 
 app.add_middleware(
     CORSMiddleware,
@@ -162,6 +179,7 @@ def me() -> dict:
             "level": profile.level,
             "coins": profile.coins,
             "diamonds": profile.diamonds,
+            "gold": profile.gold,
             "bio": profile.bio,
             "language": profile.language,
             "push_enabled": profile.push_enabled,

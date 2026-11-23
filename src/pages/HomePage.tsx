@@ -13,10 +13,14 @@ import {
   X,
 } from 'lucide-react'
 import Avatar from '../components/Avatar'
+import BannerCarousel from '../components/events/BannerCarousel'
+import EventCard from '../components/events/EventCard'
 import RoomCard from '../components/RoomCard'
 import { useAppMenu } from '../components/AppShell'
 import { Screen } from '../components/Screen'
 import { api, type Me, type Room } from '../lib/api'
+import { eventsApi, type GameEvent } from '../lib/eventsApi'
+import { useEventsLive } from '../lib/useEventsLive'
 
 const TABS = [
   { key: 'all', label: 'الكل' },
@@ -38,6 +42,7 @@ export default function HomePage({ onOpenRoom }: { onOpenRoom: (room: Room) => v
   const openMenu = useAppMenu()
   const [me, setMe] = useState<Me | null>(null)
   const [rooms, setRooms] = useState<Room[] | null>(null)
+  const [events, setEvents] = useState<GameEvent[] | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [query, setQuery] = useState('')
   const [searchOpen, setSearchOpen] = useState(false)
@@ -56,6 +61,23 @@ export default function HomePage({ onOpenRoom }: { onOpenRoom: (room: Room) => v
       active = false
     }
   }, [])
+
+  useEffect(() => {
+    let active = true
+    eventsApi
+      .list()
+      .then((list) => active && setEvents(list))
+      .catch(() => active && setEvents([]))
+    return () => {
+      active = false
+    }
+  }, [])
+
+  useEventsLive((message) => {
+    if (message.type === 'event_update') {
+      eventsApi.list().then(setEvents).catch(() => undefined)
+    }
+  })
 
   const visibleRooms = useMemo(() => {
     const term = query.trim()
@@ -119,6 +141,9 @@ export default function HomePage({ onOpenRoom }: { onOpenRoom: (room: Room) => v
         </div>
       )}
 
+      {/* بانرات إعلانية متحركة */}
+      <BannerCarousel className="mb-3" />
+
       {/* البانر */}
       <section className="relative overflow-hidden rounded-[26px] border border-white/10">
         <div aria-hidden className="photo-base photo-couple absolute inset-0" />
@@ -161,6 +186,25 @@ export default function HomePage({ onOpenRoom }: { onOpenRoom: (room: Room) => v
           </button>
         ))}
       </div>
+
+      {/* النشاطات والفعاليات */}
+      {events && events.length > 0 && (
+        <section className="mt-4">
+          <div className="mb-2.5 flex items-center justify-between">
+            <h2 className="flex items-center gap-1.5 text-sm font-black text-white">
+              <Trophy size={14} className="text-gold" /> النشاطات والفعاليات
+            </h2>
+            <Link to="/events" className="text-[10px] font-bold text-gold">
+              عرض الكل
+            </Link>
+          </div>
+          <div className="no-scrollbar -mx-4 flex gap-3 overflow-x-auto px-4 pb-2">
+            {events.slice(0, 6).map((event) => (
+              <EventCard key={event.id} event={event} compact />
+            ))}
+          </div>
+        </section>
+      )}
 
       {/* التبويبات */}
       <div className="no-scrollbar -mx-4 mt-4 flex gap-2 overflow-x-auto px-4 pb-1">

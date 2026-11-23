@@ -43,6 +43,7 @@ export type Me = {
   level: number
   coins: number
   diamonds: number
+  gold: number
   bio: string
   language: string
   push_enabled: boolean

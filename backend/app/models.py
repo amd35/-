@@ -59,6 +59,7 @@ class Profile(Base):
     level: Mapped[int] = mapped_column(Integer, default=1)
     coins: Mapped[int] = mapped_column(Integer, default=0)
     diamonds: Mapped[int] = mapped_column(Integer, default=0)
+    gold: Mapped[int] = mapped_column(Integer, default=0)
     bio: Mapped[str] = mapped_column(String(200), default="")
     language: Mapped[str] = mapped_column(String(20), default="ar")
     push_enabled: Mapped[bool] = mapped_column(Boolean, default=True)
