@@ -10252,6 +10252,8 @@ table.data tr:hover td {
   place-items: center;
   width: 100%;
   padding-top: 28px;
+  /* Lifted so the name plaque keeps a clear gap from the frame's crown. */
+  transform: translateY(-10px);
 }
 
 .rp-plaque-crown {
@@ -10341,6 +10343,13 @@ table.data tr:hover td {
   height: 98px;
   opacity: 0.9;
   filter: drop-shadow(0 10px 18px rgba(0, 0, 0, 0.6));
+}
+
+/* The painted admin artwork already carries its own wings and glow, so the
+   extra SVG wings and the coloured halo behind the frame are hidden. */
+.rp-avatar:has(.av-frame-art) .rp-avatar-wing,
+.rp-avatar:has(.av-frame-art) .rp-avatar-glow {
+  display: none;
 }
 
 .rp-avatar-wing.is-start {
