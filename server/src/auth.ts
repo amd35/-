@@ -23,7 +23,13 @@ export function signAdminToken(adminId: string): string {
 }
 
 export function verifyToken(token: string): TokenPayload {
-  const payload = jwt.verify(token, JWT_SECRET);
+  let payload: string | jwt.JwtPayload;
+  try {
+    payload = jwt.verify(token, JWT_SECRET);
+  } catch {
+    // Expired/malformed tokens are an auth failure, not a server error.
+    throw new HttpError(401, 'Invalid or expired token', 'invalid_token');
+  }
   if (typeof payload === 'string' || !payload.sub || !payload.kind) {
     throw new HttpError(401, 'Invalid token', 'invalid_token');
   }
