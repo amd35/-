@@ -282,34 +282,41 @@ async function main(): Promise<void> {
     ok((await me(alice.token)).wallet.balance === afterConfirm.wallet.balance, 'no double credit');
 
     section('Withdrawal request and rejection refund');
-    await call(`/admin/users/${alice.id}/coins`, {
+    await call(`/admin/users/${alice.id}/beans`, {
       method: 'POST',
       token: adminToken,
       body: { amount: 2000, note: 'e2e withdrawal float' },
     });
-    const beforeWithdraw = (await me(alice.token)).wallet.balance;
+    const beforeWithdraw = (await call('/gifts/earnings', { token: alice.token })).data.wallet
+      .available;
     const tooSmall = await call('/wallet/withdrawals', {
       method: 'POST',
       token: alice.token,
-      body: { coins: 10 },
+      body: { beans: 10, currency: 'IQD', method: 'manual', details: 'e2e wallet' },
     });
     ok(tooSmall.status === 400, 'withdrawal below the minimum is rejected');
 
     const withdrawal = await call('/wallet/withdrawals', {
       method: 'POST',
       token: alice.token,
-      body: { coins: 1000 },
+      body: { beans: 1000, currency: 'IQD', method: 'manual', details: 'e2e wallet 07700000000' },
     });
-    ok(withdrawal.status === 201, 'withdrawal request created');
-    ok((await me(alice.token)).wallet.balance === beforeWithdraw - 1000, 'coins are held on request');
+    ok(withdrawal.status === 201, 'withdrawal request created', withdrawal.data);
+    const afterRequest = (await call('/gifts/earnings', { token: alice.token })).data.wallet;
+    ok(afterRequest.available === beforeWithdraw - 1000, 'beans are held on request');
+    ok(afterRequest.pending === 1000, 'held beans are pending');
 
     const reject = await call(`/admin/withdrawals/${withdrawal.data.withdrawal.id}/reject`, {
       method: 'POST',
       token: adminToken,
-      body: { note: 'e2e reject' },
+      body: { reason: 'e2e reject' },
     });
-    ok(reject.status === 200, 'admin rejects the withdrawal');
-    ok((await me(alice.token)).wallet.balance === beforeWithdraw, 'rejected withdrawal refunds the coins');
+    ok(reject.status === 200, 'admin rejects the withdrawal', reject.data);
+    ok(
+      (await call('/gifts/earnings', { token: alice.token })).data.wallet.available ===
+        beforeWithdraw,
+      'rejected withdrawal refunds the beans'
+    );
 
     section('Concurrent call protection');
     await call(`/admin/users/${alice.id}/coins`, {
@@ -466,7 +473,7 @@ async function main(): Promise<void> {
     const paidOut = await call(`/admin/withdrawals/${profitWithdrawal.data.withdrawal.id}/paid`, {
       method: 'POST',
       token: adminToken,
-      body: {},
+      body: { transferRef: 'e2e-transfer-1' },
     });
     ok(paidOut.status === 200, 'admin records the actual payment');
     const bobPaidOut = await call('/gifts/earnings', { token: bob.token });
@@ -490,8 +497,12 @@ async function main(): Promise<void> {
       token: adminToken,
       body: { reason: 'e2e' },
     });
-    const bannedMe = await call('/auth/me', { token: bob.token });
-    ok(bannedMe.status === 403, 'banned account cannot use the API', bannedMe.status);
+    const bannedWrite = await call('/chat/conversations', {
+      method: 'POST',
+      token: bob.token,
+      body: {},
+    });
+    ok(bannedWrite.status === 403, 'banned account cannot write', bannedWrite.status);
     await call(`/admin/users/${bob.id}/unban`, { method: 'POST', token: adminToken, body: {} });
     ok((await call('/auth/me', { token: bob.token })).status === 200, 'unbanned account works again');
 

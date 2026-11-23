@@ -79,10 +79,13 @@ export interface AuthedUser {
   ban_reason: string | null;
 }
 
+export type AdminRole = 'superadmin' | 'moderator' | 'accountant';
+
 export interface AuthedAdmin {
   id: string;
   username: string;
   display_name: string;
+  role: AdminRole;
 }
 
 export function reqUser(req: Request): AuthedUser {
@@ -129,11 +132,17 @@ export async function currentAdmin(req: Request) {
     throw new HttpError(401, 'Session expired, please sign in again', 'invalid_token');
   }
   if (payload.kind === 'admin') {
-    const admin = await one<{ id: string; username: string; display_name: string }>(
-      'SELECT id, username, display_name FROM admin_users WHERE id = $1',
-      [payload.sub]
-    );
+    const admin = await one<{
+      id: string;
+      username: string;
+      display_name: string;
+      role: AdminRole;
+      is_active: boolean;
+    }>('SELECT id, username, display_name, role, is_active FROM admin_users WHERE id = $1', [
+      payload.sub,
+    ]);
     if (!admin) throw new HttpError(401, 'Admin account not found', 'account_missing');
+    if (!admin.is_active) throw new HttpError(403, 'This staff account is disabled', 'admin_disabled');
     return admin;
   }
   if (payload.kind !== 'user') throw new HttpError(403, 'Admin access required', 'forbidden');
@@ -144,9 +153,12 @@ export async function currentAdmin(req: Request) {
     payload.sub,
   ]);
   if (!flagged?.is_admin) throw new HttpError(403, 'Admin access required', 'forbidden');
-  const general = await one<{ id: string; username: string; display_name: string }>(
-    'SELECT id, username, display_name FROM admin_users ORDER BY created_at LIMIT 1'
-  );
+  const general = await one<{
+    id: string;
+    username: string;
+    display_name: string;
+    role: AdminRole;
+  }>('SELECT id, username, display_name, role FROM admin_users ORDER BY created_at LIMIT 1');
   if (!general) throw new HttpError(403, 'Admin access required', 'forbidden');
   return general;
 }
@@ -156,6 +168,28 @@ export function requireAdmin() {
     try {
       (req as Request & { admin: Awaited<ReturnType<typeof currentAdmin>> }).admin =
         await currentAdmin(req);
+      next();
+    } catch (error) {
+      next(error);
+    }
+  };
+}
+
+/**
+ * Role guard for routes behind `requireAdmin()`. The general manager
+ * (`superadmin`) can do everything; `accountant` handles money and payouts;
+ * `moderator` handles operations but never money.
+ */
+export function requireRole(...roles: AdminRole[]) {
+  return (req: Request, _res: Response, next: NextFunction) => {
+    try {
+      const admin = reqAdmin(req);
+      if (!roles.includes(admin.role)) {
+        throw new HttpError(403, 'You do not have permission for this action', 'forbidden_role', {
+          role: admin.role,
+          allowed: roles,
+        });
+      }
       next();
     } catch (error) {
       next(error);

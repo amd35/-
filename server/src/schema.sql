@@ -1612,3 +1612,75 @@ CREATE TABLE IF NOT EXISTS security_media_hashes (
   reason text NOT NULL,
   created_at timestamptz NOT NULL DEFAULT now()
 );
+
+-- ============================================================================
+-- YALLA PHONE multi-currency economy
+--   GOLD    → wallets.gold            (gifts / games)
+--   DIAMOND → wallets.balance         (gifts in rooms and private chats)
+--   BEANS   → profit_wallets.available (gift profits, withdrawable)
+-- Every currency has its own append-only ledger with a reference, a timestamp
+-- and the balance before/after the movement. No conversion between currencies.
+-- ============================================================================
+
+-- Gold ledger. `(user_id, type, ref_id)` is unique so a retried request can
+-- never credit or debit the same reference twice.
+CREATE TABLE IF NOT EXISTS gold_transactions (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  type text NOT NULL,
+  amount bigint NOT NULL,
+  balance_before bigint NOT NULL DEFAULT 0,
+  balance_after bigint NOT NULL DEFAULT 0,
+  ref_type text,
+  ref_id uuid,
+  meta jsonb NOT NULL DEFAULT '{}'::jsonb,
+  created_at timestamptz NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS gold_transactions_user_idx ON gold_transactions (user_id, created_at DESC);
+CREATE UNIQUE INDEX IF NOT EXISTS gold_transactions_unique_ref_idx
+  ON gold_transactions (user_id, type, ref_id);
+
+-- Balances before the movement, so a statement can always be reconstructed.
+ALTER TABLE transactions ADD COLUMN IF NOT EXISTS balance_before bigint NOT NULL DEFAULT 0;
+ALTER TABLE profit_transactions ADD COLUMN IF NOT EXISTS balance_before bigint NOT NULL DEFAULT 0;
+
+-- Gift profit split: recipient (bean share), room owner (bean share) and the
+-- administration (remainder). `host_percent` overrides the global default.
+ALTER TABLE gifts ADD COLUMN IF NOT EXISTS host_percent integer;
+ALTER TABLE gift_sends ADD COLUMN IF NOT EXISTS currency text NOT NULL DEFAULT 'diamond';
+ALTER TABLE gift_sends ADD COLUMN IF NOT EXISTS host_id uuid REFERENCES users(id) ON DELETE SET NULL;
+ALTER TABLE gift_sends ADD COLUMN IF NOT EXISTS host_coins bigint NOT NULL DEFAULT 0;
+ALTER TABLE gift_sends ADD COLUMN IF NOT EXISTS host_percent integer NOT NULL DEFAULT 0;
+
+-- Withdrawal review trail: the rate and fee are frozen when the request is
+-- created, and the payout proof/transfer reference is recorded when it is paid.
+ALTER TABLE withdrawal_requests ADD COLUMN IF NOT EXISTS rate numeric NOT NULL DEFAULT 0;
+ALTER TABLE withdrawal_requests ADD COLUMN IF NOT EXISTS fee_percent numeric NOT NULL DEFAULT 0;
+ALTER TABLE withdrawal_requests ADD COLUMN IF NOT EXISTS fee_amount numeric NOT NULL DEFAULT 0;
+ALTER TABLE withdrawal_requests ADD COLUMN IF NOT EXISTS net_amount numeric NOT NULL DEFAULT 0;
+ALTER TABLE withdrawal_requests ADD COLUMN IF NOT EXISTS balance_before bigint NOT NULL DEFAULT 0;
+ALTER TABLE withdrawal_requests ADD COLUMN IF NOT EXISTS reject_reason text;
+ALTER TABLE withdrawal_requests ADD COLUMN IF NOT EXISTS transfer_ref text;
+ALTER TABLE withdrawal_requests ADD COLUMN IF NOT EXISTS proof_url text;
+ALTER TABLE withdrawal_requests ADD COLUMN IF NOT EXISTS reviewed_by uuid;
+ALTER TABLE withdrawal_requests ADD COLUMN IF NOT EXISTS reviewed_at timestamptz;
+CREATE INDEX IF NOT EXISTS withdrawal_requests_created_idx
+  ON withdrawal_requests (created_at DESC);
+
+-- Staff roles: superadmin (everything), moderator (operations, no money),
+-- accountant (money and payouts only).
+ALTER TABLE admin_users ADD COLUMN IF NOT EXISTS role text NOT NULL DEFAULT 'superadmin';
+ALTER TABLE admin_users ADD COLUMN IF NOT EXISTS is_active boolean NOT NULL DEFAULT true;
+UPDATE admin_users SET role = 'superadmin' WHERE role IS NULL OR role = '';
+
+-- Exchange rates, payout limits, fees and gift profit shares (admin managed).
+INSERT INTO app_settings (key, value) VALUES
+  ('beans_per_usd',        '1000'::jsonb),
+  ('bean_to_iqd_rate',     '1'::jsonb),
+  ('min_withdrawal_beans', '1000'::jsonb),
+  ('max_withdrawal_beans', '5000000'::jsonb),
+  ('withdrawal_fee_percent', '0'::jsonb),
+  ('withdrawal_methods',   '[{"id":"manual","label":"تحويل يدوي / كاش","labelEn":"Manual transfer / cash","enabled":true,"note":"حوّل المبلغ ثم أرسل رقم الطلب للإدارة"},{"id":"zaincash","label":"ZainCash","labelEn":"ZainCash","enabled":true,"note":"محفظة زين كاش"},{"id":"fastpay","label":"FastPay","labelEn":"FastPay","enabled":true,"note":"محفظة فاست باي"},{"id":"bank","label":"حساب مصرفي","labelEn":"Bank account","enabled":true,"note":"تحويل مصرفي"}]'::jsonb),
+  ('gold_gifts_enabled',   'true'::jsonb),
+  ('gift_host_percent',    '10'::jsonb)
+ON CONFLICT (key) DO NOTHING;

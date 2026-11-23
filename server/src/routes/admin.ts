@@ -8,6 +8,7 @@ import {
   recordAttempt,
   reqAdmin,
   requireAdmin,
+  requireRole,
   signAdminToken,
 } from '../auth';
 import { activeCallFor, endCall } from '../calls';
@@ -19,7 +20,7 @@ import { FRAME_RARITIES, FrameRow, serializeFrame } from '../frames';
 import { GIFT_RARITIES, GiftRow, moveProfit, serializeGift } from '../gifts';
 import { serializeRoomFrame, type RoomFrameRow } from '../roomFrames';
 import { HttpError, asyncHandler, intParam, iraqDateStr, nextIraqMidnight } from '../utils';
-import { moveCoins } from '../wallet';
+import { moveCoins, moveGold } from '../wallet';
 import { giftUpload, upload } from './uploads';
 
 const router = Router();
@@ -32,8 +33,15 @@ router.post(
     if (!username || !password) throw new HttpError(400, 'Enter credentials', 'missing_credentials');
     await assertNotThrottled(`admin:${username}`, 'admin_login');
 
-    const admin = await one<{ id: string; username: string; display_name: string; password_hash: string }>(
-      'SELECT id, username, display_name, password_hash FROM admin_users WHERE username = $1',
+    const admin = await one<{
+      id: string;
+      username: string;
+      display_name: string;
+      password_hash: string;
+      role: string;
+      is_active: boolean;
+    }>(
+      'SELECT id, username, display_name, password_hash, role, is_active FROM admin_users WHERE username = $1',
       [username]
     );
     const ok = admin ? await bcrypt.compare(password, admin.password_hash) : false;
@@ -41,11 +49,19 @@ router.post(
       await recordAttempt(`admin:${username}`, 'admin_login');
       throw new HttpError(401, 'Wrong admin credentials', 'invalid_credentials');
     }
+    if (!admin.is_active) {
+      throw new HttpError(403, 'This staff account is disabled', 'admin_disabled');
+    }
     await clearAttempts(`admin:${username}`, 'admin_login');
     await q('UPDATE admin_users SET last_login_at = now() WHERE id = $1', [admin.id]);
     res.json({
       token: signAdminToken(admin.id),
-      admin: { id: admin.id, username: admin.username, displayName: admin.display_name },
+      admin: {
+        id: admin.id,
+        username: admin.username,
+        displayName: admin.display_name,
+        role: admin.role,
+      },
     });
   })
 );
@@ -134,6 +150,7 @@ router.get(
 
 router.get(
   '/users',
+  requireRole('superadmin', 'moderator'),
   asyncHandler(async (req, res) => {
     const search = String(req.query.q || '').trim();
     const status = String(req.query.status || 'all');
@@ -167,6 +184,7 @@ router.get(
 
 router.post(
   '/users/:id/ban',
+  requireRole('superadmin', 'moderator'),
   asyncHandler(async (req, res) => {
     const reason = String(req.body?.reason || 'Policy violation').slice(0, 200);
     const user = await one<{ id: string }>(
@@ -183,6 +201,7 @@ router.post(
 
 router.post(
   '/users/:id/unban',
+  requireRole('superadmin', 'moderator'),
   asyncHandler(async (req, res) => {
     const user = await one(
       `UPDATE users SET is_banned = false, ban_reason = NULL WHERE id = $1 RETURNING id`,
@@ -196,6 +215,7 @@ router.post(
 
 router.post(
   '/users/:id/coins',
+  requireRole('superadmin', 'accountant'),
   asyncHandler(async (req, res) => {
     const amount = Math.trunc(Number(req.body?.amount || 0));
     const note = String(req.body?.note || 'Admin adjustment').slice(0, 200);
@@ -223,6 +243,73 @@ router.post(
       { amount }
     );
     res.json({ balance: result.balanceAfter });
+  })
+);
+
+/** Adjusts a user's GOLD balance. Money roles only. */
+router.post(
+  '/users/:id/gold',
+  requireRole('superadmin', 'accountant'),
+  asyncHandler(async (req, res) => {
+    const amount = Math.trunc(Number(req.body?.amount || 0));
+    const note = String(req.body?.note || 'Admin adjustment').slice(0, 200);
+    if (!Number.isFinite(amount) || amount === 0) {
+      throw new HttpError(400, 'Enter a non-zero amount', 'invalid_amount');
+    }
+    const admin = reqAdmin(req);
+    const result = await tx((c) =>
+      moveGold(c, {
+        userId: req.params.id,
+        amount,
+        type: 'admin_adjust',
+        refType: 'admin',
+        refId: crypto.randomUUID(),
+        meta: { note, adminId: admin.id },
+      })
+    );
+    emitToUser(req.params.id, 'wallet:update', {});
+    await notify(
+      req.params.id,
+      amount > 0 ? 'gold_added' : 'gold_removed',
+      amount > 0 ? 'أضيف ذهب إلى محفظتك' : 'تم خصم ذهب من محفظتك',
+      `${Math.abs(amount)} ذهب — ${note}`,
+      { amount }
+    );
+    res.json({ gold: result.balanceAfter });
+  })
+);
+
+/** Adjusts a user's BEANS (withdrawable earnings). Money roles only. */
+router.post(
+  '/users/:id/beans',
+  requireRole('superadmin', 'accountant'),
+  asyncHandler(async (req, res) => {
+    const amount = Math.trunc(Number(req.body?.amount || 0));
+    const note = String(req.body?.note || 'Admin adjustment').slice(0, 200);
+    if (!Number.isFinite(amount) || amount === 0) {
+      throw new HttpError(400, 'Enter a non-zero amount', 'invalid_amount');
+    }
+    const admin = reqAdmin(req);
+    const result = await tx((c) =>
+      moveProfit(c, {
+        userId: req.params.id,
+        type: 'admin_adjust',
+        amount,
+        earned: amount > 0 ? amount : 0,
+        refType: 'admin',
+        refId: crypto.randomUUID(),
+        meta: { note, adminId: admin.id },
+      })
+    );
+    emitToUser(req.params.id, 'profit:update', {});
+    await notify(
+      req.params.id,
+      amount > 0 ? 'beans_added' : 'beans_removed',
+      amount > 0 ? 'أضيفت فاصوليا إلى أرباحك' : 'تم خصم فاصوليا من أرباحك',
+      `${Math.abs(amount)} فاصوليا — ${note}`,
+      { amount }
+    );
+    res.json({ available: result.available });
   })
 );
 
@@ -305,6 +392,23 @@ router.get(
   })
 );
 
+/** Money-related settings only a general manager or an accountant may change. */
+const FINANCIAL_SETTING_KEYS = [
+  'beans_per_usd',
+  'bean_to_iqd_rate',
+  'min_withdrawal_beans',
+  'max_withdrawal_beans',
+  'withdrawal_fee_percent',
+  'withdrawal_methods',
+  'gold_gifts_enabled',
+  'gift_recipient_percent',
+  'gift_host_percent',
+  'gift_admin_percent',
+  'min_withdrawal_coins',
+  'coin_to_iqd_rate',
+  'coin_to_usd_rate',
+] as const;
+
 router.get(
   '/settings',
   asyncHandler(async (_req, res) => {
@@ -315,8 +419,205 @@ router.get(
 router.put(
   '/settings',
   asyncHandler(async (req, res) => {
-    const settings = await updateSettings(req.body ?? {});
+    const admin = reqAdmin(req);
+    const body: Record<string, unknown> = { ...(req.body ?? {}) };
+    // A moderator manages operations, never the economy.
+    if (admin.role === 'moderator') {
+      for (const key of FINANCIAL_SETTING_KEYS) delete body[key];
+    }
+    const settings = await updateSettings(body);
     res.json({ settings });
+  })
+);
+
+/** Economy settings (rates, fees, limits, payout channels, profit shares). */
+router.put(
+  '/finance/settings',
+  requireRole('superadmin', 'accountant'),
+  asyncHandler(async (req, res) => {
+    const patch: Record<string, unknown> = {};
+    for (const key of FINANCIAL_SETTING_KEYS) {
+      if (key in (req.body ?? {})) patch[key] = (req.body as Record<string, unknown>)[key];
+    }
+    res.json({ settings: await updateSettings(patch) });
+  })
+);
+
+/** Live totals of the three currencies, gift revenue and payout workload. */
+router.get(
+  '/finance/overview',
+  requireRole('superadmin', 'accountant'),
+  asyncHandler(async (_req, res) => {
+    const totals = await one<Record<string, string>>(
+      `SELECT
+         (SELECT COALESCE(SUM(balance), 0)::text FROM wallets) AS diamonds,
+         (SELECT COALESCE(SUM(gold), 0)::text FROM wallets) AS gold,
+         (SELECT COALESCE(SUM(available), 0)::text FROM profit_wallets) AS beans_available,
+         (SELECT COALESCE(SUM(pending), 0)::text FROM profit_wallets) AS beans_pending,
+         (SELECT COALESCE(SUM(withdrawn), 0)::text FROM profit_wallets) AS beans_withdrawn,
+         (SELECT COALESCE(SUM(total_earned), 0)::text FROM profit_wallets) AS beans_earned,
+         (SELECT COALESCE(SUM(coins), 0)::text FROM gift_sends WHERE currency = 'diamond') AS gift_diamonds,
+         (SELECT COALESCE(SUM(coins), 0)::text FROM gift_sends WHERE currency = 'gold') AS gift_gold,
+         (SELECT count(*)::text FROM withdrawal_requests WHERE status = 'pending') AS pending_payouts,
+         (SELECT COALESCE(SUM(net_amount), 0)::text FROM withdrawal_requests WHERE status = 'paid') AS paid_payouts`
+    );
+    const byStatus = await q(
+      `SELECT status, count(*)::int AS count, COALESCE(SUM(net_amount), 0)::text AS net
+       FROM withdrawal_requests GROUP BY status`
+    );
+    res.json({
+      totals: {
+        diamonds: Number(totals?.diamonds || 0),
+        gold: Number(totals?.gold || 0),
+        beansAvailable: Number(totals?.beans_available || 0),
+        beansPending: Number(totals?.beans_pending || 0),
+        beansWithdrawn: Number(totals?.beans_withdrawn || 0),
+        beansEarned: Number(totals?.beans_earned || 0),
+        giftDiamonds: Number(totals?.gift_diamonds || 0),
+        giftGold: Number(totals?.gift_gold || 0),
+        pendingPayouts: Number(totals?.pending_payouts || 0),
+        paidPayouts: Number(totals?.paid_payouts || 0),
+      },
+      byStatus: byStatus.map((row) => ({
+        status: row.status,
+        count: Number(row.count),
+        net: Number(row.net),
+      })),
+    });
+  })
+);
+
+const ADMIN_ROLES = ['superadmin', 'moderator', 'accountant'] as const;
+
+/** Staff accounts and their permissions (general manager only). */
+router.get(
+  '/staff',
+  requireRole('superadmin'),
+  asyncHandler(async (_req, res) => {
+    const staff = await q(
+      `SELECT id, username, display_name, role, is_active, created_at, last_login_at
+       FROM admin_users ORDER BY created_at`
+    );
+    res.json({
+      staff: staff.map((row) => ({
+        id: row.id,
+        username: row.username,
+        displayName: row.display_name,
+        role: row.role,
+        isActive: row.is_active,
+        createdAt: row.created_at,
+        lastLoginAt: row.last_login_at,
+      })),
+    });
+  })
+);
+
+router.post(
+  '/staff',
+  requireRole('superadmin'),
+  asyncHandler(async (req, res) => {
+    const username = String(req.body?.username || '').trim().toLowerCase();
+    const password = String(req.body?.password || '');
+    const displayName = String(req.body?.displayName || username).trim().slice(0, 60);
+    const role = String(req.body?.role || 'moderator');
+    if (!/^[a-z0-9_.]{3,20}$/.test(username)) {
+      throw new HttpError(400, 'Enter a valid username', 'invalid_username');
+    }
+    if (password.length < 6) {
+      throw new HttpError(400, 'Password must be at least 6 characters', 'weak_password');
+    }
+    if (!(ADMIN_ROLES as readonly string[]).includes(role)) {
+      throw new HttpError(400, 'Unknown role', 'invalid_role');
+    }
+    const exists = await one('SELECT 1 FROM admin_users WHERE username = $1', [username]);
+    if (exists) throw new HttpError(409, 'This username already exists', 'username_taken');
+    const hash = await bcrypt.hash(password, 10);
+    const row = await one(
+      `INSERT INTO admin_users (username, display_name, password_hash, role, password_source)
+       VALUES ($1, $2, $3, $4, 'custom') RETURNING id, username, display_name, role, is_active`,
+      [username, displayName, hash, role]
+    );
+    res.status(201).json({ staff: row });
+  })
+);
+
+router.patch(
+  '/staff/:id',
+  requireRole('superadmin'),
+  asyncHandler(async (req, res) => {
+    const target = await one<{ id: string; role: string; is_active: boolean }>(
+      'SELECT id, role, is_active FROM admin_users WHERE id = $1',
+      [req.params.id]
+    );
+    if (!target) throw new HttpError(404, 'Staff account not found', 'staff_not_found');
+
+    const role = req.body?.role === undefined ? target.role : String(req.body.role);
+    if (!(ADMIN_ROLES as readonly string[]).includes(role)) {
+      throw new HttpError(400, 'Unknown role', 'invalid_role');
+    }
+    const isActive =
+      req.body?.isActive === undefined ? target.is_active : Boolean(req.body.isActive);
+    if ((!isActive || role !== 'superadmin') && target.role === 'superadmin') {
+      const others = await one<{ count: string }>(
+        `SELECT count(*)::text AS count FROM admin_users
+         WHERE role = 'superadmin' AND is_active = true AND id <> $1`,
+        [target.id]
+      );
+      if (Number(others?.count || 0) === 0) {
+        throw new HttpError(
+          400,
+          'There must always be at least one active general manager',
+          'last_superadmin'
+        );
+      }
+    }
+
+    const password = String(req.body?.password || '');
+    if (password && password.length < 6) {
+      throw new HttpError(400, 'Password must be at least 6 characters', 'weak_password');
+    }
+    const row = await one(
+      `UPDATE admin_users SET
+         role = $2,
+         is_active = $3,
+         display_name = COALESCE(NULLIF($4::text, ''), display_name),
+         password_hash = CASE WHEN $5::text = '' THEN password_hash ELSE $5::text END,
+         password_source = CASE WHEN $5::text = '' THEN password_source ELSE 'custom' END
+       WHERE id = $1
+       RETURNING id, username, display_name, role, is_active`,
+      [
+        target.id,
+        role,
+        isActive,
+        String(req.body?.displayName || '').trim().slice(0, 60),
+        password ? await bcrypt.hash(password, 10) : '',
+      ]
+    );
+    res.json({ staff: row });
+  })
+);
+
+router.delete(
+  '/staff/:id',
+  requireRole('superadmin'),
+  asyncHandler(async (req, res) => {
+    const target = await one<{ id: string; role: string }>(
+      'SELECT id, role FROM admin_users WHERE id = $1',
+      [req.params.id]
+    );
+    if (!target) throw new HttpError(404, 'Staff account not found', 'staff_not_found');
+    if (target.role === 'superadmin') {
+      const others = await one<{ count: string }>(
+        `SELECT count(*)::text AS count FROM admin_users
+         WHERE role = 'superadmin' AND is_active = true AND id <> $1`,
+        [target.id]
+      );
+      if (Number(others?.count || 0) === 0) {
+        throw new HttpError(400, 'Cannot delete the last general manager', 'last_superadmin');
+      }
+    }
+    await q('DELETE FROM admin_users WHERE id = $1', [target.id]);
+    res.json({ deleted: true });
   })
 );
 
@@ -477,6 +778,7 @@ router.get(
 
 router.get(
   '/withdrawals',
+  requireRole('superadmin', 'accountant'),
   asyncHandler(async (_req, res) => {
     const rows = await q(
       `SELECT w.*, u.display_name AS user_name, u.username AS user_username
@@ -489,23 +791,37 @@ router.get(
 
 router.post(
   '/withdrawals/:id/approve',
+  requireRole('superadmin', 'accountant'),
   asyncHandler(async (req, res) => {
+    const admin = reqAdmin(req);
     const row = await one<{ id: string; user_id: string; coins: number }>(
-      `UPDATE withdrawal_requests SET status = 'approved', processed_at = now()
+      `UPDATE withdrawal_requests
+       SET status = 'approved', processed_at = now(), reviewed_by = $2, reviewed_at = now()
        WHERE id = $1 AND status = 'pending' RETURNING id, user_id, coins`,
-      [req.params.id]
+      [req.params.id, admin.id]
     );
     if (!row) throw new HttpError(404, 'Pending withdrawal not found', 'withdrawal_not_found');
-    await notify(row.user_id, 'withdrawal_approved', 'تمت الموافقة على السحب', `${row.coins} كونز`, {
-      coins: row.coins,
-    });
+    await notify(
+      row.user_id,
+      'withdrawal_approved',
+      'تمت الموافقة على السحب',
+      `تمت مراجعة طلب ${row.coins} فاصوليا — سيُحوَّل المبلغ بعد تنفيذ الدفع`,
+      { beans: row.coins }
+    );
     res.json({ ok: true });
   })
 );
 
 router.post(
   '/withdrawals/:id/paid',
+  requireRole('superadmin', 'accountant'),
   asyncHandler(async (req, res) => {
+    const admin = reqAdmin(req);
+    const transferRef = String(req.body?.transferRef || '').trim().slice(0, 120);
+    const proofUrl = String(req.body?.proofUrl || '').trim().slice(0, 500);
+    if (transferRef.length < 3) {
+      throw new HttpError(400, 'Enter the transfer reference', 'missing_transfer_ref');
+    }
     const result = await tx(async (c) => {
       const { rows } = await c.query<{
         id: string;
@@ -514,12 +830,15 @@ router.post(
         source: string;
         amount: string;
         currency: string;
+        net_amount: string;
       }>(
         `UPDATE withdrawal_requests
          SET status = 'paid', processed_at = now(),
-             note = COALESCE(NULLIF($2::text, ''), note)
+             note = COALESCE(NULLIF($2::text, ''), note),
+             transfer_ref = $3, proof_url = NULLIF($4::text, ''),
+             reviewed_by = $5, reviewed_at = now()
          WHERE id = $1 AND status = 'approved' RETURNING *`,
-        [req.params.id, String(req.body?.note || '').slice(0, 200)]
+        [req.params.id, String(req.body?.note || '').slice(0, 200), transferRef, proofUrl, admin.id]
       );
       const row = rows[0];
       if (!row) throw new HttpError(404, 'Approved withdrawal not found', 'withdrawal_not_found');
@@ -538,12 +857,19 @@ router.post(
       return row;
     });
     emitToUser(result.user_id, 'profit:update', {});
+    const paid = Number(result.net_amount || result.amount);
     await notify(
       result.user_id,
       'withdrawal_paid',
       'تم دفع السحب',
-      `تم تحويل ${Number(result.amount)} ${result.currency} — ${result.coins} كونز`,
-      { coins: result.coins, amount: Number(result.amount), currency: result.currency }
+      `تم تحويل ${paid} ${result.currency} — ${result.coins} فاصوليا (رقم التحويل ${transferRef})`,
+      {
+        beans: result.coins,
+        amount: paid,
+        currency: result.currency,
+        transferRef,
+        proofUrl: proofUrl || null,
+      }
     );
     res.json({ ok: true });
   })
@@ -551,7 +877,13 @@ router.post(
 
 router.post(
   '/withdrawals/:id/reject',
+  requireRole('superadmin', 'accountant'),
   asyncHandler(async (req, res) => {
+    const admin = reqAdmin(req);
+    const reason = String(req.body?.reason || req.body?.note || '').trim().slice(0, 300);
+    if (reason.length < 3) {
+      throw new HttpError(400, 'Enter the rejection reason', 'missing_reason');
+    }
     const result = await tx(async (c) => {
       const { rows } = await c.query<{
         id: string;
@@ -559,9 +891,11 @@ router.post(
         coins: number;
         source: string;
       }>(
-        `UPDATE withdrawal_requests SET status = 'rejected', processed_at = now(), note = $2::text
+        `UPDATE withdrawal_requests
+         SET status = 'rejected', processed_at = now(), note = $2::text,
+             reject_reason = $2::text, reviewed_by = $3, reviewed_at = now()
          WHERE id = $1 AND status = 'pending' RETURNING id, user_id, coins, source`,
-        [req.params.id, String(req.body?.note || 'rejected').slice(0, 200)]
+        [req.params.id, reason, admin.id]
       );
       if (!rows[0]) throw new HttpError(404, 'Pending withdrawal not found', 'withdrawal_not_found');
       const row = rows[0];
@@ -593,8 +927,8 @@ router.post(
       result.withdrawal.user_id,
       'withdrawal_rejected',
       'تم رفض طلب السحب',
-      'أعيد المبلغ إلى محفظتك',
-      { coins: result.withdrawal.coins }
+      `أُعيد المبلغ إلى أرباحك — السبب: ${reason}`,
+      { beans: result.withdrawal.coins, reason }
     );
     res.json({ ok: true, balance: result.balance });
   })
@@ -679,6 +1013,7 @@ router.get(
 
 router.get(
   '/financial',
+  requireRole('superadmin', 'accountant'),
   asyncHandler(async (req, res) => {
     const period = String(req.query.period || 'day');
     const series = await q(
@@ -1136,6 +1471,17 @@ function readGiftBody(body: Record<string, unknown>): Partial<GiftRow> {
       out.recipient_percent = percent;
     }
   }
+  if (body.hostPercent !== undefined) {
+    if (body.hostPercent === null || body.hostPercent === '') {
+      out.host_percent = null;
+    } else {
+      const percent = Math.round(Number(body.hostPercent));
+      if (!Number.isFinite(percent) || percent < 0 || percent > 100) {
+        throw new HttpError(400, 'Invalid room owner percent', 'invalid_gift');
+      }
+      out.host_percent = percent;
+    }
+  }
   if (body.rarity !== undefined) {
     const rarity = String(body.rarity);
     if (!(GIFT_RARITIES as readonly string[]).includes(rarity)) {
@@ -1207,8 +1553,8 @@ router.post(
     const created = await one<GiftRow>(
       `INSERT INTO gifts
          (slug, name, name_en, description, design, video_url, cover_url, price,
-          recipient_percent, rarity, is_active, sort_order)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+          recipient_percent, rarity, is_active, sort_order, host_percent)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
        ON CONFLICT (slug) DO NOTHING
        RETURNING *`,
       [
@@ -1224,6 +1570,7 @@ router.post(
         fields.rarity ?? 'common',
         fields.is_active ?? true,
         fields.sort_order ?? 0,
+        fields.host_percent ?? null,
       ]
     );
     if (!created) throw new HttpError(409, 'A gift with this slug already exists', 'gift_slug_taken');
@@ -1245,7 +1592,7 @@ router.patch(
       `UPDATE gifts SET
          name = $2, name_en = $3, description = $4, design = $5, video_url = $6,
          cover_url = $7, price = $8, recipient_percent = $9, rarity = $10,
-         is_active = $11, sort_order = $12
+         is_active = $11, sort_order = $12, host_percent = $13
        WHERE id = $1 RETURNING *`,
       [
         existing.id,
@@ -1260,6 +1607,7 @@ router.patch(
         merged.rarity,
         merged.is_active,
         merged.sort_order,
+        merged.host_percent,
       ]
     );
     res.json({ gift: updated ? serializeGift(updated) : null });
@@ -1281,16 +1629,19 @@ router.delete(
 
 router.get(
   '/gift-transactions',
+  requireRole('superadmin', 'accountant'),
   asyncHandler(async (_req, res) => {
     const totals = await one<{
       revenue: string;
       recipient_payout: string;
+      host_payout: string;
       admin_share: string;
       today: string;
       count: string;
     }>(
       `SELECT COALESCE(SUM(coins), 0)::text AS revenue,
               COALESCE(SUM(recipient_coins), 0)::text AS recipient_payout,
+              COALESCE(SUM(host_coins), 0)::text AS host_payout,
               COALESCE(SUM(admin_coins), 0)::text AS admin_share,
               COALESCE(SUM(CASE WHEN (created_at AT TIME ZONE 'Asia/Baghdad')::date = $1::date
                                 THEN admin_coins ELSE 0 END), 0)::text AS today,
@@ -1299,8 +1650,8 @@ router.get(
       [iraqDateStr()]
     );
     const rows = await q(
-      `SELECT s.id, s.gift_name, s.coins, s.recipient_coins, s.admin_coins,
-              s.recipient_percent, s.admin_percent, s.created_at,
+      `SELECT s.id, s.gift_name, s.coins, s.currency, s.recipient_coins, s.host_coins,
+              s.admin_coins, s.recipient_percent, s.host_percent, s.admin_percent, s.created_at,
               sender.display_name AS sender_name, sender.username AS sender_username,
               recipient.display_name AS recipient_name, recipient.username AS recipient_username,
               g.design, g.video_url, g.cover_url, g.rarity
@@ -1314,6 +1665,7 @@ router.get(
       totals: {
         revenue: Number(totals?.revenue || 0),
         recipientPayout: Number(totals?.recipient_payout || 0),
+        hostPayout: Number(totals?.host_payout || 0),
         adminShare: Number(totals?.admin_share || 0),
         today: Number(totals?.today || 0),
         count: Number(totals?.count || 0),

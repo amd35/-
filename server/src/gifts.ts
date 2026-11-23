@@ -13,6 +13,7 @@ export interface GiftRow {
   cover_url: string | null;
   price: number;
   recipient_percent: number | null;
+  host_percent: number | null;
   rarity: string;
   is_active: boolean;
   sort_order: number;
@@ -33,6 +34,7 @@ export function serializeGift(row: GiftRow) {
     coverUrl: row.cover_url,
     price: Number(row.price),
     recipientPercent: row.recipient_percent === null ? null : Number(row.recipient_percent),
+    hostPercent: row.host_percent === null ? null : Number(row.host_percent),
     rarity: row.rarity,
     isActive: row.is_active,
     sortOrder: row.sort_order,
@@ -53,6 +55,7 @@ export const GIFT_MESSAGE_JOINS = `
 export const GIFT_MESSAGE_FIELDS = `
   gs.id AS gift_send_id, gs.coins AS gift_coins, gs.recipient_coins AS gift_recipient_coins,
   gs.recipient_percent AS gift_recipient_percent, gs.gift_name AS gift_send_name,
+  gs.currency AS gift_currency,
   g.slug AS gift_slug, g.name AS gift_name, g.name_en AS gift_name_en,
   g.design AS gift_design, g.video_url AS gift_video_url, g.cover_url AS gift_cover_url,
   g.rarity AS gift_rarity`;
@@ -68,6 +71,8 @@ export interface GiftMessageInfo {
   rarity: string;
   price: number;
   recipientCoins: number;
+  /** Currency the sender paid in: `diamond` or `gold`. */
+  currency: string;
 }
 
 export function giftFromMessageRow(row: Record<string, unknown>): GiftMessageInfo | null {
@@ -83,6 +88,7 @@ export function giftFromMessageRow(row: Record<string, unknown>): GiftMessageInf
     rarity: String(row.gift_rarity || 'common'),
     price: Number(row.gift_coins || 0),
     recipientCoins: Number(row.gift_recipient_coins || 0),
+    currency: String(row.gift_currency || 'diamond'),
   };
 }
 
@@ -158,14 +164,16 @@ export async function moveProfit(
   }
 
   const insert = await c.query(
-    `INSERT INTO profit_transactions (user_id, type, amount, balance_after, ref_type, ref_id, meta)
-     VALUES ($1, $2, $3, $4, $5, $6, $7::jsonb)
+    `INSERT INTO profit_transactions
+       (user_id, type, amount, balance_before, balance_after, ref_type, ref_id, meta)
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8::jsonb)
      ON CONFLICT (user_id, type, ref_id) DO NOTHING
      RETURNING id`,
     [
       entry.userId,
       entry.type,
       entry.amount,
+      wallet.available,
       available,
       entry.refType ?? null,
       entry.refId ?? null,

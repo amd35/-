@@ -99,12 +99,18 @@ export interface CupGiftInput {
   senderId: string;
   recipientId: string;
   coins: number;
+  /** The host share already paid by the gift split (owner of the room). */
+  hostId?: string | null;
+  hostCoins?: number;
+  hostPercent?: number;
 }
 
 /**
- * Splits one room gift between the owner and the administration. Must run inside
- * the gift transaction, after the sender was charged. Returns null when the cup
- * is disabled or the send was already split.
+ * Records one room gift for the competition and its owner/admin split report.
+ * Must run inside the gift transaction, after the sender was charged. The room
+ * owner's share is paid by the gift split itself (recipient / host / admin), so
+ * this function only writes the audit row — it never credits the owner twice.
+ * Returns null when the cup is disabled or the send was already split.
  */
 export async function recordCupGift(
   c: PoolClient,
@@ -118,11 +124,19 @@ export async function recordCupGift(
   const room = await c.query<{ owner_id: string | null }>('SELECT owner_id FROM rooms WHERE id = $1', [
     input.roomId,
   ]);
-  const ownerId = room.rows[0]?.owner_id ?? null;
-  const ownerPercent = clampPercent(settings.cup_owner_percent);
-  // Without an owner the whole eligible gold goes to the administration.
-  const ownerCoins = ownerId ? Math.floor((coins * ownerPercent) / 100) : 0;
-  const adminCoins = coins - ownerCoins;
+  const ownerId = input.hostId !== undefined ? input.hostId : room.rows[0]?.owner_id ?? null;
+  const ownerPercent =
+    input.hostPercent !== undefined
+      ? clampPercent(input.hostPercent)
+      : clampPercent(settings.gift_host_percent);
+  // Without an owner the whole owner share goes to the administration.
+  const ownerCoins =
+    input.hostCoins !== undefined
+      ? Math.max(0, Math.trunc(Number(input.hostCoins) || 0))
+      : ownerId
+        ? Math.floor((coins * ownerPercent) / 100)
+        : 0;
+  const adminCoins = Math.max(0, coins - ownerCoins);
 
   const inserted = await c.query<CupLedgerRow>(
     `INSERT INTO room_cup_ledger
@@ -147,19 +161,8 @@ export async function recordCupGift(
   if (!inserted.rowCount) return null;
   const ledger = inserted.rows[0];
 
-  if (ownerId && ownerCoins > 0) {
-    // The unique (user, type, ref) index on profit_transactions is the second
-    // guard: even a replayed send can never credit the owner twice.
-    await moveProfit(c, {
-      userId: ownerId,
-      type: 'cup_owner_earning',
-      amount: ownerCoins,
-      earned: ownerCoins,
-      refType: 'gift_send',
-      refId: input.giftSendId,
-      meta: { roomId: input.roomId, giftSendId: input.giftSendId, coins, percent: ownerPercent },
-    });
-  }
+  // The owner's share is credited by the gift split itself (`gift_host_earning`),
+  // never here — the cup only records the split for its competition report.
 
   return { ledgerId: ledger.id, ownerId, ownerCoins, adminCoins };
 }
@@ -402,7 +405,7 @@ export async function cupSnapshot(roomId: string, meId: string) {
   if (!room) throw new HttpError(404, 'Room not found', 'room_not_found');
 
   const enabled = Boolean(settings.cup_enabled);
-  const ownerPercent = clampPercent(settings.cup_owner_percent);
+  const ownerPercent = clampPercent(settings.gift_host_percent);
   let competition: ReturnType<typeof competitionPayload> = null;
   let standings: CupStanding[] = [];
   let totalCoins = 0;
@@ -538,8 +541,8 @@ export async function cupAdminOverview() {
   return {
     settings: {
       enabled: Boolean(settings.cup_enabled),
-      ownerPercent: clampPercent(settings.cup_owner_percent),
-      adminPercent: 100 - clampPercent(settings.cup_owner_percent),
+      ownerPercent: clampPercent(settings.gift_host_percent),
+      adminPercent: 100 - clampPercent(settings.gift_host_percent),
       period: cupPeriod(settings),
       prizes: [
         Math.max(0, Math.trunc(Number(settings.cup_prize_1) || 0)),

@@ -4,11 +4,28 @@ import { assertNotThrottled, clearAttempts, recordAttempt, reqUser, requireAuth 
 import { emitToUser } from '../realtime';
 import { notify } from '../notify';
 import { confirmOrder } from '../orders';
+import { getProfitWallet } from '../gifts';
+import { createWithdrawal, enabledMethods, serializeWithdrawal } from '../payouts';
 import { getSettings } from '../settings';
 import { HttpError, asyncHandler, intParam } from '../utils';
 import { moveCoins } from '../wallet';
 
 const router = Router();
+
+/** One ledger row, with the reference and the balance on both sides of it. */
+function serializeLedger(row: Record<string, unknown>) {
+  return {
+    id: row.id,
+    type: row.type,
+    amount: Number(row.amount || 0),
+    balanceBefore: Number(row.balance_before || 0),
+    balanceAfter: Number(row.balance_after || 0),
+    refType: row.ref_type,
+    refId: row.ref_id,
+    meta: row.meta,
+    createdAt: row.created_at,
+  };
+}
 
 function paymentMethods() {
   return [
@@ -49,9 +66,20 @@ router.get(
       spent: number;
       gold: number;
     }>('SELECT balance, reserved, earned, spent, gold FROM wallets WHERE user_id = $1', [me]);
+    const profit = await getProfitWallet(me);
     const transactions = await q(
-      `SELECT id, type, amount, balance_after, ref_type, ref_id, meta, created_at
-       FROM transactions WHERE user_id = $1 ORDER BY created_at DESC LIMIT 40`,
+      `SELECT id, type, amount, balance_before, balance_after, ref_type, ref_id, meta, created_at
+       FROM transactions WHERE user_id = $1 ORDER BY created_at DESC LIMIT 60`,
+      [me]
+    );
+    const goldTransactions = await q(
+      `SELECT id, type, amount, balance_before, balance_after, ref_type, ref_id, meta, created_at
+       FROM gold_transactions WHERE user_id = $1 ORDER BY created_at DESC LIMIT 60`,
+      [me]
+    );
+    const beanTransactions = await q(
+      `SELECT id, type, amount, balance_before, balance_after, ref_type, ref_id, meta, created_at
+       FROM profit_transactions WHERE user_id = $1 ORDER BY created_at DESC LIMIT 60`,
       [me]
     );
     const earnings = await one<{ total: string; calls: string }>(
@@ -59,34 +87,39 @@ router.get(
       [me]
     );
     const withdrawals = await q(
-      `SELECT id, coins, amount_iqd, status, note, created_at, processed_at
-       FROM withdrawal_requests WHERE user_id = $1 ORDER BY created_at DESC LIMIT 20`,
+      `SELECT * FROM withdrawal_requests WHERE user_id = $1 ORDER BY created_at DESC LIMIT 30`,
       [me]
     );
     res.json({
-      wallet: wallet ?? { balance: 0, reserved: 0, earned: 0, spent: 0 },
-      transactions: transactions.map((row) => ({
-        id: row.id,
-        type: row.type,
-        amount: row.amount,
-        balanceAfter: row.balance_after,
-        refType: row.ref_type,
-        refId: row.ref_id,
-        meta: row.meta,
-        createdAt: row.created_at,
-      })),
+      wallet: wallet ?? { balance: 0, reserved: 0, earned: 0, spent: 0, gold: 0 },
+      currencies: {
+        diamond: {
+          code: 'DIAMOND',
+          balance: Number(wallet?.balance || 0),
+          reserved: Number(wallet?.reserved || 0),
+          earned: Number(wallet?.earned || 0),
+          spent: Number(wallet?.spent || 0),
+        },
+        gold: { code: 'GOLD', balance: Number(wallet?.gold || 0) },
+        beans: {
+          code: 'BEANS',
+          available: profit.available,
+          pending: profit.pending,
+          withdrawn: profit.withdrawn,
+          totalEarned: profit.total_earned,
+        },
+      },
+      transactions: transactions.map(serializeLedger),
+      goldTransactions: goldTransactions.map(serializeLedger),
+      beanTransactions: beanTransactions.map(serializeLedger),
       earnings: { total: Number(earnings?.total || 0), calls: Number(earnings?.calls || 0) },
-      withdrawals: withdrawals.map((row) => ({
-        id: row.id,
-        coins: row.coins,
-        amountIqd: row.amount_iqd,
-        status: row.status,
-        note: row.note,
-        createdAt: row.created_at,
-        processedAt: row.processed_at,
-      })),
-      minWithdrawalCoins: settings.min_withdrawal_coins,
-      coinToIqdRate: settings.coin_to_iqd_rate,
+      withdrawals: withdrawals.map(serializeWithdrawal),
+      minWithdrawalBeans: settings.min_withdrawal_beans,
+      maxWithdrawalBeans: settings.max_withdrawal_beans,
+      beansPerUsd: settings.beans_per_usd,
+      beanToIqdRate: settings.bean_to_iqd_rate,
+      withdrawalFeePercent: settings.withdrawal_fee_percent,
+      withdrawalMethods: enabledMethods(settings),
     });
   })
 );
@@ -297,35 +330,33 @@ router.post(
   requireAuth(),
   asyncHandler(async (req, res) => {
     const me = reqUser(req).id;
-    const settings = await getSettings();
-    const coins = Math.trunc(Number(req.body?.coins || 0));
-    if (!Number.isFinite(coins) || coins <= 0) {
-      throw new HttpError(400, 'Enter a valid amount', 'invalid_amount');
-    }
-    if (coins < settings.min_withdrawal_coins) {
-      throw new HttpError(400, `Minimum withdrawal is ${settings.min_withdrawal_coins} coins`, 'below_minimum');
-    }
-
-    const result = await tx(async (c) => {
-      const created = await c.query(
-        `INSERT INTO withdrawal_requests (user_id, coins, amount_iqd, status, note)
-         VALUES ($1, $2, $3, 'pending', $4) RETURNING *`,
-        [me, coins, Math.round(coins * settings.coin_to_iqd_rate), String(req.body?.note || '')]
-      );
-      const withdrawal = created.rows[0];
-      await moveCoins(c, {
+    const result = await tx((c) =>
+      createWithdrawal(c, {
         userId: me,
-        amount: -coins,
-        type: 'withdrawal',
-        refType: 'withdrawal_request',
-        refId: withdrawal.id,
-        meta: { coins },
-      });
-      return withdrawal;
-    });
+        beans: Number(req.body?.beans ?? req.body?.coins ?? 0),
+        currency: String(req.body?.currency || 'IQD'),
+        method: String(req.body?.method || 'manual'),
+        details: String(req.body?.details || req.body?.note || ''),
+      })
+    );
 
-    await notify(me, 'withdrawal_requested', 'طلب سحب', 'طلبك قيد المراجعة', { coins });
-    res.status(201).json({ withdrawal: result });
+    emitToUser(me, 'profit:update', {});
+    await notify(
+      me,
+      'withdrawal_requested',
+      'طلب سحب الأرباح',
+      `طلبك بمبلغ ${result.withdrawal.coins} فاصوليا (${result.quote.net} ${result.quote.currency}) قيد المراجعة`,
+      {
+        beans: Number(result.withdrawal.coins),
+        currency: result.quote.currency,
+        net: result.quote.net,
+        withdrawalId: result.withdrawal.id,
+      }
+    );
+    res.status(201).json({
+      withdrawal: serializeWithdrawal(result.withdrawal),
+      quote: result.quote,
+    });
   })
 );
 

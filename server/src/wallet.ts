@@ -52,14 +52,16 @@ export async function moveCoins(
   }
 
   const insert = await c.query(
-    `INSERT INTO transactions (user_id, type, amount, balance_after, ref_type, ref_id, meta)
-     VALUES ($1, $2, $3, $4, $5, $6, $7::jsonb)
+    `INSERT INTO transactions
+       (user_id, type, amount, balance_before, balance_after, ref_type, ref_id, meta)
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8::jsonb)
      ON CONFLICT (user_id, type, ref_id) DO NOTHING
      RETURNING id`,
     [
       entry.userId,
       entry.type,
       entry.amount,
+      wallet.balance,
       balanceAfter,
       entry.refType ?? null,
       entry.refId ?? null,
@@ -78,20 +80,75 @@ export async function moveCoins(
 /** Informational ledger row for coins that already left the balance when they were reserved. */
 export async function recordLedger(
   c: PoolClient,
-  entry: LedgerEntry & { balanceAfter: number }
+  entry: LedgerEntry & { balanceAfter: number; balanceBefore?: number }
 ): Promise<void> {
   await c.query(
-    `INSERT INTO transactions (user_id, type, amount, balance_after, ref_type, ref_id, meta)
-     VALUES ($1, $2, $3, $4, $5, $6, $7::jsonb)
+    `INSERT INTO transactions
+       (user_id, type, amount, balance_before, balance_after, ref_type, ref_id, meta)
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8::jsonb)
      ON CONFLICT (user_id, type, ref_id) DO NOTHING`,
     [
       entry.userId,
       entry.type,
       entry.amount,
+      entry.balanceBefore ?? entry.balanceAfter - entry.amount,
       entry.balanceAfter,
       entry.refType ?? null,
       entry.refId ?? null,
       JSON.stringify(entry.meta ?? {}),
     ]
   );
+}
+
+/** Row-locks the wallet's gold balance. */
+export async function lockGoldWallet(c: PoolClient, userId: string): Promise<number> {
+  await ensureWallet(c, userId);
+  const { rows } = await c.query<{ gold: number }>(
+    'SELECT gold FROM wallets WHERE user_id = $1 FOR UPDATE',
+    [userId]
+  );
+  return Number(rows[0].gold);
+}
+
+/**
+ * Applies `amount` to the GOLD balance and writes the gold ledger row in the same
+ * transaction. Repeated references are ignored, exactly like `moveCoins`.
+ */
+export async function moveGold(
+  c: PoolClient,
+  entry: LedgerEntry
+): Promise<{ balanceBefore: number; balanceAfter: number; applied: boolean }> {
+  const balanceBefore = await lockGoldWallet(c, entry.userId);
+  const balanceAfter = balanceBefore + entry.amount;
+  if (balanceAfter < 0) {
+    throw new HttpError(402, 'Insufficient gold', 'insufficient_gold', {
+      balance: balanceBefore,
+      required: Math.abs(entry.amount),
+    });
+  }
+
+  const insert = await c.query(
+    `INSERT INTO gold_transactions
+       (user_id, type, amount, balance_before, balance_after, ref_type, ref_id, meta)
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8::jsonb)
+     ON CONFLICT (user_id, type, ref_id) DO NOTHING
+     RETURNING id`,
+    [
+      entry.userId,
+      entry.type,
+      entry.amount,
+      balanceBefore,
+      balanceAfter,
+      entry.refType ?? null,
+      entry.refId ?? null,
+      JSON.stringify(entry.meta ?? {}),
+    ]
+  );
+  if (!insert.rowCount) return { balanceBefore, balanceAfter: balanceBefore, applied: false };
+
+  await c.query('UPDATE wallets SET gold = $2, updated_at = now() WHERE user_id = $1', [
+    entry.userId,
+    balanceAfter,
+  ]);
+  return { balanceBefore, balanceAfter, applied: true };
 }

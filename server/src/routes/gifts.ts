@@ -13,14 +13,15 @@ import { emitToUser } from '../realtime';
 import { notify } from '../notify';
 import { awardXpSafe, getXpSettings, xpForCoins } from '../progression';
 import { getSettings } from '../settings';
-import { moveCoins } from '../wallet';
+import { createWithdrawal, enabledMethods, serializeWithdrawal } from '../payouts';
+import { moveCoins, moveGold } from '../wallet';
 import { HttpError, asyncHandler, isUuid } from '../utils';
 import { assertCapability } from '../security/service';
 
 const router = Router();
 
 const CURRENCIES = ['IQD', 'USD'] as const;
-const METHODS = ['manual', 'zaincash', 'fastpay', 'bank'] as const;
+const GIFT_CURRENCIES = ['diamond', 'gold'] as const;
 
 function methodLabel(method: string): string {
   return (
@@ -33,7 +34,31 @@ function methodLabel(method: string): string {
   );
 }
 
-/** Store catalog + the viewer's coin balance, shown when the gift sheet opens. */
+/** Splits a gift price into recipient / room-owner / admin shares (in percent). */
+function splitGift(
+  gift: GiftRow,
+  settings: Awaited<ReturnType<typeof getSettings>>,
+  withHost: boolean
+) {
+  const recipientPercent = Math.min(
+    100,
+    Math.max(
+      0,
+      Math.trunc(
+        gift.recipient_percent === null
+          ? settings.gift_recipient_percent
+          : Number(gift.recipient_percent)
+      )
+    )
+  );
+  const requestedHost = Math.trunc(
+    gift.host_percent === null ? settings.gift_host_percent : Number(gift.host_percent)
+  );
+  const hostPercent = withHost ? Math.min(100 - recipientPercent, Math.max(0, requestedHost)) : 0;
+  return { recipientPercent, hostPercent, adminPercent: 100 - recipientPercent - hostPercent };
+}
+
+/** Store catalog + the viewer's balances, shown when the gift sheet opens. */
 router.get(
   '/',
   requireAuth(),
@@ -41,15 +66,20 @@ router.get(
     const me = reqUser(req).id;
     const settings = await getSettings();
     const gifts = await listActiveGifts();
-    const wallet = await one<{ balance: number }>('SELECT balance FROM wallets WHERE user_id = $1', [
-      me,
-    ]);
+    const wallet = await one<{ balance: number; gold: number }>(
+      'SELECT balance, gold FROM wallets WHERE user_id = $1',
+      [me]
+    );
     res.json({
       gifts: gifts.map(serializeGift),
       balance: wallet?.balance ?? 0,
+      goldBalance: wallet?.gold ?? 0,
       defaultRecipientPercent: settings.gift_recipient_percent,
+      defaultHostPercent: settings.gift_host_percent,
       defaultAdminPercent: settings.gift_admin_percent,
       giftsEnabled: settings.gifts_enabled,
+      goldGiftsEnabled: settings.gold_gifts_enabled,
+      currencies: GIFT_CURRENCIES,
     });
   })
 );
@@ -76,6 +106,13 @@ router.post(
     const giftId = String(req.body?.giftId || '');
     const conversationId = String(req.body?.conversationId || '');
     const requestId = String(req.body?.requestId || '').trim().slice(0, 80);
+    const currency = String(req.body?.currency || 'diamond').toLowerCase();
+    if (!(GIFT_CURRENCIES as readonly string[]).includes(currency)) {
+      throw new HttpError(400, 'Unsupported gift currency', 'invalid_currency');
+    }
+    if (currency === 'gold' && !settings.gold_gifts_enabled) {
+      throw new HttpError(403, 'Gold gifts are disabled', 'gold_gifts_disabled');
+    }
     if (!giftId || !conversationId) {
       throw new HttpError(400, 'Gift and conversation are required', 'invalid_gift');
     }
@@ -117,14 +154,10 @@ router.post(
       const gift = giftResult.rows[0];
       if (!gift) throw new HttpError(404, 'Gift not found', 'gift_not_found');
 
-      const percent =
-        gift.recipient_percent === null
-          ? settings.gift_recipient_percent
-          : Number(gift.recipient_percent);
-      const recipientPercent = Math.min(100, Math.max(0, Math.trunc(percent)));
-      const adminPercent = 100 - recipientPercent;
+      const { recipientPercent, hostPercent, adminPercent } = splitGift(gift, settings, false);
       const price = Number(gift.price);
       const recipientCoins = Math.floor((price * recipientPercent) / 100);
+      const hostCoins = 0;
       const adminCoins = price - recipientCoins;
 
       // Insert first: the unique request_id is the idempotency guard. A concurrent
@@ -132,8 +165,9 @@ router.post(
       const created = await c.query(
         `INSERT INTO gift_sends
            (request_id, gift_id, conversation_id, sender_id, recipient_id, coins,
-            recipient_coins, admin_coins, recipient_percent, admin_percent, gift_name)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+            recipient_coins, admin_coins, recipient_percent, admin_percent, gift_name,
+            currency, host_coins, host_percent)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
          ON CONFLICT (request_id) DO NOTHING
          RETURNING *`,
         [
@@ -148,6 +182,9 @@ router.post(
           recipientPercent,
           adminPercent,
           gift.name,
+          currency,
+          hostCoins,
+          hostPercent,
         ]
       );
 
@@ -175,15 +212,25 @@ router.post(
 
       // Charge the sender. The ledger's unique (user, type, ref) index plus this
       // transaction means the balance and the gift row can never disagree.
-      const moved = await moveCoins(c, {
-        userId: me,
-        amount: -price,
-        type: 'gift_send',
-        refType: 'gift_send',
-        refId: send.id,
-        meta: { giftId: gift.id, giftName: gift.name, recipientId, conversationId },
-      });
-      if (!moved.applied) {
+      const charge =
+        currency === 'gold'
+          ? await moveGold(c, {
+              userId: me,
+              amount: -price,
+              type: 'gift_send',
+              refType: 'gift_send',
+              refId: send.id,
+              meta: { giftId: gift.id, giftName: gift.name, recipientId, conversationId },
+            })
+          : await moveCoins(c, {
+              userId: me,
+              amount: -price,
+              type: 'gift_send',
+              refType: 'gift_send',
+              refId: send.id,
+              meta: { giftId: gift.id, giftName: gift.name, recipientId, conversationId },
+            });
+      if (!charge.applied) {
         throw new HttpError(409, 'This gift was already sent', 'duplicate_request');
       }
 
@@ -241,6 +288,7 @@ router.post(
       rarity: outcome.gift.rarity,
       price: Number(outcome.send.coins),
       recipientCoins: Number(outcome.send.recipient_coins),
+      currency: String(outcome.send.currency || 'diamond'),
     };
 
     if (outcome.duplicate && outcome.message) {
@@ -293,7 +341,7 @@ router.post(
       outcome.send.recipient_id,
       'gift_received',
       `🎁 استلمت ${outcome.gift.name}`,
-      `${senderName} أرسل لك ${outcome.gift.name} — أضيف ${outcome.send.recipient_coins} كونز إلى أرباحك`,
+      `${senderName} أرسل لك ${outcome.gift.name} — أضيف ${outcome.send.recipient_coins} فاصوليا إلى أرباحك`,
       {
         giftSendId: outcome.send.id,
         giftName: outcome.gift.name,
@@ -307,14 +355,15 @@ router.post(
       }
     );
 
-    const senderWallet = await one<{ balance: number }>(
-      'SELECT balance FROM wallets WHERE user_id = $1',
+    const senderWallet = await one<{ balance: number; gold: number }>(
+      'SELECT balance, gold FROM wallets WHERE user_id = $1',
       [me]
     );
     res.status(201).json({
       duplicate: false,
       message: { ...payload, mine: true },
-      balance: senderWallet?.balance ?? 0,
+      currency,
+      balance: currency === 'gold' ? Number(senderWallet?.gold || 0) : Number(senderWallet?.balance || 0),
       recipientCoins: Number(outcome.send.recipient_coins),
       adminCoins: Number(outcome.send.admin_coins),
     });
@@ -343,15 +392,13 @@ router.get(
     );
 
     const transactions = await q(
-      `SELECT id, type, amount, balance_after, ref_type, ref_id, meta, created_at
+      `SELECT id, type, amount, balance_before, balance_after, ref_type, ref_id, meta, created_at
        FROM profit_transactions WHERE user_id = $1 ORDER BY created_at DESC LIMIT 50`,
       [me]
     );
 
     const withdrawals = await q(
-      `SELECT id, coins, amount, currency, payment_method, payout_details, status, note,
-              created_at, processed_at
-       FROM withdrawal_requests
+      `SELECT * FROM withdrawal_requests
        WHERE user_id = $1 AND source = 'profit'
        ORDER BY created_at DESC LIMIT 30`,
       [me]
@@ -385,113 +432,68 @@ router.get(
         id: row.id,
         type: row.type,
         amount: row.amount,
+        balanceBefore: Number(row.balance_before || 0),
         balanceAfter: row.balance_after,
+        refType: row.ref_type,
+        refId: row.ref_id,
         meta: row.meta,
         createdAt: row.created_at,
       })),
       withdrawals: withdrawals.map((row) => ({
-        id: row.id,
-        coins: row.coins,
-        amount: Number(row.amount),
-        currency: row.currency,
-        method: row.payment_method,
-        methodLabel: methodLabel(row.payment_method),
-        details: row.payout_details,
-        status: row.status,
-        note: row.note,
-        createdAt: row.created_at,
-        processedAt: row.processed_at,
+        ...serializeWithdrawal(row),
+        methodLabel: methodLabel(String(row.payment_method)),
       })),
-      minWithdrawalCoins: settings.min_withdrawal_coins,
-      coinToIqdRate: settings.coin_to_iqd_rate,
-      coinToUsdRate: settings.coin_to_usd_rate,
-      methods: METHODS.map((id) => ({ id, label: methodLabel(id) })),
+      minWithdrawalBeans: settings.min_withdrawal_beans,
+      maxWithdrawalBeans: settings.max_withdrawal_beans,
+      beansPerUsd: settings.beans_per_usd,
+      beanToIqdRate: settings.bean_to_iqd_rate,
+      withdrawalFeePercent: settings.withdrawal_fee_percent,
+      minWithdrawalCoins: settings.min_withdrawal_beans,
+      coinToIqdRate: settings.bean_to_iqd_rate,
+      coinToUsdRate: settings.beans_per_usd > 0 ? 1 / settings.beans_per_usd : 0,
+      methods: enabledMethods(settings).map((method) => ({
+        id: method.id,
+        label: method.label,
+        labelEn: method.labelEn,
+        note: method.note,
+      })),
       currencies: CURRENCIES,
     });
   })
 );
 
-/** Requests a payout from the earnings wallet. Coins move available → pending. */
+/** Requests a payout from the earnings (BEANS) wallet. Beans move available → pending. */
 router.post(
   '/withdrawals',
   requireAuth(),
   asyncHandler(async (req, res) => {
     const me = reqUser(req).id;
-    const settings = await getSettings();
-    const coins = Math.trunc(Number(req.body?.coins || 0));
-    const currency = String(req.body?.currency || 'IQD').toUpperCase();
-    const method = String(req.body?.method || 'manual');
-    const details = String(req.body?.details || '').trim().slice(0, 400);
-
-    if (!Number.isFinite(coins) || coins <= 0) {
-      throw new HttpError(400, 'Enter a valid amount', 'invalid_amount');
-    }
-    if (coins < settings.min_withdrawal_coins) {
-      throw new HttpError(
-        400,
-        `Minimum withdrawal is ${settings.min_withdrawal_coins} coins`,
-        'below_minimum',
-        { min: settings.min_withdrawal_coins }
-      );
-    }
-    if (!(CURRENCIES as readonly string[]).includes(currency)) {
-      throw new HttpError(400, 'Unsupported currency', 'invalid_currency');
-    }
-    if (!(METHODS as readonly string[]).includes(method)) {
-      throw new HttpError(400, 'Unsupported payment method', 'invalid_method');
-    }
-    if (details.length < 4) {
-      throw new HttpError(400, 'Enter the payout details', 'missing_details');
-    }
-
-    const rate = currency === 'USD' ? settings.coin_to_usd_rate : settings.coin_to_iqd_rate;
-    const amount = Math.round(coins * rate * 100) / 100;
-
-    const withdrawal = await tx(async (c) => {
-      const created = await c.query(
-        `INSERT INTO withdrawal_requests
-           (user_id, coins, amount_iqd, amount, currency, payment_method, payout_details, source, status)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, 'profit', 'pending') RETURNING *`,
-        [
-          me,
-          coins,
-          currency === 'IQD' ? Math.round(amount) : Math.round(coins * settings.coin_to_iqd_rate),
-          amount,
-          currency,
-          method,
-          details,
-        ]
-      );
-      const row = created.rows[0];
-      await moveProfit(c, {
+    const result = await tx((c) =>
+      createWithdrawal(c, {
         userId: me,
-        type: 'withdrawal_hold',
-        amount: -coins,
-        hold: coins,
-        refType: 'withdrawal_request',
-        refId: row.id,
-        meta: { coins, currency, method, amount },
-      });
-      return row;
-    });
+        beans: Number(req.body?.beans ?? req.body?.coins ?? 0),
+        currency: String(req.body?.currency || 'IQD'),
+        method: String(req.body?.method || 'manual'),
+        details: String(req.body?.details || ''),
+      })
+    );
 
     emitToUser(me, 'profit:update', {});
     await notify(
       me,
       'withdrawal_requested',
       'طلب سحب الأرباح',
-      `طلبك بمبلغ ${coins} كونز (${amount} ${currency}) قيد المراجعة`,
-      { coins, currency, amount, withdrawalId: withdrawal.id }
+      `طلبك بمبلغ ${result.withdrawal.coins} فاصوليا (${result.quote.net} ${result.quote.currency}) قيد المراجعة`,
+      {
+        beans: Number(result.withdrawal.coins),
+        currency: result.quote.currency,
+        net: result.quote.net,
+        withdrawalId: result.withdrawal.id,
+      }
     );
     res.status(201).json({
-      withdrawal: {
-        id: withdrawal.id,
-        coins: withdrawal.coins,
-        amount: Number(withdrawal.amount),
-        currency: withdrawal.currency,
-        method: withdrawal.payment_method,
-        status: withdrawal.status,
-      },
+      withdrawal: serializeWithdrawal(result.withdrawal),
+      quote: result.quote,
     });
   })
 );

@@ -4,6 +4,7 @@ import { api } from '../lib/api';
 import { useI18n } from '../lib/i18n';
 import { formatCoins, Icon, Sheet, Spinner, useToast } from '../lib/ui';
 import { GiftAnimation, GiftCover, type GiftVisual } from './GiftAnimation';
+import { CurrencyIcon } from './CurrencyIcon';
 
 export interface GiftItem extends Omit<GiftVisual, 'price' | 'rarity'> {
   id: string;
@@ -73,6 +74,9 @@ export function GiftShop({
   const navigate = useNavigate();
   const [gifts, setGifts] = useState<GiftItem[]>([]);
   const [balance, setBalance] = useState(0);
+  const [goldBalance, setGoldBalance] = useState(0);
+  const [goldGiftsEnabled, setGoldGiftsEnabled] = useState(false);
+  const [currency, setCurrency] = useState<'diamond' | 'gold'>('diamond');
   const [defaultPercent, setDefaultPercent] = useState(60);
   const [loading, setLoading] = useState(false);
   const [selected, setSelected] = useState<GiftItem | null>(null);
@@ -85,11 +89,15 @@ export function GiftShop({
       const response = await api<{
         gifts: GiftItem[];
         balance: number;
+        goldBalance: number;
         defaultRecipientPercent: number;
         giftsEnabled: boolean;
+        goldGiftsEnabled: boolean;
       }>('/gifts');
       setGifts(response.gifts);
       setBalance(response.balance);
+      setGoldBalance(response.goldBalance ?? 0);
+      setGoldGiftsEnabled(Boolean(response.goldGiftsEnabled));
       setDefaultPercent(response.defaultRecipientPercent);
     } catch (error) {
       toast.push((error as Error).message, 'error');
@@ -105,9 +113,11 @@ export function GiftShop({
     void load();
   }, [open, load]);
 
+  const activeBalance = currency === 'gold' ? goldBalance : balance;
+
   const send = async () => {
     if (!selected || sending) return;
-    if (balance < selected.price) {
+    if (activeBalance < selected.price) {
       toast.push(t('insufficientCoins'), 'error');
       return;
     }
@@ -120,10 +130,15 @@ export function GiftShop({
           giftId: selected.id,
           conversationId,
           requestId: requestRef.current,
+          currency,
         },
       });
       requestRef.current = '';
-      setBalance(response.balance ?? balance - selected.price);
+      if (currency === 'gold') {
+        setGoldBalance(response.balance ?? goldBalance - selected.price);
+      } else {
+        setBalance(response.balance ?? balance - selected.price);
+      }
       onSent(response.message, selected);
       onClose();
     } catch (error) {
@@ -156,9 +171,20 @@ export function GiftShop({
           )}
           <span className="spacer" />
           <span className="pill pill-gold">
-            <Icon name="coins" size={13} /> {formatCoins(balance)}
+            <CurrencyIcon code={currency === 'gold' ? 'GOLD' : 'DIAMOND'} size={13} /> {formatCoins(activeBalance)}
           </span>
         </div>
+
+        {goldGiftsEnabled ? (
+          <div className="seg" style={{ marginBottom: 10 }}>
+            <button className={currency === 'diamond' ? 'active' : ''} onClick={() => setCurrency('diamond')}>
+              الماس
+            </button>
+            <button className={currency === 'gold' ? 'active' : ''} onClick={() => setCurrency('gold')}>
+              الذهب
+            </button>
+          </div>
+        ) : null}
 
         {loading ? (
           <Spinner label={t('loading')} />
@@ -177,7 +203,7 @@ export function GiftShop({
                 <div>
                   <span className="tiny muted">{t('giftPrice')}</span>
                   <b className="amount">
-                    <Icon name="coins" size={14} /> {formatCoins(selected.price)}
+                    <CurrencyIcon code={currency === 'gold' ? 'GOLD' : 'DIAMOND'} size={14} /> {formatCoins(selected.price)}
                   </b>
                 </div>
                 <div>
@@ -189,7 +215,7 @@ export function GiftShop({
               </div>
               <p className="tiny muted">{t('giftToPeer', { name: peerName })}</p>
             </div>
-            {balance < selected.price ? (
+            {activeBalance < selected.price ? (
               <button
                 className="btn btn-gold btn-block"
                 onClick={() => {
@@ -211,7 +237,7 @@ export function GiftShop({
             {gifts.map((gift) => (
               <button
                 key={gift.id}
-                className={`gift-card ${balance < gift.price ? 'locked' : ''}`}
+                className={`gift-card ${activeBalance < gift.price ? 'locked' : ''}`}
                 onClick={() => setSelected(gift)}
               >
                 <span className={`gift-rarity-pill rarity-${gift.rarity}`}>
@@ -220,7 +246,7 @@ export function GiftShop({
                 <GiftCover gift={gift} className="gift-card-art" />
                 <span className="gift-card-name">{gift.name}</span>
                 <span className="gift-card-price">
-                  <Icon name="coins" size={12} /> {formatCoins(gift.price)}
+                  <CurrencyIcon code={currency === 'gold' ? 'GOLD' : 'DIAMOND'} size={12} /> {formatCoins(gift.price)}
                 </span>
               </button>
             ))}

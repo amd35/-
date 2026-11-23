@@ -40,14 +40,20 @@ interface ProfitTx {
 
 interface PayoutRequest {
   id: string;
-  coins: number;
+  beans: number;
   amount: number;
   currency: string;
+  rate: number;
+  feePercent: number;
+  feeAmount: number;
+  net: number;
   method: string;
   methodLabel: string;
   details: string;
   status: string;
   note: string | null;
+  rejectReason: string | null;
+  transferRef: string | null;
   createdAt: string;
 }
 
@@ -56,9 +62,11 @@ interface EarningsData {
   received: ReceivedGift[];
   transactions: ProfitTx[];
   withdrawals: PayoutRequest[];
-  minWithdrawalCoins: number;
-  coinToIqdRate: number;
-  coinToUsdRate: number;
+  minWithdrawalBeans: number;
+  maxWithdrawalBeans: number;
+  beansPerUsd: number;
+  beanToIqdRate: number;
+  withdrawalFeePercent: number;
   methods: { id: string; label: string }[];
   currencies: string[];
 }
@@ -130,15 +138,23 @@ export default function Earnings() {
   }, [on, load]);
 
   const wallet = data?.wallet ?? { totalEarned: 0, available: 0, pending: 0, withdrawn: 0 };
-  const rate = currency === 'USD' ? data?.coinToUsdRate ?? 0 : data?.coinToIqdRate ?? 0;
-  const payout = Math.round(Number(coins || 0) * rate * 100) / 100;
+  const beans = Math.max(0, Math.trunc(Number(coins || 0)));
+  const rate = currency === 'USD' ? data?.beansPerUsd ?? 0 : data?.beanToIqdRate ?? 0;
+  const gross =
+    rate > 0
+      ? currency === 'USD'
+        ? Math.round((beans / rate) * 100) / 100
+        : Math.round(beans * rate)
+      : 0;
+  const fee = Math.round(((gross * (data?.withdrawalFeePercent ?? 0)) / 100) * 100) / 100;
+  const payout = Math.max(0, Math.round((gross - fee) * 100) / 100);
 
   const submit = async () => {
     setBusy(true);
     try {
       await api('/gifts/withdrawals', {
         method: 'POST',
-        body: { coins: Number(coins), currency, method, details },
+        body: { beans: Number(coins), currency, method, details },
       });
       toast.push(t('withdrawRequest'), 'success');
       setOpen(false);
@@ -174,7 +190,8 @@ export default function Earnings() {
           <div className="balance">
             <strong>{formatCoins(wallet.available)}</strong>
             <span className="muted tiny">
-              ≈ {formatCoins(Math.round(wallet.available * (data?.coinToIqdRate ?? 0) * 100) / 100)} IQD
+              {t('beans')} ≈{' '}
+              {formatCoins(Math.round(wallet.available * (data?.beanToIqdRate ?? 0) * 100) / 100)} IQD
             </span>
           </div>
           <div className="wallet-split">
@@ -195,7 +212,8 @@ export default function Earnings() {
             <Icon name="wallet" size={16} /> {t('withdrawEarnings')}
           </button>
           <p className="tiny muted" style={{ marginTop: 8 }}>
-            {t('minWithdraw')}: {formatCoins(data?.minWithdrawalCoins ?? 0)} {t('coins')}
+            {t('minWithdraw')}: {formatCoins(data?.minWithdrawalBeans ?? 0)} {t('beans')} · {t('maxWithdraw')}:{' '}
+            {formatCoins(data?.maxWithdrawalBeans ?? 0)} {t('beans')}
           </p>
         </section>
 
@@ -251,12 +269,27 @@ export default function Earnings() {
                 <div key={row.id} className="row static" style={{ alignItems: 'flex-start' }}>
                   <div className="row-main">
                     <div className="row-title">
-                      {formatCoins(row.coins)} {t('coins')} → {formatCoins(row.amount)} {row.currency}
+                      {formatCoins(row.beans)} {t('beans')} → {formatCoins(row.net || row.amount)} {row.currency}
                     </div>
                     <div className="row-sub">
                       {row.methodLabel} • {formatTimeAgo(row.createdAt, lang)}
                     </div>
                     {row.details ? <div className="tiny muted" dir="ltr">{row.details}</div> : null}
+                    {row.feeAmount > 0 ? (
+                      <div className="tiny muted">
+                        {t('fee')}: {formatCoins(row.feeAmount)} {row.currency}
+                      </div>
+                    ) : null}
+                    {row.rejectReason ? (
+                      <div className="tiny" style={{ color: '#fca5a5' }}>
+                        {row.rejectReason}
+                      </div>
+                    ) : null}
+                    {row.transferRef ? (
+                      <div className="tiny muted" dir="ltr">
+                        Ref: {row.transferRef}
+                      </div>
+                    ) : null}
                   </div>
                   <span className={`pill ${STATUS_CLASS[row.status] ?? 'pill-gold'}`} style={{ fontSize: 10 }}>
                     {STATUS_LABEL[row.status] ?? row.status}
@@ -314,11 +347,12 @@ export default function Earnings() {
               inputMode="numeric"
               value={coins}
               onChange={(event) => setCoins(event.target.value)}
-              placeholder={String(data?.minWithdrawalCoins ?? 0)}
+              placeholder={String(data?.minWithdrawalBeans ?? 0)}
               dir="ltr"
             />
             <span className="hint">
-              {t('minWithdraw')}: {formatCoins(data?.minWithdrawalCoins ?? 0)} {t('coins')}
+              {t('minWithdraw')}: {formatCoins(data?.minWithdrawalBeans ?? 0)} {t('beans')} · {t('maxWithdraw')}:{' '}
+              {formatCoins(data?.maxWithdrawalBeans ?? 0)} {t('beans')}
             </span>
           </div>
           <div className="field">
@@ -357,8 +391,22 @@ export default function Earnings() {
           </div>
           <div className="card-flat">
             <div className="inline" style={{ justifyContent: 'space-between' }}>
-              <span className="muted tiny">{t('payoutAmount')}</span>
+              <span className="muted tiny">{t('amount')}</span>
               <strong>
+                {formatCoins(gross)} {currency}
+              </strong>
+            </div>
+            <div className="inline" style={{ justifyContent: 'space-between', marginTop: 4 }}>
+              <span className="muted tiny">
+                {t('fee')} ({data?.withdrawalFeePercent ?? 0}%)
+              </span>
+              <strong>
+                {formatCoins(fee)} {currency}
+              </strong>
+            </div>
+            <div className="inline" style={{ justifyContent: 'space-between', marginTop: 4 }}>
+              <span className="muted tiny">{t('payoutAmount')}</span>
+              <strong style={{ color: '#86efac' }}>
                 {formatCoins(payout)} {currency}
               </strong>
             </div>

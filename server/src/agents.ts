@@ -2,7 +2,7 @@ import type { PoolClient } from 'pg';
 import { one, q, tx } from './db';
 import { notify, notifyWith } from './notify';
 import { HttpError } from './utils';
-import { moveCoins } from './wallet';
+import { moveCoins, moveGold } from './wallet';
 
 /**
  * Official recharge agents (وكلاء الشحن الرسميون).
@@ -419,11 +419,14 @@ async function runRecharge(c: PoolClient, params: RechargeParams) {
   }
 
   if (params.currency === 'gold') {
-    await c.query(
-      `INSERT INTO wallets (user_id, gold) VALUES ($1, $2)
-       ON CONFLICT (user_id) DO UPDATE SET gold = wallets.gold + EXCLUDED.gold, updated_at = now()`,
-      [params.userId, params.amount]
-    );
+    await moveGold(c, {
+      userId: params.userId,
+      amount: params.amount,
+      type: 'agent_recharge',
+      refType: 'agent_recharge',
+      refId: rechargeId,
+      meta: { agentId: params.agentId, currency: params.currency },
+    });
   } else {
     await moveCoins(c, {
       userId: params.userId,

@@ -3,6 +3,7 @@ import { api, assetUrl } from '../lib/api';
 import { useI18n } from '../lib/i18n';
 import { formatCoins, Icon, Sheet, Spinner, useToast } from '../lib/ui';
 import { GiftCover } from './GiftAnimation';
+import { CurrencyIcon } from './CurrencyIcon';
 import type { GiftItem } from './GiftShop';
 import type { RankInfo } from './RankBadge';
 
@@ -77,6 +78,9 @@ export function RoomGiftSheet({
   const toast = useToast();
   const [gifts, setGifts] = useState<GiftItem[]>([]);
   const [balance, setBalance] = useState(0);
+  const [goldBalance, setGoldBalance] = useState(0);
+  const [goldGiftsEnabled, setGoldGiftsEnabled] = useState(false);
+  const [currency, setCurrency] = useState<'diamond' | 'gold'>('diamond');
   const [loading, setLoading] = useState(false);
   const [recipientId, setRecipientId] = useState('');
   const [selected, setSelected] = useState<GiftItem | null>(null);
@@ -94,18 +98,22 @@ export function RoomGiftSheet({
     setRecipientId((current) => initialRecipientId || current || firstSpeakerId);
     requestRef.current = '';
     setLoading(true);
-    api<{ gifts: GiftItem[]; balance: number }>('/gifts')
+    api<{ gifts: GiftItem[]; balance: number; goldBalance: number; goldGiftsEnabled: boolean }>('/gifts')
       .then((response) => {
         setGifts(response.gifts);
         setBalance(response.balance);
+        setGoldBalance(response.goldBalance ?? 0);
+        setGoldGiftsEnabled(Boolean(response.goldGiftsEnabled));
       })
       .catch((error: Error) => toast.push(error.message, 'error'))
       .finally(() => setLoading(false));
   }, [open, firstSpeakerId, initialRecipientId, toast]);
 
+  const activeBalance = currency === 'gold' ? goldBalance : balance;
+
   const send = useCallback(async () => {
     if (!selected || !recipientId || sending) return;
-    if (balance < selected.price * quantity) {
+    if (activeBalance < selected.price * quantity) {
       toast.push(t('insufficientCoins'), 'error');
       return;
     }
@@ -114,10 +122,14 @@ export function RoomGiftSheet({
     try {
       const response = await api<{ message: RoomMessageData }>(`/rooms/${roomId}/gifts`, {
         method: 'POST',
-        body: { giftId: selected.id, recipientId, requestId: requestRef.current, quantity },
+        body: { giftId: selected.id, recipientId, requestId: requestRef.current, quantity, currency },
       });
       requestRef.current = '';
-      setBalance((current) => current - selected.price * quantity);
+      if (currency === 'gold') {
+        setGoldBalance((current) => current - selected.price * quantity);
+      } else {
+        setBalance((current) => current - selected.price * quantity);
+      }
       onSent(response.message);
       setSelected(null);
       onClose();
@@ -126,7 +138,7 @@ export function RoomGiftSheet({
     } finally {
       setSending(false);
     }
-  }, [balance, onClose, onSent, quantity, recipientId, roomId, selected, sending, t, toast]);
+  }, [activeBalance, currency, onClose, onSent, quantity, recipientId, roomId, selected, sending, t, toast]);
 
   return (
     <Sheet open={open} onClose={onClose} title={t('giftShop')}>
@@ -135,9 +147,20 @@ export function RoomGiftSheet({
           <span className="tiny muted">{t('roomGiftTo')}</span>
           <span className="spacer" />
           <span className="pill pill-gold">
-            <Icon name="coins" size={13} /> {formatCoins(balance)}
+            <CurrencyIcon code={currency === 'gold' ? 'GOLD' : 'DIAMOND'} size={13} /> {formatCoins(activeBalance)}
           </span>
         </div>
+
+        {goldGiftsEnabled ? (
+          <div className="seg" style={{ marginBottom: 10 }}>
+            <button className={currency === 'diamond' ? 'active' : ''} onClick={() => setCurrency('diamond')}>
+              الماس
+            </button>
+            <button className={currency === 'gold' ? 'active' : ''} onClick={() => setCurrency('gold')}>
+              الذهب
+            </button>
+          </div>
+        ) : null}
 
         {speakers.length === 0 ? (
           <p className="tiny muted center">{t('roomNoSpeakers')}</p>
@@ -171,7 +194,7 @@ export function RoomGiftSheet({
               <button
                 key={gift.id}
                 type="button"
-                className={`gift-card ${balance < gift.price ? 'locked' : ''} ${selected?.id === gift.id ? 'selected' : ''}`}
+                className={`gift-card ${activeBalance < gift.price ? 'locked' : ''} ${selected?.id === gift.id ? 'selected' : ''}`}
                 onClick={() => setSelected(gift)}
               >
                 <span className={`gift-rarity-pill rarity-${gift.rarity}`}>
@@ -180,7 +203,7 @@ export function RoomGiftSheet({
                 <GiftCover gift={gift} className="gift-card-art" />
                 <span className="gift-card-name">{gift.name}</span>
                 <span className="gift-card-price">
-                  <Icon name="coins" size={12} /> {formatCoins(gift.price)}
+                  <CurrencyIcon code={currency === 'gold' ? 'GOLD' : 'DIAMOND'} size={12} /> {formatCoins(gift.price)}
                 </span>
               </button>
             ))}

@@ -16,7 +16,7 @@ import { GiftRow, moveProfit } from '../gifts';
 import { cupSnapshot, ensureCompetition, recordCupGift } from '../roomCup';
 import { ROOM_FRAME_DURATION_SECONDS, listRoomFrames, type RoomFrameRow } from '../roomFrames';
 import { getSettings } from '../settings';
-import { moveCoins } from '../wallet';
+import { moveCoins, moveGold } from '../wallet';
 import { awardXpSafe, getXpSettings, xpForCoins } from '../progression';
 import { activeRankFor, isOfficialAdmin } from '../ranks';
 import { HttpError, asyncHandler } from '../utils';
@@ -351,6 +351,13 @@ router.post(
     // One send can carry several copies of the same gift (1 … 2000).
     const quantity = Math.min(2000, Math.max(1, Math.trunc(Number(req.body?.quantity) || 1)));
     if (recipientId === me) throw new HttpError(400, 'You cannot gift yourself', 'invalid_recipient');
+    const currency = String(req.body?.currency || 'diamond').toLowerCase();
+    if (currency !== 'diamond' && currency !== 'gold') {
+      throw new HttpError(400, 'Unsupported gift currency', 'invalid_currency');
+    }
+    if (currency === 'gold' && !settings.gold_gifts_enabled) {
+      throw new HttpError(403, 'Gold gifts are disabled', 'gold_gifts_disabled');
+    }
 
     const outcome = await tx(async (c) => {
       const seat = await c.query('SELECT 1 FROM room_mics WHERE room_id = $1 AND user_id = $2 LIMIT 1', [
@@ -367,21 +374,38 @@ router.post(
       const gift = giftResult.rows[0];
       if (!gift) throw new HttpError(404, 'Gift not found', 'gift_not_found');
 
+      const roomRow = await c.query<{ owner_id: string | null }>(
+        'SELECT owner_id FROM rooms WHERE id = $1',
+        [roomId]
+      );
+      const ownerId = roomRow.rows[0]?.owner_id ?? null;
+      // The room owner earns a share of every room gift (0 when the owner is the
+      // recipient or the room has no owner); the administration keeps the rest.
+      const hostId = ownerId && ownerId !== recipientId ? ownerId : null;
+
       const percent =
         gift.recipient_percent === null
           ? settings.gift_recipient_percent
           : Number(gift.recipient_percent);
       const recipientPercent = Math.min(100, Math.max(0, Math.trunc(percent)));
-      const adminPercent = 100 - recipientPercent;
+      const requestedHost = Math.trunc(
+        gift.host_percent === null ? settings.gift_host_percent : Number(gift.host_percent)
+      );
+      const hostPercent = hostId
+        ? Math.min(100 - recipientPercent, Math.max(0, requestedHost))
+        : 0;
+      const adminPercent = 100 - recipientPercent - hostPercent;
       const price = Number(gift.price) * quantity;
       const recipientCoins = Math.floor((price * recipientPercent) / 100);
-      const adminCoins = price - recipientCoins;
+      const hostCoins = Math.floor((price * hostPercent) / 100);
+      const adminCoins = price - recipientCoins - hostCoins;
 
       const created = await c.query(
         `INSERT INTO gift_sends
            (request_id, gift_id, sender_id, recipient_id, coins,
-            recipient_coins, admin_coins, recipient_percent, admin_percent, gift_name, quantity, room_id)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+            recipient_coins, admin_coins, recipient_percent, admin_percent, gift_name, quantity, room_id,
+            currency, host_id, host_coins, host_percent)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16)
          ON CONFLICT (request_id) DO NOTHING
          RETURNING *`,
         [
@@ -397,6 +421,10 @@ router.post(
           gift.name,
           quantity,
           roomId,
+          currency,
+          hostId,
+          hostCoins,
+          hostPercent,
         ]
       );
       if (!created.rowCount) {
@@ -404,14 +432,24 @@ router.post(
       }
       const send = created.rows[0];
 
-      const moved = await moveCoins(c, {
-        userId: me,
-        amount: -price,
-        type: 'gift_send',
-        refType: 'gift_send',
-        refId: send.id,
-        meta: { giftId: gift.id, giftName: gift.name, recipientId, roomId },
-      });
+      const moved =
+        currency === 'gold'
+          ? await moveGold(c, {
+              userId: me,
+              amount: -price,
+              type: 'gift_send',
+              refType: 'gift_send',
+              refId: send.id,
+              meta: { giftId: gift.id, giftName: gift.name, recipientId, roomId },
+            })
+          : await moveCoins(c, {
+              userId: me,
+              amount: -price,
+              type: 'gift_send',
+              refType: 'gift_send',
+              refId: send.id,
+              meta: { giftId: gift.id, giftName: gift.name, recipientId, roomId },
+            });
       if (!moved.applied) throw new HttpError(409, 'This gift was already sent', 'duplicate_request');
 
       if (recipientCoins > 0) {
@@ -426,11 +464,39 @@ router.post(
         });
       }
 
+      if (hostId && hostCoins > 0) {
+        await moveProfit(c, {
+          userId: hostId,
+          type: 'gift_host_earning',
+          amount: hostCoins,
+          earned: hostCoins,
+          refType: 'gift_send',
+          refId: send.id,
+          meta: {
+            giftId: gift.id,
+            giftName: gift.name,
+            senderId: me,
+            recipientId,
+            percent: hostPercent,
+            roomId,
+          },
+        });
+      }
+
       // Room cup: one ledger row per send splits the spent gold between the room
       // owner and the administration, and the room gets a running competition.
       const cup = await recordCupGift(
         c,
-        { giftSendId: send.id, roomId, senderId: me, recipientId, coins: price },
+        {
+          giftSendId: send.id,
+          roomId,
+          senderId: me,
+          recipientId,
+          coins: price,
+          hostId,
+          hostCoins,
+          hostPercent,
+        },
         settings
       );
       if (settings.cup_enabled) await ensureCompetition(c, roomId, settings);
@@ -443,7 +509,10 @@ router.post(
       return {
         messageId: message.rows[0].id,
         recipientCoins,
+        hostCoins,
+        hostId,
         coins: price,
+        currency,
         sendId: send.id,
         giftId: gift.id,
         giftRarity: gift.rarity,
@@ -502,9 +571,15 @@ router.post(
 
     emitToUser(me, 'wallet:update', {});
     emitToUser(recipientId, 'profit:update', {});
+    if (outcome.hostId && outcome.hostCoins > 0) emitToUser(outcome.hostId, 'profit:update', {});
     if (outcome.cup?.ownerId) emitToUser(outcome.cup.ownerId, 'profit:update', {});
     if (settings.cup_enabled) broadcast('room_cup', { roomId });
-    res.status(201).json({ message, recipientCoins: outcome.recipientCoins });
+    res.status(201).json({
+      message,
+      recipientCoins: outcome.recipientCoins,
+      hostCoins: outcome.hostCoins,
+      currency: outcome.currency,
+    });
   })
 );
 

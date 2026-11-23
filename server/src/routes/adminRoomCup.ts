@@ -34,7 +34,7 @@ router.patch(
     const body = req.body ?? {};
     const patch: Record<string, unknown> = {};
     if ('enabled' in body) patch.cup_enabled = Boolean(body.enabled);
-    if ('ownerPercent' in body) patch.cup_owner_percent = body.ownerPercent;
+    if ('ownerPercent' in body) patch.gift_host_percent = body.ownerPercent;
     if ('period' in body) {
       const period = String(body.period);
       if (!['daily', 'weekly', 'monthly'].includes(period)) {
@@ -50,8 +50,8 @@ router.patch(
     res.json({
       settings: {
         enabled: Boolean(settings.cup_enabled),
-        ownerPercent: Number(settings.cup_owner_percent),
-        adminPercent: 100 - Number(settings.cup_owner_percent),
+        ownerPercent: Number(settings.gift_host_percent),
+        adminPercent: 100 - Number(settings.gift_host_percent),
         period: settings.cup_period,
         prizes: [settings.cup_prize_1, settings.cup_prize_2, settings.cup_prize_3],
       },

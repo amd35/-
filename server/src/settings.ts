@@ -11,6 +11,14 @@ export const GIFT_RARITY_EFFECT_DEFAULTS: Record<string, GiftAnnouncementEffect>
   vip: 'strong',
 };
 
+export interface WithdrawalMethod {
+  id: string;
+  label: string;
+  labelEn: string;
+  enabled: boolean;
+  note: string;
+}
+
 export interface AppSettings {
   voice_price: number;
   video_price: number;
@@ -24,6 +32,19 @@ export interface AppSettings {
   min_withdrawal_coins: number;
   coin_to_iqd_rate: number;
   coin_to_usd_rate: number;
+  /** BEANS payout economy: beans per 1 USD and IQD per 1 bean. */
+  beans_per_usd: number;
+  bean_to_iqd_rate: number;
+  /** Bean limits and fee for a payout request. */
+  min_withdrawal_beans: number;
+  max_withdrawal_beans: number;
+  withdrawal_fee_percent: number;
+  /** Payout channels offered to users (admin managed). */
+  withdrawal_methods: WithdrawalMethod[];
+  /** Allow paying for gifts with GOLD (turn off to keep gold for games only). */
+  gold_gifts_enabled: boolean;
+  /** Default room-owner share of a room gift's profit, in percent. */
+  gift_host_percent: number;
   gifts_enabled: boolean;
   gift_recipient_percent: number;
   gift_admin_percent: number;
@@ -69,6 +90,19 @@ export const SETTINGS_DEFAULTS: AppSettings = {
   min_withdrawal_coins: 1000,
   coin_to_iqd_rate: 5,
   coin_to_usd_rate: 0.001,
+  beans_per_usd: 1000,
+  bean_to_iqd_rate: 1,
+  min_withdrawal_beans: 1000,
+  max_withdrawal_beans: 5_000_000,
+  withdrawal_fee_percent: 0,
+  withdrawal_methods: [
+    { id: 'manual', label: 'تحويل يدوي / كاش', labelEn: 'Manual transfer / cash', enabled: true, note: 'حوّل المبلغ ثم أرسل رقم الطلب للإدارة' },
+    { id: 'zaincash', label: 'ZainCash', labelEn: 'ZainCash', enabled: true, note: 'محفظة زين كاش' },
+    { id: 'fastpay', label: 'FastPay', labelEn: 'FastPay', enabled: true, note: 'محفظة فاست باي' },
+    { id: 'bank', label: 'حساب مصرفي', labelEn: 'Bank account', enabled: true, note: 'تحويل مصرفي' },
+  ],
+  gold_gifts_enabled: true,
+  gift_host_percent: 10,
   gifts_enabled: true,
   gift_recipient_percent: 60,
   gift_admin_percent: 40,
@@ -118,14 +152,36 @@ function readHexColor(value: unknown, fallback: string): string {
   return HEX_COLOR.test(text) ? text.toLowerCase() : fallback;
 }
 
-/** Keeps a known effect level for every rarity, filling gaps with the default. */
-function readRarityEffects(value: unknown): Record<string, GiftAnnouncementEffect> {
+/** Keeps a known effect level for every rarity, filling gaps with the default. */function readRarityEffects(value: unknown): Record<string, GiftAnnouncementEffect> {
   const source = value && typeof value === 'object' ? (value as Record<string, unknown>) : {};
   const out: Record<string, GiftAnnouncementEffect> = {};
   for (const [rarity, fallback] of Object.entries(GIFT_RARITY_EFFECT_DEFAULTS)) {
     const level = source[rarity];
     out[rarity] =
       level === 'light' || level === 'medium' || level === 'strong' ? level : fallback;
+  }
+  return out;
+}
+
+const METHOD_ID = /^[a-z0-9_]{2,20}$/;
+
+/** Sanitizes the admin-managed payout channels list. */
+function readWithdrawalMethods(value: unknown): WithdrawalMethod[] {
+  const source = Array.isArray(value) ? value : [];
+  const out: WithdrawalMethod[] = [];
+  for (const raw of source.slice(0, 12)) {
+    const item = raw && typeof raw === 'object' ? (raw as Record<string, unknown>) : {};
+    const id = String(item.id || '').trim().toLowerCase();
+    const label = String(item.label || '').trim().slice(0, 60);
+    if (!METHOD_ID.test(id) || !label) continue;
+    if (out.some((method) => method.id === id)) continue;
+    out.push({
+      id,
+      label,
+      labelEn: String(item.labelEn || label).trim().slice(0, 60),
+      enabled: item.enabled !== false,
+      note: String(item.note || '').trim().slice(0, 160),
+    });
   }
   return out;
 }
@@ -143,6 +199,14 @@ const COERCE: Record<string, (value: unknown) => unknown> = {
   min_withdrawal_coins: (v) => Math.max(0, Math.trunc(Number(v) || 0)),
   coin_to_iqd_rate: (v) => Math.max(0, Number(v) || 0),
   coin_to_usd_rate: (v) => Math.max(0, Number(v) || 0),
+  beans_per_usd: (v) => Math.max(1, Number(v) || 1000),
+  bean_to_iqd_rate: (v) => Math.max(0, Number(v) || 0),
+  min_withdrawal_beans: (v) => Math.max(0, Math.trunc(Number(v) || 0)),
+  max_withdrawal_beans: (v) => Math.max(0, Math.trunc(Number(v) || 0)),
+  withdrawal_fee_percent: (v) => Math.min(100, Math.max(0, Number(v) || 0)),
+  withdrawal_methods: (v) => readWithdrawalMethods(v),
+  gold_gifts_enabled: (v) => Boolean(v),
+  gift_host_percent: (v) => Math.min(100, Math.max(0, Math.trunc(Number(v) || 0))),
   gifts_enabled: (v) => Boolean(v),
   gift_recipient_percent: (v) => Math.min(100, Math.max(0, Math.trunc(Number(v) || 0))),
   gift_admin_percent: (v) => Math.min(100, Math.max(0, Math.trunc(Number(v) || 0))),
@@ -180,9 +244,15 @@ export async function updateSettings(patch: Record<string, unknown>): Promise<Ap
     const admin = Number(next.admin_percent);
     next.host_percent = 100 - admin;
   }
-  if ('gift_recipient_percent' in patch || 'gift_admin_percent' in patch) {
-    const recipient = Number(next.gift_recipient_percent);
-    next.gift_admin_percent = 100 - recipient;
+  if ('gift_recipient_percent' in patch || 'gift_host_percent' in patch || 'gift_admin_percent' in patch) {
+    const recipient = Math.min(100, Math.max(0, Number(next.gift_recipient_percent) || 0));
+    const host = Math.min(100 - recipient, Math.max(0, Number(next.gift_host_percent) || 0));
+    next.gift_recipient_percent = recipient;
+    next.gift_host_percent = host;
+    next.gift_admin_percent = 100 - recipient - host;
+  }
+  if (Number(next.max_withdrawal_beans) < Number(next.min_withdrawal_beans)) {
+    next.max_withdrawal_beans = next.min_withdrawal_beans;
   }
   for (const [key, value] of Object.entries(next)) {
     if (!(key in COERCE)) continue;
