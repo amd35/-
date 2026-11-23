@@ -7006,6 +7006,206 @@ table.data tr:hover td {
   text-align: center;
 }
 
+/* ------------------------------------------- room gift announcement bar */
+/* A small floating bar under the room header. It lives in the stage flow so it
+   can never cover a seat or a control; it fades away on its own. */
+.room-gift-announce {
+  position: relative;
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 10px 5px 8px;
+  border-radius: 14px;
+  overflow: hidden;
+  border: 1px solid var(--ga-glow, #ffd45e);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.2), rgba(255, 255, 255, 0) 48%),
+    radial-gradient(130% 170% at 88% -20%, rgba(255, 214, 94, 0.32), transparent 60%),
+    linear-gradient(100deg, #2a0104, #7d0a11 42%, #c0121b 70%, #4a0407);
+  box-shadow: 0 8px 22px rgba(0, 0, 0, 0.45), inset 0 0 0 1px rgba(255, 255, 255, 0.08);
+  animation: roomGiftAnnounceLife var(--ga-dur, 5s) ease forwards;
+  will-change: transform, opacity;
+}
+
+.room-gift-announce-glow {
+  position: absolute;
+  inset: -60% -15%;
+  background: radial-gradient(55% 120% at 22% 50%, var(--ga-color, #ff2d2d), transparent 70%);
+  opacity: 0.55;
+  filter: blur(14px);
+  pointer-events: none;
+}
+
+.room-gift-announce.fx-strong .room-gift-announce-glow {
+  animation: roomGiftAnnouncePulse 1.5s ease-in-out infinite;
+}
+
+.room-gift-announce-sparks {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.room-gift-announce-sparks i {
+  position: absolute;
+  left: calc(6% + var(--i) * 12%);
+  bottom: 3px;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--ga-glow, #ffd45e);
+  box-shadow: 0 0 7px var(--ga-glow, #ffd45e);
+  opacity: 0;
+  animation: roomGiftSpark 2.2s ease-in-out infinite;
+  animation-delay: calc(var(--i) * -0.28s);
+}
+
+.room-gift-announce.fx-light .room-gift-announce-sparks i:nth-child(n + 5) {
+  display: none;
+}
+
+.room-gift-announce.fx-medium .room-gift-announce-sparks i:nth-child(n + 7) {
+  display: none;
+}
+
+.room-gift-announce-avatar {
+  position: relative;
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  overflow: hidden;
+  font-size: 12px;
+  font-weight: 800;
+  color: #2a0104;
+  background: linear-gradient(160deg, var(--ga-glow, #ffd45e), #ffab00);
+  border: 1px solid rgba(255, 255, 255, 0.55);
+  box-shadow: 0 0 9px var(--ga-glow, #ffd45e);
+}
+
+.room-gift-announce-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.room-gift-announce-copy {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  flex: 1;
+  min-width: 0;
+}
+
+.room-gift-announce-title {
+  font-size: 11px;
+  font-weight: 600;
+  color: #ffe9d0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.room-gift-announce-title b {
+  color: var(--ga-glow, #ffd45e);
+  font-weight: 800;
+}
+
+.room-gift-announce-meta {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  font-size: 10px;
+  color: #ffd9c4;
+}
+
+.room-gift-announce-meta > b {
+  max-width: 74px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: #fff;
+  font-weight: 700;
+}
+
+.room-gift-announce-gift {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: #ffe9a8;
+  font-weight: 700;
+}
+
+.room-gift-announce-coins {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  flex: none;
+  padding: 0 6px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 212, 94, 0.55);
+  background: rgba(0, 0, 0, 0.35);
+  color: #ffe9a8;
+  font-size: 10px;
+  font-weight: 800;
+}
+
+.room-gift-announce-art {
+  position: relative;
+  flex: none;
+  width: 34px;
+  height: 34px;
+  filter: drop-shadow(0 0 8px var(--ga-glow, #ffd45e));
+}
+
+@keyframes roomGiftAnnounceLife {
+  0% {
+    opacity: 0;
+    transform: translateX(110%) scale(0.96);
+  }
+  8% {
+    opacity: 1;
+    transform: translateX(0) scale(1);
+  }
+  86% {
+    opacity: 1;
+    transform: translateX(0) scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: translateX(-6%) scale(0.98);
+  }
+}
+
+@keyframes roomGiftAnnouncePulse {
+  0%,
+  100% {
+    opacity: 0.45;
+  }
+  50% {
+    opacity: 0.85;
+  }
+}
+
+@keyframes roomGiftSpark {
+  0% {
+    opacity: 0;
+    transform: translateY(6px) scale(0.6);
+  }
+  30% {
+    opacity: 0.9;
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(-16px) scale(1.15);
+  }
+}
+
 /* ---------------------------------------------------------------- seats */
 .room-seats {
   display: grid;

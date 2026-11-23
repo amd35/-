@@ -306,7 +306,15 @@ router.post(
          VALUES ($1, $2, $3, 'gift', $4) RETURNING id`,
         [roomId, me, `🎁 ${gift.name}${quantity > 1 ? ` × ${quantity}` : ''}`, send.id]
       );
-      return { messageId: message.rows[0].id, recipientCoins, coins: price, sendId: send.id, cup };
+      return {
+        messageId: message.rows[0].id,
+        recipientCoins,
+        coins: price,
+        sendId: send.id,
+        giftId: gift.id,
+        giftRarity: gift.rarity,
+        cup,
+      };
     });
 
     const xpSettings = await getXpSettings();
@@ -319,6 +327,45 @@ router.post(
 
     const message = await roomMessageById(outcome.messageId);
     broadcast('room_message', { roomId, message });
+
+    // Gift announcement bar. Only a committed send reaches this point, so a
+    // failed payment can never produce a phantom announcement. The admin picks
+    // whether every gift or only a chosen subset is announced, and how it looks.
+    const announced =
+      settings.gift_announcements_enabled &&
+      (settings.gift_announcement_scope === 'all' ||
+        settings.gift_announcement_gift_ids.includes(outcome.giftId));
+    if (announced && message?.gift) {
+      const recipient = await one<{
+        display_name: string | null;
+        username: string | null;
+        avatar_url: string | null;
+      }>('SELECT display_name, username, avatar_url FROM users WHERE id = $1', [recipientId]);
+      broadcast('room_gift_announcement', {
+        roomId,
+        announcement: {
+          id: outcome.sendId,
+          roomId,
+          sender: { id: me, name: message.displayName, avatarUrl: message.avatarUrl },
+          recipient: {
+            id: recipientId,
+            name: recipient?.display_name || recipient?.username || '',
+            avatarUrl: recipient?.avatar_url ?? null,
+          },
+          gift: message.gift,
+          quantity,
+          coins: outcome.coins,
+          style: {
+            duration: settings.gift_announcement_duration,
+            effects: settings.gift_announcement_effects,
+            color: settings.gift_announcement_color,
+            glow: settings.gift_announcement_glow,
+            effect: settings.gift_announcement_rarity_effects?.[outcome.giftRarity] ?? 'medium',
+          },
+        },
+      });
+    }
+
     emitToUser(me, 'wallet:update', {});
     emitToUser(recipientId, 'profit:update', {});
     if (outcome.cup?.ownerId) emitToUser(outcome.cup.ownerId, 'profit:update', {});

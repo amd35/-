@@ -7,7 +7,6 @@ import { useRealtime } from '../lib/realtime';
 import { Icon, Spinner, useToast } from '../lib/ui';
 import {
   RoomGiftSheet,
-  type RoomGiftInfo,
   type RoomMessageData,
 } from '../components/RoomGiftSheet';
 import { EntryBanner } from '../components/Cosmetics';
@@ -26,7 +25,10 @@ import { RoomCup } from '../components/room/RoomCup';
 import type { RoomData } from '../components/room/types';
 import { useRoomVoice } from '../lib/roomVoice';
 import { playGiftSound } from '../lib/giftSound';
-import { RoomGiftFlash } from '../components/room/RoomGiftFlash';
+import {
+  RoomGiftAnnouncement,
+  type GiftAnnouncement,
+} from '../components/room/RoomGiftAnnouncement';
 
 type Panel = 'chat' | 'members' | 'invite' | 'settings' | 'music' | null;
 
@@ -44,12 +46,13 @@ export default function Room() {
   const [messages, setMessages] = useState<RoomMessageData[]>([]);
   const [sending, setSending] = useState(false);
   const [giftOpen, setGiftOpen] = useState(false);
-  const [playing, setPlaying] = useState<{ gift: RoomGiftInfo; name: string } | null>(null);
+  const [announcement, setAnnouncement] = useState<GiftAnnouncement | null>(null);
   const [panel, setPanel] = useState<Panel>(null);
   const [presence, setPresence] = useState<PresenceUser[]>([]);
   const [forcedMute, setForcedMute] = useState(0);
   const [musicMuted, setMusicMuted] = useState(false);
-  const flashTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const announcementRef = useRef<GiftAnnouncement | null>(null);
+  const announcementQueue = useRef<GiftAnnouncement[]>([]);
   const musicRef = useRef<HTMLAudioElement | null>(null);
   const entryShown = useRef(false);
   const [showEntry, setShowEntry] = useState(false);
@@ -105,14 +108,37 @@ export default function Room() {
     );
   }, []);
 
-  const flash = useCallback((message: RoomMessageData) => {
-    if (!message.gift) return;
-    if (flashTimer.current) clearTimeout(flashTimer.current);
-    setPlaying({ gift: message.gift, name: message.displayName });
-    // A gift video carries its own original audio, so skip the synth effect.
-    if (!message.gift.videoUrl) playGiftSound(message.gift);
-    flashTimer.current = setTimeout(() => setPlaying(null), 6000);
+  const setActiveAnnouncement = useCallback((item: GiftAnnouncement | null) => {
+    announcementRef.current = item;
+    setAnnouncement(item);
   }, []);
+
+  /** One bar at a time: gifts sent together wait their turn instead of overlapping. */
+  const enqueueAnnouncement = useCallback(
+    (item: GiftAnnouncement) => {
+      if (!item || item.roomId !== id) return;
+      if (announcementRef.current?.id === item.id) return;
+      if (announcementQueue.current.some((queued) => queued.id === item.id)) return;
+      if (announcementRef.current) {
+        announcementQueue.current.push(item);
+        return;
+      }
+      setActiveAnnouncement(item);
+    },
+    [id, setActiveAnnouncement]
+  );
+
+  // Keep the active bar for its configured duration, then pull the next gift.
+  useEffect(() => {
+    if (!announcement) return;
+    // A gift video carries its own original audio, so skip the synth effect.
+    if (!announcement.gift.videoUrl) playGiftSound(announcement.gift);
+    const seconds = Math.min(15, Math.max(2, announcement.style?.duration ?? 5));
+    const timer = setTimeout(() => {
+      setActiveAnnouncement(announcementQueue.current.shift() ?? null);
+    }, seconds * 1000);
+    return () => clearTimeout(timer);
+  }, [announcement, setActiveAnnouncement]);
 
   // Seats, roles, background and music change: refresh the stage.
   useEffect(() => {
@@ -129,7 +155,6 @@ export default function Room() {
       const message = data.message as RoomMessageData | null;
       if (!message) return;
       append(message);
-      if (message.userId !== me?.user.id) flash(message);
     });
     const offDelete = on('room_message_deleted', (data) => {
       if (data.roomId !== id) return;
@@ -139,7 +164,17 @@ export default function Room() {
       offMessage();
       offDelete();
     };
-  }, [on, id, append, flash, me?.user.id]);
+  }, [on, id, append]);
+
+  // Gift announcements, pushed to every member of the room at the same moment.
+  useEffect(() => {
+    const off = on('room_gift_announcement', (data) => {
+      if (data.roomId !== id) return;
+      const item = data.announcement as GiftAnnouncement | null;
+      if (item) enqueueAnnouncement(item);
+    });
+    return off;
+  }, [on, id, enqueueAnnouncement]);
 
   // Live occupancy and moderation events.
   useEffect(() => {
@@ -193,9 +228,11 @@ export default function Room() {
     void audio.play().catch(() => undefined);
   }, [room?.musicUrl, musicMuted]);
 
-  useEffect(() => () => {
-    if (flashTimer.current) clearTimeout(flashTimer.current);
-  }, []);
+  // A different room starts with a clean announcement queue.
+  useEffect(() => {
+    announcementQueue.current = [];
+    setActiveAnnouncement(null);
+  }, [id, setActiveAnnouncement]);
 
   const act = async (mic: RoomMic) => {
     if (busyMic) return;
@@ -381,6 +418,10 @@ export default function Room() {
             onSettings={() => setPanel('settings')}
           />
 
+          {announcement ? (
+            <RoomGiftAnnouncement key={announcement.id} item={announcement} />
+          ) : null}
+
           <RoomCup roomId={id} />
 
           {room.rules ? <p className="room-rules-line">{room.rules}</p> : null}
@@ -447,8 +488,6 @@ export default function Room() {
         ) : null}
       </div>
 
-      {playing ? <RoomGiftFlash gift={playing.gift} sender={playing.name} /> : null}
-
       {room ? (
         <>
           <RoomChatPanel
@@ -492,10 +531,7 @@ export default function Room() {
             onClose={() => setGiftOpen(false)}
             roomId={id}
             speakers={speakers}
-            onSent={(message) => {
-              append(message);
-              flash(message);
-            }}
+            onSent={(message) => append(message)}
           />
         </>
       ) : null}
