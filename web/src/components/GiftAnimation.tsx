@@ -25,6 +25,7 @@ export function GiftAnimation({
   className = '',
   sound = false,
   loop = true,
+  onEnded,
 }: {
   gift: GiftVisual;
   className?: string;
@@ -32,6 +33,8 @@ export function GiftAnimation({
   sound?: boolean;
   /** Loop an uploaded clip (off for the admin preview so the sound plays once). */
   loop?: boolean;
+  /** Fired once an uploaded clip finishes playing. */
+  onEnded?: () => void;
 }) {
   const uid = useId().replace(/[:]/g, '');
   if (gift.videoUrl) {
@@ -42,6 +45,7 @@ export function GiftAnimation({
           poster={assetUrl(gift.coverUrl)}
           sound={sound}
           loop={loop}
+          onEnded={onEnded}
         />
       </div>
     );
@@ -65,11 +69,13 @@ function GiftVideo({
   poster,
   sound,
   loop,
+  onEnded,
 }: {
   src: string | undefined;
   poster: string | undefined;
   sound: boolean;
   loop: boolean;
+  onEnded?: () => void;
 }) {
   const ref = useRef<HTMLVideoElement>(null);
 
@@ -92,6 +98,7 @@ function GiftVideo({
       loop={loop}
       muted={!sound}
       playsInline
+      onEnded={onEnded}
     />
   );
 }

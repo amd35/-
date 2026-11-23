@@ -24,7 +24,6 @@ import { RoomChatPanel } from '../components/room/RoomChatPanel';
 import { RoomCup } from '../components/room/RoomCup';
 import type { RoomData } from '../components/room/types';
 import { useRoomVoice } from '../lib/roomVoice';
-import { playGiftSound } from '../lib/giftSound';
 import {
   RoomGiftAnnouncement,
   type GiftAnnouncement,
@@ -133,17 +132,10 @@ export default function Room() {
     [id, setActiveAnnouncement]
   );
 
-  // Keep the active bar for its configured duration, then pull the next gift.
-  useEffect(() => {
-    if (!announcement) return;
-    // A gift video carries its own original audio, so skip the synth effect.
-    if (!announcement.gift.videoUrl) playGiftSound(announcement.gift);
-    const seconds = Math.min(15, Math.max(2, announcement.style?.duration ?? 5));
-    const timer = setTimeout(() => {
-      setActiveAnnouncement(announcementQueue.current.shift() ?? null);
-    }, seconds * 1000);
-    return () => clearTimeout(timer);
-  }, [announcement, setActiveAnnouncement]);
+  // The reveal closes itself (a clip when it ends, other gifts after their time).
+  const finishAnnouncement = useCallback(() => {
+    setActiveAnnouncement(announcementQueue.current.shift() ?? null);
+  }, [setActiveAnnouncement]);
 
   // Seats, roles, background and music change: refresh the stage.
   useEffect(() => {
@@ -424,7 +416,11 @@ export default function Room() {
           />
 
           {announcement ? (
-            <RoomGiftAnnouncement key={announcement.id} item={announcement} />
+            <RoomGiftAnnouncement
+              key={announcement.id}
+              item={announcement}
+              onDone={finishAnnouncement}
+            />
           ) : null}
 
           <RoomCup roomId={id} />

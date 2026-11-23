@@ -46,7 +46,7 @@ function hash(text: string): number {
 const LADDER = [0, 2, 4, 7, 9, 12, 14, 16, 19, 21];
 
 function melody(seed: number, count: number): number[] {
-  return Array.from({ length: count }, (_, index) => LADDER[(seed >> (index * 3)) % LADDER.length]);
+  return Array.from({ length: count }, (_, index) => LADDER[(seed >>> (index * 3)) % LADDER.length]);
 }
 
 interface NoteOptions {
@@ -211,7 +211,7 @@ export function playGiftSound(gift: GiftSoundInfo): void {
       // Crystal sparkles.
       [0, 1, 2, 3, 4, 5].forEach((index) =>
         note(ctx, out, {
-          freq: (1800 + ((seed >> (index * 4)) % 6) * 420) * rate,
+          freq: (1800 + ((seed >>> (index * 4)) % 6) * 420) * rate,
           at: t + index * 0.07,
           dur: 0.35,
           type: 'sine',
@@ -225,7 +225,7 @@ export function playGiftSound(gift: GiftSoundInfo): void {
       note(ctx, out, { freq: 120 * rate, glideTo: 70 * rate, at: t, dur: 0.35, type: 'sine', gain: 0.22 });
       [0, 1, 2, 3, 4].forEach((index) =>
         note(ctx, out, {
-          freq: (1400 + ((seed >> (index * 5)) % 8) * 260) * rate,
+          freq: (1400 + ((seed >>> (index * 5)) % 8) * 260) * rate,
           at: t + 0.18 + index * 0.09,
           dur: 0.28,
           type: 'triangle',
