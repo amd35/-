@@ -3800,46 +3800,141 @@ table.data tr:hover td {
 
 .room-gift-flash {
   position: fixed;
-  inset-block-start: 18%;
-  inset-inline: 0;
-  z-index: 40;
+  inset: 0;
+  z-index: 60;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 6px;
+  justify-content: center;
+  gap: 14px;
+  padding: 5vh 4vw;
+  overflow: hidden;
   pointer-events: none;
+  background: radial-gradient(
+    circle at 50% 42%,
+    rgba(124, 58, 237, 0.42),
+    rgba(255, 79, 163, 0.16) 40%,
+    rgba(6, 3, 12, 0.92) 74%
+  );
   animation: roomGiftIn 4.5s ease forwards;
 }
 
+.room-gift-flash-glow {
+  position: absolute;
+  width: 160vmin;
+  height: 160vmin;
+  border-radius: 50%;
+  background: conic-gradient(
+    from 0deg,
+    rgba(255, 215, 94, 0.3),
+    rgba(255, 79, 163, 0.24),
+    rgba(124, 58, 237, 0.32),
+    rgba(255, 215, 94, 0.3)
+  );
+  filter: blur(60px);
+  animation: roomGiftSpin 5s linear infinite;
+}
+
 .room-gift-flash-art {
-  width: 150px;
-  height: 150px;
+  position: relative;
+  width: min(88vw, 62vh);
+  height: min(88vw, 62vh);
+  filter: drop-shadow(0 0 36px rgba(255, 215, 94, 0.55));
+  animation: roomGiftPop 4.5s cubic-bezier(0.22, 1.2, 0.36, 1) forwards;
 }
 
 .room-gift-flash-label {
-  padding: 5px 14px;
-  border-radius: 999px;
-  background: rgba(10, 6, 16, 0.82);
-  border: 1px solid rgba(255, 193, 7, 0.4);
-  font-size: 12.5px;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 10px 24px;
+  border-radius: 20px;
+  background: rgba(10, 6, 16, 0.8);
+  border: 1px solid rgba(255, 193, 7, 0.45);
+  box-shadow: 0 14px 44px rgba(0, 0, 0, 0.55);
+  text-align: center;
+  animation: roomGiftLabelIn 4.5s ease forwards;
+}
+
+.room-gift-flash-sender {
+  font-size: 13px;
+  color: #cbb7ff;
+}
+
+.room-gift-flash-name {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  font-size: 19px;
+  font-weight: 800;
   color: #ffe9a8;
+}
+
+.room-gift-flash-qty {
+  font-size: 25px;
+  font-weight: 900;
+  color: #ff8fc4;
 }
 
 @keyframes roomGiftIn {
   0% {
     opacity: 0;
-    transform: translateY(14px) scale(0.9);
   }
-  12% {
+  10% {
     opacity: 1;
-    transform: translateY(0) scale(1);
   }
-  80% {
+  82% {
     opacity: 1;
   }
   100% {
     opacity: 0;
-    transform: translateY(-10px);
+  }
+}
+
+@keyframes roomGiftSpin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes roomGiftPop {
+  0% {
+    opacity: 0;
+    transform: scale(0.35) rotate(-12deg);
+  }
+  14% {
+    opacity: 1;
+    transform: scale(1.08) rotate(0deg);
+  }
+  24% {
+    transform: scale(1);
+  }
+  82% {
+    opacity: 1;
+    transform: scale(1.04);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(1.18);
+  }
+}
+
+@keyframes roomGiftLabelIn {
+  0% {
+    opacity: 0;
+    transform: translateY(18px);
+  }
+  18% {
+    opacity: 1;
+    transform: none;
+  }
+  82% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
   }
 }
 

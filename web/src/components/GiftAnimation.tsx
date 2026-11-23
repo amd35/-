@@ -1,6 +1,7 @@
 import { useEffect, useId, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import { assetUrl } from '../lib/api';
+import { playGiftSound } from '../lib/giftSound';
 import { formatCoins, Icon } from '../lib/ui';
 
 export interface GiftVisual {
@@ -506,6 +507,13 @@ export function GiftReveal({
   recipientName?: string;
   onClose: () => void;
 }) {
+  const soundKey = `${gift.name}|${gift.design ?? ''}`;
+
+  useEffect(() => {
+    playGiftSound(gift);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [soundKey]);
+
   useEffect(() => {
     const timer = setTimeout(onClose, 5600);
     return () => clearTimeout(timer);

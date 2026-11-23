@@ -5,7 +5,6 @@ import { useAuth } from '../lib/auth';
 import { useI18n } from '../lib/i18n';
 import { useRealtime } from '../lib/realtime';
 import { Icon, Spinner, useToast } from '../lib/ui';
-import { GiftAnimation } from '../components/GiftAnimation';
 import {
   RoomGiftSheet,
   type RoomGiftInfo,
@@ -26,6 +25,8 @@ import { RoomChatPanel } from '../components/room/RoomChatPanel';
 import { RoomCup } from '../components/room/RoomCup';
 import type { RoomData } from '../components/room/types';
 import { useRoomVoice } from '../lib/roomVoice';
+import { playGiftSound } from '../lib/giftSound';
+import { RoomGiftFlash } from '../components/room/RoomGiftFlash';
 
 type Panel = 'chat' | 'members' | 'invite' | 'settings' | 'music' | null;
 
@@ -108,6 +109,7 @@ export default function Room() {
     if (!message.gift) return;
     if (flashTimer.current) clearTimeout(flashTimer.current);
     setPlaying({ gift: message.gift, name: message.displayName });
+    playGiftSound(message.gift);
     flashTimer.current = setTimeout(() => setPlaying(null), 4500);
   }, []);
 
@@ -444,15 +446,7 @@ export default function Room() {
         ) : null}
       </div>
 
-      {playing ? (
-        <div className="room-gift-flash">
-          <GiftAnimation gift={playing.gift} className="room-gift-flash-art" />
-          <span className="room-gift-flash-label">
-            {playing.name} 🎁 {playing.gift.name}
-            {(playing.gift.quantity ?? 1) > 1 ? ` × ${playing.gift.quantity}` : ''}
-          </span>
-        </div>
-      ) : null}
+      {playing ? <RoomGiftFlash gift={playing.gift} sender={playing.name} /> : null}
 
       {room ? (
         <>
