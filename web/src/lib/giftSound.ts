@@ -113,6 +113,56 @@ function noise(
   source.stop(at + dur + 0.05);
 }
 
+/**
+ * Country-flag gifts: a warm regal fanfare whose key and melody come from the
+ * flag's own ISO code, so every country sounds different.
+ */
+function flagFanfare(ctx: AudioContext, out: GainNode, seed: number, rate: number, at: number): void {
+  // Soft string pad under the whole reveal.
+  [0, 7, 12, 16].forEach((step, index) => {
+    const freq = 196 * rate * Math.pow(2, step / 12);
+    note(ctx, out, { freq, at: at + index * 0.03, dur: 2.4, type: 'triangle', gain: 0.06, attack: 0.3 });
+    note(ctx, out, { freq: freq * 1.004, at: at + index * 0.03, dur: 2.4, type: 'sine', gain: 0.045, attack: 0.35 });
+  });
+  // Harp run: the flag's own short melody.
+  melody(seed, 7).forEach((step, index) => {
+    note(ctx, out, {
+      freq: 523.25 * rate * Math.pow(2, step / 12),
+      at: at + 0.08 + index * 0.09,
+      dur: 0.75,
+      type: 'triangle',
+      gain: 0.085,
+      attack: 0.008,
+    });
+  });
+  // Airy shimmer, then two closing bells.
+  noise(ctx, out, { at: at + 0.12, dur: 1.6, from: 2600, to: 5400, gain: 0.05, q: 1.7 });
+  note(ctx, out, { freq: 1046.5 * rate, at: at + 1.4, dur: 1.2, type: 'sine', gain: 0.1 });
+  note(ctx, out, { freq: 1567.98 * rate, at: at + 1.46, dur: 1, type: 'sine', gain: 0.055 });
+}
+
+/** Says the country's name over the fanfare with the device speech engine. */
+function speakFlagName(name: string | null | undefined): void {
+  if (typeof window === 'undefined' || !('speechSynthesis' in window)) return;
+  const text = (name ?? '')
+    .replace(/^(علم|flag of|flag)\s+/i, '')
+    .trim();
+  if (!text) return;
+  // Let the music open first, then the name lands on top of it.
+  setTimeout(() => {
+    const utterance = new SpeechSynthesisUtterance(text);
+    utterance.lang = 'ar';
+    utterance.rate = 0.92;
+    utterance.pitch = 1.03;
+    const arabic = window.speechSynthesis
+      .getVoices()
+      .find((voice) => voice.lang?.toLowerCase().startsWith('ar'));
+    if (arabic) utterance.voice = arabic;
+    window.speechSynthesis.cancel();
+    window.speechSynthesis.speak(utterance);
+  }, 450);
+}
+
 // Browsers only allow audio after a gesture, so prepare the audio context on the
 // first tap/key press. That way the first gift that arrives is never silent.
 if (typeof window !== 'undefined') {
@@ -138,6 +188,13 @@ export function playGiftSound(gift: GiftSoundInfo): void {
   const t = ctx.currentTime + 0.02;
   const design = (gift.design ?? '').toLowerCase();
   const steps = melody(seed, 5);
+
+  // Country flags: regal fanfare + the country's spoken name.
+  if (design.startsWith('flag:')) {
+    flagFanfare(ctx, out, hash(design), rate, t);
+    speakFlagName(gift.name);
+    return;
+  }
 
   switch (design) {
     case 'sports-car':
