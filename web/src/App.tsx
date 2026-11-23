@@ -25,6 +25,7 @@ import Earnings from './pages/Earnings';
 import Rooms from './pages/Rooms';
 import Room from './pages/Room';
 import Ads from './pages/Ads';
+import AdDetails from './pages/AdDetails';
 import Admin from './pages/Admin';
 
 function Protected({ children }: { children: ReactNode }) {
@@ -178,6 +179,14 @@ export default function App() {
           element={
             <Protected>
               <Ads />
+            </Protected>
+          }
+        />
+        <Route
+          path="/ads/:id"
+          element={
+            <Protected>
+              <AdDetails />
             </Protected>
           }
         />

@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { adPopupSeen, adText, markAdPopupSeen, trackAdClick, trackAdView, type AdItem } from '../lib/ads';
 import { useI18n } from '../lib/i18n';
 import { Icon, Sheet } from '../lib/ui';
@@ -10,6 +11,7 @@ import AdMedia from './AdMedia';
  */
 export default function AdPopup({ ads }: { ads: AdItem[] }) {
   const { t, lang } = useI18n();
+  const navigate = useNavigate();
   const popup = useMemo(() => ads.find((ad) => ad.showPopup) ?? null, [ads]);
   const [open, setOpen] = useState(false);
   const checked = useRef(false);
@@ -44,17 +46,17 @@ export default function AdPopup({ ads }: { ads: AdItem[] }) {
         </div>
         {title ? <h3 className="ad-popup-title">{title}</h3> : null}
         {body ? <p className="tiny muted">{body}</p> : null}
-        {popup.linkUrl ? (
-          <a
-            className="btn btn-primary btn-block"
-            href={popup.linkUrl}
-            target={popup.linkUrl.startsWith('/') ? undefined : '_blank'}
-            rel="noreferrer"
-            onClick={() => trackAdClick(popup.id)}
-          >
-            <Icon name="arrowRight" size={16} /> {t('adsOpen')}
-          </a>
-        ) : null}
+        <button
+          type="button"
+          className="btn btn-primary btn-block"
+          onClick={() => {
+            trackAdClick(popup.id);
+            setOpen(false);
+            navigate(`/ads/${popup.id}`);
+          }}
+        >
+          <Icon name="arrowRight" size={16} /> {t('adsView')}
+        </button>
       </div>
     </Sheet>
   );

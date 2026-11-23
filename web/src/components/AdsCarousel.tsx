@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { adText, trackAdClick, trackAdView, type AdItem } from '../lib/ads';
 import { useI18n } from '../lib/i18n';
 import { Icon } from '../lib/ui';
@@ -8,10 +9,12 @@ const AUTOPLAY_MS = 6000;
 
 /**
  * The home banner: every ad with `showBanner` in one auto-advancing slide with
- * navigation dots. A slide with a link records a click; each slide records a view.
+ * navigation dots. Tapping a slide records a click and opens the ad page with
+ * the copy and link the admin published; each slide records a view.
  */
 export default function AdsCarousel({ ads }: { ads: AdItem[] }) {
   const { t, lang } = useI18n();
+  const navigate = useNavigate();
   const bannerAds = useMemo(() => ads.filter((ad) => ad.showBanner), [ads]);
   const [index, setIndex] = useState(0);
 
@@ -72,16 +75,15 @@ export default function AdsCarousel({ ads }: { ads: AdItem[] }) {
             {body ? <span className="tiny muted">{body}</span> : null}
           </div>
         ) : null}
-        {current.linkUrl ? (
-          <a
-            className="ad-hit"
-            href={current.linkUrl}
-            target={current.linkUrl.startsWith('/') ? undefined : '_blank'}
-            rel="noreferrer"
-            aria-label={title || t('adsOpen')}
-            onClick={() => trackAdClick(current.id)}
-          />
-        ) : null}
+        <button
+          type="button"
+          className="ad-hit"
+          aria-label={title || t('adsView')}
+          onClick={() => {
+            trackAdClick(current.id);
+            navigate(`/ads/${current.id}`);
+          }}
+        />
       </div>
       {bannerAds.length > 1 ? (
         <div className="ad-dots">

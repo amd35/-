@@ -10821,6 +10821,64 @@ table.data tr:hover td {
   z-index: 1;
 }
 
+button.ad-hit {
+  border: 0;
+  padding: 0;
+  background: transparent;
+  cursor: pointer;
+}
+
+.ad-detail {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.ad-detail-back {
+  align-self: flex-start;
+}
+
+.ad-detail-card {
+  border-radius: var(--radius);
+  overflow: hidden;
+  border: 1px solid var(--line);
+  background: var(--card);
+  box-shadow: var(--shadow);
+}
+
+.ad-detail-media {
+  background: rgba(0, 0, 0, 0.55);
+}
+
+.ad-detail-media img,
+.ad-detail-media video {
+  width: 100%;
+  max-height: 68vh;
+  object-fit: contain;
+  display: block;
+}
+
+.ad-detail-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 14px;
+}
+
+.ad-detail-title {
+  margin: 0;
+  font-size: 19px;
+  line-height: 1.4;
+}
+
+.ad-detail-text {
+  margin: 0;
+  white-space: pre-line;
+  font-size: 14px;
+  line-height: 1.75;
+  color: var(--muted);
+}
+
 .ad-nav {
   position: absolute;
   top: 50%;
@@ -10885,6 +10943,8 @@ table.data tr:hover td {
   overflow: hidden;
   border: 1px solid var(--line);
   background: var(--card);
+  color: inherit;
+  text-decoration: none;
 }
 
 .ad-card-body {

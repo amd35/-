@@ -1,4 +1,5 @@
 import { useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import { adText, trackAdClick, trackAdView, useAds, type AdItem } from '../lib/ads';
 import { useI18n } from '../lib/i18n';
 import { EmptyState, Icon, Spinner } from '../lib/ui';
@@ -23,7 +24,7 @@ function AdCard({ ad }: { ad: AdItem }) {
   const upcoming = ad.startsAt ? new Date(ad.startsAt).getTime() > Date.now() : false;
 
   return (
-    <article className="ad-card">
+    <Link className="ad-card" to={`/ads/${ad.id}`} onClick={() => trackAdClick(ad.id)}>
       <div className="ad-media">
         <AdMedia ad={ad} />
       </div>
@@ -37,20 +38,10 @@ function AdCard({ ad }: { ad: AdItem }) {
             <span className="pill pill-green tiny">{t('adsLive')}</span>
           )}
           {end ? <span className="tiny muted">{t('adsEnds', { date: end })}</span> : null}
+          <Icon name="arrowRight" size={14} />
         </div>
-        {ad.linkUrl ? (
-          <a
-            className="btn btn-outline btn-sm"
-            href={ad.linkUrl}
-            target={ad.linkUrl.startsWith('/') ? undefined : '_blank'}
-            rel="noreferrer"
-            onClick={() => trackAdClick(ad.id)}
-          >
-            <Icon name="arrowRight" size={14} /> {t('adsOpen')}
-          </a>
-        ) : null}
       </div>
-    </article>
+    </Link>
   );
 }
 

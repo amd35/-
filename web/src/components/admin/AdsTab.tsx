@@ -223,7 +223,7 @@ export default function AdsTab() {
     <div className="stack" style={{ gap: 16 }}>
       <AdminCard
         title={editId ? 'تعديل الإعلان' : 'إضافة إعلان أو حدث جديد'}
-        subtitle="صورة أو فيديو + عنوان ونص بالعربية والإنجليزية، رابط، مواعيد العرض، الترتيب، وأماكن الظهور"
+        subtitle="صورة متحركة أو فيديو + عنوان ونص بالعربية والإنجليزية، رابط يفتح من صفحة الإعلان، مواعيد العرض، الترتيب، وأماكن الظهور"
         actions={
           editId ? (
             <button className="btn btn-ghost btn-sm" onClick={resetForm}>
@@ -255,7 +255,7 @@ export default function AdsTab() {
             </button>
           </div>
         ) : (
-          <span className="tiny muted">JPG / PNG / WebP / GIF أو MP4 / WebM (حتى 80 ميجابايت).</span>
+          <span className="tiny muted">JPG / PNG / WebP / GIF متحرك أو MP4 / WebM (حتى 80 ميجابايت) — الصور المتحركة تُعرض متحركة.</span>
         )}
 
         <div className="stat-grid" style={{ gridTemplateColumns: 'repeat(auto-fit,minmax(220px,1fr))' }}>
@@ -304,7 +304,7 @@ export default function AdsTab() {
           </Field>
         </div>
 
-        <Field label="الرابط (اختياري)" hint="https://… أو مسار داخل التطبيق مثل /wallet">
+        <Field label="الرابط (اختياري)" hint="https://… أو مسار داخلي مثل /wallet — يظهر كزر داخل صفحة الإعلان">
           <input
             className="input"
             value={form.linkUrl}
