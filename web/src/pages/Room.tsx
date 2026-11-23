@@ -11,7 +11,7 @@ import {
 } from '../components/RoomGiftSheet';
 import { EntryBanner } from '../components/Cosmetics';
 import { VipEntryBanner } from '../components/ProgressionBadges';
-import { ADMIN_BADGE_BY_RANK } from '../components/AdminRoyal';
+import { ADMIN_BADGE_BY_RANK, isAdminDesign } from '../components/AdminRoyal';
 import { RoomBackdrop } from '../components/room/RoomBackdrop';
 import { RoomHeader } from '../components/room/RoomHeader';
 import { RoomBottomBar } from '../components/room/RoomBottomBar';
@@ -145,9 +145,14 @@ export default function Room() {
       .catch((error: Error) => toast.push(error.message, 'error'));
   }, [id, toast]);
 
-  // Play the equipped room-entry animation once per visit.
+  // Play the equipped room-entry animation once per visit. The official admin
+  // emblem is not shown inside rooms.
   useEffect(() => {
     if (!room || entryShown.current) return;
+    if (isAdminDesign(entryCosmetic?.design)) {
+      entryShown.current = true;
+      return;
+    }
     if (!entryCosmetic && !me?.vip) return;
     entryShown.current = true;
     setShowEntry(true);
