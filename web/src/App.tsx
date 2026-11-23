@@ -21,7 +21,6 @@ import Settings from './pages/Settings';
 import Frames from './pages/Frames';
 import Ranks from './pages/Ranks';
 import Levels from './pages/Levels';
-import Earnings from './pages/Earnings';
 import Rooms from './pages/Rooms';
 import Room from './pages/Room';
 import Ads from './pages/Ads';
@@ -117,14 +116,6 @@ export default function App() {
           element={
             <Protected>
               <Ranks />
-            </Protected>
-          }
-        />
-        <Route
-          path="/earnings"
-          element={
-            <Protected>
-              <Earnings />
             </Protected>
           }
         />

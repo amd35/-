@@ -1,5 +1,4 @@
 import { useCallback, useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { api } from '../lib/api';
 import { useAuth } from '../lib/auth';
 import { useI18n } from '../lib/i18n';
@@ -32,6 +31,7 @@ interface WalletData {
   wallet: { balance: number; reserved: number; earned: number; spent: number; gold?: number };
   currencies: {
     diamond: { code: string; balance: number; reserved: number; earned: number; spent: number };
+    gold: { code: string; balance: number };
   };
   transactions: LedgerRow[];
   earnings: { total: number; calls: number };
@@ -84,7 +84,6 @@ export default function Wallet() {
   const { me } = useAuth();
   const { on } = useRealtime();
   const toast = useToast();
-  const navigate = useNavigate();
 
   const [data, setData] = useState<WalletData | null>(null);
   const [packages, setPackages] = useState<Package[]>([]);
@@ -176,6 +175,7 @@ export default function Wallet() {
     earned: data?.wallet.earned ?? 0,
     spent: data?.wallet.spent ?? 0,
   };
+  const gold = currencies?.gold ?? { balance: data?.wallet.gold ?? 0 };
   const ledgerRows = data?.transactions ?? [];
   const ledgerLabels = DIAMOND_LABELS;
 
@@ -204,29 +204,32 @@ export default function Wallet() {
             <button className="btn btn-gold btn-sm grow" onClick={() => document.getElementById('packages')?.scrollIntoView({ behavior: 'smooth' })}>
               <Icon name="plus" size={15} /> {t('recharge')}
             </button>
-            <button className="btn btn-outline btn-sm grow" onClick={() => navigate('/earnings')}>
-              <Icon name="gift" size={15} /> {t('earnings')}
-            </button>
           </div>
           <p className="tiny muted" style={{ marginTop: 8 }}>
             {lang === 'ar'
-              ? 'الماس لإرسال الهدايا. أرباح الهدايا بالفاصوليا في قسم الأرباح.'
-              : 'Diamond is for sending gifts. Gift profits in beans live in the earnings section.'}
+              ? 'الماس لإرسال الهدايا، والذهب يُضاف من وكلاء الشحن الرسميين.'
+              : 'Diamond is for sending gifts; gold is credited by official recharge agents.'}
           </p>
           <GiftCodeButton block onRedeemed={() => void load()} />
         </section>
 
         <section className="stack">
           <div className="section-head">
-            <h2>{lang === 'ar' ? 'عملة الهدايا' : 'Gift currency'}</h2>
-            <span className="tiny muted">{lang === 'ar' ? 'الماس لإرسال الهدايا' : 'Diamond is for gifts'}</span>
+            <h2>{lang === 'ar' ? 'عملات المحفظة' : 'Wallet currencies'}</h2>
+            <span className="tiny muted">{lang === 'ar' ? 'الماس والذهب' : 'Diamond & gold'}</span>
           </div>
-          <div className="currency-grid is-single">
+          <div className="currency-grid">
             <div className="currency-card diamond">
               <CurrencyIcon code="DIAMOND" size={26} />
               <span>{lang === 'ar' ? 'DIAMOND · الماس' : 'DIAMOND'}</span>
               <b>{formatCoins(diamond.balance)}</b>
               <span className="tiny muted">{lang === 'ar' ? 'هدايا الغرف والدردشة' : 'Room & chat gifts'}</span>
+            </div>
+            <div className="currency-card gold">
+              <CurrencyIcon code="GOLD" size={26} />
+              <span>{lang === 'ar' ? 'GOLD · الذهب' : 'GOLD'}</span>
+              <b>{formatCoins(gold.balance)}</b>
+              <span className="tiny muted">{lang === 'ar' ? 'من وكلاء الشحن' : 'From recharge agents'}</span>
             </div>
           </div>
         </section>

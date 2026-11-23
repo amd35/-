@@ -151,7 +151,7 @@ export function Profile() {
           onCustomize={() => setCustomizeOpen(true)}
           onEdit={() => setEditOpen(true)}
           onWallet={() => navigate('/wallet')}
-          onEarnings={() => navigate('/earnings')}
+          onGold={() => navigate('/wallet')}
           onRooms={() => navigate('/rooms')}
           onConnections={setConnections}
           onGifts={() =>

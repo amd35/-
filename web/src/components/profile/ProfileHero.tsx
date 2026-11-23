@@ -2,7 +2,7 @@
  * Royal profile screen — laid out in the reference order:
  * top bar (status + settings) → gold name plaque → framed avatar with wings
  * and a level ribbon → level / VIP / position badges → ID bar with copy →
- * identity card → Diamond & Beans balances → six counters → four actions.
+ * identity card → Diamond & Gold balances → six counters → four actions.
  *
  * Every figure comes from the signed-in account (`/auth/me` + `/users/:id`);
  * nothing here is placeholder data.
@@ -40,7 +40,7 @@ export function ProfileHero({
   onCustomize,
   onEdit,
   onWallet,
-  onEarnings,
+  onGold,
   onGifts,
   onAchievements,
   onRooms,
@@ -52,7 +52,7 @@ export function ProfileHero({
   onCustomize: () => void;
   onEdit: () => void;
   onWallet: () => void;
-  onEarnings: () => void;
+  onGold: () => void;
   onGifts: () => void;
   onAchievements: () => void;
   onRooms: () => void;
@@ -291,17 +291,14 @@ export function ProfileHero({
             <Icon name="plus" size={13} />
           </span>
         </button>
-        <button className="rp-wallet is-beans" type="button" onClick={onEarnings}>
+        <button className="rp-wallet is-beans" type="button" onClick={onGold}>
           <span className="rp-wallet-head">
             <span className="rp-wallet-icon">
-              <CurrencyIcon code="BEANS" size={24} />
+              <CurrencyIcon code="GOLD" size={24} />
             </span>
-            <span className="rp-wallet-name">
-              {t('beans')}
-              <small>{t('earnings')}</small>
-            </span>
+            <span className="rp-wallet-name">{t('gold')}</span>
           </span>
-          <b className="rp-wallet-value">{formatCoins(me.wallet.beans ?? 0)}</b>
+          <b className="rp-wallet-value">{formatCoins(me.wallet.gold ?? 0)}</b>
           <span className="rp-wallet-plus" aria-hidden="true">
             <Icon name="plus" size={13} />
           </span>
