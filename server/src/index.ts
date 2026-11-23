@@ -7,6 +7,8 @@ import { attachRealtime, closeRealtime } from './realtime';
 import { registerSocketHandlers } from './wsHandlers';
 import { recoverStaleCalls, startBillingLoop } from './calls';
 import { ensureBotUser } from './bot';
+import { ensureSupportUser } from './support';
+import { startAnnouncementLoop } from './announcements';
 import { UPLOAD_DIR } from './routes/uploads';
 import { HttpError } from './utils';
 import authRoutes from './routes/auth';
@@ -15,6 +17,9 @@ import callRoutes from './routes/calls';
 import chatRoutes from './routes/chat';
 import walletRoutes from './routes/wallet';
 import notificationRoutes from './routes/notifications';
+import announcementRoutes from './routes/announcements';
+import adminAnnouncementRoutes from './routes/adminAnnouncements';
+import pushRoutes from './routes/push';
 import uploadRoutes from './routes/uploads';
 import frameRoutes from './routes/frames';
 import giftRoutes from './routes/gifts';
@@ -79,6 +84,8 @@ app.use('/api/calls', callRoutes);
 app.use('/api/chat', chatRoutes);
 app.use('/api/wallet', walletRoutes);
 app.use('/api/notifications', notificationRoutes);
+app.use('/api/announcements', announcementRoutes);
+app.use('/api/push', pushRoutes);
 app.use('/api/uploads', uploadRoutes);
 app.use('/api/frames', frameRoutes);
 app.use('/api/gifts', giftRoutes);
@@ -93,6 +100,7 @@ app.use('/api/admin', adminProgressionRoutes);
 app.use('/api/admin', adminLookRoutes);
 app.use('/api/backgrounds', backgroundRoutes);
 app.use('/api/admin', adminBackgroundRoutes);
+app.use('/api/admin', adminAnnouncementRoutes);
 
 app.use('/uploads', express.static(UPLOAD_DIR, { maxAge: '7d', fallthrough: true }));
 // Gift artwork shipped inside the web app (web/public/gifts) — same paths work in the Android shell.
@@ -140,9 +148,13 @@ async function bootstrap(): Promise<void> {
   await waitForDatabase();
   await migrate();
   await ensureBotUser().catch((error) => console.error('[bot] seed failed', (error as Error).message));
+  await ensureSupportUser().catch((error) =>
+    console.error('[support] seed failed', (error as Error).message)
+  );
   await recoverStaleCalls();
   startBillingLoop();
   startCupLoop();
+  startAnnouncementLoop();
   server.listen(PORT, '0.0.0.0', () => {
     console.log(`[api] listening on 0.0.0.0:${PORT}`);
   });

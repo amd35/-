@@ -84,6 +84,7 @@ export interface Me {
   wallet: WalletInfo;
   freeCalls: FreeCallInfo;
   unreadNotifications: number;
+  unreadAnnouncements: number;
   friendRequests: number;
   unreadMessages: number;
   config: AppConfig;

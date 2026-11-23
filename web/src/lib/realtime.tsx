@@ -12,6 +12,7 @@ import { useAuth } from './auth';
 import { useI18n } from './i18n';
 import { useToast } from './ui';
 import { wsUrl } from './api';
+import { registerPushToken } from './push';
 
 type Handler = (data: Record<string, unknown>) => void;
 
@@ -44,6 +45,12 @@ export function RealtimeProvider({ children }: { children: ReactNode }) {
       void refresh();
     }, 450);
   }, [refresh]);
+
+  // Ask the native shell for an FCM token once per signed-in session.
+  useEffect(() => {
+    if (!token) return;
+    void registerPushToken();
+  }, [token]);
 
   const on = useCallback((event: string, handler: Handler) => {
     if (!listeners.current.has(event)) listeners.current.set(event, new Set());

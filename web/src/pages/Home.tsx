@@ -15,7 +15,7 @@ import {
   useDebounced,
   useToast,
 } from '../lib/ui';
-import { AppShell, BellButton, CoinPill } from '../components/AppShell';
+import { AnnouncementButton, AppShell, BellButton, CoinPill } from '../components/AppShell';
 import { BotGreeter } from '../components/BotGreeter';
 import { GiftCodeButton } from '../components/GiftCodeSheet';
 import { UserCard, type UserCardData } from '../components/UserCard';
@@ -114,6 +114,7 @@ export default function Home() {
       right={
         <div className="inline">
           <CoinPill balance={me?.wallet.balance ?? 0} />
+          <AnnouncementButton />
           <GiftCodeButton />
           <BellButton />
         </div>

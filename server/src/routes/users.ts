@@ -32,11 +32,12 @@ interface FeedRow {
   is_friend: boolean;
   is_following: boolean;
   is_blocked: boolean;
+  is_support?: boolean;
 }
 
 const FEED_SELECT = `
   SELECT u.id, u.username, u.level, u.display_name, u.avatar_url, u.bio, u.gender, u.country, u.age,
-         u.last_seen_at, u.created_at, u.phone_verified, u.email_verified,
+         u.last_seen_at, u.created_at, u.phone_verified, u.email_verified, u.is_support,
          ${FRAME_FIELDS}, ${RANK_FIELDS}, ${VIP_FIELDS},
     EXISTS (SELECT 1 FROM favorites f WHERE f.user_id = $1 AND f.target_id = u.id) AS is_favorite,
     EXISTS (SELECT 1 FROM friendships fr WHERE fr.status = 'accepted'
@@ -48,12 +49,26 @@ const FEED_SELECT = `
   ${frameJoins('u')}
   ${rankJoins('u')}
   ${vipJoins('u')}
-  WHERE u.id <> $1 AND u.is_banned = false AND u.is_bot = false
+  WHERE u.id <> $1 AND u.is_banned = false AND u.is_bot = false AND u.is_support = false
     AND NOT EXISTS (
       SELECT 1 FROM blocked_users bb
       WHERE (bb.user_id = $1 AND bb.blocked_id = u.id)
          OR (bb.user_id = u.id AND bb.blocked_id = $1)
     )`;
+
+/** The official support account is protected: no block, no report, no removal. */
+async function assertNotSupport(target: string): Promise<void> {
+  const row = await one<{ is_support: boolean }>('SELECT is_support FROM users WHERE id = $1', [
+    target,
+  ]);
+  if (row?.is_support) {
+    throw new HttpError(
+      403,
+      'حساب الدعم الفني الرسمي محمي ولا يمكن حظره أو الإبلاغ عنه',
+      'support_account_protected'
+    );
+  }
+}
 
 function decorate(row: FeedRow) {
   return {
@@ -207,7 +222,18 @@ router.get(
              FROM users u ${frameJoins('u')} ${rankJoins('u')} ${vipJoins('u')} WHERE u.id = $1`,
             [me]
           )
-        : await one<FeedRow>(`${FEED_SELECT} AND u.id = $2`, [me, targetId]);
+        : (await one<FeedRow>(`${FEED_SELECT} AND u.id = $2`, [me, targetId])) ??
+          // The official support account is excluded from discovery but its profile
+          // stays reachable from the chat list and the profile card.
+          (await one<FeedRow>(
+            `SELECT u.id, u.username, u.level, u.display_name, u.avatar_url, u.bio, u.gender, u.country,
+                    u.age, u.last_seen_at, u.created_at, u.phone_verified, u.email_verified, u.is_support,
+                    ${FRAME_FIELDS}, ${RANK_FIELDS}, ${VIP_FIELDS},
+                    false AS is_favorite, false AS is_friend, false AS is_following, false AS is_blocked
+             FROM users u ${frameJoins('u')} ${rankJoins('u')} ${vipJoins('u')}
+             WHERE u.id = $1 AND u.is_support = true`,
+            [targetId]
+          ));
     if (!row) throw new HttpError(404, 'User not found', 'user_not_found');
 
     const counts = await one<{ friends: string; followers: string; following: string; rooms: string }>(
@@ -461,6 +487,7 @@ router.post(
     const me = reqUser(req).id;
     const target = req.params.id;
     if (me === target) throw new HttpError(400, 'Invalid target', 'invalid_target');
+    await assertNotSupport(target);
     const existing = await one('SELECT 1 FROM blocked_users WHERE user_id = $1 AND blocked_id = $2', [
       me,
       target,
@@ -485,6 +512,7 @@ router.post(
     const details = String(req.body?.details || '').slice(0, 1000);
     if (!reason) throw new HttpError(400, 'Please choose a reason', 'missing_reason');
     if (me === target) throw new HttpError(400, 'Invalid target', 'invalid_target');
+    await assertNotSupport(target);
     await q(
       'INSERT INTO reports (reporter_id, target_id, reason, details) VALUES ($1, $2, $3, $4)',
       [me, target, reason, details]

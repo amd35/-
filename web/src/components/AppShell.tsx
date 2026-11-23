@@ -95,6 +95,22 @@ export function CoinPill({ balance }: { balance: number }) {
   );
 }
 
+export function AnnouncementButton() {
+  const navigate = useNavigate();
+  const { me } = useAuth();
+  const unread = me?.unreadAnnouncements ?? 0;
+  return (
+    <button
+      className="icon-btn"
+      onClick={() => navigate('/announcements')}
+      aria-label="announcements"
+    >
+      <Icon name="megaphone" size={19} />
+      {unread > 0 ? <span className="badge-dot">{unread > 9 ? '9+' : unread}</span> : null}
+    </button>
+  );
+}
+
 export function BellButton() {
   const navigate = useNavigate();
   const { me } = useAuth();

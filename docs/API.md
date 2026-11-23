@@ -63,7 +63,8 @@ Connect: `wss://<host>/ws?token=<jwt>`.
 
 Server → client: `ready`, `presence`, `call:incoming`, `call:created`, `call:accepted`, `call:tick`,
 `call:ended`, `webrtc:signal`, `message:new`, `message:read`, `chat:typing`, `notification`,
-`wallet:update`, `free:update`, `error`.
+`wallet:update`, `free:update`, `announcement:new`, `announcement:updated`, `announcement:reaction`,
+`announcement:comment`, `announcement:read`, `error`.
 
 Client → server: `call:invite`, `call:accept`, `call:reject`, `call:cancel`, `call:end`,
 `webrtc:signal` (`{ callId, payload: { type: "offer"|"answer"|"candidate", sdp?, candidate? } }`),
@@ -78,7 +79,33 @@ Client → server: `call:invite`, `call:accept`, `call:reject`, `call:cancel`, `
 | GET | `/chat/conversations/:id/messages?before=&limit=` | |
 | POST | `/chat/conversations/:id/messages` | `{ body, type: "text"\|"image"\|"file", attachmentUrl?, attachmentName? }` |
 | POST | `/chat/conversations/:id/read` | Marks the other side's messages read |
-| DELETE | `/chat/conversations/:id` | Deletes the conversation (members only) |
+| DELETE | `/chat/conversations/:id` | Deletes the conversation (members only; the support thread is protected) |
+| GET/POST | `/chat/support` | `{ conversationId, support }` — creates/reuses the official support thread |
+
+## Official support & announcements
+
+The support account (`users.is_support`, reserved ID `000000`) is seeded at boot and pinned first in
+`/chat/conversations`; it cannot be blocked, reported, banned or its thread deleted (403
+`support_account_protected`). The same flag marks it verified on the profile.
+
+| Method | Path | Notes |
+| --- | --- | --- |
+| GET | `/announcements` | Published announcements visible to me: category, media, my reaction, reaction breakdown, counts, read state, `unread` |
+| POST | `/announcements/read-all` | Marks everything visible as read |
+| POST | `/announcements/:id/view` | Marks read and counts a view (also emits `announcement:read` to my other devices) |
+| POST | `/announcements/:id/reaction` | `{ emoji }` — one reaction per user; the same emoji again clears it |
+| GET/POST | `/announcements/:id/comments` | List / add a comment (`comments_enabled` must be on) |
+| POST | `/announcements/:id/reply` | `{ message? }` — posts the reply into the support thread, returns `{ conversationId }` |
+| POST | `/push/register` | `{ token, platform }` — stores the device FCM token for real push |
+
+Categories: `official`, `update`, `feature`, `maintenance`, `event`, `offers`, `alert`.
+Reaction emojis: 👍 ❤️ 😂 😮 😢 🔥 🎉 👏 💜 😍.
+
+Delivery materialises one `announcement_recipients` row per target user, so a re-publish (or a retry)
+never notifies the same user twice; the row also carries `read_at` and `view_count`. Publishing pushes
+`announcement:new` over the websocket to every recipient and, when `FCM_SERVICE_ACCOUNT_JSON` is set,
+a real push notification to that user's registered devices. Scheduled announcements are published by a
+20-second server loop.
 
 ## Wallet, recharge, withdrawals
 
@@ -120,6 +147,13 @@ Returns `{ url, name, size, mime }`. Files are served from `/uploads/...`
 | GET | `/admin/free-calls` | Free-attempt settings, usage and totals |
 | GET | `/admin/financial?period=day\|month` | Daily (30) / monthly (12) financial report |
 | POST | `/admin/notifications/broadcast` | `{ title, body }` to all active accounts |
+| GET | `/admin/announcements` | All announcements with recipients / reads / views / reactions / comments |
+| POST | `/admin/announcements` | Create; `{ action: "draft"\|"publish"\|"schedule", publishAt, audience: "all"\|"selected", userIds[], title, body, category, mediaType, mediaUrl, linkUrl, linkLabel, commentsEnabled, isPinned }` |
+| PATCH/DELETE | `/admin/announcements/:id` | Edit (never re-notifies) / delete |
+| POST | `/admin/announcements/:id/publish` · `/pin` | Publish now / toggle pin |
+| GET | `/admin/announcements/:id` | Stats, audience, comments, reactions and the publish/edit audit log |
+| POST | `/admin/announcements/media` | Multipart `file` (image or MP4/WebM) for an announcement |
+| GET | `/admin/announcements/push-status` | `{ configured }` — whether FCM keys are present |
 
 ## Database tables
 
@@ -127,4 +161,6 @@ Returns `{ url, name, size, mime }`. Files are served from `/uploads/...`
 `blocked_users`, `conversations`, `conversation_members`, `messages`, `calls`, `call_participants`,
 `call_sessions`, `daily_free_calls`, `free_call_uses`, `earnings`, `admin_earnings`,
 `recharge_packages`, `payment_orders`, `withdrawal_requests`, `notifications`, `reports`,
-`admin_users`, `app_settings`, `otp_codes`, `password_resets`, `auth_attempts`.
+`admin_users`, `app_settings`, `otp_codes`, `password_resets`, `auth_attempts`,
+`announcements`, `announcement_targets`, `announcement_recipients`, `announcement_reactions`,
+`announcement_comments`, `announcement_events`, `push_tokens`.

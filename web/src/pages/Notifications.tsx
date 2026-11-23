@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { api } from '../lib/api';
 import { useAuth } from '../lib/auth';
 import { useI18n } from '../lib/i18n';
@@ -34,6 +35,7 @@ const ICON_BY_TYPE: Record<string, string> = {
   account_banned: 'ban',
   account_unbanned: 'check',
   admin_broadcast: 'bell',
+  announcement: 'megaphone',
   welcome: 'sparkle',
   withdrawal_requested: 'wallet',
   withdrawal_approved: 'check',
@@ -43,6 +45,7 @@ const ICON_BY_TYPE: Record<string, string> = {
 export default function Notifications() {
   const { t, lang } = useI18n();
   const { refresh } = useAuth();
+  const navigate = useNavigate();
   const [items, setItems] = useState<NotificationRow[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -86,7 +89,17 @@ export default function Notifications() {
             {items.map((item) => (
               <div
                 key={item.id}
-                className="row static"
+                className={item.type === 'announcement' ? 'row' : 'row static'}
+                onClick={
+                  item.type === 'announcement'
+                    ? () => {
+                        void api(`/notifications/${item.id}/read`, { method: 'POST' }).catch(
+                          () => undefined
+                        );
+                        navigate('/announcements');
+                      }
+                    : undefined
+                }
                 style={{ background: item.readAt ? undefined : 'rgba(214,51,132,0.09)' }}
               >
                 <div className="icon-btn plain">

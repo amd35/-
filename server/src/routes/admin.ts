@@ -148,7 +148,8 @@ router.get(
              (SELECT COALESCE(SUM(d.attempts_used), 0)::int FROM daily_free_calls d
                 WHERE d.user_id = u.id AND d.usage_date = $2::date) AS free_used_today
       FROM users u LEFT JOIN wallets w ON w.user_id = u.id
-      WHERE u.is_bot = false AND (u.display_name ILIKE $1 OR u.username ILIKE $1 OR COALESCE(u.email, '') ILIKE $1
+      WHERE u.is_bot = false AND u.is_support = false
+        AND (u.display_name ILIKE $1 OR u.username ILIKE $1 OR COALESCE(u.email, '') ILIKE $1
              OR COALESCE(u.phone, '') ILIKE $1 OR u.id::text = $3)`;
     params.push(iraqDateStr());
     params.push(search);
@@ -170,7 +171,8 @@ router.post(
   asyncHandler(async (req, res) => {
     const reason = String(req.body?.reason || 'Policy violation').slice(0, 200);
     const user = await one<{ id: string }>(
-      `UPDATE users SET is_banned = true, ban_reason = $2 WHERE id = $1 RETURNING id`,
+      `UPDATE users SET is_banned = true, ban_reason = $2
+       WHERE id = $1 AND is_support = false RETURNING id`,
       [req.params.id, reason]
     );
     if (!user) throw new HttpError(404, 'User not found', 'user_not_found');

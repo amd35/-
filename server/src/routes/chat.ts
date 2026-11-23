@@ -2,6 +2,7 @@ import { Router } from 'express';
 import { one, q, tx } from '../db';
 import { reqUser, requireAuth } from '../auth';
 import { botIntro, botUserId, ensureBotConversation, scheduleBotReply } from '../bot';
+import { ensureSupportConversation, scheduleSupportReply, supportUserId } from '../support';
 import { emitToUser, isOnline } from '../realtime';
 import { notify } from '../notify';
 import {
@@ -12,6 +13,7 @@ import {
   frameJoins,
   rankFromRow,
   rankJoins,
+  getPublicUser,
   toPublicUser,
   vipFromRow,
   vipJoins,
@@ -39,16 +41,40 @@ router.get(
   })
 );
 
+// The official YALLA PHONE support thread: one per user, created on demand.
+router.get(
+  '/support',
+  requireAuth(),
+  asyncHandler(async (req, res) => {
+    const me = reqUser(req).id;
+    const { supportId, conversationId } = await ensureSupportConversation(me);
+    res.json({ conversationId, support: await getPublicUser(supportId) });
+  })
+);
+
+router.post(
+  '/support',
+  requireAuth(),
+  asyncHandler(async (req, res) => {
+    const me = reqUser(req).id;
+    const { supportId, conversationId } = await ensureSupportConversation(me);
+    res.json({ conversationId, support: await getPublicUser(supportId) });
+  })
+);
+
 router.get(
   '/conversations',
   requireAuth(),
   asyncHandler(async (req, res) => {
     const me = reqUser(req).id;
     await ensureBotConversation(me);
+    // The official support thread always exists and is pinned above every chat.
+    await ensureSupportConversation(me);
     const rows = await q(
       `SELECT c.id, c.last_message_at,
               peer.id AS peer_id, peer.username AS peer_username, peer.display_name AS peer_name,
               peer.avatar_url AS peer_avatar, peer.last_seen_at AS peer_last_seen, peer.level AS peer_level,
+              peer.is_support AS peer_support,
               ${FRAME_FIELDS},
               ${RANK_FIELDS}, ${VIP_FIELDS},
               lm.body AS last_body, lm.type AS last_type, lm.sender_id AS last_sender,
@@ -67,7 +93,7 @@ router.get(
          FROM messages m WHERE m.conversation_id = c.id
          ORDER BY m.created_at DESC LIMIT 1
        ) lm ON true
-       ORDER BY c.last_message_at DESC
+       ORDER BY peer.is_support DESC, c.last_message_at DESC
        LIMIT 100`,
       [me]
     );
@@ -87,6 +113,8 @@ router.get(
           vip: vipFromRow(row),
           online: isOnline(row.peer_id),
           lastSeenAt: row.peer_last_seen,
+          isSupport: Boolean(row.peer_support),
+          verified: Boolean(row.peer_support),
         },
         lastMessage: row.last_at
           ? {
@@ -181,7 +209,8 @@ router.get(
       frame_image_url: string | null;
       frame_rarity: string | null;
     }>(
-      `SELECT u.id, u.username, u.level, u.display_name, u.avatar_url, u.last_seen_at, ${FRAME_FIELDS},
+      `SELECT u.id, u.username, u.level, u.display_name, u.avatar_url, u.last_seen_at,
+              u.phone_verified, u.email_verified, u.is_support, ${FRAME_FIELDS},
               ${RANK_FIELDS}, ${VIP_FIELDS}
        FROM conversation_members cm JOIN users u ON u.id = cm.user_id
        ${frameJoins('u')}
@@ -268,17 +297,22 @@ router.post(
       mine: false,
     };
     emitToUser(me, 'message:new', { ...payload, mine: true });
-    if (peer && peer.user_id === (await botUserId())) {
-      scheduleBotReply(me, conversationId, body || attachmentName || '');
-    }
+    const [botId, officialId] = await Promise.all([botUserId(), supportUserId()]);
+    const peerIsBot = peer?.user_id === botId;
+    const peerIsSupport = peer?.user_id === officialId;
+    if (peerIsBot) scheduleBotReply(me, conversationId, body || attachmentName || '');
+    if (peerIsSupport) scheduleSupportReply(me, conversationId);
     if (peer) {
       emitToUser(peer.user_id, 'message:new', payload);
-      await notify(peer.user_id, 'message', 'رسالة جديدة', body.slice(0, 80), {
-        conversationId,
-        senderId: me,
-        preview: body.slice(0, 120),
-        type,
-      });
+      // The bot and the official support account are not people with an inbox.
+      if (!peerIsBot && !peerIsSupport) {
+        await notify(peer.user_id, 'message', 'رسالة جديدة', body.slice(0, 80), {
+          conversationId,
+          senderId: me,
+          preview: body.slice(0, 120),
+          type,
+        });
+      }
     }
 
     const xpSettings = await getXpSettings();
@@ -321,6 +355,14 @@ router.delete(
     const me = reqUser(req).id;
     const conversationId = req.params.id;
     await assertMember(conversationId, me);
+    const officialId = await supportUserId();
+    const protectedThread = await one(
+      'SELECT 1 FROM conversation_members WHERE conversation_id = $1 AND user_id = $2',
+      [conversationId, officialId]
+    );
+    if (protectedThread) {
+      throw new HttpError(403, 'محادثة الدعم الرسمي محمية ولا يمكن حذفها', 'support_conversation_protected');
+    }
     await q('DELETE FROM conversations WHERE id = $1', [conversationId]);
     res.json({ deleted: true });
   })

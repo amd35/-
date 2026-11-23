@@ -270,6 +270,18 @@ const ICONS: Record<string, ReactNode> = {
     </>
   ),
   play: <path d="M8 5.5v13l11-6.5z" />,
+  megaphone: (
+    <>
+      <path d="M3 10.5v3a1.5 1.5 0 0 0 1.5 1.5H7l5 4.5V6L7 10.5H4.5A1.5 1.5 0 0 0 3 12z" />
+      <path d="M15.5 9a4.5 4.5 0 0 1 0 6M18.5 6a9 9 0 0 1 0 12" />
+    </>
+  ),
+  pin: (
+    <>
+      <path d="M9 3h6l-.8 6.2 3.3 3.3H6.5l3.3-3.3z" />
+      <path d="M12 12.5V21" />
+    </>
+  ),
 };
 
 export function Icon({

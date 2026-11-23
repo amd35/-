@@ -31,6 +31,8 @@ interface Conversation {
     frame?: UserCardData['frame'];
     level?: number;
     vip?: VipInfo | null;
+    isSupport?: boolean;
+    verified?: boolean;
   };
   lastMessage: { body: string; type: string; attachmentUrl: string | null; mine: boolean; createdAt: string } | null;
 }
@@ -126,9 +128,20 @@ export default function Chats() {
                 />
                 <div className="row-main">
                   <div className="row-title name-with-rank">
-                    <LevelBadge level={conversation.peer.level ?? 1} size={13} />
-                    <VipBadge vip={conversation.peer.vip} size={12} />
+                    {conversation.peer.isSupport ? (
+                      <span className="official-badge" title={t('officialAccount')}>
+                        <Icon name="shield" size={10} /> {t('officialAccount')}
+                      </span>
+                    ) : (
+                      <>
+                        <LevelBadge level={conversation.peer.level ?? 1} size={13} />
+                        <VipBadge vip={conversation.peer.vip} size={12} />
+                      </>
+                    )}
                     <span>{conversation.peer.displayName}</span>
+                    {conversation.peer.verified && !conversation.peer.isSupport ? (
+                      <Icon name="check" size={13} className="verified-tick" />
+                    ) : null}
                   </div>
                   <div className="row-sub">
                     {conversation.lastMessage

@@ -1376,3 +1376,105 @@ BEGIN
       FOREIGN KEY (frame_id) REFERENCES room_frames(id) ON DELETE SET NULL;
   END IF;
 END $$;
+
+-- ---------------------------------------------------------------------------
+-- Official support account (YALLA PHONE) + announcements centre
+-- ---------------------------------------------------------------------------
+
+-- The official, verified support account is a real `users` row flagged here so
+-- chat, unread badges and realtime work unchanged. It is hidden from discovery
+-- and admin lists and can never be blocked, reported or removed.
+ALTER TABLE users ADD COLUMN IF NOT EXISTS is_support boolean NOT NULL DEFAULT false;
+
+CREATE TABLE IF NOT EXISTS announcements (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  title text NOT NULL,
+  body text NOT NULL DEFAULT '',
+  -- official | update | feature | maintenance | event | offers | alert
+  category text NOT NULL DEFAULT 'official',
+  -- none | image | video
+  media_type text NOT NULL DEFAULT 'none',
+  media_url text,
+  link_url text,
+  link_label text,
+  -- all | selected
+  audience text NOT NULL DEFAULT 'all',
+  -- draft | scheduled | published
+  status text NOT NULL DEFAULT 'draft',
+  is_pinned boolean NOT NULL DEFAULT false,
+  comments_enabled boolean NOT NULL DEFAULT true,
+  publish_at timestamptz,
+  published_at timestamptz,
+  created_by_name text NOT NULL DEFAULT 'الإدارة',
+  created_by_id uuid,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  updated_at timestamptz NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS announcements_status_idx ON announcements (status, publish_at);
+CREATE INDEX IF NOT EXISTS announcements_published_idx ON announcements (published_at DESC);
+
+-- Explicit user selection for an audience of `selected`.
+CREATE TABLE IF NOT EXISTS announcement_targets (
+  announcement_id uuid NOT NULL REFERENCES announcements(id) ON DELETE CASCADE,
+  user_id uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  PRIMARY KEY (announcement_id, user_id)
+);
+CREATE INDEX IF NOT EXISTS announcement_targets_user_idx ON announcement_targets (user_id);
+
+-- One row per delivered user. The primary key is what makes delivery idempotent:
+-- a re-publish (or a webhook retry) can never notify the same user twice.
+CREATE TABLE IF NOT EXISTS announcement_recipients (
+  announcement_id uuid NOT NULL REFERENCES announcements(id) ON DELETE CASCADE,
+  user_id uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  delivered_at timestamptz NOT NULL DEFAULT now(),
+  read_at timestamptz,
+  first_viewed_at timestamptz,
+  view_count integer NOT NULL DEFAULT 0,
+  PRIMARY KEY (announcement_id, user_id)
+);
+CREATE INDEX IF NOT EXISTS announcement_recipients_user_idx
+  ON announcement_recipients (user_id, delivered_at DESC);
+
+-- One reaction per user per announcement (tapping the same emoji again clears it).
+CREATE TABLE IF NOT EXISTS announcement_reactions (
+  announcement_id uuid NOT NULL REFERENCES announcements(id) ON DELETE CASCADE,
+  user_id uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  emoji text NOT NULL,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  PRIMARY KEY (announcement_id, user_id)
+);
+CREATE INDEX IF NOT EXISTS announcement_reactions_ann_idx ON announcement_reactions (announcement_id);
+
+CREATE TABLE IF NOT EXISTS announcement_comments (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  announcement_id uuid NOT NULL REFERENCES announcements(id) ON DELETE CASCADE,
+  user_id uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  body text NOT NULL,
+  created_at timestamptz NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS announcement_comments_idx
+  ON announcement_comments (announcement_id, created_at ASC);
+
+-- Audit trail: who published / edited / pinned what, and when.
+CREATE TABLE IF NOT EXISTS announcement_events (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  announcement_id uuid NOT NULL REFERENCES announcements(id) ON DELETE CASCADE,
+  admin_id uuid,
+  admin_name text NOT NULL DEFAULT '',
+  action text NOT NULL,
+  detail text NOT NULL DEFAULT '',
+  created_at timestamptz NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS announcement_events_idx
+  ON announcement_events (announcement_id, created_at DESC);
+
+-- Device push tokens (FCM). Delivered announcements fan out to these when the
+-- FCM service account is configured; otherwise only in-app realtime is sent.
+CREATE TABLE IF NOT EXISTS push_tokens (
+  token text PRIMARY KEY,
+  user_id uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  platform text NOT NULL DEFAULT 'android',
+  created_at timestamptz NOT NULL DEFAULT now(),
+  updated_at timestamptz NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS push_tokens_user_idx ON push_tokens (user_id);

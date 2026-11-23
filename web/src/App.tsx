@@ -16,6 +16,7 @@ import ChatRoom from './pages/ChatRoom';
 import Calls from './pages/Calls';
 import Wallet from './pages/Wallet';
 import Notifications from './pages/Notifications';
+import Announcements from './pages/Announcements';
 import { Profile, UserProfile } from './pages/Profile';
 import Settings from './pages/Settings';
 import Frames from './pages/Frames';
@@ -97,6 +98,14 @@ export default function App() {
           element={
             <Protected>
               <Notifications />
+            </Protected>
+          }
+        />
+        <Route
+          path="/announcements"
+          element={
+            <Protected>
+              <Announcements />
             </Protected>
           }
         />

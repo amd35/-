@@ -20,6 +20,7 @@ import { ProfileHero, type ConnectionKind } from '../components/profile/ProfileH
 import { ConnectionsSheet } from '../components/profile/ConnectionsSheet';
 import { LevelBadge, VipBadge, formatXp } from '../components/ProgressionBadges';
 import { ProfileCustomize } from '../components/ProfileCustomize';
+import { SupportCard } from '../components/SupportCard';
 import { GiftGallery } from '../components/profile/GiftGallery';
 import type { UserCardData } from '../components/UserCard';
 
@@ -152,6 +153,8 @@ export function Profile() {
           onAchievements={() => navigate('/levels')}
         />
 
+        <SupportCard />
+
         <section className="card">
           <div className="inline" style={{ justifyContent: 'space-between' }}>
             <div>
@@ -233,6 +236,18 @@ export function Profile() {
             {me.unreadNotifications > 0 ? (
               <span className="pill pill-pink" style={{ fontSize: 10 }}>
                 {me.unreadNotifications}
+              </span>
+            ) : null}
+          </div>
+          <div className="row" onClick={() => navigate('/announcements')}>
+            <Icon name="megaphone" size={19} />
+            <div className="row-main">
+              <div className="row-title">{t('announcements')}</div>
+              <div className="row-sub">{t('announcementsSub')}</div>
+            </div>
+            {me.unreadAnnouncements > 0 ? (
+              <span className="pill pill-pink" style={{ fontSize: 10 }}>
+                {me.unreadAnnouncements}
               </span>
             ) : null}
           </div>
@@ -464,6 +479,25 @@ export function UserProfile() {
           </div>
         </section>
 
+        <SupportCard />
+
+        {user.isSupport ? (
+          <section className="card stack">
+            <div className="official-support-note">
+              <Icon name="shield" size={18} />
+              <div>
+                <b>{t('officialSupport')}</b>
+                <p className="tiny muted">
+                  الحساب الرسمي الموثق لـ YALLA PHONE — لا يمكن حظره أو حذفه، والردود على الإعلانات
+                  تصل إليه مباشرة.
+                </p>
+              </div>
+            </div>
+            <button className="btn btn-primary btn-block" onClick={() => void openChat()}>
+              <Icon name="chat" size={15} /> {t('contactSupport')}
+            </button>
+          </section>
+        ) : (
         <section className="card stack">
           <div className="inline" style={{ gap: 8 }}>
             <button className="btn btn-primary btn-sm grow" onClick={() => void openChat()}>
@@ -502,6 +536,7 @@ export function UserProfile() {
             </button>
           </div>
         </section>
+        )}
 
         {data.earnings ? (
           <section className="card">

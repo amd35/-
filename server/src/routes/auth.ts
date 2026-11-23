@@ -13,6 +13,7 @@ import {
   requireAuth,
   signUserToken,
 } from '../auth';
+import { unreadAnnouncementCount } from '../announcements';
 import { equippedCosmetics, equippedFrameInfo } from '../frames';
 import { adminLookForUser } from '../adminLook';
 import { getFreeCallState } from '../freecalls';
@@ -112,6 +113,7 @@ export async function buildMe(userId: string) {
     wallet: wallet ?? { balance: 0, reserved: 0, earned: 0, spent: 0 },
     freeCalls: free,
     unreadNotifications: Number(unread?.count || 0),
+    unreadAnnouncements: await unreadAnnouncementCount(userId),
     friendRequests: Number(requests?.count || 0),
     unreadMessages: Number(messages?.count || 0),
     config: {

@@ -19,6 +19,7 @@ export interface UserCardData {
   vip?: VipInfo | null;
   bio?: string | null;
   verified?: boolean;
+  isSupport?: boolean;
   createdAt?: string | null;
   online?: boolean;
   isFavorite?: boolean;

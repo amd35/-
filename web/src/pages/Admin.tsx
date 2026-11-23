@@ -23,6 +23,7 @@ import OrdersTab from '../components/admin/OrdersTab';
 import FinancialTab from '../components/admin/FinancialTab';
 import ReportsTab from '../components/admin/ReportsTab';
 import BroadcastTab from '../components/admin/BroadcastTab';
+import AnnouncementsTab from '../components/admin/AnnouncementsTab';
 import SecurityTab from '../components/admin/SecurityTab';
 import RoomsTab from '../components/admin/RoomsTab';
 import RoomCupTab from '../components/admin/RoomCupTab';
@@ -51,6 +52,7 @@ const TABS = [
   { id: 'orders', label: 'طلبات الشحن', icon: 'card' },
   { id: 'financial', label: 'الأرباح والسحوبات', icon: 'coins' },
   { id: 'reports', label: 'البلاغات', icon: 'alert' },
+  { id: 'announcements', label: 'مركز إعلانات وتحديثات يلا فون', icon: 'megaphone' },
   { id: 'broadcast', label: 'إشعار عام', icon: 'bell' },
   { id: 'security', label: 'الأمان', icon: 'lock' },
 ] as const;
@@ -216,6 +218,7 @@ export default function Admin() {
         {tab === 'orders' ? <OrdersTab /> : null}
         {tab === 'financial' ? <FinancialTab /> : null}
         {tab === 'reports' ? <ReportsTab /> : null}
+        {tab === 'announcements' ? <AnnouncementsTab /> : null}
         {tab === 'broadcast' ? <BroadcastTab /> : null}
         {tab === 'security' ? <SecurityTab /> : null}
       </main>

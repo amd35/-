@@ -37,6 +37,8 @@ interface Peer {
   rank?: RankInfo | null;
   level?: number;
   vip?: VipInfo | null;
+  isSupport?: boolean;
+  verified?: boolean;
 }
 
 export default function ChatRoom() {
@@ -241,31 +243,43 @@ export default function ChatRoom() {
         <Avatar user={{ ...peer, online: isOnline }} size={40} />
         <div className="grow" style={{ minWidth: 0 }}>
           <div className="row-title name-with-rank">
-            {peer?.rank ? <RankBadge rank={peer.rank} size={15} /> : null}
-            <LevelBadge level={peer?.level ?? 1} size={14} />
-            <VipBadge vip={peer?.vip} size={13} />
+            {peer?.isSupport ? (
+              <span className="official-badge">
+                <Icon name="shield" size={10} /> {t('officialAccount')}
+              </span>
+            ) : (
+              <>
+                {peer?.rank ? <RankBadge rank={peer.rank} size={15} /> : null}
+                <LevelBadge level={peer?.level ?? 1} size={14} />
+                <VipBadge vip={peer?.vip} size={13} />
+              </>
+            )}
             <span>{peer?.displayName ?? t('loading')}</span>
           </div>
           <div className="row-sub">
             {peerTyping ? '…' : isOnline ? t('onlineNow') : t('offline')}
           </div>
         </div>
-        <button
-          className="icon-btn"
-          onClick={() => callPeer('voice')}
-          aria-label="voice call"
-          disabled={!peer}
-        >
-          <Icon name="phone" size={18} />
-        </button>
-        <button
-          className="icon-btn"
-          onClick={() => callPeer('video')}
-          aria-label="video call"
-          disabled={!peer}
-        >
-          <Icon name="video" size={18} />
-        </button>
+        {peer?.isSupport ? null : (
+          <>
+            <button
+              className="icon-btn"
+              onClick={() => callPeer('voice')}
+              aria-label="voice call"
+              disabled={!peer}
+            >
+              <Icon name="phone" size={18} />
+            </button>
+            <button
+              className="icon-btn"
+              onClick={() => callPeer('video')}
+              aria-label="video call"
+              disabled={!peer}
+            >
+              <Icon name="video" size={18} />
+            </button>
+          </>
+        )}
         <button className="icon-btn" onClick={() => setMenuOpen(true)} aria-label="menu">
           <Icon name="settings" size={18} />
         </button>
@@ -432,15 +446,24 @@ export default function ChatRoom() {
 
       <Sheet open={menuOpen} onClose={() => setMenuOpen(false)} title={peer?.displayName}>
         <div className="stack">
-          <button className="btn btn-ghost btn-block" onClick={() => void blockPeer()}>
-            <Icon name="ban" size={17} /> {t('block')}
-          </button>
-          <button className="btn btn-ghost btn-block" onClick={() => void reportPeer()}>
-            <Icon name="alert" size={17} /> {t('report')}
-          </button>
-          <button className="btn btn-danger btn-block" onClick={() => void deleteConversation()}>
-            <Icon name="trash" size={17} /> {t('deleteChat')}
-          </button>
+          {peer?.isSupport ? (
+            <p className="tiny muted">
+              حساب الدعم الفني الرسمي محمي: لا يمكن حظره أو حذف المحادثة، والردود على الإعلانات تصل
+              إليه مباشرة.
+            </p>
+          ) : (
+            <>
+              <button className="btn btn-ghost btn-block" onClick={() => void blockPeer()}>
+                <Icon name="ban" size={17} /> {t('block')}
+              </button>
+              <button className="btn btn-ghost btn-block" onClick={() => void reportPeer()}>
+                <Icon name="alert" size={17} /> {t('report')}
+              </button>
+              <button className="btn btn-danger btn-block" onClick={() => void deleteConversation()}>
+                <Icon name="trash" size={17} /> {t('deleteChat')}
+              </button>
+            </>
+          )}
         </div>
       </Sheet>
     </div>
