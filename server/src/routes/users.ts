@@ -5,9 +5,11 @@ import { getFreeCallState } from '../freecalls';
 import { getSettings } from '../settings';
 import { notify } from '../notify';
 import {
+  AGENT_FIELD,
   FRAME_FIELDS,
   RANK_FIELDS,
   VIP_FIELDS,
+  agentJoins,
   frameJoins,
   rankJoins,
   toPublicUser,
@@ -37,7 +39,7 @@ interface FeedRow {
 const FEED_SELECT = `
   SELECT u.id, u.username, u.level, u.display_name, u.avatar_url, u.bio, u.gender, u.country, u.age,
          u.last_seen_at, u.created_at, u.phone_verified, u.email_verified,
-         ${FRAME_FIELDS}, ${RANK_FIELDS}, ${VIP_FIELDS},
+         ${FRAME_FIELDS}, ${RANK_FIELDS}, ${VIP_FIELDS}, ${AGENT_FIELD},
     EXISTS (SELECT 1 FROM favorites f WHERE f.user_id = $1 AND f.target_id = u.id) AS is_favorite,
     EXISTS (SELECT 1 FROM friendships fr WHERE fr.status = 'accepted'
             AND ((fr.requester_id = $1 AND fr.addressee_id = u.id)
@@ -48,6 +50,7 @@ const FEED_SELECT = `
   ${frameJoins('u')}
   ${rankJoins('u')}
   ${vipJoins('u')}
+  ${agentJoins('u')}
   WHERE u.id <> $1 AND u.is_banned = false AND u.is_bot = false AND u.is_support = false
     AND NOT EXISTS (
       SELECT 1 FROM blocked_users bb
@@ -203,8 +206,9 @@ router.get(
                     u.age, u.last_seen_at, u.created_at, u.phone_verified, u.email_verified,
                     ${FRAME_FIELDS}, ${RANK_FIELDS}, ${VIP_FIELDS},
                     false AS is_favorite, false AS is_friend, false AS is_following,
-                    false AS is_blocked
-             FROM users u ${frameJoins('u')} ${rankJoins('u')} ${vipJoins('u')} WHERE u.id = $1`,
+                    false AS is_blocked, ${AGENT_FIELD}
+             FROM users u ${frameJoins('u')} ${rankJoins('u')} ${vipJoins('u')} ${agentJoins('u')}
+             WHERE u.id = $1`,
             [me]
           )
         : await one<FeedRow>(`${FEED_SELECT} AND u.id = $2`, [me, targetId]);

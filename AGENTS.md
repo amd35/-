@@ -78,3 +78,23 @@
 - Admin panel: `/admin`, username `admin`. The password starts as the `ADMIN_PASSWORD` secret; once it is
   changed from the panel's **Security** tab, the stored hash wins (`admin_users.password_source = 'custom'`)
   and a boot no longer overwrites it. Setting the secret again only affects a row still on `'secret'`.
+
+## Official recharge agents (وكلاء الشحن)
+- `agents` is the single source of truth for an agency: `status` (`active` | `suspended` | `revoked`),
+  commission rate, and the coins/gold stock. The admin panel (`/admin` → إدارة الوكلاء) is the only writer;
+  agents have no admin token, so `/api/admin/agents/*` is unreachable for them by design.
+- The agent panel (`/agent`) is a UI convenience: every endpoint behind it calls `requireAgent()` and re-checks
+  the agency status on the server, so a revoked agency loses the panel and the badge immediately
+  (`/auth/me` → `agent: null`, public profile → `isAgent: false`).
+- Money invariants: the client never sends a price. `agent_packages` defines `amount` units for `cost_coins`;
+  the server prices any quantity as `ceil(cost * qty / amount)`. A recharge locks the `agents` row, refuses a
+  negative balance, writes `agent_recharges` (unique `(agent_id, idempotency_key)`, plus a 5 s double-tap window
+  for direct recharges), then moves the user's coins through the normal wallet ledger
+  (`transactions.type = 'agent_recharge'`, unique per recharge id) or adds `wallets.gold` for gold.
+- Commission = `floor(cost * commission_percent / 100)`, kept in `agents.total_commission`; payouts add to
+  `paid_commission`, so the due amount is always `total - paid`. Every movement (credit, debit, recharge,
+  commission, payout) writes an append-only `agent_ledger` row (unique per `kind` + `ref_id`).
+- Customer requests (`agent_requests`) are priced server-side at creation; completing one runs the same
+  recharge path with `idempotency_key = request:<id>`, so a double accept can never pay twice.
+- Gold is a second currency in `wallets.gold` (agent stock lives in `agents.gold_balance`); it is not spendable
+  in the app yet, it is only credited by agents and shown in the wallet.

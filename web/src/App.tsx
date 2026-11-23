@@ -27,6 +27,8 @@ import Room from './pages/Room';
 import Ads from './pages/Ads';
 import AdDetails from './pages/AdDetails';
 import Admin from './pages/Admin';
+import AgentPanel from './pages/AgentPanel';
+import Agents from './pages/Agents';
 
 function Protected({ children }: { children: ReactNode }) {
   const { token, loading, me } = useAuth();
@@ -187,6 +189,22 @@ export default function App() {
           element={
             <Protected>
               <AdDetails />
+            </Protected>
+          }
+        />
+        <Route
+          path="/agent"
+          element={
+            <Protected>
+              <AgentPanel />
+            </Protected>
+          }
+        />
+        <Route
+          path="/agents"
+          element={
+            <Protected>
+              <Agents />
             </Protected>
           }
         />

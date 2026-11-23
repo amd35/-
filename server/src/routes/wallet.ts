@@ -42,10 +42,13 @@ router.get(
   asyncHandler(async (req, res) => {
     const me = reqUser(req).id;
     const settings = await getSettings();
-    const wallet = await one<{ balance: number; reserved: number; earned: number; spent: number }>(
-      'SELECT balance, reserved, earned, spent FROM wallets WHERE user_id = $1',
-      [me]
-    );
+    const wallet = await one<{
+      balance: number;
+      reserved: number;
+      earned: number;
+      spent: number;
+      gold: number;
+    }>('SELECT balance, reserved, earned, spent, gold FROM wallets WHERE user_id = $1', [me]);
     const transactions = await q(
       `SELECT id, type, amount, balance_after, ref_type, ref_id, meta, created_at
        FROM transactions WHERE user_id = $1 ORDER BY created_at DESC LIMIT 40`,

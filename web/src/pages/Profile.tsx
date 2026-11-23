@@ -33,7 +33,7 @@ interface ProfileResponse {
 
 export function Profile() {
   const { me, refresh } = useAuth();
-  const { t } = useI18n();
+  const { t, lang } = useI18n();
   const { on } = useRealtime();
   const navigate = useNavigate();
   const toast = useToast();
@@ -207,6 +207,26 @@ export function Profile() {
                 {t('level')} {me.level?.level ?? 1} • {formatXp(me.level?.xp ?? 0)} XP
                 {me.vip ? ` • VIP ${me.vip.tier}` : ''}
               </div>
+            </div>
+            <Icon name="arrowLeft" size={17} />
+          </div>
+          {me.agent?.status === 'active' ? (
+            <div className="row agent-entry-row" onClick={() => navigate('/agent')}>
+              <Icon name="shield" size={19} />
+              <div className="row-main">
+                <div className="row-title">{lang === 'ar' ? 'لوحة الوكيل' : 'Agent panel'}</div>
+                <div className="row-sub">
+                  {lang === 'ar' ? 'رصيد الشحن والأرباح وطلبات العملاء' : 'Balance, commission and customer requests'}
+                </div>
+              </div>
+              <Icon name="arrowLeft" size={17} />
+            </div>
+          ) : null}
+          <div className="row" onClick={() => navigate('/agents')}>
+            <Icon name="users" size={19} />
+            <div className="row-main">
+              <div className="row-title">{lang === 'ar' ? 'وكلاء الشحن الرسميون' : 'Official recharge agents'}</div>
+              <div className="row-sub">{lang === 'ar' ? 'شحن الكونز والذهب من وكلاء معتمدين' : 'Buy coins and gold from approved agents'}</div>
             </div>
             <Icon name="arrowLeft" size={17} />
           </div>
@@ -428,6 +448,12 @@ export function UserProfile() {
             {user.verified ? (
               <span className="royal-verified">
                 <Icon name="check" size={12} /> {t('verified')}
+              </span>
+            ) : null}
+            {user.isAgent ? (
+              <span className="agent-badge">
+                <Icon name="shield" size={11} />
+                {lang === 'ar' ? 'وكيل شحن رسمي' : 'Official agent'}
               </span>
             ) : null}
             {user.isBlocked ? <span className="pill pill-red">{t('blocked')}</span> : null}

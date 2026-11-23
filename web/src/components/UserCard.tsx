@@ -26,6 +26,8 @@ export interface UserCardData {
   isFollowing?: boolean;
   isBlocked?: boolean;
   age?: number | null;
+  /** Approved recharge agency — drives the official agent badge. */
+  isAgent?: boolean;
 }
 
 export function UserCard({

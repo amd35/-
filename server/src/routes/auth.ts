@@ -14,6 +14,7 @@ import {
   signUserToken,
 } from '../auth';
 import { equippedCosmetics, equippedFrameInfo } from '../frames';
+import { agentFor, commissionRate } from '../agents';
 import { adminLookForUser } from '../adminLook';
 import { getFreeCallState } from '../freecalls';
 import { notify } from '../notify';
@@ -77,10 +78,13 @@ function serializeSelf(row: UserRow, frame: Awaited<ReturnType<typeof equippedFr
 export async function buildMe(userId: string) {
   const row = await one<UserRow>('SELECT * FROM users WHERE id = $1', [userId]);
   if (!row) throw new HttpError(404, 'Account not found', 'account_missing');
-  const wallet = await one<{ balance: number; reserved: number; earned: number; spent: number }>(
-    'SELECT balance, reserved, earned, spent FROM wallets WHERE user_id = $1',
-    [userId]
-  );
+  const wallet = await one<{
+    balance: number;
+    reserved: number;
+    earned: number;
+    spent: number;
+    gold: number;
+  }>('SELECT balance, reserved, earned, spent, gold FROM wallets WHERE user_id = $1', [userId]);
   const free = await getFreeCallState(userId);
   const unread = await one<{ count: string }>(
     'SELECT count(*)::text AS count FROM notifications WHERE user_id = $1 AND read_at IS NULL',
@@ -102,6 +106,7 @@ export async function buildMe(userId: string) {
   await awardDailyActivity(userId);
   const level = await getLevelState(userId);
   const vip = await activeVip(userId);
+  const agent = await agentFor(userId);
   return {
     user: serializeSelf(row, await equippedFrameInfo(userId)),
     rank: rank ? serializeRankInfo(rank) : null,
@@ -109,7 +114,17 @@ export async function buildMe(userId: string) {
     vip,
     cosmetics: await equippedCosmetics(userId),
     adminLook: await adminLookForUser(userId),
-    wallet: wallet ?? { balance: 0, reserved: 0, earned: 0, spent: 0 },
+    wallet: wallet ?? { balance: 0, reserved: 0, earned: 0, spent: 0, gold: 0 },
+    // Recharge agency (null for a regular user). The panel is only rendered when active.
+    agent: agent && agent.status !== 'revoked'
+      ? {
+          status: agent.status,
+          commissionPercent: commissionRate(agent),
+          coinsBalance: Number(agent.coins_balance),
+          goldBalance: Number(agent.gold_balance),
+          dueCommission: Number(agent.total_commission) - Number(agent.paid_commission),
+        }
+      : null,
     freeCalls: free,
     unreadNotifications: Number(unread?.count || 0),
     friendRequests: Number(requests?.count || 0),

@@ -11210,3 +11210,282 @@ button.ad-hit {
     grid-template-columns: 1fr;
   }
 }
+
+/* ===== Official recharge agents (وكلاء الشحن الرسميون) ===== */
+.agent-page {
+  background:
+    radial-gradient(120% 60% at 100% 0%, rgba(255, 77, 61, 0.16), transparent 60%),
+    radial-gradient(120% 60% at 0% 0%, rgba(255, 215, 94, 0.12), transparent 55%);
+  min-height: 100%;
+}
+
+.agent-hero {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 18px 16px;
+  border-radius: 22px;
+  background: linear-gradient(160deg, rgba(34, 12, 14, 0.94), rgba(10, 8, 10, 0.96));
+  border: 1px solid rgba(255, 90, 60, 0.35);
+  box-shadow: 0 18px 40px rgba(0, 0, 0, 0.45), inset 0 1px 0 rgba(255, 215, 94, 0.14);
+  overflow: hidden;
+}
+.agent-hero-glow {
+  position: absolute;
+  inset: -60% 45% auto -25%;
+  height: 200px;
+  background: radial-gradient(closest-side, rgba(255, 60, 40, 0.4), transparent);
+  filter: blur(18px);
+  pointer-events: none;
+}
+.agent-hero-id {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+  flex: 1;
+}
+.agent-hero-name {
+  font-weight: 800;
+  font-size: 17px;
+  color: #ffe9b0;
+}
+.agent-hero-sub {
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.agent-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  align-self: flex-start;
+  padding: 3px 9px;
+  border-radius: 999px;
+  font-size: 10.5px;
+  font-weight: 700;
+  color: #1a0d06;
+  background: linear-gradient(135deg, #ffd75e, #ff9d3c);
+  box-shadow: 0 4px 12px rgba(255, 157, 60, 0.35);
+}
+
+.agent-stats {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+.agent-stat {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 14px;
+  border-radius: 18px;
+  background: linear-gradient(160deg, rgba(30, 14, 16, 0.86), rgba(12, 9, 12, 0.92));
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  backdrop-filter: blur(12px);
+}
+.agent-stat-icon {
+  width: 26px;
+  height: 26px;
+  border-radius: 9px;
+  display: grid;
+  place-items: center;
+  margin-bottom: 4px;
+  background: rgba(255, 255, 255, 0.08);
+  color: #ffd75e;
+}
+.agent-stat-icon.gold {
+  color: #ffb347;
+}
+.agent-stat-icon.due {
+  color: #ff7d8c;
+}
+.agent-stat-icon.paid {
+  color: #7ee0a1;
+}
+.agent-stat-value {
+  font-size: 18px;
+  font-weight: 800;
+  color: #fff;
+  font-variant-numeric: tabular-nums;
+}
+.agent-stat-label {
+  font-size: 10.5px;
+  color: rgba(255, 255, 255, 0.55);
+}
+
+.agent-card {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 14px;
+  border-radius: 20px;
+  background: rgba(18, 12, 14, 0.74);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  backdrop-filter: blur(14px);
+}
+.agent-card-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  font-weight: 700;
+  color: #ffd75e;
+}
+.agent-search {
+  display: flex;
+  gap: 8px;
+}
+.agent-target {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+.agent-target.bad {
+  border-color: rgba(255, 80, 80, 0.5);
+}
+.agent-target-main {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  flex: 1;
+}
+.agent-quote {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px;
+  border-radius: 14px;
+  background: linear-gradient(135deg, rgba(255, 90, 60, 0.16), rgba(255, 215, 94, 0.1));
+  border: 1px solid rgba(255, 157, 60, 0.28);
+}
+.agent-quote > div {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.agent-quote strong {
+  font-size: 16px;
+}
+.agent-gold {
+  color: #ffd75e;
+}
+.agent-bad {
+  color: #ff7d8c;
+}
+.agent-good {
+  color: #7ee0a1;
+}
+.agent-tabs {
+  display: flex;
+  gap: 6px;
+  overflow-x: auto;
+}
+.agent-tab {
+  padding: 5px 11px;
+  border-radius: 999px;
+  font-size: 11px;
+  white-space: nowrap;
+  color: rgba(255, 255, 255, 0.7);
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+.agent-tab.on {
+  color: #1a0d06;
+  font-weight: 700;
+  border-color: transparent;
+  background: linear-gradient(135deg, #ff4d3d, #ff9d3c);
+}
+.agent-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.agent-request {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+}
+.agent-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.agent-status {
+  font-size: 10px;
+  padding: 3px 8px;
+  border-radius: 999px;
+  white-space: nowrap;
+  background: rgba(255, 255, 255, 0.08);
+}
+.agent-status.pending {
+  color: #ffd75e;
+}
+.agent-status.completed {
+  color: #7ee0a1;
+}
+.agent-status.rejected {
+  color: #ff7d8c;
+}
+.agent-status.cancelled {
+  color: rgba(255, 255, 255, 0.5);
+}
+.agent-row-between {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 6px 0;
+  font-size: 12px;
+  border-bottom: 1px dashed rgba(255, 255, 255, 0.06);
+}
+.agent-amount {
+  font-weight: 800;
+  color: #ff7d8c;
+}
+.agent-count {
+  margin-inline-start: 6px;
+  font-size: 10px;
+  padding: 1px 7px;
+  border-radius: 999px;
+  background: #ff4d3d;
+  color: #fff;
+}
+.agent-ledger-value {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 1px;
+}
+.agent-warn {
+  padding: 10px 14px;
+  border-radius: 14px;
+  font-size: 12px;
+  color: #ffb3bd;
+  background: rgba(255, 80, 80, 0.12);
+  border: 1px solid rgba(255, 80, 80, 0.35);
+}
+.agent-agency {
+  flex-direction: row;
+  align-items: center;
+  gap: 12px;
+}
+.agent-agency-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+.agent-entry-row {
+  border-inline-start: 3px solid #ff9d3c;
+}

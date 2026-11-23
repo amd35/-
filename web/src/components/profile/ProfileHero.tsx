@@ -190,6 +190,12 @@ export function ProfileHero({
               <Icon name="check" size={12} />
             </span>
           ) : null}
+          {me.agent?.status === 'active' ? (
+            <span className="agent-badge">
+              <Icon name="shield" size={11} />
+              {lang === 'ar' ? 'وكيل شحن رسمي' : 'Official agent'}
+            </span>
+          ) : null}
         </div>
       </div>
 

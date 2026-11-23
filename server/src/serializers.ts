@@ -37,6 +37,8 @@ export interface PublicUser {
   vip: VipInfo | null;
   /** The official support account — shows the verified support badge. */
   isSupport: boolean;
+  /** Approved recharge agency — shows the official agent badge. */
+  isAgent: boolean;
 }
 
 interface VipColumns {
@@ -86,7 +88,15 @@ interface UserLike extends FrameColumns, RankColumns, VipColumns {
   phone_verified?: boolean | null;
   email_verified?: boolean | null;
   is_support?: boolean | null;
+  agent_status?: string | null;
 }
+
+/** Resolves the live agency status so the badge disappears the moment it is revoked. */
+export function agentJoins(userAlias: string): string {
+  return `LEFT JOIN agents ag ON ag.user_id = ${userAlias}.id AND ag.status = 'active'`;
+}
+
+export const AGENT_FIELD = `ag.status AS agent_status`;
 
 /**
  * SQL joins that resolve a user's equipped frame. The frame is only exposed while it
@@ -220,6 +230,7 @@ export function toPublicUser(row: UserLike): PublicUser {
     level: Number(row.level ?? 1) || 1,
     vip: vipFromRow(row),
     isSupport: Boolean(row.is_support),
+    isAgent: row.agent_status === 'active',
   };
 }
 
@@ -227,8 +238,8 @@ export async function getPublicUser(userId: string): Promise<PublicUser | null> 
   const row = await one<UserLike>(
     `SELECT u.id, u.username, u.level, u.display_name, u.avatar_url, u.bio, u.gender, u.country, u.age,
             u.last_seen_at, u.created_at, u.phone_verified, u.email_verified, u.is_support,
-            ${FRAME_FIELDS}, ${RANK_FIELDS}, ${VIP_FIELDS}
-     FROM users u ${frameJoins('u')} ${rankJoins('u')} ${vipJoins('u')}
+            ${FRAME_FIELDS}, ${RANK_FIELDS}, ${VIP_FIELDS}, ${AGENT_FIELD}
+     FROM users u ${frameJoins('u')} ${rankJoins('u')} ${vipJoins('u')} ${agentJoins('u')}
      WHERE u.id = $1`,
     [userId]
   );

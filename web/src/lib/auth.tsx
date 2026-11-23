@@ -32,6 +32,17 @@ export interface WalletInfo {
   reserved: number;
   earned: number;
   spent: number;
+  /** Second currency, credited by official recharge agents. */
+  gold?: number;
+}
+
+/** Official recharge agency, present only while the admin keeps it active. */
+export interface AgentSelfInfo {
+  status: 'active' | 'suspended';
+  commissionPercent: number;
+  coinsBalance: number;
+  goldBalance: number;
+  dueCommission: number;
 }
 
 export interface FreeCallInfo {
@@ -82,6 +93,7 @@ export interface Me {
     entryId: string | null;
   } | null;
   wallet: WalletInfo;
+  agent: AgentSelfInfo | null;
   freeCalls: FreeCallInfo;
   unreadNotifications: number;
   friendRequests: number;

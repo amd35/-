@@ -17,7 +17,7 @@ import { AppShell } from '../components/AppShell';
 import { GiftCodeButton } from '../components/GiftCodeSheet';
 
 interface WalletData {
-  wallet: { balance: number; reserved: number; earned: number; spent: number };
+  wallet: { balance: number; reserved: number; earned: number; spent: number; gold?: number };
   transactions: {
     id: string;
     type: string;
@@ -224,6 +224,10 @@ export default function Wallet() {
             <div>
               <span>{t('spent')}</span>
               <b>{formatCoins(wallet.spent)}</b>
+            </div>
+            <div>
+              <span>{lang === 'ar' ? 'ذهب' : 'Gold'}</span>
+              <b>{formatCoins(wallet.gold ?? 0)}</b>
             </div>
           </div>
           <div className="inline" style={{ marginTop: 14, gap: 8 }}>

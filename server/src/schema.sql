@@ -1449,3 +1449,94 @@ BEGIN
       FOREIGN KEY (frame_id) REFERENCES room_frames(id) ON DELETE SET NULL;
   END IF;
 END $$;
+
+-- ===== Official recharge agents (وكلاء الشحن الرسميون) =====
+-- A row here IS the agent status: 'revoked' hides the panel and the badge but keeps
+-- the money history, so an admin can never erase the audit trail.
+CREATE TABLE IF NOT EXISTS agents (
+  user_id uuid PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+  status text NOT NULL DEFAULT 'active',
+  commission_percent numeric(5,2) NOT NULL DEFAULT 10 CHECK (commission_percent >= 0 AND commission_percent <= 90),
+  coins_balance bigint NOT NULL DEFAULT 0 CHECK (coins_balance >= 0),
+  gold_balance bigint NOT NULL DEFAULT 0 CHECK (gold_balance >= 0),
+  total_sales_coins bigint NOT NULL DEFAULT 0,
+  total_commission bigint NOT NULL DEFAULT 0,
+  paid_commission bigint NOT NULL DEFAULT 0,
+  note text,
+  assigned_by text NOT NULL DEFAULT 'admin',
+  created_at timestamptz NOT NULL DEFAULT now(),
+  updated_at timestamptz NOT NULL DEFAULT now(),
+  revoked_at timestamptz
+);
+CREATE INDEX IF NOT EXISTS agents_status_idx ON agents (status, created_at DESC);
+
+-- Recharge packages an agent sells: `amount` units cost `cost_coins` from the agent balance.
+CREATE TABLE IF NOT EXISTS agent_packages (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  name text NOT NULL,
+  currency text NOT NULL DEFAULT 'coins',
+  amount bigint NOT NULL CHECK (amount > 0),
+  cost_coins bigint NOT NULL CHECK (cost_coins > 0),
+  is_active boolean NOT NULL DEFAULT true,
+  sort_order integer NOT NULL DEFAULT 0,
+  created_at timestamptz NOT NULL DEFAULT now()
+);
+
+-- Append-only money trail of the agent balance and the commission account.
+CREATE TABLE IF NOT EXISTS agent_ledger (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  agent_id uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  kind text NOT NULL,
+  currency text NOT NULL DEFAULT 'coins',
+  amount bigint NOT NULL,
+  balance_after bigint NOT NULL,
+  ref_type text,
+  ref_id uuid,
+  note text,
+  actor text NOT NULL DEFAULT 'admin',
+  created_at timestamptz NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS agent_ledger_agent_idx ON agent_ledger (agent_id, created_at DESC);
+CREATE UNIQUE INDEX IF NOT EXISTS agent_ledger_unique_idx ON agent_ledger (agent_id, kind, ref_id);
+
+-- One row per delivered recharge (direct by the agent, or a completed user request).
+CREATE TABLE IF NOT EXISTS agent_recharges (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  agent_id uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  user_id uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  package_id uuid REFERENCES agent_packages(id) ON DELETE SET NULL,
+  currency text NOT NULL DEFAULT 'coins',
+  amount bigint NOT NULL CHECK (amount > 0),
+  cost_coins bigint NOT NULL CHECK (cost_coins >= 0),
+  commission_coins bigint NOT NULL DEFAULT 0,
+  status text NOT NULL DEFAULT 'completed',
+  idempotency_key text NOT NULL,
+  note text,
+  created_at timestamptz NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS agent_recharges_agent_idx ON agent_recharges (agent_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS agent_recharges_user_idx ON agent_recharges (user_id, created_at DESC);
+-- The same confirmation can never be applied twice.
+CREATE UNIQUE INDEX IF NOT EXISTS agent_recharges_key_idx ON agent_recharges (agent_id, idempotency_key);
+
+-- Customer recharge requests sent from the official agents page.
+CREATE TABLE IF NOT EXISTS agent_requests (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  agent_id uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  user_id uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  package_id uuid REFERENCES agent_packages(id) ON DELETE SET NULL,
+  currency text NOT NULL DEFAULT 'coins',
+  amount bigint NOT NULL CHECK (amount > 0),
+  cost_coins bigint NOT NULL CHECK (cost_coins >= 0),
+  status text NOT NULL DEFAULT 'pending',
+  note text,
+  agent_note text,
+  recharge_id uuid REFERENCES agent_recharges(id) ON DELETE SET NULL,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  resolved_at timestamptz
+);
+CREATE INDEX IF NOT EXISTS agent_requests_agent_idx ON agent_requests (agent_id, status, created_at DESC);
+CREATE INDEX IF NOT EXISTS agent_requests_user_idx ON agent_requests (user_id, created_at DESC);
+
+-- Gold is a second currency users receive from agents; coins stay in wallets.balance.
+ALTER TABLE wallets ADD COLUMN IF NOT EXISTS gold bigint NOT NULL DEFAULT 0 CHECK (gold >= 0);
