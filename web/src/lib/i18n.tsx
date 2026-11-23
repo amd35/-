@@ -3,7 +3,7 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useState, t
 export type Lang = 'ar' | 'en';
 
 const ar: Record<string, string> = {
-  appName: 'Connect+',
+  appName: 'يلا فون',
   tagline: 'دردشة، صوت، وفيديو — بجودة عالية',
   welcomeLead: 'تواصل أقرب .. بكل سهولة',
   welcomeSub: 'مكالمات صوتية وفيديو مباشرة، دردشة فورية، ومحفظة كونز.',
@@ -245,7 +245,7 @@ const ar: Record<string, string> = {
   perMinute: 'لكل دقيقة',
   freeCallsInfo: '5 محاولات مجانية يومياً تشمل الصوت والفيديو وتتجدد منتصف الليل بتوقيت العراق',
   privacyBody: 'نحفظ بياناتك بأمان، ولا نسجل المكالمات دون موافقة صريحة. يمكنك حذف حسابك في أي وقت من الإعدادات.',
-  aboutBody: 'Connect+ تطبيق دردشة واتصالات صوتية وفيديو مع محفظة كونز ونظام أرباح.',
+  aboutBody: 'يلا فون تطبيق دردشة واتصالات صوتية وفيديو مع محفظة كونز ونظام أرباح.',
   supportBody: 'للتواصل مع الدعم: support@connectplus.app',
   welcomeBack: 'مرحباً بعودتك',
   signInSub: 'سجّل الدخول لمتابعة أصدقائك',
@@ -433,7 +433,7 @@ const ar: Record<string, string> = {
 };
 
 const en: Record<string, string> = {
-  appName: 'Connect+',
+  appName: 'Yalla Phone',
   tagline: 'Chat, voice and video — in high quality',
   welcomeLead: 'Closer connection .. made easy',
   welcomeSub: 'Live voice and video calls, instant chat, and a coin wallet.',
@@ -675,7 +675,7 @@ const en: Record<string, string> = {
   perMinute: 'per minute',
   freeCallsInfo: '5 free attempts per day, shared by voice and video, renewing at midnight Baghdad time',
   privacyBody: 'Your data is stored securely. Calls are never recorded without explicit consent. You can delete your account anytime in Settings.',
-  aboutBody: 'Connect+ is a chat, voice and video calling app with a coin wallet and earnings system.',
+  aboutBody: 'Yalla Phone is a chat, voice and video calling app with a coin wallet and earnings system.',
   supportBody: 'Contact support: support@connectplus.app',
   welcomeBack: 'Welcome back',
   signInSub: 'Sign in to catch up with your friends',

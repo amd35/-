@@ -212,7 +212,7 @@ export default function Settings() {
             <Icon name="sparkle" size={19} />
             <div className="row-main">
               <div className="row-title">{t('about')}</div>
-              <div className="row-sub">Connect+ 1.0.0</div>
+              <div className="row-sub">يلا فون 1.0.0</div>
             </div>
             <Icon name="arrowLeft" size={17} />
           </div>

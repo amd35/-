@@ -13,7 +13,7 @@ import type { CapacitorConfig } from '@capacitor/cli';
  */
 const config: CapacitorConfig = {
   appId: 'com.connectplus.app',
-  appName: 'Connect+',
+  appName: 'يلا فون',
   webDir: 'dist',
   android: {
     // The API is HTTPS in production; do not relax this to ship mixed content.

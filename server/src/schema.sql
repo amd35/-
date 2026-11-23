@@ -679,7 +679,7 @@ INSERT INTO app_settings (key, value) VALUES
   ('host_percent', '50'::jsonb),
   ('min_withdrawal_coins', '1000'::jsonb),
   ('coin_to_iqd_rate', '5'::jsonb),
-  ('app_name', '"Connect+"'::jsonb),
+  ('app_name', '"يلا فون"'::jsonb),
   ('support_contact', '"support@connectplus.app"'::jsonb)
 ON CONFLICT (key) DO NOTHING;
 

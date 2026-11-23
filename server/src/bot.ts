@@ -59,7 +59,7 @@ export async function ensureBotUser(): Promise<string> {
       BOT_USERNAME,
       BOT_DISPLAY_NAME,
       BOT_AVATAR,
-      'رفيقتك الذكية في Connect+ — اسأليني عن الكونز والمكالمات والمحفظة',
+      'رفيقتك الذكية في يلا فون — اسأليني عن الكونز والمكالمات والمحفظة',
     ]
   );
   cachedBotId = rows[0].id;
@@ -86,7 +86,7 @@ function greetingFor(name: string): string {
         : hour >= 17 && hour < 23
           ? 'مساء الخير'
           : 'سهران';
-  return `${hello} ${name} 👋 أنا لينا، رفيقتك في Connect+. تحب نتكلم عن الكونز، المكالمات، أو المحاولات المجانية؟`;
+  return `${hello} ${name} 👋 أنا لينا، رفيقتك في يلا فون. تحب نتكلم عن الكونز، المكالمات، أو المحاولات المجانية؟`;
 }
 
 /** Creates the user's private chat with Lina once, with her welcome line. */
@@ -190,7 +190,7 @@ export function replyFor(text: string, name: string): string {
     ]);
   }
   if (/(اسمك|منو انت|من أنت|انتي منو|who are you)/.test(input)) {
-    return 'أنا لينا 🤍 رفيقتك الذكية داخل Connect+، أساعدك بالكونز والمكالمات والمحفظة وأي سؤال يخطر ببالك.';
+    return 'أنا لينا 🤍 رفيقتك الذكية داخل يلا فون، أساعدك بالكونز والمكالمات والمحفظة وأي سؤال يخطر ببالك.';
   }
   if (/(كونز|رصيد|محفظة|فلوس|سعر|كم يكلف|تكلفة)/.test(input)) {
     return 'الكونز هي عملة التطبيق 💜 المكالمة الصوتية أو الفيديو تكلف 100 كونز لكل دقيقة، ورصيدك كامل تشوفه في صفحة المحفظة، وتقدر تشحنه من هناك بأي وقت.';

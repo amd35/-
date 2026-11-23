@@ -326,7 +326,7 @@ router.post(
       user.id,
       'account_id',
       'آي دي حسابك',
-      `آي دي حسابك في Connect+ هو ${user.username} — استخدمه لتسجيل الدخول`,
+      `آي دي حسابك في يلا فون هو ${user.username} — استخدمه لتسجيل الدخول`,
       { code: user.username }
     );
     res.json({ code: user.username });
@@ -356,7 +356,7 @@ router.post(
       user.id,
       'account_id',
       'آي دي حسابك',
-      `تم تحديث آي دي حسابك في Connect+ إلى ${code} — استخدمه لتسجيل الدخول`,
+      `تم تحديث آي دي حسابك في يلا فون إلى ${code} — استخدمه لتسجيل الدخول`,
       { code }
     );
     res.json({ code });
@@ -1342,7 +1342,7 @@ router.post(
        DO UPDATE SET expires_at = EXCLUDED.expires_at, acquired_at = now()`,
       [user.id, frame.id, expiresAt]
     );
-    await notify(user.id, 'cosmetic_granted', 'تصميم جديد', `تم منحك "${frame.name}" في Connect+`, {
+    await notify(user.id, 'cosmetic_granted', 'تصميم جديد', `تم منحك "${frame.name}" في يلا فون`, {
       frameId: frame.id,
     });
     res.json({ granted: true, userId: user.id });

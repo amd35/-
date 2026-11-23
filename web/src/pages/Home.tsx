@@ -101,7 +101,7 @@ export default function Home() {
 
   return (
     <AppShell
-      title={me?.config.appName || 'Connect+'}
+      title={me?.config.appName || 'يلا فون'}
       subtitle={greeting}
       active="home"
       right={

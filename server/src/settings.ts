@@ -122,7 +122,7 @@ export const SETTINGS_DEFAULTS: AppSettings = {
   cup_prize_1: 5000,
   cup_prize_2: 2000,
   cup_prize_3: 1000,
-  app_name: 'Connect+',
+  app_name: 'يلا فون',
   support_contact: 'support@connectplus.app',
 };
 
@@ -227,7 +227,7 @@ const COERCE: Record<string, (value: unknown) => unknown> = {
   cup_prize_1: (v) => Math.max(0, Math.trunc(Number(v) || 0)),
   cup_prize_2: (v) => Math.max(0, Math.trunc(Number(v) || 0)),
   cup_prize_3: (v) => Math.max(0, Math.trunc(Number(v) || 0)),
-  app_name: (v) => String(v || 'Connect+').slice(0, 60),
+  app_name: (v) => String(v || 'يلا فون').slice(0, 60),
   support_contact: (v) => String(v || '').slice(0, 120),
 };
 

@@ -239,7 +239,7 @@ router.post(
     await notify(
       created.id,
       'welcome',
-      'مرحباً بك في Connect+',
+      'مرحباً بك في يلا فون',
       'لديك 5 محاولات مجانية يومياً لمكالمات الصوت والفيديو',
       { freeCalls: (await getSettings()).free_calls_per_day }
     );
@@ -300,7 +300,7 @@ router.post(
     const smsReady = smsConfigured();
     if (smsReady) {
       try {
-        await sendSms(phone, `${code} is your Connect+ verification code. It expires in 5 minutes.`);
+        await sendSms(phone, `${code} is your Yalla Phone verification code. It expires in 5 minutes.`);
       } catch (error) {
         console.error('[auth] sms delivery failed', (error as Error).message);
         throw new HttpError(502, 'Could not send the SMS code, please try again', 'sms_failed');

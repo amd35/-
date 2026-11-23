@@ -99,7 +99,7 @@ function AdminLogin({ onDone }: { onDone: (token: string) => void }) {
             <Icon name="shield" size={20} />
           </div>
           <div>
-            <h2 style={{ fontSize: 20 }}>لوحة تحكم Connect+</h2>
+            <h2 style={{ fontSize: 20 }}>لوحة تحكم يلا فون</h2>
             <span className="tiny muted">لوحة الإدارة</span>
           </div>
         </div>
@@ -160,7 +160,7 @@ export default function Admin() {
             <Icon name="shield" size={19} />
           </div>
           <div>
-            <div style={{ fontWeight: 700 }}>Connect+</div>
+            <div style={{ fontWeight: 700 }}>يلا فون</div>
             <div className="tiny muted">لوحة التحكم</div>
           </div>
         </div>
