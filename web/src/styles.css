@@ -10604,7 +10604,7 @@ table.data tr:hover td {
 
 .rp-stats {
   display: grid;
-  grid-template-columns: repeat(6, 1fr);
+  grid-template-columns: repeat(3, 1fr);
   width: 100%;
   overflow: hidden;
   border-radius: 18px;
@@ -10616,8 +10616,10 @@ table.data tr:hover td {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 3px;
-  padding: 9px 2px 8px;
+  justify-content: center;
+  gap: 4px;
+  min-height: 74px;
+  padding: 10px 6px;
   color: inherit;
   background: transparent;
   border: 0;
@@ -10625,8 +10627,12 @@ table.data tr:hover td {
   cursor: pointer;
 }
 
-.rp-stat:last-child {
+.rp-stat:nth-child(3n) {
   border-inline-end: 0;
+}
+
+.rp-stat:nth-child(-n + 3) {
+  border-bottom: 1px solid rgba(167, 139, 250, 0.14);
 }
 
 .rp-stat:active {
@@ -10670,8 +10676,8 @@ table.data tr:hover td {
 }
 
 .rp-stat-label {
-  font-size: 8.5px;
-  line-height: 1.15;
+  font-size: 10px;
+  line-height: 1.2;
   color: #a99cc4;
 }
 
@@ -10739,16 +10745,17 @@ table.data tr:hover td {
   }
 }
 
-@media (max-width: 359px) {
+@media (min-width: 520px) {
   .rp-stats {
-    grid-template-columns: repeat(3, 1fr);
+    grid-template-columns: repeat(6, 1fr);
   }
 
-  .rp-stat:nth-child(3n) {
+  .rp-stat {
+    border-bottom: 0;
+    border-inline-end: 1px solid rgba(167, 139, 250, 0.14);
+  }
+
+  .rp-stat:last-child {
     border-inline-end: 0;
-  }
-
-  .rp-stat:nth-child(-n + 3) {
-    border-bottom: 1px solid rgba(167, 139, 250, 0.14);
   }
 }
