@@ -67,10 +67,13 @@ export function UserCard({
         <VipBadge vip={user.vip} size={15} />
         <span>{user.displayName}</span>
       </div>
-      <div className="handle">
-        {user.age ? `${user.age} ${t('years')}` : `#${user.username}`}
-        {isOnline ? <span style={{ color: 'var(--green)' }}> • {t('onlineNow')}</span> : null}
-      </div>
+      {user.age || isOnline ? (
+        <div className="handle">
+          {user.age ? `${user.age} ${t('years')}` : null}
+          {user.age && isOnline ? ' • ' : null}
+          {isOnline ? <span style={{ color: 'var(--green)' }}>{t('onlineNow')}</span> : null}
+        </div>
+      ) : null}
       <div className="actions">
         <button
           className="call-icon voice"
