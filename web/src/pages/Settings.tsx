@@ -1,8 +1,10 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { api } from '../lib/api';
+import { notificationPermission, requestNotificationPermission, showNotification } from '../lib/appNotify';
 import { useAuth } from '../lib/auth';
 import { useI18n } from '../lib/i18n';
+import { useNotify } from '../lib/notifyCenter';
 import { formatCoins, formatCountdown, Icon, Sheet, useCountdown, useToast } from '../lib/ui';
 import { AppShell } from '../components/AppShell';
 import { GiftCodeSheet } from '../components/GiftCodeSheet';
@@ -23,6 +25,41 @@ export default function Settings() {
   const isAdmin = Boolean(me?.user.isAdmin);
   const free = me?.freeCalls;
   const countdown = useCountdown(free?.nextResetAt);
+  const notify = useNotify();
+  const [notifState, setNotifState] = useState<'granted' | 'denied' | 'prompt'>('prompt');
+
+  useEffect(() => {
+    void notificationPermission().then(setNotifState);
+  }, []);
+
+  /** Enables OS notifications and shows a sample of the luxury card. */
+  const enableAppNotifications = async () => {
+    const granted = await requestNotificationPermission();
+    setNotifState(granted ? 'granted' : await notificationPermission());
+    notify.show({
+      kind: 'system',
+      title: 'يلا فون',
+      body: granted
+        ? 'إشعاراتك صارت جاهزة ✨ رح توصلك رسائل الأصدقاء وهدايا الإدارة حتى وأنت خارج التطبيق.'
+        : 'هكذا يوصلك إشعار يلا فون الفخم — فعّل الإشعارات من إعدادات الهاتف حتى يصلك وأنت خارج التطبيق.',
+      route: '/notifications',
+    });
+    if (!granted) {
+      toast.push(
+        lang === 'ar'
+          ? 'الإشعارات معطلة — فعّلها من إعدادات الهاتف'
+          : 'Notifications are blocked — enable them in phone settings',
+        'error'
+      );
+      return;
+    }
+    void showNotification({
+      kind: 'system',
+      title: 'يلا فون',
+      body: 'إشعاراتك مفعّلة — رح ندلّعك برسائل فخمة 💜',
+    });
+    toast.push(lang === 'ar' ? 'تم تفعيل إشعارات يلا فون' : 'Yalla Phone notifications enabled', 'success');
+  };
 
   const changePassword = async () => {
     setBusy(true);
@@ -189,6 +226,41 @@ export default function Settings() {
               }}
             >
               {t('markAllRead')}
+            </button>
+          </div>
+
+          <div className="row" onClick={() => void enableAppNotifications()}>
+            <Icon name="sparkle" size={19} />
+            <div className="row-main">
+              <div className="row-title">{t('appNotifications')}</div>
+              <div className="row-sub">
+                {notifState === 'granted'
+                  ? lang === 'ar'
+                    ? 'مفعّلة — تصلك رسائل يلا فون حتى خارج التطبيق'
+                    : 'On — you get Yalla Phone alerts outside the app'
+                  : notifState === 'denied'
+                    ? lang === 'ar'
+                      ? 'معطلة من إعدادات الهاتف'
+                      : 'Blocked in phone settings'
+                    : lang === 'ar'
+                      ? 'اضغط للتفعيل واستلام الرسائل خارج التطبيق'
+                      : 'Tap to enable notifications'}
+              </div>
+            </div>
+            <button
+              className="btn btn-ghost btn-xs"
+              onClick={(event) => {
+                event.stopPropagation();
+                void enableAppNotifications();
+              }}
+            >
+              {notifState === 'granted'
+                ? lang === 'ar'
+                  ? 'مفعّلة'
+                  : 'On'
+                : lang === 'ar'
+                  ? 'تفعيل'
+                  : 'Enable'}
             </button>
           </div>
 

@@ -231,6 +231,10 @@ export function scheduleBotReply(userId: string, conversationId: string, text: s
   void (async () => {
     try {
       const botId = await ensureBotUser();
+      const bot = await one<{ display_name: string | null; avatar_url: string | null }>(
+        'SELECT display_name, avatar_url FROM users WHERE id = $1',
+        [botId]
+      );
       const user = await one<{ display_name: string }>(
         'SELECT display_name FROM users WHERE id = $1',
         [userId]
@@ -248,6 +252,8 @@ export function scheduleBotReply(userId: string, conversationId: string, text: s
         id: rows[0].id,
         conversationId,
         senderId: botId,
+        senderName: bot?.display_name ?? BOT_DISPLAY_NAME,
+        senderAvatar: bot?.avatar_url ?? null,
         body: rows[0].body,
         type: 'text',
         attachmentUrl: null,

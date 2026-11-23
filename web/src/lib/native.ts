@@ -1,4 +1,5 @@
 import { Capacitor } from '@capacitor/core';
+import { cancelComeBack, scheduleComeBack, setupNotificationChannels } from './appNotify';
 
 /** True only inside the Android/iOS shell; false in every browser build. */
 export const isNative = Capacitor.isNativePlatform();
@@ -27,6 +28,13 @@ export async function setupNativeShell(): Promise<void> {
   await App.addListener('backButton', ({ canGoBack }) => {
     if (canGoBack) window.history.back();
     else void App.exitApp();
+  });
+
+  // Notification channels + the "we miss you" reminder that fires while the app is closed.
+  await setupNotificationChannels();
+  await App.addListener('appStateChange', ({ isActive }) => {
+    if (isActive) void cancelComeBack();
+    else void scheduleComeBack();
   });
 
   await SplashScreen.hide();

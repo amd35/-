@@ -36,6 +36,23 @@
   concurrency, chat read receipts, ban). It deletes the accounts it creates.
 - Type checks: `npx tsc --noEmit` in both `server/` and `web/`.
 
+## Notifications (إشعارات يلا فون)
+- Native Android uses `@capacitor/local-notifications` through `web/src/lib/appNotify.ts` (dynamic import, so the
+  browser bundle stays clean). Three Android channels: `yalal_messages` (friend messages, neon pink),
+  `yalal_system` (royal gold) and `yalal_reengage` (come-back reminder). Small icon
+  `res/drawable/ic_stat_yalal.xml` (white heart), large icon `res/drawable/ic_notification_logo.png` (the app logo),
+  title always the app name «يلا فون».
+- Leaving the app schedules «أهلا صار هواي ماشايفينك تعال يا نغل» for +5 h (`COME_BACK_HOURS`) and returning
+  cancels it (`native.ts` → `appStateChange`). Scheduled alarms survive the app being closed.
+- `NotifyProvider` (`web/src/lib/notifyCenter.tsx`) converts realtime `message:new` (sender ≠ me) and
+  `notification` events into the luxury in-app card (`components/LuxuryNotification.tsx` + `notifications.css`),
+  and posts an OS notification instead when `document.hidden`. It skips messages for the conversation on screen.
+  The server adds `senderName`/`senderAvatar` to `message:new` (chat route + Lina bot) so the card shows the sender.
+- Settings → «إشعارات التطبيق» requests the OS permission, previews the card and reports blocked permission.
+- Friend messages while the app is fully closed still need Firebase Cloud Messaging
+  (`@capacitor/push-notifications` + `google-services.json`); Local Notifications only cover reminders and
+  messages that reach the open WebSocket.
+
 ## Android shell (Capacitor)
 - `web/android/` is a Capacitor 8 project (`appId com.connectplus.app`), configured by `web/capacitor.config.ts`.
   After any `web/` change run `npm run sync:android` (builds `dist`, then `cap sync`) before Gradle builds.

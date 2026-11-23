@@ -9,8 +9,6 @@ import {
   type ReactNode,
 } from 'react';
 import { useAuth } from './auth';
-import { useI18n } from './i18n';
-import { useToast } from './ui';
 import { wsUrl } from './api';
 
 type Handler = (data: Record<string, unknown>) => void;
@@ -26,8 +24,6 @@ const RealtimeContext = createContext<RealtimeValue | null>(null);
 
 export function RealtimeProvider({ children }: { children: ReactNode }) {
   const { token, refresh } = useAuth();
-  const { t } = useI18n();
-  const toast = useToast();
   const [connected, setConnected] = useState(false);
   const [online, setOnline] = useState<Set<string>>(new Set());
   const socketRef = useRef<WebSocket | null>(null);
@@ -119,11 +115,7 @@ export function RealtimeProvider({ children }: { children: ReactNode }) {
         } else if (name === 'free:update' || name === 'wallet:update') {
           scheduleRefresh();
         } else if (name === 'notification') {
-          const type = String(data.type || '');
-          // The call overlay already announces call endings; don't duplicate it as a toast.
-          if (type !== 'message' && type !== 'call_ended') {
-            toast.push(String(data.title || t('notifications')), 'info');
-          }
+          // Notifications are rendered as the luxury card by NotifyProvider.
           scheduleRefresh();
         }
 
@@ -156,7 +148,7 @@ export function RealtimeProvider({ children }: { children: ReactNode }) {
       socketRef.current = null;
       setConnected(false);
     };
-  }, [token, dispatch, scheduleRefresh, t, toast]);
+  }, [token, dispatch, scheduleRefresh]);
 
   const value = useMemo<RealtimeValue>(
     () => ({ connected, online, send, on }),

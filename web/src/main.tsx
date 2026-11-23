@@ -5,6 +5,7 @@ import { I18nProvider } from './lib/i18n';
 import { ToastProvider } from './lib/ui';
 import { AuthProvider } from './lib/auth';
 import { RealtimeProvider } from './lib/realtime';
+import { NotifyProvider } from './lib/notifyCenter';
 import { BackgroundsProvider } from './lib/backgrounds';
 import { CallProvider } from './lib/call';
 import { setupNativeShell } from './lib/native';
@@ -14,6 +15,7 @@ import './lucky.css';
 import './country.css';
 import './giftBoutique.css';
 import './loginRewards.css';
+import './notifications.css';
 
 void setupNativeShell();
 
@@ -25,11 +27,13 @@ root.render(
       <ToastProvider>
         <AuthProvider>
           <RealtimeProvider>
-            <BackgroundsProvider>
-              <CallProvider>
-                <App />
-              </CallProvider>
-            </BackgroundsProvider>
+            <NotifyProvider>
+              <BackgroundsProvider>
+                <CallProvider>
+                  <App />
+                </CallProvider>
+              </BackgroundsProvider>
+            </NotifyProvider>
           </RealtimeProvider>
         </AuthProvider>
       </ToastProvider>

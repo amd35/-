@@ -324,10 +324,19 @@ router.post(
       deliveredAt = delivered?.delivered_at ?? null;
     }
 
+    const sender = peer
+      ? await one<{ display_name: string | null; avatar_url: string | null }>(
+          'SELECT display_name, avatar_url FROM users WHERE id = $1',
+          [me]
+        )
+      : null;
+
     const payload = {
       id: message.id,
       conversationId,
       senderId: me,
+      senderName: sender?.display_name ?? null,
+      senderAvatar: sender?.avatar_url ?? null,
       body: message.body,
       type: message.type,
       attachmentUrl: message.attachment_url,
@@ -354,6 +363,8 @@ router.post(
       await notify(peer.user_id, 'message', 'رسالة جديدة', body.slice(0, 80), {
         conversationId,
         senderId: me,
+        senderName: sender?.display_name ?? null,
+        senderAvatar: sender?.avatar_url ?? null,
         preview: body.slice(0, 120),
         type,
       });
