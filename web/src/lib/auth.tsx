@@ -24,6 +24,7 @@ export interface SelfUser {
   isAdmin: boolean;
   provider: string;
   createdAt: string;
+  verified?: boolean;
 }
 
 export interface WalletInfo {

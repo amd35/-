@@ -50,6 +50,8 @@ interface UserRow {
   is_banned: boolean;
   provider: string;
   created_at: string;
+  phone_verified?: boolean;
+  email_verified?: boolean;
 }
 
 function serializeSelf(row: UserRow, frame: Awaited<ReturnType<typeof equippedFrameInfo>>) {
@@ -68,6 +70,7 @@ function serializeSelf(row: UserRow, frame: Awaited<ReturnType<typeof equippedFr
     isAdmin: row.is_admin,
     provider: row.provider,
     createdAt: row.created_at,
+    verified: Boolean(row.phone_verified || row.email_verified),
   };
 }
 

@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Navigate, useNavigate, useParams } from 'react-router-dom';
-import { api, assetUrl } from '../lib/api';
+import { api } from '../lib/api';
 import { useAuth } from '../lib/auth';
 import { useCall } from '../lib/call';
 import { useI18n } from '../lib/i18n';
@@ -15,8 +15,8 @@ import {
   useToast,
 } from '../lib/ui';
 import { AppShell } from '../components/AppShell';
-import { IdBadge, NameCard } from '../components/Cosmetics';
 import { RankTag } from '../components/RankBadge';
+import { ProfileHero } from '../components/profile/ProfileHero';
 import { LevelBadge, VipBadge, formatXp } from '../components/ProgressionBadges';
 import { ProfileCustomize } from '../components/ProfileCustomize';
 import { GiftGallery } from '../components/profile/GiftGallery';
@@ -24,9 +24,9 @@ import type { UserCardData } from '../components/UserCard';
 
 interface ProfileResponse {
   user: UserCardData;
-  counts: { friends: number; followers: number; following: number };
+  counts: { friends: number; followers: number; following: number; rooms?: number };
   earnings: { total: number; calls: number } | null;
-  gifts?: { count: number; coins: number };
+  gifts?: { count: number; coins: number; sent?: number };
   isSelf: boolean;
 }
 
@@ -142,77 +142,17 @@ export function Profile() {
       }
     >
       <div className="page page-tight">
-        <section className={`profile-head${me.adminLook ? ' profile-head-admin' : ''}`}>
-          {me.adminLook?.effectsEnabled ? <span className="admin-profile-aura" aria-hidden="true" /> : null}
-          <button
-            type="button"
-            className="avatar-tap"
-            onClick={() => setCustomizeOpen(true)}
-            aria-label={t('customizeProfile')}
-          >
-            <Avatar user={{ ...me.user, online: true }} size={104} />
-            {me.vip?.frameImageUrl ? (
-              <img className="vip-avatar-frame" src={assetUrl(me.vip.frameImageUrl)} alt="" />
-            ) : null}
-            <span className="avatar-tap-badge">
-              <Icon name="sparkle" size={14} />
-            </span>
-          </button>
-          {me.cosmetics?.namecard ? (
-            <NameCard
-              cosmetic={me.cosmetics.namecard}
-              name={me.user.displayName}
-              id={me.user.username}
-              avatarUrl={me.user.avatarUrl}
-            />
-          ) : (
-            <h2 style={{ fontSize: 21 }}>{me.user.displayName}</h2>
-          )}
-          {me.rank ? <RankTag rank={me.rank} size={18} /> : null}
-          <div className="inline" style={{ gap: 6, marginTop: 4 }}>
-            <LevelBadge
-              level={me.level?.level ?? 1}
-              size={24}
-              color={me.level?.badgeColor ?? '#ffd75e'}
-            />
-            <VipBadge vip={me.vip} size={19} showTitle />
-          </div>
-          {me.user.bio ? <p className="tiny center muted">{me.user.bio}</p> : null}
-          <div className="inline">
-            {me.cosmetics?.id ? (
-              <IdBadge cosmetic={me.cosmetics.id} value={me.user.username} />
-            ) : (
-              <span className="pill pill-pink">
-                <Icon name="user" size={12} /> {t('id')}: {me.user.username}
-              </span>
-            )}
-            <span className="pill pill-green">
-              <Icon name="coins" size={12} /> {formatCoins(me.wallet.balance)}
-            </span>
-          </div>
-          <div className="profile-stats">
-            <div>
-              <b>{stats?.counts.friends ?? 0}</b>
-              <span>{t('friendsCount')}</span>
-            </div>
-            <div>
-              <b>{stats?.counts.followers ?? 0}</b>
-              <span>{t('followers')}</span>
-            </div>
-            <div>
-              <b>{stats?.counts.following ?? 0}</b>
-              <span>{t('followingCount')}</span>
-            </div>
-          </div>
-          <div className="inline" style={{ marginTop: 6, width: '100%', gap: 8 }}>
-            <button className="btn btn-primary btn-sm grow" onClick={() => setEditOpen(true)}>
-              <Icon name="user" size={15} /> {t('editProfile')}
-            </button>
-            <button className="btn btn-outline btn-sm grow" onClick={() => navigate('/wallet')}>
-              <Icon name="wallet" size={15} /> {t('wallet')}
-            </button>
-          </div>
-        </section>
+        <ProfileHero
+          me={me}
+          stats={stats}
+          onCustomize={() => setCustomizeOpen(true)}
+          onEdit={() => setEditOpen(true)}
+          onWallet={() => navigate('/wallet')}
+          onGifts={() =>
+            document.getElementById('profile-gifts')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+          }
+          onAchievements={() => navigate('/levels')}
+        />
 
         <section className="card">
           <div className="inline" style={{ justifyContent: 'space-between' }}>
@@ -233,7 +173,9 @@ export function Profile() {
           </p>
         </section>
 
-        <GiftGallery userId={me.user.id} />
+        <div id="profile-gifts">
+          <GiftGallery userId={me.user.id} />
+        </div>
 
         {requests.length > 0 ? (
           <section className="stack">
@@ -353,7 +295,7 @@ export function Profile() {
 export function UserProfile() {
   const { id } = useParams<{ id: string }>();
   const { me } = useAuth();
-  const { t } = useI18n();
+  const { t, lang } = useI18n();
   const navigate = useNavigate();
   const { startCall } = useCall();
   const { online } = useRealtime();
@@ -460,36 +402,64 @@ export function UserProfile() {
       }
     >
       <div className="page page-tight">
-        <section className="profile-head">
-          <Avatar user={{ ...user, online: isOnline }} size={104} />
-          <h2 style={{ fontSize: 21 }}>{user.displayName}</h2>
-          {user.rank ? <RankTag rank={user.rank} size={17} /> : null}
-          <div className="inline" style={{ gap: 6 }}>
-            <LevelBadge level={user.level ?? 1} size={22} />
-            <VipBadge vip={user.vip} size={18} showTitle />
-          </div>
-          <span className="tiny muted">
-            #{user.username} • {isOnline ? t('onlineNow') : t('offline')}
-          </span>
-          {user.bio ? <p className="tiny center muted">{user.bio}</p> : null}
-          <div className="inline">
-            <span className="pill pill-pink">
-              <Icon name="user" size={12} /> {t('id')}: {user.username}
+        <section className="royal-profile">
+          <div className="royal-name-row">
+            <h2 className="royal-name">{user.displayName}</h2>
+            <span className="royal-status">
+              <i className={`royal-status-dot${isOnline ? '' : ' is-off'}`} aria-hidden="true" />
+              {isOnline ? t('onlineNow') : t('offline')}
             </span>
+          </div>
+          <div className="royal-avatar">
+            <span className="royal-avatar-glow" aria-hidden="true" />
+            <div className="royal-avatar-ring is-static">
+              <Avatar user={{ ...user, online: isOnline }} size={104} />
+            </div>
+          </div>
+          <div className="royal-info">
+            <span className="royal-id">
+              <span className="royal-id-label">{t('id')}</span>
+              <b className="royal-id-value" dir="ltr">
+                {user.username}
+              </b>
+              <LevelBadge level={user.level ?? 1} size={22} />
+            </span>
+            <VipBadge vip={user.vip} size={18} showTitle />
+            {user.rank ? <RankTag rank={user.rank} size={16} /> : null}
+            {user.verified ? (
+              <span className="royal-verified">
+                <Icon name="check" size={12} /> {t('verified')}
+              </span>
+            ) : null}
             {user.isBlocked ? <span className="pill pill-red">{t('blocked')}</span> : null}
           </div>
-          <div className="profile-stats">
-            <div>
-              <b>{data.counts.friends}</b>
+          <section className="royal-card">
+            {user.bio ? <p className="royal-bio">{user.bio}</p> : null}
+            {user.createdAt ? (
+              <div className="royal-meta">
+                <span className="royal-meta-item">
+                  <Icon name="clock" size={13} /> {t('joined')}:{' '}
+                  {new Date(user.createdAt).toLocaleDateString(lang === 'ar' ? 'ar-IQ' : 'en-GB', {
+                    year: 'numeric',
+                    month: 'long',
+                    day: 'numeric',
+                  })}
+                </span>
+              </div>
+            ) : null}
+          </section>
+          <div className="royal-stats">
+            <div className="royal-stat">
+              <b>{formatCoins(data.counts.friends)}</b>
               <span>{t('friendsCount')}</span>
             </div>
-            <div>
-              <b>{data.counts.followers}</b>
+            <div className="royal-stat">
+              <b>{formatCoins(data.counts.followers)}</b>
               <span>{t('followers')}</span>
             </div>
-            <div>
+            <div className="royal-stat">
               <b>{formatCoins(data.gifts?.count ?? 0)}</b>
-              <span>الهدايا المستلمة</span>
+              <span>{t('receivedGifts')}</span>
             </div>
           </div>
         </section>

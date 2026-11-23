@@ -36,7 +36,8 @@ interface FeedRow {
 
 const FEED_SELECT = `
   SELECT u.id, u.username, u.level, u.display_name, u.avatar_url, u.bio, u.gender, u.country, u.age,
-         u.last_seen_at, u.created_at, ${FRAME_FIELDS}, ${RANK_FIELDS}, ${VIP_FIELDS},
+         u.last_seen_at, u.created_at, u.phone_verified, u.email_verified,
+         ${FRAME_FIELDS}, ${RANK_FIELDS}, ${VIP_FIELDS},
     EXISTS (SELECT 1 FROM favorites f WHERE f.user_id = $1 AND f.target_id = u.id) AS is_favorite,
     EXISTS (SELECT 1 FROM friendships fr WHERE fr.status = 'accepted'
             AND ((fr.requester_id = $1 AND fr.addressee_id = u.id)
@@ -165,7 +166,8 @@ router.get(
       targetId === me
         ? await one<FeedRow>(
             `SELECT u.id, u.username, u.level, u.display_name, u.avatar_url, u.bio, u.gender, u.country,
-                    u.age, u.last_seen_at, u.created_at, ${FRAME_FIELDS}, ${RANK_FIELDS}, ${VIP_FIELDS},
+                    u.age, u.last_seen_at, u.created_at, u.phone_verified, u.email_verified,
+                    ${FRAME_FIELDS}, ${RANK_FIELDS}, ${VIP_FIELDS},
                     false AS is_favorite, false AS is_friend, false AS is_following,
                     false AS is_blocked
              FROM users u ${frameJoins('u')} ${rankJoins('u')} ${vipJoins('u')} WHERE u.id = $1`,
@@ -174,12 +176,13 @@ router.get(
         : await one<FeedRow>(`${FEED_SELECT} AND u.id = $2`, [me, targetId]);
     if (!row) throw new HttpError(404, 'User not found', 'user_not_found');
 
-    const counts = await one<{ friends: string; followers: string; following: string }>(
+    const counts = await one<{ friends: string; followers: string; following: string; rooms: string }>(
       `SELECT
         (SELECT count(*)::text FROM friendships f WHERE f.status = 'accepted'
           AND (f.requester_id = $1 OR f.addressee_id = $1)) AS friends,
         (SELECT count(*)::text FROM follows f WHERE f.following_id = $1) AS followers,
-        (SELECT count(*)::text FROM follows f WHERE f.follower_id = $1) AS following`,
+        (SELECT count(*)::text FROM follows f WHERE f.follower_id = $1) AS following,
+        (SELECT count(*)::text FROM rooms r WHERE r.created_by = $1 OR r.owner_id = $1) AS rooms`,
       [row.id]
     );
     const earnings = await one<{ total: string; calls: string }>(
@@ -193,6 +196,10 @@ router.get(
       `SELECT COALESCE(SUM(quantity), 0)::text AS count,
               COALESCE(SUM(coins), 0)::text AS coins
        FROM gift_sends WHERE recipient_id = $1`,
+      [row.id]
+    );
+    const giftsSent = await one<{ count: string }>(
+      'SELECT COALESCE(SUM(quantity), 0)::text AS count FROM gift_sends WHERE sender_id = $1',
       [row.id]
     );
     // The admin decides whether a coin balance is public on someone's profile.
@@ -223,11 +230,16 @@ router.get(
         friends: Number(counts?.friends || 0),
         followers: Number(counts?.followers || 0),
         following: Number(counts?.following || 0),
+        rooms: Number(counts?.rooms || 0),
       },
       earnings: isSelf
         ? { total: Number(earnings?.total || 0), calls: Number(earnings?.calls || 0) }
         : null,
-      gifts: { count: Number(gifts?.count || 0), coins: Number(gifts?.coins || 0) },
+      gifts: {
+        count: Number(gifts?.count || 0),
+        coins: Number(gifts?.coins || 0),
+        sent: Number(giftsSent?.count || 0),
+      },
       balances: wallet ? { coins: Number(wallet.balance || 0) } : null,
       frames: frames.map((frame) => ({
         id: frame.id,

@@ -25,6 +25,8 @@ export interface PublicUser {
   online: boolean;
   lastSeenAt: string | null;
   createdAt: string;
+  /** Phone or e-mail confirmed — drives the profile verification badge. */
+  verified: boolean;
   /** The frame the user currently wears, or null. */
   frame: FrameInfo | null;
   /** The official rank the user currently holds, or null. */
@@ -79,6 +81,8 @@ interface UserLike extends FrameColumns, RankColumns, VipColumns {
   age?: number | null;
   last_seen_at?: string | Date | null;
   created_at?: string | Date;
+  phone_verified?: boolean | null;
+  email_verified?: boolean | null;
 }
 
 /**
@@ -207,6 +211,7 @@ export function toPublicUser(row: UserLike): PublicUser {
     online: isOnline(row.id) || recentlySeen(row.last_seen_at),
     lastSeenAt: row.last_seen_at ? new Date(row.last_seen_at).toISOString() : null,
     createdAt: row.created_at ? new Date(row.created_at).toISOString() : new Date().toISOString(),
+    verified: Boolean(row.phone_verified || row.email_verified),
     frame: frameFromRow(row),
     rank: rankFromRow(row),
     level: Number(row.level ?? 1) || 1,
@@ -217,7 +222,8 @@ export function toPublicUser(row: UserLike): PublicUser {
 export async function getPublicUser(userId: string): Promise<PublicUser | null> {
   const row = await one<UserLike>(
     `SELECT u.id, u.username, u.level, u.display_name, u.avatar_url, u.bio, u.gender, u.country, u.age,
-            u.last_seen_at, u.created_at, ${FRAME_FIELDS}, ${RANK_FIELDS}, ${VIP_FIELDS}
+            u.last_seen_at, u.created_at, u.phone_verified, u.email_verified,
+            ${FRAME_FIELDS}, ${RANK_FIELDS}, ${VIP_FIELDS}
      FROM users u ${frameJoins('u')} ${rankJoins('u')} ${vipJoins('u')}
      WHERE u.id = $1`,
     [userId]
