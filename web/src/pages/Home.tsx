@@ -15,9 +15,6 @@ import {
 } from '../lib/ui';
 import { AppShell, BellButton, CoinPill } from '../components/AppShell';
 import { UserCard, type UserCardData } from '../components/UserCard';
-import AdsCarousel from '../components/AdsCarousel';
-import AdPopup from '../components/AdPopup';
-import { useAds } from '../lib/ads';
 
 type Tab = 'all' | 'online' | 'favorites';
 
@@ -37,7 +34,6 @@ export default function Home() {
   const { t, lang } = useI18n();
   const { me } = useAuth();
   const { online, on } = useRealtime();
-  const { ads } = useAds();
   const navigate = useNavigate();
   const toast = useToast();
 
@@ -117,7 +113,6 @@ export default function Home() {
     >
       <div className="page">
         <HomeCover />
-        <AdsCarousel ads={ads} />
         <button type="button" className="room-card" onClick={() => navigate('/rooms')}>
           <span className="room-cover">
             <Icon name="mic" size={24} />
@@ -125,16 +120,6 @@ export default function Home() {
           <span className="room-main">
             <span className="room-name">{t('roomsTitle')}</span>
             <span className="tiny muted room-desc">{t('roomsHomeHint')}</span>
-          </span>
-          <Icon name="arrowLeft" size={18} />
-        </button>
-        <button type="button" className="room-card" onClick={() => navigate('/ads')}>
-          <span className="room-cover">
-            <Icon name="play" size={24} />
-          </span>
-          <span className="room-main">
-            <span className="room-name">{t('adsTitle')}</span>
-            <span className="tiny muted room-desc">{t('adsHomeHint')}</span>
           </span>
           <Icon name="arrowLeft" size={18} />
         </button>
@@ -236,7 +221,6 @@ export default function Home() {
           {t('freeCallsInfo')}
         </div>
       </div>
-      <AdPopup ads={ads} />
     </AppShell>
   );
 }
