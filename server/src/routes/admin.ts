@@ -1,6 +1,7 @@
 import crypto from 'node:crypto';
 import { Router } from 'express';
 import bcrypt from 'bcryptjs';
+import type { PoolClient } from 'pg';
 import { one, q, tx } from '../db';
 import {
   assertNotThrottled,
@@ -18,8 +19,9 @@ import { emitToUser, isOnline, onlineUserIds } from '../realtime';
 import { getSettings, updateSettings } from '../settings';
 import { FRAME_RARITIES, FrameRow, serializeFrame } from '../frames';
 import { GIFT_RARITIES, GiftRow, moveProfit, serializeGift } from '../gifts';
+import { addToBag, listGiftPackages } from '../giftBag';
 import { serializeRoomFrame, type RoomFrameRow } from '../roomFrames';
-import { HttpError, asyncHandler, intParam, iraqDateStr, nextIraqMidnight } from '../utils';
+import { HttpError, asyncHandler, intParam, iraqDateStr, isUuid, nextIraqMidnight } from '../utils';
 import { moveCoins, moveGold } from '../wallet';
 import { giftUpload, upload } from './uploads';
 
@@ -1504,9 +1506,9 @@ router.get(
     >(
       `SELECT g.*,
         (SELECT count(*)::int FROM gift_sends s WHERE s.gift_id = g.id) AS sends,
-        (SELECT COALESCE(SUM(s.coins), 0)::int FROM gift_sends s WHERE s.gift_id = g.id) AS revenue,
-        (SELECT COALESCE(SUM(s.recipient_coins), 0)::int FROM gift_sends s WHERE s.gift_id = g.id) AS recipient_payout,
-        (SELECT COALESCE(SUM(s.admin_coins), 0)::int FROM gift_sends s WHERE s.gift_id = g.id) AS admin_share
+        (SELECT COALESCE(SUM(s.coins), 0)::bigint FROM gift_sends s WHERE s.gift_id = g.id) AS revenue,
+        (SELECT COALESCE(SUM(s.recipient_coins), 0)::bigint FROM gift_sends s WHERE s.gift_id = g.id) AS recipient_payout,
+        (SELECT COALESCE(SUM(s.admin_coins), 0)::bigint FROM gift_sends s WHERE s.gift_id = g.id) AS admin_share
        FROM gifts g ORDER BY g.sort_order, g.created_at`
     );
     res.json({
@@ -1626,6 +1628,218 @@ router.delete(
     );
     if (!row) throw new HttpError(404, 'Gift not found', 'gift_not_found');
     res.json({ ok: true });
+  })
+);
+
+// ------------------------------------------------------------ gift packages
+/**
+ * «باقات الهدايا»: admin-defined bundles sold for diamonds in the gift shop.
+ * Buying one drops its gift lines into the buyer's bag, and the admin can also
+ * grant a package (or a single gift) straight to a user's bag.
+ */
+function readPackageItems(value: unknown): { giftId: string; quantity: number }[] {
+  if (!Array.isArray(value)) return [];
+  const out: { giftId: string; quantity: number }[] = [];
+  for (const raw of value) {
+    const item = (raw ?? {}) as Record<string, unknown>;
+    const giftId = String(item.giftId || '');
+    const quantity = Math.trunc(Number(item.quantity) || 0);
+    if (!isUuid(giftId) || quantity <= 0) continue;
+    out.push({ giftId, quantity: Math.min(999, quantity) });
+  }
+  return out;
+}
+
+async function replacePackageItems(
+  c: PoolClient,
+  packageId: string,
+  items: { giftId: string; quantity: number }[]
+): Promise<void> {
+  await c.query('DELETE FROM gift_package_items WHERE package_id = $1', [packageId]);
+  for (const item of items) {
+    await c.query(
+      'INSERT INTO gift_package_items (package_id, gift_id, quantity) VALUES ($1, $2, $3)',
+      [packageId, item.giftId, item.quantity]
+    );
+  }
+}
+
+/** Resolves a user from an ID, 6-digit account code, email or phone. */
+async function findBagUser(target: string): Promise<{ id: string; name: string }> {
+  const user = await one<{ id: string; display_name: string | null; username: string }>(
+    `SELECT id, display_name, username FROM users WHERE is_bot = false
+       AND (id::text = $1 OR username = $1 OR lower(email) = lower($1) OR phone = $1)
+     LIMIT 1`,
+    [target]
+  );
+  if (!user) throw new HttpError(404, 'User not found', 'user_not_found');
+  return { id: user.id, name: user.display_name || user.username };
+}
+
+router.get(
+  '/gift-packages',
+  asyncHandler(async (_req, res) => {
+    const [packages, gifts, stats] = await Promise.all([
+      listGiftPackages(true),
+      q<GiftRow>('SELECT * FROM gifts WHERE is_active = true ORDER BY sort_order, price'),
+      q<{ package_id: string; purchases: number; coins: string }>(
+        `SELECT package_id, count(*)::int AS purchases, COALESCE(SUM(coins), 0)::text AS coins
+         FROM gift_package_purchases GROUP BY package_id`
+      ),
+    ]);
+    const byPackage = new Map(stats.map((row) => [row.package_id, row]));
+    res.json({
+      packages: packages.map((pkg) => ({
+        ...pkg,
+        purchases: Number(byPackage.get(pkg.id)?.purchases || 0),
+        revenue: Number(byPackage.get(pkg.id)?.coins || 0),
+      })),
+      gifts: gifts.map((row) => serializeGift(row)),
+    });
+  })
+);
+
+router.post(
+  '/gift-packages',
+  asyncHandler(async (req, res) => {
+    const name = String(req.body?.name || '').trim().slice(0, 80);
+    if (!name) throw new HttpError(400, 'Package name is required', 'invalid_package');
+    const items = readPackageItems(req.body?.items);
+    if (items.length === 0) {
+      throw new HttpError(400, 'Add at least one gift to the package', 'package_empty');
+    }
+    const price = Math.max(0, Math.round(Number(req.body?.price) || 0));
+    const created = await tx(async (c) => {
+      const row = await c.query<{ id: string }>(
+        `INSERT INTO gift_packages (name, name_en, description, cover_url, price, is_active, sort_order)
+         VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id`,
+        [
+          name,
+          String(req.body?.nameEn || '').trim().slice(0, 80),
+          String(req.body?.description || '').trim().slice(0, 300),
+          String(req.body?.coverUrl || '').trim().slice(0, 500) || null,
+          price,
+          req.body?.isActive === undefined ? true : Boolean(req.body.isActive),
+          Math.round(Number(req.body?.sortOrder) || 0),
+        ]
+      );
+      const packageId = row.rows[0].id;
+      await replacePackageItems(c, packageId, items);
+      return { id: packageId };
+    });
+    res.status(201).json({ packageId: created.id });
+  })
+);
+
+router.put(
+  '/gift-packages/:id',
+  asyncHandler(async (req, res) => {
+    if (!isUuid(req.params.id)) throw new HttpError(404, 'Package not found', 'package_not_found');
+    const existing = await one<{ id: string; name: string }>(
+      'SELECT id, name FROM gift_packages WHERE id = $1',
+      [req.params.id]
+    );
+    if (!existing) throw new HttpError(404, 'Package not found', 'package_not_found');
+    const name = req.body?.name === undefined
+      ? existing.name
+      : String(req.body.name || '').trim().slice(0, 80);
+    if (!name) throw new HttpError(400, 'Package name is required', 'invalid_package');
+    const items = req.body?.items === undefined ? null : readPackageItems(req.body.items);
+    if (items && items.length === 0) {
+      throw new HttpError(400, 'Add at least one gift to the package', 'package_empty');
+    }
+    await tx(async (c) => {
+      await c.query(
+        `UPDATE gift_packages SET name = $2, name_en = $3, description = $4, cover_url = $5,
+           price = $6, is_active = $7, sort_order = $8
+         WHERE id = $1`,
+        [
+          existing.id,
+          name,
+          String(req.body?.nameEn || '').trim().slice(0, 80),
+          String(req.body?.description || '').trim().slice(0, 300),
+          String(req.body?.coverUrl || '').trim().slice(0, 500) || null,
+          Math.max(0, Math.round(Number(req.body?.price) || 0)),
+          req.body?.isActive === undefined ? true : Boolean(req.body.isActive),
+          Math.round(Number(req.body?.sortOrder) || 0),
+        ]
+      );
+      if (items) await replacePackageItems(c, existing.id, items);
+    });
+    res.json({ ok: true });
+  })
+);
+
+router.delete(
+  '/gift-packages/:id',
+  asyncHandler(async (req, res) => {
+    const row = await one(
+      'UPDATE gift_packages SET is_active = false WHERE id = $1 RETURNING id',
+      [req.params.id]
+    );
+    if (!row) throw new HttpError(404, 'Package not found', 'package_not_found');
+    res.json({ ok: true });
+  })
+);
+
+/** Grants a whole package straight to a user's bag (no charge). */
+router.post(
+  '/gift-packages/:id/grant',
+  asyncHandler(async (req, res) => {
+    if (!isUuid(req.params.id)) throw new HttpError(404, 'Package not found', 'package_not_found');
+    const target = String(req.body?.user || '').trim();
+    if (!target) throw new HttpError(400, 'Enter a user ID', 'invalid_user');
+    const user = await findBagUser(target);
+    const pkg = await one<{ id: string; name: string }>(
+      'SELECT id, name FROM gift_packages WHERE id = $1',
+      [req.params.id]
+    );
+    if (!pkg) throw new HttpError(404, 'Package not found', 'package_not_found');
+    const lines = await q<{ gift_id: string; quantity: number }>(
+      'SELECT gift_id, quantity FROM gift_package_items WHERE package_id = $1',
+      [pkg.id]
+    );
+    if (lines.length === 0) throw new HttpError(400, 'This package has no gifts', 'package_empty');
+
+    const giftCount = await tx(async (c) => {
+      let total = 0;
+      for (const line of lines) {
+        const quantity = Number(line.quantity);
+        await addToBag(c, user.id, line.gift_id, quantity);
+        total += quantity;
+      }
+      await c.query(
+        `INSERT INTO gift_package_purchases (request_id, user_id, package_id, coins, gift_count, source)
+         VALUES ($1, $2, $3, 0, $4, 'admin_grant')`,
+        [`grant:${crypto.randomUUID()}`, user.id, pkg.id, total]
+      );
+      return total;
+    });
+
+    await notify(user.id, 'gift_bag', 'جنطة الهدايا', `أُضيفت هدايا «${pkg.name}» إلى جنطتك`, {
+      packageId: pkg.id,
+      giftCount,
+    });
+    res.status(201).json({ granted: true, userId: user.id, giftCount });
+  })
+);
+
+/** Grants copies of a single gift straight to a user's bag (no charge). */
+router.post(
+  '/gifts/:id/grant',
+  asyncHandler(async (req, res) => {
+    const gift = await one<GiftRow>('SELECT * FROM gifts WHERE id = $1', [req.params.id]);
+    if (!gift) throw new HttpError(404, 'Gift not found', 'gift_not_found');
+    const target = String(req.body?.user || '').trim();
+    if (!target) throw new HttpError(400, 'Enter a user ID', 'invalid_user');
+    const user = await findBagUser(target);
+    const quantity = Math.min(999, Math.max(1, Math.trunc(Number(req.body?.quantity) || 1)));
+    await tx((c) => addToBag(c, user.id, gift.id, quantity));
+    await notify(user.id, 'gift_bag', 'جنطة الهدايا', `أُضيفت «${gift.name}» ×${quantity} إلى جنطتك`, {
+      giftId: gift.id,
+      quantity,
+    });
+    res.status(201).json({ granted: true, userId: user.id, quantity });
   })
 );
 

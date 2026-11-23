@@ -9,6 +9,7 @@ import {
   moveProfit,
   serializeGift,
 } from '../gifts';
+import { addToBag, bagQuantity, listBag, listGiftPackages, takeFromBag } from '../giftBag';
 import { emitToUser } from '../realtime';
 import { notify } from '../notify';
 import { awardXpSafe, getXpSettings, xpForCoins } from '../progression';
@@ -66,12 +67,19 @@ router.get(
     const me = reqUser(req).id;
     const settings = await getSettings();
     const gifts = await listActiveGifts();
-    const wallet = await one<{ balance: number; gold: number }>(
-      'SELECT balance, gold FROM wallets WHERE user_id = $1',
-      [me]
-    );
+    const [wallet, bag, packages] = await Promise.all([
+      one<{ balance: number; gold: number }>(
+        'SELECT balance, gold FROM wallets WHERE user_id = $1',
+        [me]
+      ),
+      listBag(me),
+      listGiftPackages(),
+    ]);
     res.json({
       gifts: gifts.map(serializeGift),
+      // «جنطة الهدايا»: gifts the user already owns, plus the bundles on sale.
+      bag,
+      packages,
       balance: wallet?.balance ?? 0,
       goldBalance: wallet?.gold ?? 0,
       defaultRecipientPercent: settings.gift_recipient_percent,
@@ -88,6 +96,118 @@ router.get(
           .map((tier) => Number(tier.amount))
           .sort((a, b) => a - b),
       },
+    });
+  })
+);
+
+/**
+ * «باقات الهدايا»: recharging a package charges its diamond price once and drops
+ * every gift line into the buyer's bag. `requestId` makes a retried tap safe.
+ */
+router.post(
+  '/packages/:id/buy',
+  requireAuth(),
+  asyncHandler(async (req, res) => {
+    const me = reqUser(req).id;
+    const settings = await getSettings();
+    if (!settings.gifts_enabled) {
+      throw new HttpError(403, 'Gifts are disabled', 'gifts_disabled');
+    }
+    const packageId = String(req.params.id || '');
+    if (!isUuid(packageId)) throw new HttpError(404, 'Package not found', 'package_not_found');
+    const requestId = String(req.body?.requestId || '').trim().slice(0, 80);
+    if (requestId.length < 8) throw new HttpError(400, 'Missing request id', 'invalid_request');
+
+    const outcome = await tx(async (c) => {
+      const pkgResult = await c.query<{ id: string; name: string; price: number }>(
+        'SELECT id, name, price FROM gift_packages WHERE id = $1 AND is_active = true',
+        [packageId]
+      );
+      const pkg = pkgResult.rows[0];
+      if (!pkg) throw new HttpError(404, 'Package not found', 'package_not_found');
+
+      const lines = await c.query<{ gift_id: string; quantity: number }>(
+        'SELECT gift_id, quantity FROM gift_package_items WHERE package_id = $1',
+        [packageId]
+      );
+      if (!lines.rowCount) throw new HttpError(400, 'This package has no gifts', 'package_empty');
+      const price = Number(pkg.price);
+      const giftCount = lines.rows.reduce((sum, line) => sum + Number(line.quantity), 0);
+
+      // The unique request_id is the idempotency guard, so a double tap is safe.
+      const created = await c.query(
+        `INSERT INTO gift_package_purchases (request_id, user_id, package_id, coins, gift_count, source)
+         VALUES ($1, $2, $3, $4, $5, 'purchase')
+         ON CONFLICT (request_id) DO NOTHING
+         RETURNING *`,
+        [requestId, me, packageId, price, giftCount]
+      );
+      if (!created.rowCount) {
+        const existing = await c.query(
+          'SELECT * FROM gift_package_purchases WHERE request_id = $1 AND user_id = $2',
+          [requestId, me]
+        );
+        if (!existing.rowCount) {
+          throw new HttpError(409, 'This recharge request was already used', 'duplicate_request');
+        }
+        return { purchase: existing.rows[0], duplicate: true, packageName: pkg.name };
+      }
+      const purchase = created.rows[0];
+
+      if (price > 0) {
+        const charge = await moveCoins(c, {
+          userId: me,
+          amount: -price,
+          type: 'gift_package',
+          refType: 'gift_package',
+          refId: purchase.id,
+          meta: { packageId, packageName: pkg.name, gifts: giftCount },
+        });
+        if (!charge.applied) {
+          throw new HttpError(409, 'This recharge was already processed', 'duplicate_request');
+        }
+      }
+
+      for (const line of lines.rows) {
+        await addToBag(c, me, line.gift_id, Number(line.quantity));
+      }
+      return { purchase, duplicate: false, packageName: pkg.name };
+    });
+
+    const [bag, wallet] = await Promise.all([
+      listBag(me),
+      one<{ balance: number; gold: number }>('SELECT balance, gold FROM wallets WHERE user_id = $1', [
+        me,
+      ]),
+    ]);
+
+    if (!outcome.duplicate) {
+      emitToUser(me, 'wallet:update', {});
+      await notify(
+        me,
+        'gift_bag',
+        'جنطة الهدايا',
+        `تمت إضافة هدايا «${outcome.packageName}» إلى جنطتك — أرسلها من متجر الهدايا`,
+        {
+          packageId,
+          packageName: outcome.packageName,
+          giftCount: Number(outcome.purchase.gift_count),
+        }
+      );
+    }
+
+    res.status(outcome.duplicate ? 200 : 201).json({
+      duplicate: outcome.duplicate,
+      purchase: {
+        id: outcome.purchase.id,
+        packageId,
+        coins: Number(outcome.purchase.coins),
+        giftCount: Number(outcome.purchase.gift_count),
+        createdAt: outcome.purchase.created_at,
+      },
+      balance: wallet?.balance ?? 0,
+      goldBalance: wallet?.gold ?? 0,
+      bag,
     });
   })
 );
@@ -115,6 +235,9 @@ router.post(
     const conversationId = String(req.body?.conversationId || '');
     const requestId = String(req.body?.requestId || '').trim().slice(0, 80);
     const currency = String(req.body?.currency || 'diamond').toLowerCase();
+    // Sending an owned gift from «جنطة الهدايا» costs nothing: the package
+    // recharge already paid for it, so a copy is taken from the bag instead.
+    const fromBag = req.body?.fromBag === true;
     if (!(GIFT_CURRENCIES as readonly string[]).includes(currency)) {
       throw new HttpError(400, 'Unsupported gift currency', 'invalid_currency');
     }
@@ -218,28 +341,33 @@ router.post(
 
       const send = created.rows[0];
 
-      // Charge the sender. The ledger's unique (user, type, ref) index plus this
-      // transaction means the balance and the gift row can never disagree.
-      const charge =
-        currency === 'gold'
-          ? await moveGold(c, {
-              userId: me,
-              amount: -price,
-              type: 'gift_send',
-              refType: 'gift_send',
-              refId: send.id,
-              meta: { giftId: gift.id, giftName: gift.name, recipientId, conversationId },
-            })
-          : await moveCoins(c, {
-              userId: me,
-              amount: -price,
-              type: 'gift_send',
-              refType: 'gift_send',
-              refId: send.id,
-              meta: { giftId: gift.id, giftName: gift.name, recipientId, conversationId },
-            });
-      if (!charge.applied) {
-        throw new HttpError(409, 'This gift was already sent', 'duplicate_request');
+      if (fromBag) {
+        // One copy leaves the bag in the same transaction as the send row.
+        await takeFromBag(c, me, gift.id, 1);
+      } else {
+        // Charge the sender. The ledger's unique (user, type, ref) index plus this
+        // transaction means the balance and the gift row can never disagree.
+        const charge =
+          currency === 'gold'
+            ? await moveGold(c, {
+                userId: me,
+                amount: -price,
+                type: 'gift_send',
+                refType: 'gift_send',
+                refId: send.id,
+                meta: { giftId: gift.id, giftName: gift.name, recipientId, conversationId },
+              })
+            : await moveCoins(c, {
+                userId: me,
+                amount: -price,
+                type: 'gift_send',
+                refType: 'gift_send',
+                refId: send.id,
+                meta: { giftId: gift.id, giftName: gift.name, recipientId, conversationId },
+              });
+        if (!charge.applied) {
+          throw new HttpError(409, 'This gift was already sent', 'duplicate_request');
+        }
       }
 
       // Credit the recipient's earnings wallet with the configured share.
@@ -316,6 +444,8 @@ router.post(
           gift: giftInfo,
         },
         balance: null,
+        fromBag,
+        bagLeft: fromBag ? await bagQuantity(me, outcome.gift.id) : null,
       });
       return;
     }
@@ -374,6 +504,8 @@ router.post(
       balance: currency === 'gold' ? Number(senderWallet?.gold || 0) : Number(senderWallet?.balance || 0),
       recipientCoins: Number(outcome.send.recipient_coins),
       adminCoins: Number(outcome.send.admin_coins),
+      fromBag,
+      bagLeft: fromBag ? await bagQuantity(me, outcome.gift.id) : null,
     });
   })
 );

@@ -578,6 +578,79 @@ CREATE INDEX IF NOT EXISTS gift_sends_conversation_idx ON gift_sends (conversati
 ALTER TABLE messages ADD COLUMN IF NOT EXISTS gift_send_id uuid REFERENCES gift_sends(id) ON DELETE SET NULL;
 CREATE INDEX IF NOT EXISTS messages_gift_idx ON messages (gift_send_id) WHERE gift_send_id IS NOT NULL;
 
+-- ----------------------------------------------------------------- gift bag
+-- «جنطة الهدايا»: gifts the user already owns. A gift package recharge (or an
+-- admin grant) adds rows here; sending one from the bag consumes a copy instead
+-- of charging diamonds again.
+CREATE TABLE IF NOT EXISTS gift_bag (
+  user_id uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  gift_id uuid NOT NULL REFERENCES gifts(id) ON DELETE CASCADE,
+  quantity integer NOT NULL DEFAULT 0 CHECK (quantity >= 0),
+  updated_at timestamptz NOT NULL DEFAULT now(),
+  PRIMARY KEY (user_id, gift_id)
+);
+
+-- Admin-defined bundles sold for diamonds in the gift shop. Buying one drops its
+-- contents into the buyer's bag, so the gifts can be sent later for free.
+CREATE TABLE IF NOT EXISTS gift_packages (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  name text NOT NULL,
+  name_en text NOT NULL DEFAULT '',
+  description text NOT NULL DEFAULT '',
+  cover_url text,
+  price integer NOT NULL DEFAULT 0 CHECK (price >= 0),
+  is_active boolean NOT NULL DEFAULT true,
+  sort_order integer NOT NULL DEFAULT 0,
+  created_at timestamptz NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS gift_packages_order_idx ON gift_packages (sort_order, price);
+
+CREATE TABLE IF NOT EXISTS gift_package_items (
+  package_id uuid NOT NULL REFERENCES gift_packages(id) ON DELETE CASCADE,
+  gift_id uuid NOT NULL REFERENCES gifts(id) ON DELETE RESTRICT,
+  quantity integer NOT NULL DEFAULT 1 CHECK (quantity > 0),
+  PRIMARY KEY (package_id, gift_id)
+);
+
+-- One row per package recharge (or admin grant). `request_id` makes a retried
+-- purchase idempotent, so a double tap can never charge twice.
+CREATE TABLE IF NOT EXISTS gift_package_purchases (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  request_id text NOT NULL UNIQUE,
+  user_id uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  package_id uuid NOT NULL REFERENCES gift_packages(id) ON DELETE RESTRICT,
+  coins integer NOT NULL DEFAULT 0,
+  gift_count integer NOT NULL DEFAULT 0,
+  source text NOT NULL DEFAULT 'purchase',
+  created_at timestamptz NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS gift_package_purchases_user_idx
+  ON gift_package_purchases (user_id, created_at DESC);
+
+-- Starter bundles, only when the admin has not created any package yet.
+INSERT INTO gift_packages (name, name_en, description, price, sort_order)
+SELECT * FROM (VALUES
+  ('باقة الحب',      'Love Bundle',   'بوسة حب ×5 ووردة حمراء ×3 تدخل جنطتك فوراً', 3000,  10),
+  ('باقة الفخامة',   'Luxury Bundle', 'سيارة ذهبية ×1 وماسة ×2 في جنطة هداياك',     15000, 20),
+  ('باقة النجوم',    'Stars Bundle',  'تنين الأسطورة ×1 وتاج ملكي ×1 لجنطتك',        9000, 30)
+) AS seed(name, name_en, description, price, sort_order)
+WHERE NOT EXISTS (SELECT 1 FROM gift_packages);
+
+INSERT INTO gift_package_items (package_id, gift_id, quantity)
+SELECT p.id, g.id, seed.quantity
+FROM (VALUES
+  ('باقة الحب', 'kiss-love', 5),
+  ('باقة الحب', 'roses', 3),
+  ('باقة الفخامة', 'golden-car', 1),
+  ('باقة الفخامة', 'diamond', 2),
+  ('باقة النجوم', 'legend-dragon', 1),
+  ('باقة النجوم', 'royal-crown', 1)
+) AS seed(package_name, gift_slug, quantity)
+JOIN gift_packages p ON p.name = seed.package_name
+JOIN gifts g ON g.slug = seed.gift_slug
+WHERE NOT EXISTS (SELECT 1 FROM gift_package_items)
+ON CONFLICT DO NOTHING;
+
 -- ---------------------------------------------------------- earnings wallet
 -- Independent wallet for gift earnings. Coins here are profit, not spendable
 -- balance: available can be withdrawn, pending is held by an open request.

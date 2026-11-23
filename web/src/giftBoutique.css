@@ -236,3 +236,131 @@
     transform: translateX(62%);
   }
 }
+
+/* -------------------------------------------------- جنطة الهدايا والباقات */
+.gift-boutique .gift-bag-card {
+  padding-top: 24px;
+}
+
+/* Copies left in the bag, pinned to the card corner. */
+.gift-boutique .gift-bag-count {
+  position: absolute;
+  top: 5px;
+  inset-inline-end: 5px;
+  z-index: 2;
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 1;
+  padding: 3px 7px;
+  border-radius: 999px;
+  color: #07131f;
+  background: linear-gradient(135deg, #ffe9a8, #ffc93c);
+  box-shadow: 0 3px 10px rgba(255, 201, 60, 0.35);
+}
+
+.gift-boutique .gift-bag-free {
+  color: #8be9a8;
+}
+
+.gift-boutique .gift-pack-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.gift-boutique .gift-pack-card {
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+  padding: 12px;
+  border: 1px solid rgba(197, 226, 255, 0.22);
+  border-radius: 14px;
+  background: linear-gradient(
+    155deg,
+    rgba(219, 233, 255, 0.09),
+    rgba(125, 211, 252, 0.03) 55%,
+    rgba(16, 28, 51, 0.72)
+  );
+}
+
+.gift-boutique .gift-pack-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.gift-boutique .gift-pack-art {
+  width: 48px;
+  height: 48px;
+  flex: none;
+  display: grid;
+  place-items: center;
+  border-radius: 12px;
+  background: rgba(12, 26, 43, 0.6);
+  border: 1px solid rgba(141, 221, 247, 0.22);
+  color: #cdeaff;
+  overflow: hidden;
+}
+
+.gift-boutique .gift-pack-art .gift-card-art {
+  width: 40px;
+  height: 40px;
+}
+
+.gift-boutique .gift-pack-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+  flex: 1;
+}
+
+.gift-boutique .gift-pack-copy b {
+  font-size: 13px;
+  color: #f1f8ff;
+}
+
+.gift-boutique .gift-pack-price {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  font-size: 12px;
+  font-weight: 700;
+  color: #ffe6a3;
+  white-space: nowrap;
+}
+
+.gift-boutique .gift-pack-items {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.gift-boutique .gift-pack-item {
+  font-size: 10px;
+  padding: 4px 8px;
+  border-radius: 999px;
+  border: 1px solid rgba(197, 226, 255, 0.2);
+  background: rgba(219, 233, 255, 0.06);
+  color: #d6e7fa;
+}
+
+.gift-boutique .gift-pack-item.rarity-legendary {
+  color: #fcd34d;
+  border-color: rgba(245, 158, 11, 0.42);
+}
+
+.gift-boutique .gift-pack-item.rarity-vip {
+  color: #ffe4f1;
+  border-color: rgba(244, 63, 94, 0.5);
+}
+
+.gift-boutique .gift-pack-item.rarity-epic {
+  color: #d8b4fe;
+  border-color: rgba(168, 85, 247, 0.42);
+}
+
+.gift-boutique .gift-pack-item.rarity-rare {
+  color: #7dd3fc;
+  border-color: rgba(56, 189, 248, 0.4);
+}

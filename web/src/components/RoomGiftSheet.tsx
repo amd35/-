@@ -3,6 +3,7 @@ import { api, assetUrl } from '../lib/api';
 import { useI18n } from '../lib/i18n';
 import { formatCoins, Icon, Sheet, Spinner, useToast } from '../lib/ui';
 import { GiftCatalog, type GiftCategory } from './GiftCatalog';
+import { GiftBagGrid, type BagGiftItem } from './GiftBag';
 import { CurrencyIcon } from './CurrencyIcon';
 import { LuckyClover } from './room/LuckyClover';
 import type { GiftItem } from './GiftShop';
@@ -89,7 +90,9 @@ export function RoomGiftSheet({
   const [goldBalance, setGoldBalance] = useState(0);
   const [goldGiftsEnabled, setGoldGiftsEnabled] = useState(false);
   const [currency, setCurrency] = useState<'diamond' | 'gold'>('diamond');
-  const [tab, setTab] = useState<'gifts' | 'lucky'>('gifts');
+  const [tab, setTab] = useState<'gifts' | 'bag' | 'lucky'>('gifts');
+  const [bag, setBag] = useState<BagGiftItem[]>([]);
+  const [fromBag, setFromBag] = useState(false);
   const [category, setCategory] = useState<GiftCategory>('legendary');
   const [lucky, setLucky] = useState<LuckyGiftInfo | null>(null);
   const [loading, setLoading] = useState(false);
@@ -106,6 +109,7 @@ export function RoomGiftSheet({
   useEffect(() => {
     if (!open) return;
     setSelected(null);
+    setFromBag(false);
     setQuantity(1);
     setTab('gifts');
     setCategory('legendary');
@@ -114,6 +118,7 @@ export function RoomGiftSheet({
     setLoading(true);
     api<{
       gifts: GiftItem[];
+      bag?: BagGiftItem[];
       balance: number;
       goldBalance: number;
       goldGiftsEnabled: boolean;
@@ -121,6 +126,7 @@ export function RoomGiftSheet({
     }>('/gifts')
       .then((response) => {
         setGifts(response.gifts);
+        setBag(response.bag ?? []);
         setBalance(response.balance);
         setGoldBalance(response.goldBalance ?? 0);
         setGoldGiftsEnabled(Boolean(response.goldGiftsEnabled));
@@ -131,10 +137,19 @@ export function RoomGiftSheet({
   }, [open, firstSpeakerId, initialRecipientId, toast]);
 
   const activeBalance = currency === 'gold' ? goldBalance : balance;
+  const bagTotal = bag.reduce((sum, item) => sum + item.quantity, 0);
+  const selectedBagLeft =
+    selected && fromBag ? bag.find((item) => item.id === selected.id)?.quantity ?? 0 : 0;
 
   const send = useCallback(async () => {
     if (!selected || !recipientId || sending) return;
-    if (activeBalance < selected.price * quantity) {
+    const bagLeft = fromBag ? bag.find((item) => item.id === selected.id)?.quantity ?? 0 : 0;
+    if (fromBag) {
+      if (bagLeft < quantity) {
+        toast.push(t('giftBagEmpty'), 'error');
+        return;
+      }
+    } else if (activeBalance < selected.price * quantity) {
       toast.push(t('insufficientCoins'), 'error');
       return;
     }
@@ -143,14 +158,32 @@ export function RoomGiftSheet({
     try {
       const response = await api<{ message: RoomMessageData }>(`/rooms/${roomId}/gifts`, {
         method: 'POST',
-        body: { giftId: selected.id, recipientId, requestId: requestRef.current, quantity, currency },
+        body: {
+          giftId: selected.id,
+          recipientId,
+          requestId: requestRef.current,
+          quantity,
+          currency: fromBag ? 'diamond' : currency,
+          fromBag,
+        },
       });
       requestRef.current = '';
-      const nextBalance = activeBalance - selected.price * quantity;
-      if (currency === 'gold') {
-        setGoldBalance(nextBalance);
+      let nextBalance = activeBalance;
+      if (fromBag) {
+        setBag((current) =>
+          current
+            .map((item) =>
+              item.id === selected.id ? { ...item, quantity: item.quantity - quantity } : item
+            )
+            .filter((item) => item.quantity > 0)
+        );
       } else {
-        setBalance(nextBalance);
+        nextBalance = activeBalance - selected.price * quantity;
+        if (currency === 'gold') {
+          setGoldBalance(nextBalance);
+        } else {
+          setBalance(nextBalance);
+        }
       }
       const recipient =
         speakers.find((speaker) => speaker.id === recipientId) ?? {
@@ -158,13 +191,14 @@ export function RoomGiftSheet({
           displayName: '',
           avatarUrl: null,
         };
-      onSent(response.message, {
-        gift: selected,
-        recipient,
-        quantity,
-        currency,
-        balance: nextBalance,
-      });
+      // A bag gift was already paid for; the «أرسل المزيد» bar would charge
+      // diamonds again, so it is only offered for paid sends.
+      onSent(
+        response.message,
+        fromBag
+          ? undefined
+          : { gift: selected, recipient, quantity, currency, balance: nextBalance }
+      );
       setSelected(null);
       onClose();
     } catch (error) {
@@ -174,7 +208,9 @@ export function RoomGiftSheet({
     }
   }, [
     activeBalance,
+    bag,
     currency,
+    fromBag,
     onClose,
     onSent,
     quantity,
@@ -221,16 +257,34 @@ export function RoomGiftSheet({
           </span>
         </div>
 
-        {lucky?.enabled ? (
-          <div className="seg" style={{ marginBottom: 10 }}>
-            <button className={tab === 'gifts' ? 'active' : ''} onClick={() => setTab('gifts')}>
-              الهدايا
-            </button>
+        <div className="seg" style={{ marginBottom: 10 }}>
+          <button
+            className={tab === 'gifts' ? 'active' : ''}
+            onClick={() => {
+              setTab('gifts');
+              setSelected(null);
+              setFromBag(false);
+            }}
+          >
+            الهدايا
+          </button>
+          <button
+            className={tab === 'bag' ? 'active' : ''}
+            onClick={() => {
+              setTab('bag');
+              setSelected(null);
+              setFromBag(false);
+            }}
+          >
+            {t('giftTabBag')}
+            {bagTotal > 0 ? ` · ${bagTotal}` : ''}
+          </button>
+          {lucky?.enabled ? (
             <button className={tab === 'lucky' ? 'active' : ''} onClick={() => setTab('lucky')}>
               🍀 هدايا الحظ
             </button>
-          </div>
-        ) : null}
+          ) : null}
+        </div>
 
         {tab === 'lucky' && lucky ? (
           <div className="lucky-shop">
@@ -275,7 +329,7 @@ export function RoomGiftSheet({
           </div>
         ) : (
           <>
-            {goldGiftsEnabled ? (
+            {goldGiftsEnabled && tab === 'gifts' ? (
               <div className="seg" style={{ marginBottom: 10 }}>
                 <button className={currency === 'diamond' ? 'active' : ''} onClick={() => setCurrency('diamond')}>
                   الماس
@@ -312,6 +366,16 @@ export function RoomGiftSheet({
 
             {loading ? (
               <Spinner label={t('loading')} />
+            ) : tab === 'bag' ? (
+              <GiftBagGrid
+                items={bag}
+                selectedId={selected?.id}
+                onSelect={(gift) => {
+                  setSelected(gift as unknown as GiftItem);
+                  setFromBag(true);
+                  setQuantity(1);
+                }}
+              />
             ) : (
               <GiftCatalog
                 gifts={gifts}
@@ -320,12 +384,18 @@ export function RoomGiftSheet({
                 category={category}
                 onCategoryChange={setCategory}
                 selectedId={selected?.id}
-                onSelect={setSelected}
+                onSelect={(gift) => {
+                  setSelected(gift);
+                  setFromBag(false);
+                }}
               />
             )}
 
             <div className="gift-qty">
-              <span className="gift-qty-label">عدد الهدايا</span>
+              <span className="gift-qty-label">
+                عدد الهدايا
+                {fromBag && selected ? ` · ${t('giftBagLeft', { count: selectedBagLeft })}` : ''}
+              </span>
               <div className="gift-qty-row">
                 {QUANTITIES.map((count) => (
                   <button
@@ -333,6 +403,7 @@ export function RoomGiftSheet({
                     type="button"
                     className={`gift-qty-chip${quantity === count ? ' active' : ''}`}
                     onClick={() => setQuantity(count)}
+                    disabled={fromBag && count > selectedBagLeft}
                   >
                     {count}
                   </button>
@@ -346,8 +417,8 @@ export function RoomGiftSheet({
               disabled={!selected || !recipientId || sending}
             >
               {sending ? <span className="spinner" /> : <Icon name="gift" size={18} />}
-              {t('sendGift')}
-              {selected ? ` · ${formatCoins(selected.price * quantity)}` : ''}
+              {fromBag ? t('giftBagSend') : t('sendGift')}
+              {selected && !fromBag ? ` · ${formatCoins(selected.price * quantity)}` : ''}
             </button>
           </>
         )}

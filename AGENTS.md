@@ -102,6 +102,22 @@
 - Admin: the «هدايا الحظ 🍀» tab edits the price/ladder (weights → % shown live) and lists spins via
   `GET /api/admin/lucky-gifts`.
 
+## Gift bag (جنطة الهدايا) and gift bundles (باقات الهدايا)
+- `gift_bag (user_id, gift_id, quantity)` is the user's owned-gift inventory. `gift_packages` /
+  `gift_package_items` are admin-defined bundles sold for diamonds; `gift_package_purchases`
+  (`request_id` unique) is both the history and the idempotency ledger.
+- `POST /api/gifts/packages/:id/buy` charges the bundle price once (`transactions.type = 'gift_package'`)
+  and adds every line to the bag in the same transaction. `GET /api/gifts` returns `bag` + `packages`
+  alongside the catalog, so both gift sheets render the bag without extra calls.
+- Sending an owned gift passes `fromBag: true` to `POST /api/gifts/send` or `POST /api/rooms/:id/gifts`:
+  `takeFromBag()` decrements the row atomically and the sender is **not** charged (the bundle already
+  paid), while the recipient/host earnings split still runs as for a paid gift.
+- Admin: `/admin/gift-packages` CRUD plus `/admin/gift-packages/:id/grant` and `/admin/gifts/:id/grant`
+  drop bundles/gifts straight into a user's bag (`source = 'admin_grant'`, no charge).
+- Three starter bundles are seeded only when `gift_packages` is empty.
+- Client: `web/src/components/GiftBag.tsx` (`GiftBagGrid`, `GiftPackagesGrid`) is shared by `GiftShop`
+  (chat: الهدايا / الباقات / الجنطة) and `RoomGiftSheet` (الهدايا / الجنطة / هدايا الحظ).
+
 ## Country-flag gifts (أعلام الدول)
 - `ensureFlagGifts()` (`server/src/flagGifts.ts`, called at boot) seeds one gift row per country from
   `server/src/flagCountries.ts` — generated from `web/src/lib/countries.ts`, so add a country there and

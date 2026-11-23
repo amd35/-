@@ -13,6 +13,7 @@ import {
 } from '../rooms';
 import { notify } from '../notify';
 import { GiftRow, moveProfit } from '../gifts';
+import { bagQuantity, takeFromBag } from '../giftBag';
 import { cupSnapshot, ensureCompetition, recordCupGift } from '../roomCup';
 import { ROOM_FRAME_DURATION_SECONDS, listRoomFrames, type RoomFrameRow } from '../roomFrames';
 import { awardRoomChatXp, micSlotsForLevel } from '../roomLevels';
@@ -371,6 +372,9 @@ router.post(
     const quantity = Math.min(2000, Math.max(1, Math.trunc(Number(req.body?.quantity) || 1)));
     if (recipientId === me) throw new HttpError(400, 'You cannot gift yourself', 'invalid_recipient');
     const currency = String(req.body?.currency || 'diamond').toLowerCase();
+    // «جنطة الهدايا»: sending an owned gift takes copies from the bag instead of
+    // charging the sender, because the package recharge already paid for them.
+    const fromBag = req.body?.fromBag === true;
     if (currency !== 'diamond' && currency !== 'gold') {
       throw new HttpError(400, 'Unsupported gift currency', 'invalid_currency');
     }
@@ -451,25 +455,30 @@ router.post(
       }
       const send = created.rows[0];
 
-      const moved =
-        currency === 'gold'
-          ? await moveGold(c, {
-              userId: me,
-              amount: -price,
-              type: 'gift_send',
-              refType: 'gift_send',
-              refId: send.id,
-              meta: { giftId: gift.id, giftName: gift.name, recipientId, roomId },
-            })
-          : await moveCoins(c, {
-              userId: me,
-              amount: -price,
-              type: 'gift_send',
-              refType: 'gift_send',
-              refId: send.id,
-              meta: { giftId: gift.id, giftName: gift.name, recipientId, roomId },
-            });
-      if (!moved.applied) throw new HttpError(409, 'This gift was already sent', 'duplicate_request');
+      if (fromBag) {
+        // One copy per gift leaves the bag in the same transaction as the send row.
+        await takeFromBag(c, me, gift.id, quantity);
+      } else {
+        const moved =
+          currency === 'gold'
+            ? await moveGold(c, {
+                userId: me,
+                amount: -price,
+                type: 'gift_send',
+                refType: 'gift_send',
+                refId: send.id,
+                meta: { giftId: gift.id, giftName: gift.name, recipientId, roomId },
+              })
+            : await moveCoins(c, {
+                userId: me,
+                amount: -price,
+                type: 'gift_send',
+                refType: 'gift_send',
+                refId: send.id,
+                meta: { giftId: gift.id, giftName: gift.name, recipientId, roomId },
+              });
+        if (!moved.applied) throw new HttpError(409, 'This gift was already sent', 'duplicate_request');
+      }
 
       if (recipientCoins > 0) {
         await moveProfit(c, {
@@ -598,6 +607,8 @@ router.post(
       recipientCoins: outcome.recipientCoins,
       hostCoins: outcome.hostCoins,
       currency: outcome.currency,
+      fromBag,
+      bagLeft: fromBag ? await bagQuantity(me, outcome.giftId) : null,
     });
   })
 );
