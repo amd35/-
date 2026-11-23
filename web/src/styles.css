@@ -10632,9 +10632,37 @@ table.data tr:hover td {
 }
 
 .rp-wallet-icon {
-  width: 24px;
-  height: 24px;
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  padding: 3px;
+  border-radius: 50%;
   filter: drop-shadow(0 3px 6px rgba(0, 0, 0, 0.6));
+}
+
+.rp-wallet-icon .currency-art {
+  width: 100%;
+  height: 100%;
+}
+
+.rp-wallet.is-gems .rp-wallet-icon {
+  background: radial-gradient(circle at 32% 26%, rgba(147, 197, 253, 0.5), rgba(6, 10, 24, 0.15) 72%);
+  box-shadow:
+    inset 0 0 0 1px rgba(147, 197, 253, 0.55),
+    0 0 10px rgba(59, 130, 246, 0.45);
+}
+
+.rp-wallet.is-beans .rp-wallet-icon {
+  background: radial-gradient(circle at 32% 26%, rgba(253, 224, 71, 0.45), rgba(12, 9, 4, 0.15) 72%);
+  box-shadow:
+    inset 0 0 0 1px rgba(251, 191, 36, 0.6),
+    0 0 10px rgba(245, 158, 11, 0.4);
+}
+
+.currency-art {
+  display: block;
+  object-fit: contain;
 }
 
 .rp-wallet-name {
