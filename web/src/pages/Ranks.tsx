@@ -5,6 +5,7 @@ import { useI18n } from '../lib/i18n';
 import { formatCoins, Icon, Spinner, useToast } from '../lib/ui';
 import { AppShell, CoinPill } from '../components/AppShell';
 import { RankBadge, rankName } from '../components/RankBadge';
+import { CurrencyIcon } from '../components/CurrencyIcon';
 
 interface RankItem {
   id: string;
@@ -247,7 +248,7 @@ export default function Ranks() {
                     </div>
                     <p className="rank-card-desc">{rank.description}</p>
                     <div className="rank-card-reward">
-                      <Icon name="coins" size={15} />
+                      <CurrencyIcon code="DIAMOND" size={15} />
                       <b>{formatCoins(rank.dailyCoins)}</b>
                       <span className="tiny muted">{t('dailyReward')}</span>
                     </div>
@@ -290,7 +291,7 @@ export default function Ranks() {
                     </div>
                     <p className="rank-card-desc">{rank.description}</p>
                     <div className="rank-card-reward">
-                      <Icon name="coins" size={15} />
+                      <CurrencyIcon code="DIAMOND" size={15} />
                       <b>{formatCoins(rank.dailyCoins)}</b>
                       <span className="tiny muted">{t('dailyReward')}</span>
                     </div>
@@ -330,7 +331,7 @@ export default function Ranks() {
                         <div className="row-sub">{row.date}</div>
                       </div>
                       <span className="pill pill-gold">
-                        <Icon name="coins" size={12} /> {formatCoins(row.coins)}
+                        <CurrencyIcon code="DIAMOND" size={12} /> {formatCoins(row.coins)}
                       </span>
                     </div>
                   ))}

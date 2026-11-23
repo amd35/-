@@ -12,13 +12,14 @@ import {
 import { createPortal } from 'react-dom';
 import { assetUrl } from './api';
 import { AvatarFrame, type FrameInfo } from '../components/AvatarFrame';
+import goldCoinArt from '../assets/currency/gold-coin.png';
 
 /* ------------------------------------------------------------------ icons */
 /** Gift artwork used wherever the gift icon appears (shop, composer, room, pills). */
 const GIFT_ICON_URL =
   'https://media.base44.com/images/public/6addb0a6b0689d303ed3a495/ba4c71cec_file_000000007c54821081a33f6e0657af7c.png';
 /** Royal gold coin artwork used wherever coins / the balance icon appears. */
-const COIN_ICON_URL = '/coin-gold.png';
+const COIN_ICON_URL = goldCoinArt;
 /** Icons rendered from artwork instead of a stroke path. */
 const IMAGE_ICONS: Record<string, string> = { gift: GIFT_ICON_URL, coins: COIN_ICON_URL };
 const ICONS: Record<string, ReactNode> = {

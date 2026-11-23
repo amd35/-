@@ -254,7 +254,7 @@ export default function Wallet() {
                 >
                   {pack.bonusCoins > 0 ? <span className="bonus">+{pack.bonusCoins}</span> : null}
                   <span className="coins">
-                    <Icon name="coins" size={17} /> {formatCoins(pack.totalCoins)}
+                    <CurrencyIcon code="GOLD" size={18} /> {formatCoins(pack.totalCoins)}
                   </span>
                   <span className="tiny muted">{pack.name}</span>
                   <span className="price">

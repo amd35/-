@@ -10,6 +10,7 @@ import { useAuth } from '../lib/auth';
 import { useI18n } from '../lib/i18n';
 import { formatCoins, Icon, useToast } from '../lib/ui';
 import { RankBadge, rankName, type RankInfo } from './RankBadge';
+import { CurrencyIcon } from './CurrencyIcon';
 
 interface BoxItem {
   id: string;
@@ -121,7 +122,7 @@ export function DailyBoxModal() {
         </div>
 
         <div className="box-popup-coins">
-          <Icon name="coins" size={22} />
+          <CurrencyIcon code="DIAMOND" size={22} />
           <span>{formatCoins(data.box.coins)}</span>
         </div>
         <div className="tiny muted">{t('dailyBoxPopupSub')}</div>
