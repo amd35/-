@@ -6,6 +6,7 @@ import { BackgroundLayer } from './lib/backgrounds';
 import { Spinner } from './lib/ui';
 import { CallOverlay } from './components/CallOverlay';
 import { DailyBoxModal } from './components/DailyBoxModal';
+import { LoginRewardModal } from './components/LoginRewardModal';
 import { LevelUpOverlay } from './components/LevelUpOverlay';
 import { BottomNav } from './components/AppShell';
 import Welcome from './pages/Welcome';
@@ -251,6 +252,7 @@ export default function App() {
       </Routes>
       <CallOverlay />
       <DailyBoxModal />
+      <LoginRewardModal />
       <LevelUpOverlay />
     </>
   );

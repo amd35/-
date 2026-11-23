@@ -1973,3 +1973,26 @@ SELECT * FROM (VALUES
   ('lucky_gift_prizes', '[{"amount":0,"weight":28},{"amount":500,"weight":24},{"amount":1000,"weight":20},{"amount":2000,"weight":14},{"amount":5000,"weight":9},{"amount":10000,"weight":4},{"amount":25000,"weight":1}]'::jsonb)
 ) AS seed(key, value)
 ON CONFLICT (key) DO NOTHING;
+
+-- ------------------------------------------------------ weekly login rewards
+-- «مكافأة الدخول الأسبوعية»: one claim per Baghdad day. `login_reward_state`
+-- holds the cursor (week + last day), `login_reward_claims` is the history and
+-- the idempotency guard, so a retried claim can never pay twice.
+CREATE TABLE IF NOT EXISTS login_reward_state (
+  user_id uuid PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+  cycle_no integer NOT NULL DEFAULT 1 CHECK (cycle_no >= 1),
+  day_no integer NOT NULL DEFAULT 0 CHECK (day_no BETWEEN 0 AND 7),
+  last_claim_on date,
+  updated_at timestamptz NOT NULL DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS login_reward_claims (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  cycle_no integer NOT NULL,
+  day_no integer NOT NULL CHECK (day_no BETWEEN 1 AND 7),
+  claimed_on date NOT NULL,
+  claimed_at timestamptz NOT NULL DEFAULT now(),
+  UNIQUE (user_id, cycle_no, day_no)
+);
+CREATE INDEX IF NOT EXISTS login_reward_claims_user_idx ON login_reward_claims (user_id, claimed_at DESC);

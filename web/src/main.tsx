@@ -13,6 +13,7 @@ import './game.css';
 import './lucky.css';
 import './country.css';
 import './giftBoutique.css';
+import './loginRewards.css';
 
 void setupNativeShell();
 

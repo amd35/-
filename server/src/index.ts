@@ -42,6 +42,7 @@ import securityRoutes from './routes/security';
 import adminSecurityRoutes from './routes/adminSecurity';
 import gameRoutes from './routes/game';
 import adminGameRoutes from './routes/adminGame';
+import loginRewardRoutes from './routes/loginRewards';
 import { registerGameSocket, startGameLoop } from './game';
 
 const PORT = Number(process.env.PORT || 4000);
@@ -112,6 +113,7 @@ app.use('/api/support', supportRoutes);
 app.use('/api/admin', adminSupportRoutes);
 app.use('/api', agentRoutes);
 app.use('/api/admin', adminAgentRoutes);
+app.use('/api/login-rewards', loginRewardRoutes);
 app.use('/api/game', gameRoutes);
 app.use('/api/admin/game', adminGameRoutes);
 app.use('/api/security', securityRoutes);
