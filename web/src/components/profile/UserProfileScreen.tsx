@@ -34,7 +34,7 @@ export function UserProfileScreen({ userId, onClose }: { userId: string; onClose
         <div className="room-full-profile-body">
           <section className="room-full-profile-hero">
             <span className="room-full-profile-avatar">
-              <Avatar user={{ ...user, online: true }} size={isArtFrame(user.frame) ? 90 : 108} />
+              <Avatar user={{ ...user, online: true }} size={108} />
               {isArtFrame(user.frame) ? (
                 <span className="room-profile-crown" aria-hidden="true">
                   👑
