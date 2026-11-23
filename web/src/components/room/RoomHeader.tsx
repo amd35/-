@@ -1,33 +1,40 @@
 import { Icon } from '../../lib/ui';
-import type { SeatUser } from './MicSeat';
-import { RoomCrest } from './RoomCrest';
+import { assetUrl } from '../../lib/api';
+import { coverUrlFor } from './roomCovers';
 
 /**
- * Compact room header: only the room artwork and its name stay on screen.
- * The settings gear is the single control kept, so the owner can still manage
- * the room; the ID, owner card, counters and country row are hidden.
+ * Compact room header: a round room picture, the room name beside it and the
+ * room ID in small type under the name. The ID card, owner card, counters and
+ * country row stay hidden; the settings gear is the only extra control kept.
  */
 export function RoomHeader({
   name,
+  code,
+  cover,
   canManage,
   onBack,
   onSettings,
 }: {
   name: string;
   code: string;
-  owner: SeatUser | null;
-  occupied: number;
-  total: number;
-  members: number;
-  capacity: number;
-  country: string;
-  language: string;
+  cover?: string | null;
+  owner?: unknown;
+  occupied?: number;
+  total?: number;
+  members?: number;
+  capacity?: number;
+  country?: string;
+  language?: string;
   canManage: boolean;
   onBack: () => void;
   onSettings: () => void;
-  onMembers: () => void;
-  onStore: () => void;
+  onMembers?: () => void;
+  onStore?: () => void;
 }) {
+  const photo = cover
+    ? coverUrlFor(cover) ?? (/^(https?:|\/uploads)/.test(cover) ? assetUrl(cover) : null)
+    : null;
+
   return (
     <header className="room-head room-head-clean">
       <button type="button" className="room-back" onClick={onBack} aria-label="رجوع">
@@ -45,12 +52,20 @@ export function RoomHeader({
         </button>
       ) : null}
 
-      <div className="room-head-crest" aria-hidden="true">
-        <RoomCrest />
-      </div>
-
-      <div className="room-announce">
-        <span className="room-announce-text">{name}</span>
+      <div className="room-head-row">
+        <span className="room-head-photo">
+          {photo ? (
+            <img src={photo} alt="" />
+          ) : (
+            <span className="room-head-photo-fallback" aria-hidden="true">
+              ♛
+            </span>
+          )}
+        </span>
+        <span className="room-head-meta">
+          <span className="room-head-name">{name}</span>
+          <span className="room-head-code">ID: {code}</span>
+        </span>
       </div>
     </header>
   );

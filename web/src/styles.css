@@ -7357,14 +7357,74 @@ table.data tr:hover td {
   transform: scale(0.94);
 }
 
-/* Clean room header: only the artwork and the room name stay visible. */
+/* Clean room header: round room picture + name, with the room ID underneath. */
 .room-head-clean {
-  padding: 4px 8px 6px;
+  padding: 6px 8px;
 }
 
 .room-head-gear {
   left: auto;
   right: 6px;
+}
+
+.room-head-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0 34px;
+}
+
+.room-head-photo {
+  flex: 0 0 auto;
+  display: grid;
+  place-items: center;
+  width: 50px;
+  height: 50px;
+  border-radius: 50%;
+  overflow: hidden;
+  border: 2px solid rgba(255, 207, 64, 0.8);
+  background: linear-gradient(160deg, #3a0d12, #170308);
+  box-shadow:
+    0 0 12px rgba(255, 110, 30, 0.45),
+    inset 0 0 10px rgba(0, 0, 0, 0.55);
+}
+
+.room-head-photo img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.room-head-photo-fallback {
+  font-size: 23px;
+  line-height: 1;
+  color: #ffd75e;
+  text-shadow: 0 0 10px rgba(255, 190, 60, 0.85);
+}
+
+.room-head-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.room-head-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 14.5px;
+  font-weight: 800;
+  color: #fff3d6;
+  text-shadow: 0 1px 6px rgba(0, 0, 0, 0.6);
+}
+
+.room-head-code {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.6px;
+  direction: ltr;
+  color: rgba(255, 231, 179, 0.62);
 }
 
 .room-head-crest {
