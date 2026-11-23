@@ -72,8 +72,8 @@ export async function getGameSettings(): Promise<GameSettings> {
   }>('SELECT enabled, entry_fee, min_entry, max_entry, app_percent FROM game_settings WHERE id = true');
   return {
     enabled: Boolean(row?.enabled ?? true),
-    entryFee: Number(row?.entry_fee ?? 100),
-    minEntry: Number(row?.min_entry ?? 50),
+    entryFee: Number(row?.entry_fee ?? 1000),
+    minEntry: Number(row?.min_entry ?? 1000),
     maxEntry: Number(row?.max_entry ?? 5000),
     appPercent: Number(row?.app_percent ?? 10),
   };
