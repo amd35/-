@@ -10331,7 +10331,7 @@ table.data tr:hover td {
   padding: 8px 0 14px;
   /* The frame artwork and the photo are lifted a little so the crown clears
      the name plaque and the whole group sits higher in the card. */
-  transform: translateY(-10px);
+  transform: translateY(-16px);
 }
 
 .rp-avatar-wing {
@@ -10373,7 +10373,14 @@ table.data tr:hover td {
 /* The official artwork is drawn ~2.14× taller than the avatar: centring its
    transparent window on the photo keeps the crown and banner balanced. */
 .rp-avatar .av-frame-art {
-  top: -40%;
+  top: -48.5%;
+}
+
+/* Keep the photo above the frame's warm aura, so the glow surrounds the
+   picture instead of washing it out. */
+.rp-avatar-ring .avatar {
+  position: relative;
+  z-index: 1;
 }
 
 .rp-avatar-ring {
