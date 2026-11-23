@@ -3,8 +3,9 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { Router } from 'express';
 import multer from 'multer';
-import { requireAuth } from '../auth';
-import { HttpError } from '../utils';
+import { reqUser, requireAuth } from '../auth';
+import { HttpError, asyncHandler } from '../utils';
+import { assertCapability, moderateMediaForUser } from '../security/service';
 
 export const UPLOAD_DIR = process.env.UPLOAD_DIR || path.join(process.cwd(), 'uploads');
 fs.mkdirSync(UPLOAD_DIR, { recursive: true });
@@ -102,14 +103,49 @@ export const adUpload = multer({
 
 const router = Router();
 
-router.post('/', requireAuth(), upload.single('file'), (req, res) => {
-  if (!req.file) throw new HttpError(400, 'No file received', 'missing_file');
-  res.status(201).json({
-    url: `/uploads/${req.file.filename}`,
-    name: req.file.originalname,
-    size: req.file.size,
-    mime: req.file.mimetype,
-  });
-});
+router.post(
+  '/',
+  requireAuth(),
+  upload.single('file'),
+  asyncHandler(async (req, res) => {
+    if (!req.file) throw new HttpError(400, 'No file received', 'missing_file');
+    const file = req.file;
+    try {
+      const me = reqUser(req).id;
+      await assertCapability(me, 'media');
+      const kind = /^image\//.test(file.mimetype)
+        ? 'image'
+        : /^video\//.test(file.mimetype)
+          ? 'video'
+          : /^audio\//.test(file.mimetype)
+            ? 'audio'
+            : 'image';
+      const moderation = await moderateMediaForUser({
+        userId: me,
+        filePath: file.path,
+        filename: file.originalname,
+        mime: file.mimetype,
+        kind,
+        surface: 'upload',
+      });
+      if (!moderation.allowed) {
+        fs.unlinkSync(file.path);
+        throw new HttpError(422, moderation.reason || 'تم رفض الملف لمخالفته سياسة السلامة', 'content_blocked', {
+          category: moderation.verdict.category,
+          provider: moderation.verdict.provider,
+        });
+      }
+    } catch (error) {
+      if (fs.existsSync(file.path)) fs.unlinkSync(file.path);
+      throw error;
+    }
+    res.status(201).json({
+      url: `/uploads/${file.filename}`,
+      name: file.originalname,
+      size: file.size,
+      mime: file.mimetype,
+    });
+  })
+);
 
 export default router;

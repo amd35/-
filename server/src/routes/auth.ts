@@ -24,6 +24,11 @@ import { getPublicUser } from '../serializers';
 import { getSettings } from '../settings';
 import { sendSms, smsConfigured } from '../sms';
 import {
+  assertCapability,
+  moderateAttachmentForUser,
+  moderateTextForUser,
+} from '../security/service';
+import {
   HttpError,
   asyncHandler,
   assertPassword,
@@ -49,6 +54,9 @@ interface UserRow {
   age: number | null;
   is_admin: boolean;
   is_banned: boolean;
+  ban_reason?: string | null;
+  security_strikes?: number;
+  suspended_until?: string | null;
   provider: string;
   created_at: string;
   phone_verified?: boolean;
@@ -69,6 +77,12 @@ function serializeSelf(row: UserRow, frame: Awaited<ReturnType<typeof equippedFr
     country: row.country,
     age: row.age ?? null,
     isAdmin: row.is_admin,
+    security: {
+      strikes: Number(row.security_strikes ?? 0),
+      suspendedUntil: row.suspended_until ?? null,
+      banned: Boolean(row.is_banned),
+      banReason: row.ban_reason ?? null,
+    },
     provider: row.provider,
     createdAt: row.created_at,
     verified: Boolean(row.phone_verified || row.email_verified),
@@ -253,10 +267,6 @@ router.post(
       await recordAttempt(identifier, 'login');
       throw new HttpError(401, 'Wrong account or password', 'invalid_credentials');
     }
-    if (user.is_banned) {
-      throw new HttpError(403, 'This account is banned', 'banned');
-    }
-
     await clearAttempts(identifier, 'login');
     await q('UPDATE users SET last_seen_at = now() WHERE id = $1', [user.id]);
     res.json({ token: signUserToken(user.id), ...(await buildMe(user.id)) });
@@ -463,6 +473,7 @@ router.patch(
   requireAuth(),
   asyncHandler(async (req, res) => {
     const user = reqUser(req);
+    await assertCapability(user.id, 'account');
     const displayName = req.body?.displayName ? String(req.body.displayName).trim().slice(0, 60) : null;
     const bio = req.body?.bio !== undefined ? String(req.body.bio).slice(0, 300) : null;
     const avatarUrl = req.body?.avatarUrl !== undefined ? String(req.body.avatarUrl || '') || null : null;
@@ -478,6 +489,36 @@ router.patch(
     if (displayName !== null && displayName.length < 2) {
       throw new HttpError(400, 'Name is too short', 'invalid_display_name');
     }
+
+    // YALLA PHONE AI SECURITY — profile name, bio and avatar are checked server-side.
+    if ((displayName && displayName.trim()) || (bio && bio.trim())) {
+      const check = await moderateTextForUser({
+        userId: user.id,
+        text: `${displayName ?? ''} ${bio ?? ''}`.trim(),
+        surface: 'profile',
+      });
+      if (!check.allowed) {
+        throw new HttpError(422, check.reason || 'الاسم أو الوصف مخالف لسياسة السلامة', 'content_blocked', {
+          category: check.category,
+          strike: check.strike,
+          until: check.until,
+        });
+      }
+    }
+    if (avatarUrl) {
+      await assertCapability(user.id, 'avatar');
+      const media = await moderateAttachmentForUser({
+        userId: user.id,
+        url: avatarUrl,
+        surface: 'avatar',
+      });
+      if (!media.allowed) {
+        throw new HttpError(422, media.reason || 'تم رفض الصورة الشخصية', 'content_blocked', {
+          category: 'media_blocked',
+        });
+      }
+    }
+
     await q(
       `UPDATE users SET
          display_name = COALESCE($2, display_name),

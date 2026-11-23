@@ -1,12 +1,14 @@
 import { one, q } from './db';
 import { endCall, acceptCall, cancelCall, inviteCall, rejectCall, type CallKind } from './calls';
 import { onSocketEvent, onSocketClose, emitToUser, emitToUsers } from './realtime';
+import { assertCapability } from './security/service';
 
 /** Bridges realtime events (call control + WebRTC signaling + typing) to the call service. */
 export function registerSocketHandlers(): void {
   onSocketEvent('call:invite', async ({ userId, data }) => {
     const calleeId = String(data.calleeId || '');
     const kind = String(data.kind || 'voice') as CallKind;
+    await assertCapability(userId, 'calls');
     const result = await inviteCall(userId, calleeId, kind);
     emitToUser(userId, 'call:created', {
       callId: result.call.id,

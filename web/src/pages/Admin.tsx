@@ -30,6 +30,7 @@ import RoomCupTab from '../components/admin/RoomCupTab';
 import RoomFramesTab from '../components/admin/RoomFramesTab';
 import SupportTab from '../components/admin/SupportTab';
 import AgentsTab from '../components/admin/AgentsTab';
+import AiSecurityTab from '../components/admin/AiSecurityTab';
 
 const TABS = [
   { id: 'overview', label: 'نظرة عامة', icon: 'chart' },
@@ -58,6 +59,7 @@ const TABS = [
   { id: 'financial', label: 'الأرباح والسحوبات', icon: 'coins' },
   { id: 'reports', label: 'البلاغات', icon: 'alert' },
   { id: 'broadcast', label: 'إشعار عام', icon: 'bell' },
+  { id: 'ai-security', label: 'الحماية الذكية AI', icon: 'shield' },
   { id: 'security', label: 'الأمان', icon: 'lock' },
 ] as const;
 
@@ -226,6 +228,7 @@ export default function Admin() {
         {tab === 'financial' ? <FinancialTab /> : null}
         {tab === 'reports' ? <ReportsTab /> : null}
         {tab === 'broadcast' ? <BroadcastTab /> : null}
+        {tab === 'ai-security' ? <AiSecurityTab /> : null}
         {tab === 'security' ? <SecurityTab /> : null}
       </main>
     </div>

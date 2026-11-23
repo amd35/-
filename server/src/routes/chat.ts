@@ -25,6 +25,12 @@ import {
   supportUserId,
 } from '../support';
 import { HttpError, asyncHandler, intParam } from '../utils';
+import {
+  assertCapability,
+  detectSpamBurst,
+  moderateAttachmentForUser,
+  moderateTextForUser,
+} from '../security/service';
 
 const router = Router();
 
@@ -115,6 +121,7 @@ router.post(
   requireAuth(),
   asyncHandler(async (req, res) => {
     const me = reqUser(req).id;
+    await assertCapability(me, 'chat');
     const peerId = String(req.body?.userId || '');
     if (!peerId || peerId === me) throw new HttpError(400, 'Invalid user', 'invalid_target');
 
@@ -256,6 +263,42 @@ router.post(
     const attachmentName = req.body?.attachmentName ? String(req.body.attachmentName) : null;
     if (!body.trim() && !attachmentUrl) {
       throw new HttpError(400, 'Message is empty', 'empty_message');
+    }
+
+    // YALLA PHONE AI SECURITY — the message is scanned before it is stored.
+    await assertCapability(me, 'chat');
+    if (body.trim()) {
+      const spam = await detectSpamBurst({ userId: me, conversationId, body });
+      if (!spam.allowed) {
+        throw new HttpError(422, spam.reason || 'تم رفض الرسالة', 'content_blocked', {
+          category: spam.category,
+          strike: spam.strike,
+          until: spam.until,
+          violationId: spam.violationId,
+        });
+      }
+      const moderation = await moderateTextForUser({ userId: me, text: body, surface: 'private_chat' });
+      if (!moderation.allowed) {
+        throw new HttpError(422, moderation.reason || 'تم رفض الرسالة لمخالفتها سياسة السلامة', 'content_blocked', {
+          category: moderation.category,
+          strike: moderation.strike,
+          until: moderation.until,
+          violationId: moderation.violationId,
+        });
+      }
+    }
+    if (attachmentUrl) {
+      const media = await moderateAttachmentForUser({
+        userId: me,
+        url: attachmentUrl,
+        filename: attachmentName,
+        surface: 'private_chat',
+      });
+      if (!media.allowed) {
+        throw new HttpError(422, media.reason || 'تم رفض المرفق', 'content_blocked', {
+          category: 'media_blocked',
+        });
+      }
     }
 
     const message = await tx(async (c) => {

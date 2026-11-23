@@ -20,6 +20,7 @@ import { ProfileHero, type ConnectionKind } from '../components/profile/ProfileH
 import { ConnectionsSheet } from '../components/profile/ConnectionsSheet';
 import { LevelBadge, VipBadge, formatXp } from '../components/ProgressionBadges';
 import { ProfileCustomize } from '../components/ProfileCustomize';
+import { SecurityCenterSheet } from '../components/security/SecurityCenterSheet';
 import { GiftGallery } from '../components/profile/GiftGallery';
 import type { UserCardData } from '../components/UserCard';
 
@@ -38,6 +39,7 @@ export function Profile() {
   const navigate = useNavigate();
   const toast = useToast();
   const [editOpen, setEditOpen] = useState(false);
+  const [securityOpen, setSecurityOpen] = useState(false);
   const [customizeOpen, setCustomizeOpen] = useState(false);
   const [connections, setConnections] = useState<ConnectionKind | null>(null);
   const [requests, setRequests] = useState<{ id: string; user: UserCardData }[]>([]);
@@ -238,6 +240,21 @@ export function Profile() {
             </div>
             <Icon name="arrowLeft" size={17} />
           </div>
+          <div className="row" onClick={() => setSecurityOpen(true)}>
+            <Icon name="shield" size={19} />
+            <div className="row-main">
+              <div className="row-title">{lang === 'ar' ? 'مركز الحماية والاعتراض' : 'Safety center & appeals'}</div>
+              <div className="row-sub">
+                {lang === 'ar' ? 'التحذيرات والقيود وتقديم اعتراض' : 'Warnings, restrictions and appeals'}
+              </div>
+            </div>
+            {me.user.security?.strikes ? (
+              <span className="pill pill-gold" style={{ fontSize: 10 }}>
+                {me.user.security.strikes}
+              </span>
+            ) : null}
+            <Icon name="arrowLeft" size={17} />
+          </div>
           <div className="row" onClick={() => navigate('/settings')}>
             <Icon name="settings" size={19} />
             <div className="row-main">
@@ -306,6 +323,8 @@ export function Profile() {
         onClose={() => setCustomizeOpen(false)}
         onEditInfo={() => setEditOpen(true)}
       />
+
+      <SecurityCenterSheet open={securityOpen} onClose={() => setSecurityOpen(false)} />
 
       <ConnectionsSheet kind={connections} userId={me.user.id} onClose={() => setConnections(null)} />
     </AppShell>

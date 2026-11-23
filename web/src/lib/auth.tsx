@@ -22,6 +22,12 @@ export interface SelfUser {
   country: string | null;
   age: number | null;
   isAdmin: boolean;
+  security?: {
+    strikes: number;
+    suspendedUntil: string | null;
+    banned?: boolean;
+    banReason?: string | null;
+  };
   provider: string;
   createdAt: string;
   verified?: boolean;

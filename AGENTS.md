@@ -98,3 +98,27 @@
   recharge path with `idempotency_key = request:<id>`, so a double accept can never pay twice.
 - Gold is a second currency in `wallets.gold` (agent stock lives in `agents.gold_balance`); it is not spendable
   in the app yet, it is only credited by agents and shown in the wallet.
+
+## YALLA PHONE AI SECURITY (`server/src/security/`)
+- `moderateTextForUser()` gates private/room chat, profile name & bio, room names and voice transcripts;
+  `moderateMediaForUser()` / `moderateAttachmentForUser()` gate every upload, avatar change and chat attachment.
+  Bot, support and admin accounts are skipped.
+- Rules live in `security/lexicon.ts` (normalized Arabic/Iraqi/English terms; normalization collapses diacritics,
+  tatweel, letter variants, spacing and leet digits). Admins extend them from «الحماية الذكية AI» →
+  `security_settings` (30 s cache), so rules change without an app update.
+- Every decision writes `security_violations` + `security_restrictions` (capabilities: chat, mic, avatar, media,
+  gifts, calls, account) and a `security_warning` notification. Strikes live in `users.security_strikes` and decay
+  after 30 clean days.
+- Enforcement is server-side only: `requireAuth()` makes a banned/suspended account read-only (only
+  `POST /api/security/appeals` passes) and `assertCapability()` blocks a single capability. Never trust the client.
+- Ladder: warn → 30 min capability → 1 h → 24 h → 7 d → 30 d → permanent. Serious categories (threat, fraud,
+  phishing, impersonation, sexual, child_safety) start at 24 h; child safety / critical = immediate permanent ban
+  with evidence kept in `security_violations.evidence`.
+- Appeals (`POST /api/security/appeals`) are auto-accepted when the classification confidence is below
+  `appeal_auto_accept_confidence`; otherwise the admin resolves them in the AI security tab.
+- Media: SHA-256 blocklist (`security_media_hashes`) + filename hints always run. Real pixel analysis requires
+  `OPENAI_API_KEY` / `MODERATION_API_KEY` (OpenAI `omni-moderation-latest`); without it the API reports
+  `provider: 'local'` instead of pretending it analysed the image.
+- Voice: the room client (opt-in button, Web Speech API) posts short transcripts to
+  `POST /api/security/voice-transcript`; a confirmed violation force-mutes the mic server-side. Android WebView
+  has no Web Speech API — any STT bridge can call the same endpoint.

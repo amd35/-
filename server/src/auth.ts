@@ -59,13 +59,14 @@ export async function currentUser(req: Request) {
     is_banned: boolean;
     ban_reason: string | null;
     avatar_url: string | null;
-  }>('SELECT id, username, display_name, avatar_url, is_banned, ban_reason FROM users WHERE id = $1', [
-    payload.sub,
-  ]);
+    suspended_until: string | null;
+  }>(
+    'SELECT id, username, display_name, avatar_url, is_banned, ban_reason, suspended_until FROM users WHERE id = $1',
+    [payload.sub]
+  );
   if (!user) throw new HttpError(401, 'Account not found', 'account_missing');
-  if (user.is_banned) {
-    throw new HttpError(403, user.ban_reason || 'This account is banned', 'banned');
-  }
+  // A banned account can still sign in to read the penalty and file an appeal;
+  // every write path calls assertCapability(), which blocks it server-side.
   return user;
 }
 
@@ -95,8 +96,22 @@ export function reqAdmin(req: Request): AuthedAdmin {
 export function requireAuth() {
   return async (req: Request, _res: Response, next: NextFunction) => {
     try {
-      (req as Request & { user: Awaited<ReturnType<typeof currentUser>> }).user =
-        await currentUser(req);
+      const user = await currentUser(req);
+      // A banned or suspended account is read-only everywhere except filing an
+      // appeal, so a new login/session can never bypass the penalty.
+      const restricted =
+        user.is_banned ||
+        Boolean(user.suspended_until && new Date(user.suspended_until).getTime() > Date.now());
+      const mayWriteWhileRestricted = req.originalUrl.startsWith('/api/security/appeals');
+      if (restricted && req.method !== 'GET' && req.method !== 'HEAD' && !mayWriteWhileRestricted) {
+        throw new HttpError(
+          403,
+          user.is_banned ? user.ban_reason || 'This account is banned' : 'Your account is temporarily suspended',
+          user.is_banned ? 'banned' : 'account_suspended',
+          { until: user.suspended_until, permanent: user.is_banned }
+        );
+      }
+      (req as Request & { user: typeof user }).user = user;
       next();
     } catch (error) {
       next(error);

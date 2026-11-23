@@ -36,6 +36,8 @@ import adminSupportRoutes from './routes/adminSupport';
 import supportRoutes from './routes/support';
 import agentRoutes from './routes/agents';
 import adminAgentRoutes from './routes/adminAgents';
+import securityRoutes from './routes/security';
+import adminSecurityRoutes from './routes/adminSecurity';
 
 const PORT = Number(process.env.PORT || 4000);
 const app = express();
@@ -105,6 +107,8 @@ app.use('/api/support', supportRoutes);
 app.use('/api/admin', adminSupportRoutes);
 app.use('/api', agentRoutes);
 app.use('/api/admin', adminAgentRoutes);
+app.use('/api/security', securityRoutes);
+app.use('/api/admin', adminSecurityRoutes);
 
 app.use('/uploads', express.static(UPLOAD_DIR, { maxAge: '7d', fallthrough: true }));
 // Gift artwork shipped inside the web app (web/public/gifts) — same paths work in the Android shell.

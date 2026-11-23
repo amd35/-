@@ -25,6 +25,7 @@ import { RoomCup } from '../components/room/RoomCup';
 import { RoomFramesSheet, type WornFrame } from '../components/room/RoomFramesSheet';
 import type { RoomData } from '../components/room/types';
 import { useRoomVoice } from '../lib/roomVoice';
+import { useVoiceModeration, voiceModerationSupported } from '../lib/voiceModeration';
 import {
   RoomGiftAnnouncement,
   type GiftAnnouncement,
@@ -66,6 +67,7 @@ export default function Room() {
   const musicRef = useRef<HTMLAudioElement | null>(null);
   const entryShown = useRef(false);
   const [showEntry, setShowEntry] = useState(false);
+  const [safetyMonitor, setSafetyMonitor] = useState(false);
 
   const entryCosmetic = me?.cosmetics?.entry ?? null;
   const myMic = room?.mics.find((mic) => mic.mine) ?? null;
@@ -79,6 +81,16 @@ export default function Room() {
     micOn: Boolean(myMic),
     speakerIds,
     forcedMute,
+  });
+
+  // Opt-in voice safety monitor: transcribes only while the user enables it.
+  useVoiceModeration({
+    roomId: id,
+    enabled: safetyMonitor && Boolean(myMic) && !myMic?.muted,
+    onFlagged: (reason) => {
+      setSafetyMonitor(false);
+      toast.push(reason || 'تم كتم المايك بواسطة نظام الحماية', 'error');
+    },
   });
 
   const load = useCallback(async () => {
@@ -531,6 +543,18 @@ export default function Room() {
           micMuted={Boolean(myMic?.muted)}
           chatOpen={panel === 'chat'}
         />
+      ) : null}
+
+      {myMic && voiceModerationSupported() ? (
+        <button
+          type="button"
+          className="btn btn-ghost btn-sm"
+          title="بموافقتك يُحوَّل كلامك إلى نص لفحص المخالفات فقط"
+          style={{ position: 'fixed', insetInlineStart: 12, bottom: 92, zIndex: 40, fontSize: 11 }}
+          onClick={() => setSafetyMonitor((value) => !value)}
+        >
+          <Icon name="shield" size={14} /> {safetyMonitor ? 'إيقاف مراقبة السلامة' : 'مراقبة السلامة الصوتية'}
+        </button>
       ) : null}
 
       {/* Remote voice streams (peer-to-peer, audio only). */}

@@ -12,6 +12,7 @@ import {
 import { getFreeCallState } from '../freecalls';
 import { FRAME_FIELDS, frameFromRow, frameJoins } from '../serializers';
 import { asyncHandler, intParam } from '../utils';
+import { assertCapability } from '../security/service';
 
 const router = Router();
 
@@ -48,6 +49,7 @@ router.post(
     const me = reqUser(req).id;
     const calleeId = String(req.body?.calleeId || '');
     const kind = String(req.body?.kind || 'voice') as CallKind;
+    await assertCapability(me, 'calls');
     const result = await inviteCall(me, calleeId, kind);
     res.status(201).json({
       callId: result.call.id,

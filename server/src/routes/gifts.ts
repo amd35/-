@@ -15,6 +15,7 @@ import { awardXpSafe, getXpSettings, xpForCoins } from '../progression';
 import { getSettings } from '../settings';
 import { moveCoins } from '../wallet';
 import { HttpError, asyncHandler } from '../utils';
+import { assertCapability } from '../security/service';
 
 const router = Router();
 
@@ -70,6 +71,7 @@ router.post(
     if (!settings.gifts_enabled) {
       throw new HttpError(403, 'Gifts are disabled', 'gifts_disabled');
     }
+    await assertCapability(me, 'gifts');
 
     const giftId = String(req.body?.giftId || '');
     const conversationId = String(req.body?.conversationId || '');

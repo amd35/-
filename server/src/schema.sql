@@ -1540,3 +1540,75 @@ CREATE INDEX IF NOT EXISTS agent_requests_user_idx ON agent_requests (user_id, c
 
 -- Gold is a second currency users receive from agents; coins stay in wallets.balance.
 ALTER TABLE wallets ADD COLUMN IF NOT EXISTS gold bigint NOT NULL DEFAULT 0 CHECK (gold >= 0);
+
+-- ============================================================================
+-- YALLA PHONE AI SECURITY — automatic moderation, penalties and appeals.
+-- Every decision is written server-side; the app only renders it.
+-- ============================================================================
+ALTER TABLE users ADD COLUMN IF NOT EXISTS suspended_until timestamptz;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS security_strikes integer NOT NULL DEFAULT 0;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS security_last_violation_at timestamptz;
+
+CREATE TABLE IF NOT EXISTS security_violations (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  engine text NOT NULL,
+  category text NOT NULL,
+  severity text NOT NULL,
+  confidence numeric(4,3) NOT NULL DEFAULT 0.5,
+  surface text NOT NULL,
+  excerpt text,
+  matches jsonb NOT NULL DEFAULT '[]'::jsonb,
+  evidence jsonb NOT NULL DEFAULT '{}'::jsonb,
+  decision text NOT NULL,
+  strike integer NOT NULL DEFAULT 1,
+  restriction_id uuid,
+  status text NOT NULL DEFAULT 'auto',
+  reviewed_by uuid,
+  reviewed_at timestamptz,
+  created_at timestamptz NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS security_violations_user_idx ON security_violations (user_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS security_violations_created_idx ON security_violations (created_at DESC);
+CREATE INDEX IF NOT EXISTS security_violations_category_idx ON security_violations (category, created_at DESC);
+
+CREATE TABLE IF NOT EXISTS security_restrictions (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  capability text NOT NULL,
+  reason text NOT NULL,
+  violation_id uuid,
+  expires_at timestamptz,
+  lifted_at timestamptz,
+  lifted_by uuid,
+  created_at timestamptz NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS security_restrictions_user_idx ON security_restrictions (user_id, capability, expires_at);
+
+CREATE TABLE IF NOT EXISTS security_appeals (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  violation_id uuid,
+  restriction_id uuid,
+  message text NOT NULL,
+  status text NOT NULL DEFAULT 'pending',
+  resolution text,
+  resolved_by uuid,
+  auto_resolved boolean NOT NULL DEFAULT false,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  resolved_at timestamptz
+);
+CREATE INDEX IF NOT EXISTS security_appeals_user_idx ON security_appeals (user_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS security_appeals_status_idx ON security_appeals (status, created_at DESC);
+
+CREATE TABLE IF NOT EXISTS security_settings (
+  key text PRIMARY KEY,
+  value jsonb NOT NULL,
+  updated_at timestamptz NOT NULL DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS security_media_hashes (
+  hash text PRIMARY KEY,
+  reason text NOT NULL,
+  created_at timestamptz NOT NULL DEFAULT now()
+);

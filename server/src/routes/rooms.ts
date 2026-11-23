@@ -20,6 +20,11 @@ import { moveCoins } from '../wallet';
 import { awardXpSafe, getXpSettings, xpForCoins } from '../progression';
 import { activeRankFor, isOfficialAdmin } from '../ranks';
 import { HttpError, asyncHandler } from '../utils';
+import {
+  assertCapability,
+  detectSpamBurst,
+  moderateTextForUser,
+} from '../security/service';
 
 const router = Router();
 
@@ -40,6 +45,19 @@ router.post(
     const name = String(req.body?.name ?? '').trim().slice(0, 60);
     const description = String(req.body?.description ?? '').trim().slice(0, 160);
     if (name.length < 2) throw new HttpError(400, 'Room name is required', 'missing_name');
+
+    const nameCheck = await moderateTextForUser({
+      userId: me,
+      text: `${name} ${description}`,
+      surface: 'room',
+    });
+    if (!nameCheck.allowed) {
+      throw new HttpError(422, nameCheck.reason || 'اسم الغرفة أو وصفها مخالف لسياسة السلامة', 'content_blocked', {
+        category: nameCheck.category,
+        strike: nameCheck.strike,
+        until: nameCheck.until,
+      });
+    }
 
     const existing = await one<{ id: string }>(
       'SELECT id FROM rooms WHERE created_by = $1 AND is_active = true LIMIT 1',
@@ -188,6 +206,8 @@ router.post(
     const roomId = req.params.id;
     const micId = req.params.micId;
 
+    await assertCapability(me, 'mic');
+
     await tx(async (client) => {
       const room = await client.query<{ is_active: boolean; owner_id: string | null }>(
         'SELECT is_active, owner_id FROM rooms WHERE id = $1 FOR UPDATE',
@@ -261,6 +281,24 @@ router.post(
     const room = await one<{ is_active: boolean }>('SELECT is_active FROM rooms WHERE id = $1', [roomId]);
     if (!room?.is_active) throw new HttpError(404, 'Room not found', 'room_not_found');
 
+    await assertCapability(me, 'chat');
+    const spam = await detectSpamBurst({ userId: me, roomId, body });
+    if (!spam.allowed) {
+      throw new HttpError(422, spam.reason || 'تم رفض الرسالة', 'content_blocked', {
+        category: spam.category,
+        strike: spam.strike,
+        until: spam.until,
+      });
+    }
+    const moderation = await moderateTextForUser({ userId: me, text: body, surface: 'room_chat' });
+    if (!moderation.allowed) {
+      throw new HttpError(422, moderation.reason || 'تم رفض الرسالة لمخالفتها سياسة السلامة', 'content_blocked', {
+        category: moderation.category,
+        strike: moderation.strike,
+        until: moderation.until,
+      });
+    }
+
     // Administrative announcements are reserved for the royal admin positions.
     let announcement = false;
     if (req.body?.announcement === true) {
@@ -301,6 +339,7 @@ router.post(
     const roomId = req.params.id;
     const settings = await getSettings();
     if (!settings.gifts_enabled) throw new HttpError(403, 'Gifts are disabled', 'gifts_disabled');
+    await assertCapability(me, 'gifts');
 
     const giftId = String(req.body?.giftId || '');
     const recipientId = String(req.body?.recipientId || '');
