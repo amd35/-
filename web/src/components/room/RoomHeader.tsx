@@ -4,8 +4,8 @@ import { coverUrlFor } from './roomCovers';
 
 /**
  * Compact room header: a round room picture, the room name beside it and the
- * room ID in small type under the name. The ID card, owner card, counters and
- * country row stay hidden; the settings gear is the only extra control kept.
+ * room ID in small type under the name. Room management can tap the picture to
+ * open the identity sheet (rename + new picture from the device).
  */
 export function RoomHeader({
   name,
@@ -14,6 +14,7 @@ export function RoomHeader({
   canManage,
   onBack,
   onSettings,
+  onIdentity,
 }: {
   name: string;
   code: string;
@@ -28,12 +29,25 @@ export function RoomHeader({
   canManage: boolean;
   onBack: () => void;
   onSettings: () => void;
+  onIdentity?: () => void;
   onMembers?: () => void;
   onStore?: () => void;
 }) {
   const photo = cover
     ? coverUrlFor(cover) ?? (/^(https?:|\/uploads)/.test(cover) ? assetUrl(cover) : null)
     : null;
+
+  const picture = (
+    <>
+      {photo ? (
+        <img src={photo} alt="" />
+      ) : (
+        <span className="room-head-photo-fallback" aria-hidden="true">
+          ♛
+        </span>
+      )}
+    </>
+  );
 
   return (
     <header className="room-head room-head-clean">
@@ -53,15 +67,18 @@ export function RoomHeader({
       ) : null}
 
       <div className="room-head-row">
-        <span className="room-head-photo">
-          {photo ? (
-            <img src={photo} alt="" />
-          ) : (
-            <span className="room-head-photo-fallback" aria-hidden="true">
-              ♛
-            </span>
-          )}
-        </span>
+        {onIdentity && canManage ? (
+          <button
+            type="button"
+            className="room-head-photo is-editable"
+            onClick={onIdentity}
+            aria-label="تغيير اسم الغرفة وصورتها"
+          >
+            {picture}
+          </button>
+        ) : (
+          <span className="room-head-photo">{picture}</span>
+        )}
         <span className="room-head-meta">
           <span className="room-head-name">{name}</span>
           <span className="room-head-code">ID: {code}</span>

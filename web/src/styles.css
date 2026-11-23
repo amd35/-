@@ -7427,6 +7427,150 @@ table.data tr:hover td {
   color: rgba(255, 231, 179, 0.62);
 }
 
+.room-head-photo.is-editable {
+  position: relative;
+  padding: 0;
+  cursor: pointer;
+}
+
+.room-head-photo.is-editable::after {
+  content: '✎';
+  position: absolute;
+  inset-inline-end: 1px;
+  bottom: 1px;
+  display: grid;
+  place-items: center;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  font-size: 9px;
+  color: #2b1004;
+  background: linear-gradient(160deg, #ffe9a8, #e8a12b);
+  border: 1px solid rgba(60, 24, 4, 0.6);
+}
+
+/* Room identity sheet: big round picture, rename field, gold save button. */
+.room-identity {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  padding: 6px 4px 18px;
+}
+
+.room-identity-photo-wrap {
+  position: relative;
+}
+
+.room-identity-photo {
+  display: grid;
+  place-items: center;
+  width: 116px;
+  height: 116px;
+  border-radius: 50%;
+  overflow: hidden;
+  background: radial-gradient(circle at 50% 30%, #3a0d12, #150307);
+  border: 2px solid rgba(255, 214, 102, 0.9);
+  box-shadow:
+    0 0 0 6px rgba(255, 190, 60, 0.08),
+    0 0 26px rgba(255, 120, 30, 0.45),
+    inset 0 0 18px rgba(0, 0, 0, 0.6);
+}
+
+.room-identity-photo img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.room-identity-photo-fallback {
+  font-size: 46px;
+  line-height: 1;
+  color: #ffd75e;
+  text-shadow: 0 0 14px rgba(255, 190, 60, 0.8);
+}
+
+.room-identity-camera {
+  position: absolute;
+  inset-inline-end: -2px;
+  bottom: 2px;
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  font-size: 15px;
+  cursor: pointer;
+  color: #2b1004;
+  background: linear-gradient(160deg, #ffeaa9, #e6a12a);
+  border: 2px solid rgba(40, 14, 2, 0.75);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.45);
+}
+
+.room-identity-upload {
+  padding: 7px 16px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 205, 90, 0.45);
+  background: rgba(255, 205, 90, 0.1);
+  color: #ffe6b0;
+  font-family: inherit;
+  font-size: 12.5px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.room-identity-upload:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.room-identity-label {
+  align-self: flex-start;
+  margin-top: 4px;
+  font-size: 12px;
+  font-weight: 700;
+  color: rgba(255, 232, 180, 0.72);
+}
+
+.room-identity-input {
+  width: 100%;
+  padding: 11px 14px;
+  border-radius: 14px;
+  border: 1px solid rgba(255, 205, 90, 0.32);
+  background: rgba(20, 6, 10, 0.72);
+  color: #fff3d6;
+  font-family: inherit;
+  font-size: 14.5px;
+  font-weight: 700;
+  text-align: start;
+}
+
+.room-identity-input:focus {
+  outline: none;
+  border-color: rgba(255, 205, 90, 0.85);
+  box-shadow: 0 0 0 3px rgba(255, 175, 50, 0.16);
+}
+
+.room-identity-save {
+  width: 100%;
+  margin-top: 6px;
+  padding: 13px;
+  border: none;
+  border-radius: 15px;
+  font-family: inherit;
+  font-size: 14.5px;
+  font-weight: 800;
+  color: #2a0f02;
+  cursor: pointer;
+  background: linear-gradient(160deg, #ffe9a6, #f0b437 55%, #d88f1c);
+  box-shadow: 0 10px 22px rgba(216, 143, 28, 0.35);
+}
+
+.room-identity-save:disabled {
+  opacity: 0.65;
+  cursor: default;
+}
+
 .room-head-crest {
   display: grid;
   place-items: center;

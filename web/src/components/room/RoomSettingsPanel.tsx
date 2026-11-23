@@ -6,6 +6,7 @@ import { ROOM_COVERS, coverValue } from './roomCovers';
 import type { RoomData, RoomMemberEntry, RoomStaff } from './types';
 
 export interface RoomSettingsPatch {
+  name?: string;
   background?: string;
   coverUrl?: string;
   musicUrl?: string;

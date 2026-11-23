@@ -19,6 +19,7 @@ import { MicSeat, type RoomMic } from '../components/room/MicSeat';
 import { RoomMembersPanel, type PresenceUser } from '../components/room/RoomMembersPanel';
 import { RoomInvitePanel } from '../components/room/RoomInvitePanel';
 import { RoomSettingsPanel, type RoomSettingsPatch } from '../components/room/RoomSettingsPanel';
+import { RoomIdentitySheet, type RoomIdentityPatch } from '../components/room/RoomIdentitySheet';
 import { RoomMusicPanel } from '../components/room/RoomMusicPanel';
 import { RoomChatPanel } from '../components/room/RoomChatPanel';
 import { RoomCup } from '../components/room/RoomCup';
@@ -40,7 +41,7 @@ import {
 import { UserProfileCard } from '../components/profile/UserProfileCard';
 import { UserProfileScreen } from '../components/profile/UserProfileScreen';
 
-type Panel = 'chat' | 'members' | 'invite' | 'settings' | 'music' | null;
+type Panel = 'chat' | 'members' | 'invite' | 'settings' | 'music' | 'identity' | null;
 
 /** A worn frame plus the local moment it disappears (server time converted once). */
 type LiveFrame = WornFrame & { endsAt: number };
@@ -469,6 +470,15 @@ export default function Room() {
     toast.push('تم تحديث إعدادات الغرفة', 'success');
   };
 
+  const saveIdentity = async (patch: RoomIdentityPatch) => {
+    const response = await api<{ room: RoomData }>(`/rooms/${id}/settings`, {
+      method: 'POST',
+      body: patch,
+    });
+    setRoom(response.room);
+    toast.push('تم تحديث هوية الغرفة', 'success');
+  };
+
   const saveMusic = async (musicUrl: string) => {
     const response = await api<{ room: RoomData }>(`/rooms/${id}/settings`, {
       method: 'POST',
@@ -681,6 +691,7 @@ export default function Room() {
             canManage={room.canManage}
             onBack={leaveRoom}
             onSettings={() => setPanel('settings')}
+            onIdentity={() => setPanel('identity')}
             onMembers={() => setPanel('members')}
             onStore={() => void openStore()}
           />
@@ -821,6 +832,12 @@ export default function Room() {
             onPurchase={(tierId) => void buyUpgrade(tierId)}
           />
           <RoomInvitePanel open={panel === 'invite'} onClose={() => setPanel(null)} roomId={id} />
+          <RoomIdentitySheet
+            open={panel === 'identity'}
+            onClose={() => setPanel(null)}
+            room={room}
+            onSave={saveIdentity}
+          />
           <RoomSettingsPanel
             open={panel === 'settings'}
             onClose={() => setPanel(null)}

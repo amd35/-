@@ -853,6 +853,19 @@ router.post(
     const access = await roomAccess(roomId, me, room.owner_id);
     if (!access.canManage) throw new HttpError(403, 'Only room management can do this', 'not_manager');
 
+    const name = req.body?.name === undefined ? null : String(req.body.name).trim().slice(0, 60);
+    if (name !== null && name.length < 2) throw new HttpError(400, 'اسم الغرفة قصير جداً', 'missing_name');
+    if (name) {
+      const nameCheck = await moderateTextForUser({ userId: me, text: name, surface: 'room' });
+      if (!nameCheck.allowed) {
+        throw new HttpError(422, nameCheck.reason || 'اسم الغرفة مخالف لسياسة السلامة', 'content_blocked', {
+          category: nameCheck.category,
+          strike: nameCheck.strike,
+          until: nameCheck.until,
+        });
+      }
+    }
+
     const background = req.body?.background === undefined ? null : String(req.body.background).slice(0, 500);
     const coverUrl = req.body?.coverUrl === undefined ? null : String(req.body.coverUrl).trim().slice(0, 500);
     const musicUrl =
@@ -862,13 +875,14 @@ router.post(
 
     await q(
       `UPDATE rooms SET
+         name = COALESCE(NULLIF($7, ''), name),
          background = COALESCE($2, background),
          cover_url = CASE WHEN $3::text IS NULL THEN cover_url ELSE NULLIF($3, '') END,
          music_url = CASE WHEN $4::text IS NULL THEN music_url ELSE NULLIF($4, '') END,
          country = COALESCE(NULLIF($5, ''), country),
          language = COALESCE(NULLIF($6, ''), language)
        WHERE id = $1`,
-      [roomId, background, coverUrl, musicUrl, country, language]
+      [roomId, background, coverUrl, musicUrl, country, language, name]
     );
     broadcast('room', { roomId });
     res.json({ room: await getRoomDetail(roomId, me) });
