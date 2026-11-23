@@ -4,7 +4,7 @@ import { api, assetUrl } from '../lib/api';
 import { useAuth } from '../lib/auth';
 import { useI18n } from '../lib/i18n';
 import { useRealtime } from '../lib/realtime';
-import { Icon, Spinner, useToast } from '../lib/ui';
+import { Icon, Sheet, Spinner, useToast } from '../lib/ui';
 import {
   RoomGiftSheet,
   type RoomMessageData,
@@ -24,7 +24,13 @@ import { RoomChatPanel } from '../components/room/RoomChatPanel';
 import { RoomCup } from '../components/room/RoomCup';
 import { RoomFramesSheet, type WornFrame } from '../components/room/RoomFramesSheet';
 import { RoomStoreSheet } from '../components/room/RoomStoreSheet';
-import type { RoomCapacity, RoomData, RoomMemberEntry, RoomStoreData } from '../components/room/types';
+import type {
+  RoomCapacity,
+  RoomData,
+  RoomMemberEntry,
+  RoomStaff,
+  RoomStoreData,
+} from '../components/room/types';
 import { useRoomVoice } from '../lib/roomVoice';
 import { useVoiceModeration, voiceModerationSupported } from '../lib/voiceModeration';
 import {
@@ -50,6 +56,8 @@ export default function Room() {
   const [room, setRoom] = useState<RoomData | null>(null);
   const [loading, setLoading] = useState(true);
   const [busyMic, setBusyMic] = useState<string | null>(null);
+  const [micPrompt, setMicPrompt] = useState<{ kind: 'take' | 'leave'; mic: RoomMic } | null>(null);
+  const [joinPrompt, setJoinPrompt] = useState<RoomMic | null>(null);
   const [messages, setMessages] = useState<RoomMessageData[]>([]);
   const [sending, setSending] = useState(false);
   const [giftOpen, setGiftOpen] = useState(false);
@@ -122,6 +130,8 @@ export default function Room() {
   useEffect(() => {
     void load();
   }, [load]);
+
+
 
   useEffect(() => {
     api<{ messages: RoomMessageData[] }>(`/rooms/${id}/messages`)
@@ -263,7 +273,7 @@ export default function Room() {
 
   // The member list is fetched when the panel opens and whenever membership changes.
   useEffect(() => {
-    if (panel === 'members') void loadMembers();
+    if (panel === 'members' || panel === 'settings') void loadMembers();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [panel, id]);
 
@@ -346,6 +356,35 @@ export default function Room() {
     } finally {
       setBusyMic(null);
     }
+  };
+
+  /** Tapping a free seat asks first: «اصعد الآن» or «إلغاء». */
+  const requestMic = (mic: RoomMic) => {
+    if (mic.user && !mic.mine) {
+      toast.push(t('micBusy'), 'error');
+      return;
+    }
+    if (mic.isLocked) {
+      toast.push('هذا المايك مقفل — لا يمكنك الجلوس عليه', 'error');
+      return;
+    }
+    // Non-members join the room first; the sheet offers «انضم الآن» once.
+    if (!room?.member && !room?.canManage) {
+      setJoinPrompt(mic);
+      return;
+    }
+    setMicPrompt({ kind: 'take', mic });
+  };
+
+  /** Tapping your own avatar on a seat asks before stepping down: «نزول» or «إلغاء». */
+  const requestLeaveMic = (mic: RoomMic) => {
+    setMicPrompt({ kind: 'leave', mic });
+  };
+
+  const confirmMicPrompt = async () => {
+    const prompt = micPrompt;
+    setMicPrompt(null);
+    if (prompt) await act(prompt.mic);
   };
 
   const toggleMute = async (mic: RoomMic) => {
@@ -432,21 +471,18 @@ export default function Room() {
   };
 
   const setRole = async (userId: string, role: 'admin' | 'supervisor' | null) => {
-    try {
-      const response = await api<{ room: RoomData }>(`/rooms/${id}/roles`, {
-        method: 'POST',
-        body: { userId, role },
-      });
-      setRoom(response.room);
-      void loadMembers();
-    } catch (error) {
-      toast.push((error as Error).message, 'error');
-    }
+    const response = await api<{ room: RoomData }>(`/rooms/${id}/roles`, {
+      method: 'POST',
+      body: { userId, role },
+    });
+    setRoom(response.room);
+    void loadMembers();
   };
 
   type MembershipSnapshot = {
     members: RoomMemberEntry[];
     capacity: RoomCapacity;
+    staff: RoomStaff;
     liked: boolean;
     likes: number;
     member: boolean;
@@ -459,6 +495,7 @@ export default function Room() {
         ? {
             ...current,
             capacity: snapshot.capacity,
+            staff: snapshot.staff,
             liked: snapshot.liked,
             likes: snapshot.likes,
             member: snapshot.member,
@@ -475,12 +512,13 @@ export default function Room() {
     }
   };
 
-  const joinMembership = async () => {
-    if (memberBusy) return;
+  const joinMembership = async (): Promise<boolean> => {
+    if (memberBusy) return false;
     setMemberBusy(true);
     try {
       applyMembership(await api<MembershipSnapshot>(`/rooms/${id}/members/join`, { method: 'POST' }));
       toast.push('أصبحت عضواً في الغرفة', 'success');
+      return true;
     } catch (error) {
       const code = (error as { code?: string }).code;
       toast.push(
@@ -489,6 +527,7 @@ export default function Room() {
           : (error as Error).message,
         'error'
       );
+      return false;
     } finally {
       setMemberBusy(false);
     }
@@ -569,8 +608,8 @@ export default function Room() {
       return;
     }
     const free = room?.mics.find((mic) => !mic.user && !mic.isLocked);
-    if (free) void act(free);
-    else toast.push(t('micBusy'), 'error');
+    if (free) requestMic(free);
+    else toast.push('لا يوجد مايك متاح الآن', 'error');
   };
 
   // Frame recipients: everyone sitting on a mic, since they are the ones with
@@ -587,7 +626,8 @@ export default function Room() {
     [room]
   );
 
-  const occupied = presence.length || room?.mics.filter((mic) => mic.user).length || 0;
+  // Seats taken on stage — the same number the seat grid shows.
+  const occupied = room?.mics.filter((mic) => mic.user).length ?? 0;
   const speakers =
     room?.mics
       .filter((mic) => mic.user && mic.user.id !== me?.user.id)
@@ -660,8 +700,8 @@ export default function Room() {
                 level={voice.levels[mic.user?.id ?? ''] ?? 0}
                 busy={busyMic === mic.id}
                 canModerate={room.canModerate}
-                onTake={() => void act(mic)}
-                onLeave={() => void act(mic)}
+                onTake={() => requestMic(mic)}
+                onLeave={() => requestLeaveMic(mic)}
                 onMute={() => void toggleMute(mic)}
                 onKick={() => void kickMic(mic)}
                 onLock={() => void lockMic(mic)}
@@ -743,6 +783,7 @@ export default function Room() {
             members={members}
             visitors={presence.filter((user) => !members.some((member) => member.id === user.id))}
             capacity={room.capacity}
+            staff={room.staff}
             liked={room.liked}
             likes={room.likes}
             isMember={room.member}
@@ -752,7 +793,9 @@ export default function Room() {
             onJoin={() => void joinMembership()}
             onLeave={() => void leaveMembership()}
             onToggleLike={() => void toggleLike()}
-            onSetRole={(userId, role) => void setRole(userId, role)}
+            onSetRole={(userId, role) => {
+              setRole(userId, role).catch((error: Error) => toast.push(error.message, 'error'));
+            }}
             onRemove={(userId) => void removeMember(userId)}
             onOpenStore={() => {
               setPanel(null);
@@ -772,7 +815,10 @@ export default function Room() {
             open={panel === 'settings'}
             onClose={() => setPanel(null)}
             room={room}
+            members={members}
+            staff={room.staff}
             onSave={saveSettings}
+            onSetRole={setRole}
           />
           <RoomMusicPanel
             open={panel === 'music'}
@@ -804,6 +850,66 @@ export default function Room() {
           />
         </>
       ) : null}
+
+      {/* Not a member yet: «انضم الآن» joins the room, then the mic sheet opens. */}
+      <Sheet
+        open={Boolean(joinPrompt)}
+        onClose={() => setJoinPrompt(null)}
+        title="الانضمام إلى الغرفة"
+        center
+      >
+        <p className="room-mic-confirm-text">
+          {room?.name
+            ? `يجب أن تكون عضواً في غرفة «${room.name}» للصعود على المايك.`
+            : 'يجب أن تكون عضواً في الغرفة للصعود على المايك.'}
+        </p>
+        <div className="room-mic-confirm-actions">
+          <button
+            type="button"
+            className="btn btn-primary"
+            disabled={memberBusy}
+            onClick={() => {
+              const mic = joinPrompt;
+              setJoinPrompt(null);
+              void (async () => {
+                if (await joinMembership() && mic) setMicPrompt({ kind: 'take', mic });
+              })();
+            }}
+          >
+            انضم الآن
+          </button>
+          <button type="button" className="btn btn-ghost" onClick={() => setJoinPrompt(null)}>
+            إلغاء
+          </button>
+        </div>
+      </Sheet>
+
+      {/* Sitting on a mic: «اصعد الآن» / «إلغاء»، والنزول: «نزول» / «إلغاء». */}
+      <Sheet
+        open={Boolean(micPrompt)}
+        onClose={() => setMicPrompt(null)}
+        title={micPrompt?.kind === 'leave' ? 'النزول من المايك' : 'الصعود إلى المايك'}
+        center
+      >
+        <p className="room-mic-confirm-text">
+          {micPrompt?.kind === 'leave'
+            ? 'هل تريد النزول من المايك؟'
+            : `المايك ${micPrompt?.mic.position ?? ''} — هل تريد الصعود الآن؟`}
+        </p>
+        <div className="room-mic-confirm-actions">
+          <button
+            type="button"
+            className="btn btn-primary"
+            onClick={() => void confirmMicPrompt()}
+            disabled={Boolean(busyMic)}
+          >
+            {micPrompt?.kind === 'leave' ? 'نزول' : 'اصعد الآن'}
+          </button>
+          <button type="button" className="btn btn-ghost" onClick={() => setMicPrompt(null)}>
+            إلغاء
+          </button>
+        </div>
+      </Sheet>
 
       {profileUserId ? (
         <UserProfileCard

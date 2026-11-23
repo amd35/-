@@ -1,5 +1,5 @@
 import { Avatar, Icon, Sheet } from '../../lib/ui';
-import type { RoomCapacity, RoomMemberEntry } from './types';
+import type { RoomCapacity, RoomMemberEntry, RoomStaff } from './types';
 
 export interface PresenceUser {
   id: string;
@@ -29,6 +29,7 @@ export function RoomMembersPanel({
   members,
   visitors,
   capacity,
+  staff,
   liked,
   likes,
   isMember,
@@ -47,6 +48,7 @@ export function RoomMembersPanel({
   members: RoomMemberEntry[];
   visitors: PresenceUser[];
   capacity: RoomCapacity;
+  staff: RoomStaff;
   liked: boolean;
   likes: number;
   isMember: boolean;
@@ -62,6 +64,8 @@ export function RoomMembersPanel({
 }) {
   const full = capacity.count >= capacity.limit;
   const percent = Math.min(100, Math.round((capacity.count / Math.max(1, capacity.limit)) * 100));
+  const supervisorsFull = staff.supervisorCount >= staff.supervisorLimit;
+  const viceFull = staff.viceCount >= staff.viceLimit;
 
   return (
     <Sheet open={open} onClose={onClose} title="أعضاء الغرفة">
@@ -81,6 +85,14 @@ export function RoomMembersPanel({
           <span className="tiny muted">
             {capacity.tierName ? `الترقية الحالية: ${capacity.tierName}` : 'الغرفة المجانية تستوعب 1000 عضو'}
             {full ? ' — الغرفة ممتلئة، رقّي الغرفة أو أزل أعضاء' : ''}
+          </span>
+          <span className="room-staff-line">
+            <span>
+              <Icon name="shield" size={11} /> المشرفون {staff.supervisorCount}/{staff.supervisorLimit}
+            </span>
+            <span>
+              <Icon name="check" size={11} /> نواب المالك {staff.viceCount}/{staff.viceLimit}
+            </span>
           </span>
         </div>
 
@@ -125,6 +137,7 @@ export function RoomMembersPanel({
                   <button
                     type="button"
                     className={`chip${role === 'admin' ? ' on' : ''}`}
+                    disabled={viceFull && role !== 'admin'}
                     onClick={() => onSetRole(member.id, role === 'admin' ? null : 'admin')}
                   >
                     نائب المالك
@@ -132,6 +145,7 @@ export function RoomMembersPanel({
                   <button
                     type="button"
                     className={`chip${role === 'supervisor' ? ' on' : ''}`}
+                    disabled={supervisorsFull && role !== 'supervisor'}
                     onClick={() => onSetRole(member.id, role === 'supervisor' ? null : 'supervisor')}
                   >
                     مشرف

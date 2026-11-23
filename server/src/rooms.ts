@@ -3,7 +3,7 @@ import { one, q } from './db';
 import { activeRankFor, isOfficialAdmin } from './ranks';
 import { isOnline } from './realtime';
 import { activeRoomFrames } from './roomFrames';
-import { isRoomMember, roomCapacity, roomLikeState } from './roomMembers';
+import { isRoomMember, roomCapacity, roomLikeState, roomStaff } from './roomMembers';
 import {
   FRAME_FIELDS,
   RANK_FIELDS,
@@ -257,7 +257,7 @@ export async function roomOwner(ownerId: string | null) {
 export async function getRoomDetail(roomId: string, meId: string) {
   const room = await one<RoomRow>('SELECT * FROM rooms WHERE id = $1', [roomId]);
   if (!room || !room.is_active) throw new HttpError(404, 'Room not found', 'room_not_found');
-  const [mics, owner, access, roles, frames, capacity, like, member] = await Promise.all([
+  const [mics, owner, access, roles, frames, capacity, like, member, staff] = await Promise.all([
     roomMics(roomId, meId),
     roomOwner(room.owner_id),
     roomAccess(roomId, meId, room.owner_id),
@@ -266,6 +266,7 @@ export async function getRoomDetail(roomId: string, meId: string) {
     roomCapacity(roomId),
     roomLikeState(roomId, meId),
     isRoomMember(roomId, meId),
+    roomStaff(roomId),
   ]);
   return {
     ...serializeRoom(room),
@@ -275,6 +276,7 @@ export async function getRoomDetail(roomId: string, meId: string) {
     mics,
     frames,
     capacity,
+    staff,
     ...like,
     member,
   };

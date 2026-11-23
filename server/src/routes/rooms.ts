@@ -20,6 +20,7 @@ import {
   leaveRoomMember,
   removeRoomMember,
   roomMembershipSnapshot,
+  roomStaff,
   toggleRoomLike,
 } from '../roomMembers';
 import { purchaseRoomUpgrade, roomStoreSnapshot } from '../roomStore';
@@ -701,6 +702,26 @@ router.post(
     if (!role) {
       await q('DELETE FROM room_roles WHERE room_id = $1 AND user_id = $2', [roomId, userId]);
     } else if (role === 'admin' || role === 'supervisor') {
+      // Staff seats are limited by the room's level, so the panel cannot over-appoint.
+      const staff = await roomStaff(roomId);
+      const current = await one<{ role: string }>(
+        'SELECT role FROM room_roles WHERE room_id = $1 AND user_id = $2',
+        [roomId, userId]
+      );
+      if (current?.role !== role) {
+        const limit = role === 'admin' ? staff.viceLimit : staff.supervisorLimit;
+        const used = role === 'admin' ? staff.viceCount : staff.supervisorCount;
+        if (used >= limit) {
+          throw new HttpError(
+            409,
+            role === 'admin'
+              ? `الحد الأقصى لنواب المالك ${limit} — يُفتح عند وصول مستوى الغرفة إلى 40000`
+              : `الحد الأقصى للمشرفين ${limit} — رقّي الغرفة لزيادة عدد المشرفين`,
+            'staff_limit',
+            { role, limit, used, level: staff.level }
+          );
+        }
+      }
       await q(
         `INSERT INTO room_roles (room_id, user_id, role, granted_by)
          VALUES ($1, $2, $3, $4)
@@ -832,7 +853,8 @@ router.post(
     const access = await roomAccess(roomId, me, room.owner_id);
     if (!access.canManage) throw new HttpError(403, 'Only room management can do this', 'not_manager');
 
-    const background = req.body?.background === undefined ? null : String(req.body.background).slice(0, 300);
+    const background = req.body?.background === undefined ? null : String(req.body.background).slice(0, 500);
+    const coverUrl = req.body?.coverUrl === undefined ? null : String(req.body.coverUrl).trim().slice(0, 500);
     const musicUrl =
       req.body?.musicUrl === undefined ? null : String(req.body.musicUrl).trim().slice(0, 500) || '';
     const country = req.body?.country === undefined ? null : String(req.body.country).trim().slice(0, 60);
@@ -841,11 +863,12 @@ router.post(
     await q(
       `UPDATE rooms SET
          background = COALESCE($2, background),
-         music_url = CASE WHEN $3::text IS NULL THEN music_url ELSE NULLIF($3, '') END,
-         country = COALESCE(NULLIF($4, ''), country),
-         language = COALESCE(NULLIF($5, ''), language)
+         cover_url = CASE WHEN $3::text IS NULL THEN cover_url ELSE NULLIF($3, '') END,
+         music_url = CASE WHEN $4::text IS NULL THEN music_url ELSE NULLIF($4, '') END,
+         country = COALESCE(NULLIF($5, ''), country),
+         language = COALESCE(NULLIF($6, ''), language)
        WHERE id = $1`,
-      [roomId, background, musicUrl, country, language]
+      [roomId, background, coverUrl, musicUrl, country, language]
     );
     broadcast('room', { roomId });
     res.json({ room: await getRoomDetail(roomId, me) });

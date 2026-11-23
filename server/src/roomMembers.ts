@@ -14,6 +14,54 @@ import { HttpError } from './utils';
 /** Member limit of a room that has not bought any upgrade. */
 export const FREE_ROOM_CAPACITY = 1000;
 
+/**
+ * Staff a room may appoint, by how much it has invested in upgrades (its «مستوى»):
+ * 7 supervisors at the start, 14 from level 2000, and 28 + 2 vice owners from 40000.
+ */
+export function staffLimitsForLevel(level: number) {
+  const value = Math.max(0, Number(level) || 0);
+  if (value >= 40000) return { level: value, supervisors: 28, viceOwners: 2 };
+  if (value >= 2000) return { level: value, supervisors: 14, viceOwners: 0 };
+  return { level: value, supervisors: 7, viceOwners: 0 };
+}
+
+/** The room's level: every diamond it spent on upgrades counts towards it. */
+export async function roomLevel(roomId: string): Promise<number> {
+  const row = await one<{ total: string }>(
+    'SELECT COALESCE(sum(price_paid), 0)::text AS total FROM room_upgrades WHERE room_id = $1',
+    [roomId]
+  );
+  return Number(row?.total ?? 0);
+}
+
+export interface RoomStaff {
+  level: number;
+  supervisorCount: number;
+  supervisorLimit: number;
+  viceCount: number;
+  viceLimit: number;
+}
+
+/** Current staff of the room next to the limits its level allows. */
+export async function roomStaff(roomId: string): Promise<RoomStaff> {
+  const [level, counts] = await Promise.all([
+    roomLevel(roomId),
+    q<{ role: string; total: string }>(
+      'SELECT role, count(*)::text AS total FROM room_roles WHERE room_id = $1 GROUP BY role',
+      [roomId]
+    ),
+  ]);
+  const limits = staffLimitsForLevel(level);
+  const used = (role: string) => Number(counts.find((row) => row.role === role)?.total ?? 0);
+  return {
+    level: limits.level,
+    supervisorCount: used('supervisor'),
+    supervisorLimit: limits.supervisors,
+    viceCount: used('admin'),
+    viceLimit: limits.viceOwners,
+  };
+}
+
 export type RoomMemberRole = 'owner' | 'admin' | 'supervisor' | 'member';
 
 export interface RoomCapacity {
@@ -225,11 +273,12 @@ export async function toggleRoomLike(roomId: string, userId: string) {
 
 /** Members list + capacity + heart state, everything the member panel needs. */
 export async function roomMembershipSnapshot(roomId: string, meId: string) {
-  const [members, capacity, likes, member] = await Promise.all([
+  const [members, capacity, likes, member, staff] = await Promise.all([
     roomMembers(roomId),
     roomCapacity(roomId),
     roomLikeState(roomId, meId),
     isRoomMember(roomId, meId),
+    roomStaff(roomId),
   ]);
-  return { members, capacity, ...likes, member };
+  return { members, capacity, staff, ...likes, member };
 }

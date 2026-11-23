@@ -709,7 +709,8 @@ ALTER TABLE rooms ADD COLUMN IF NOT EXISTS owner_id uuid REFERENCES users(id) ON
 ALTER TABLE rooms ADD COLUMN IF NOT EXISTS created_by uuid REFERENCES users(id) ON DELETE SET NULL;
 ALTER TABLE rooms ADD COLUMN IF NOT EXISTS background text NOT NULL DEFAULT 'fire';
 -- Mic seat design chosen from the admin panel (transparent variants + accent color).
-ALTER TABLE rooms ADD COLUMN IF NOT EXISTS mic_style text NOT NULL DEFAULT 'fire';
+ALTER TABLE rooms ADD COLUMN IF NOT EXISTS mic_style text NOT NULL DEFAULT 'glass';
+ALTER TABLE rooms ALTER COLUMN mic_style SET DEFAULT 'glass';
 ALTER TABLE rooms ADD COLUMN IF NOT EXISTS mic_color text NOT NULL DEFAULT '#ff3b0f';
 ALTER TABLE rooms ADD COLUMN IF NOT EXISTS music_url text;
 ALTER TABLE rooms ADD COLUMN IF NOT EXISTS country text NOT NULL DEFAULT 'العراق';

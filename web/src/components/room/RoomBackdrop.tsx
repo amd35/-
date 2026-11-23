@@ -1,4 +1,6 @@
 import { useId } from 'react';
+import { assetUrl } from '../../lib/api';
+import { coverUrlFor } from './roomCovers';
 
 /**
  * Animated stage behind a voice room. Pure CSS/SVG so it costs no image or
@@ -17,6 +19,7 @@ export function isRoomDesign(value: string): boolean {
 }
 
 function mediaKind(url: string): 'video' | 'image' | null {
+  if (coverUrlFor(url)) return 'image';
   if (!/^(https?:\/\/|\/uploads\/)/i.test(url)) return null;
   if (/\.(mp4|webm|ogg|mov)(\?.*)?$/i.test(url)) return 'video';
   return 'image';
@@ -75,21 +78,26 @@ export function RoomWings({ className }: { className?: string }) {
 export function RoomBackdrop({ background, effects = true }: { background: string; effects?: boolean }) {
   const media = mediaKind(background);
   const design = media ? 'fire' : isRoomDesign(background) ? background : 'fire';
+  const mediaSrc = coverUrlFor(background) ?? assetUrl(background) ?? background;
 
   return (
-    <div className={`room-bg room-bg-${design}${effects ? ' fx' : ''}`} aria-hidden="true">
+    <div
+      className={`room-bg room-bg-${design}${media ? ' has-media' : ''}${effects ? ' fx' : ''}`}
+      aria-hidden="true"
+    >
       {media === 'video' ? (
-        <video className="room-bg-media" src={background} autoPlay muted loop playsInline />
+        <video className="room-bg-media" src={mediaSrc} autoPlay muted loop playsInline />
       ) : media === 'image' ? (
-        <img className="room-bg-media" src={background} alt="" />
+        <img className="room-bg-media" src={mediaSrc} alt="" />
       ) : null}
 
       <span className="room-bg-fire" />
       <span className="room-bg-smoke" />
 
-      <RoomWings className="room-bg-wings" />
+      {/* A real photo cover stays clean: no painted wings or embers over it. */}
+      {media ? null : <RoomWings className="room-bg-wings" />}
 
-      {effects ? (
+      {effects && !media ? (
         <span className="room-bg-embers">
           {Array.from({ length: 16 }).map((_, index) => (
             <i

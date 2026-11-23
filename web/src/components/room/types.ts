@@ -13,6 +13,15 @@ export interface RoomRoleEntry {
 
 export type RoomMemberRole = 'owner' | 'admin' | 'supervisor' | 'member';
 
+/** Staff the room may appoint, by the level its upgrades gave it. */
+export interface RoomStaff {
+  level: number;
+  supervisorCount: number;
+  supervisorLimit: number;
+  viceCount: number;
+  viceLimit: number;
+}
+
 /** Members stored for the room vs. the limit the owned upgrade allows. */
 export interface RoomCapacity {
   count: number;
@@ -83,6 +92,7 @@ export interface RoomData {
   /** Frames still running in this room (server clock). */
   frames: RoomFrameWear[];
   capacity: RoomCapacity;
+  staff: RoomStaff;
   /** Is the caller a stored member of this room? */
   member: boolean;
   liked: boolean;

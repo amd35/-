@@ -7885,16 +7885,19 @@ table.data tr:hover td {
   border-radius: 50%;
   padding: 0;
   overflow: visible;
-  border: 1.5px solid transparent;
+  border: 1.5px solid rgba(255, 255, 255, 0.42);
+  /* Transparent glass: the stage behind the seat stays visible through the ring. */
   background:
-    radial-gradient(circle at 34% 24%, rgba(255, 255, 255, 0.26), transparent 46%) padding-box,
-    radial-gradient(circle at 50% 122%, rgba(255, 82, 32, 0.5), transparent 70%) padding-box,
-    linear-gradient(180deg, rgba(184, 14, 36, 0.56), rgba(48, 3, 11, 0.62)) padding-box,
-    conic-gradient(from 0deg, #ffe9a8, #c9922a, #ffd24a, #8a6508, #ffe9a8) border-box;
+    radial-gradient(circle at 32% 20%, rgba(255, 255, 255, 0.34), transparent 56%) padding-box,
+    linear-gradient(160deg, rgba(255, 255, 255, 0.22), rgba(255, 255, 255, 0.04) 58%, rgba(255, 255, 255, 0.16))
+      padding-box;
   box-shadow:
-    0 0 10px rgba(255, 170, 40, 0.38),
-    inset 0 0 12px rgba(255, 90, 31, 0.25);
-  backdrop-filter: blur(3px);
+    0 6px 16px rgba(0, 0, 0, 0.26),
+    inset 0 1px 1px rgba(255, 255, 255, 0.65),
+    inset 0 -6px 12px rgba(255, 255, 255, 0.09),
+    0 0 12px color-mix(in srgb, var(--mic-accent, #ffffff) 30%, transparent);
+  backdrop-filter: blur(10px) saturate(1.35);
+  -webkit-backdrop-filter: blur(10px) saturate(1.35);
   transition: transform 0.18s ease, box-shadow 0.18s ease;
 }
 
@@ -7994,10 +7997,17 @@ table.data tr:hover td {
 /* Transparent mic seat designs picked from the admin panel. */
 [data-mic-style='glass'] .seat-ring {
   background:
-    linear-gradient(rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.02)) padding-box,
-    conic-gradient(from 0deg, rgba(255, 255, 255, 0.9), rgba(255, 255, 255, 0.15), rgba(255, 255, 255, 0.9))
-      border-box;
-  box-shadow: 0 0 10px rgba(255, 255, 255, 0.18), inset 0 0 10px rgba(255, 255, 255, 0.12);
+    radial-gradient(circle at 30% 18%, rgba(255, 255, 255, 0.44), transparent 58%) padding-box,
+    linear-gradient(165deg, rgba(255, 255, 255, 0.26), rgba(255, 255, 255, 0.04) 62%, rgba(255, 255, 255, 0.18))
+      padding-box;
+  border-color: rgba(255, 255, 255, 0.58);
+  box-shadow:
+    0 8px 18px rgba(0, 0, 0, 0.3),
+    inset 0 1px 2px rgba(255, 255, 255, 0.78),
+    inset 0 -8px 14px rgba(255, 255, 255, 0.1),
+    0 0 16px rgba(255, 255, 255, 0.22);
+  backdrop-filter: blur(12px) saturate(1.5);
+  -webkit-backdrop-filter: blur(12px) saturate(1.5);
 }
 
 [data-mic-style='crystal'] .seat-ring {
@@ -11874,4 +11884,107 @@ button.ad-hit {
 
 .pill.off {
   opacity: 0.55;
+}
+
+/* --------------------------------------------- room cover gallery & staff */
+.room-cover-picker {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 6px;
+}
+
+.room-cover-option {
+  position: relative;
+  padding: 0;
+  aspect-ratio: 3 / 4;
+  overflow: hidden;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 207, 64, 0.25);
+  background: #12060c;
+  cursor: pointer;
+}
+
+.room-cover-option img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.room-cover-option span {
+  position: absolute;
+  inset-inline: 0;
+  bottom: 0;
+  padding: 3px 4px;
+  font-size: 9px;
+  font-weight: 800;
+  color: #fff;
+  background: linear-gradient(transparent, rgba(0, 0, 0, 0.88));
+}
+
+.room-cover-option.on {
+  border-color: #ffd75e;
+  box-shadow: 0 0 0 2px rgba(255, 207, 64, 0.55), 0 0 16px rgba(255, 90, 31, 0.45);
+}
+
+.room-cover-upload {
+  display: block;
+}
+
+.room-cover-upload .btn {
+  width: 100%;
+}
+
+.room-staff-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 11px;
+  font-weight: 800;
+  color: #ffd75e;
+}
+
+.room-staff-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-height: 34vh;
+  overflow-y: auto;
+}
+
+.room-staff-line {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  font-size: 10px;
+  font-weight: 700;
+  color: #ffd75e;
+}
+
+.room-settings-error {
+  margin: 0;
+  color: #ff8f8f;
+}
+
+.room-mic-confirm-text {
+  margin: 4px 0 12px;
+  font-size: 13px;
+  color: #f6ead9;
+  text-align: center;
+}
+
+.room-mic-confirm-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+/* A real photo cover keeps the photo visible under the stage. */
+.room-bg.has-media .room-bg-media {
+  opacity: 0.92;
+  filter: saturate(1.05) brightness(0.78);
+}
+
+.room-bg.has-media .room-bg-fire {
+  opacity: 0;
 }
