@@ -665,6 +665,7 @@ INSERT INTO app_settings (key, value) VALUES
   ('gift_announcement_scope', '"all"'::jsonb),
   ('gift_announcement_gift_ids', '[]'::jsonb),
   ('gift_announcement_rarity_effects', '{"common":"light","rare":"medium","epic":"strong","legendary":"strong","vip":"strong"}'::jsonb),
+  ('profile_show_balances', 'true'::jsonb),
   ('coin_to_usd_rate', '0.001'::jsonb),
   ('voice_price', '100'::jsonb),
   ('video_price', '100'::jsonb),

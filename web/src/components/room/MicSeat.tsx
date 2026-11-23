@@ -37,6 +37,7 @@ export function MicSeat({
   onMute,
   onKick,
   onLock,
+  onOpenProfile,
 }: {
   mic: RoomMic;
   level: number;
@@ -47,6 +48,8 @@ export function MicSeat({
   onMute: () => void;
   onKick: () => void;
   onLock: () => void;
+  /** Tapping someone else's avatar opens their quick profile card. */
+  onOpenProfile?: () => void;
 }) {
   const [menu, setMenu] = useState(false);
   const speaking = Boolean(mic.user) && !mic.muted && level > 0.14;
@@ -64,8 +67,8 @@ export function MicSeat({
       <button
         type="button"
         className="seat-hit"
-        onClick={() => (mic.mine ? onLeave() : mic.user ? undefined : onTake())}
-        disabled={busy || Boolean(mic.user && !mic.mine)}
+        onClick={() => (mic.mine ? onLeave() : mic.user ? onOpenProfile?.() : onTake())}
+        disabled={busy}
         aria-label={mic.user ? mic.user.displayName : `مايك ${mic.position}`}
       >
         <span className="seat-ring">

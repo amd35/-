@@ -63,12 +63,15 @@ export function RoomGiftSheet({
   roomId,
   speakers,
   onSent,
+  initialRecipientId,
 }: {
   open: boolean;
   onClose: () => void;
   roomId: string;
   speakers: RoomSpeaker[];
   onSent: (message: RoomMessageData) => void;
+  /** Preselects the person whose profile card opened the gift shop. */
+  initialRecipientId?: string | null;
 }) {
   const { t } = useI18n();
   const toast = useToast();
@@ -88,7 +91,7 @@ export function RoomGiftSheet({
     if (!open) return;
     setSelected(null);
     setQuantity(1);
-    setRecipientId((current) => current || firstSpeakerId);
+    setRecipientId((current) => initialRecipientId || current || firstSpeakerId);
     requestRef.current = '';
     setLoading(true);
     api<{ gifts: GiftItem[]; balance: number }>('/gifts')
@@ -98,7 +101,7 @@ export function RoomGiftSheet({
       })
       .catch((error: Error) => toast.push(error.message, 'error'))
       .finally(() => setLoading(false));
-  }, [open, firstSpeakerId, toast]);
+  }, [open, firstSpeakerId, initialRecipientId, toast]);
 
   const send = useCallback(async () => {
     if (!selected || !recipientId || sending) return;

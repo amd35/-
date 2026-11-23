@@ -20,6 +20,7 @@ interface SettingsResponse {
     gift_admin_percent: number;
     app_name: string;
     support_contact: string;
+    profile_show_balances: boolean;
   };
 }
 
@@ -161,6 +162,11 @@ export default function PricingTab() {
           checked={form.gifts_enabled}
           onChange={(value) => set('gifts_enabled', value)}
           label="تشغيل إرسال الهدايا داخل المحادثات"
+        />
+        <Toggle
+          checked={form.profile_show_balances}
+          onChange={(value) => set('profile_show_balances', value)}
+          label="إظهار رصيد الكونز للمستخدمين في بطاقة الملف الشخصي"
         />
         <button className="btn btn-primary" style={{ alignSelf: 'flex-start' }} onClick={() => void save()} disabled={busy}>
           حفظ الإعدادات

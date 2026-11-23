@@ -19,12 +19,14 @@ import { IdBadge, NameCard } from '../components/Cosmetics';
 import { RankTag } from '../components/RankBadge';
 import { LevelBadge, VipBadge, formatXp } from '../components/ProgressionBadges';
 import { ProfileCustomize } from '../components/ProfileCustomize';
+import { GiftGallery } from '../components/profile/GiftGallery';
 import type { UserCardData } from '../components/UserCard';
 
 interface ProfileResponse {
   user: UserCardData;
   counts: { friends: number; followers: number; following: number };
   earnings: { total: number; calls: number } | null;
+  gifts?: { count: number; coins: number };
   isSelf: boolean;
 }
 
@@ -230,6 +232,8 @@ export function Profile() {
             {t('earningsHint')}
           </p>
         </section>
+
+        <GiftGallery userId={me.user.id} />
 
         {requests.length > 0 ? (
           <section className="stack">
@@ -484,8 +488,8 @@ export function UserProfile() {
               <span>{t('followers')}</span>
             </div>
             <div>
-              <b>{data.counts.following}</b>
-              <span>{t('followingCount')}</span>
+              <b>{formatCoins(data.gifts?.count ?? 0)}</b>
+              <span>الهدايا المستلمة</span>
             </div>
           </div>
         </section>
@@ -540,6 +544,8 @@ export function UserProfile() {
             </div>
           </section>
         ) : null}
+
+        <GiftGallery userId={user.id} />
       </div>
 
       <Sheet open={reportOpen} onClose={() => setReportOpen(false)} title={t('report')}>

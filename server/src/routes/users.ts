@@ -2,6 +2,7 @@ import { Router } from 'express';
 import { one, q, tx } from '../db';
 import { reqUser, requireAuth } from '../auth';
 import { getFreeCallState } from '../freecalls';
+import { getSettings } from '../settings';
 import { notify } from '../notify';
 import {
   FRAME_FIELDS,
@@ -187,6 +188,35 @@ router.get(
       [row.id]
     );
     const isSelf = row.id === me;
+    // Received-gift totals power the profile card and the gift gallery header.
+    const gifts = await one<{ count: string; coins: string }>(
+      `SELECT COALESCE(SUM(quantity), 0)::text AS count,
+              COALESCE(SUM(coins), 0)::text AS coins
+       FROM gift_sends WHERE recipient_id = $1`,
+      [row.id]
+    );
+    // The admin decides whether a coin balance is public on someone's profile.
+    const settings = await getSettings();
+    const wallet =
+      isSelf || settings.profile_show_balances
+        ? await one<{ balance: string }>('SELECT balance FROM wallets WHERE user_id = $1', [row.id])
+        : null;
+    const frames = await q<{
+      id: string;
+      name: string;
+      design: string | null;
+      kind: string;
+      image_url: string | null;
+      rarity: string;
+    }>(
+      `SELECT f.id, f.name, f.design, f.kind, f.image_url, f.rarity
+       FROM user_avatar_frames uaf
+       JOIN avatar_frames f ON f.id = uaf.frame_id AND f.is_active = true
+       WHERE uaf.user_id = $1 AND (uaf.expires_at IS NULL OR uaf.expires_at > now())
+       ORDER BY f.sort_order, f.price
+       LIMIT 40`,
+      [row.id]
+    );
     res.json({
       user: decorate(row),
       counts: {
@@ -197,7 +227,96 @@ router.get(
       earnings: isSelf
         ? { total: Number(earnings?.total || 0), calls: Number(earnings?.calls || 0) }
         : null,
+      gifts: { count: Number(gifts?.count || 0), coins: Number(gifts?.coins || 0) },
+      balances: wallet ? { coins: Number(wallet.balance || 0) } : null,
+      frames: frames.map((frame) => ({
+        id: frame.id,
+        name: frame.name,
+        design: frame.design,
+        kind: frame.kind,
+        imageUrl: frame.image_url,
+        rarity: frame.rarity,
+      })),
       isSelf,
+    });
+  })
+);
+
+/**
+ * The permanent gift gallery of one user: every gift they received, grouped by
+ * gift with its copy count, latest sender and latest date, plus the totals.
+ */
+router.get(
+  '/:id/gifts',
+  requireAuth(),
+  asyncHandler(async (req, res) => {
+    const me = reqUser(req).id;
+    const targetId = req.params.id;
+    // Same visibility rule as the profile itself: a block hides the gallery too.
+    const visible = await one(
+      `SELECT 1 FROM users u
+       WHERE u.id = $1
+         AND NOT EXISTS (
+           SELECT 1 FROM blocked_users b
+           WHERE (b.user_id = $2 AND b.blocked_id = u.id)
+              OR (b.user_id = u.id AND b.blocked_id = $2)
+         )`,
+      [targetId, me]
+    );
+    if (!visible) throw new HttpError(404, 'User not found', 'user_not_found');
+    const rows = await q<{
+      gift_id: string;
+      name: string;
+      name_en: string;
+      design: string | null;
+      video_url: string | null;
+      cover_url: string | null;
+      rarity: string;
+      count: string;
+      coins: string;
+      last_at: string;
+      last_sender_name: string | null;
+      last_sender_avatar: string | null;
+    }>(
+      `SELECT g.id AS gift_id, g.name, g.name_en, g.design, g.video_url, g.cover_url, g.rarity,
+              COALESCE(SUM(s.quantity), 0)::text AS count,
+              COALESCE(SUM(s.coins), 0)::text AS coins,
+              MAX(s.created_at) AS last_at,
+              (array_agg(u.display_name ORDER BY s.created_at DESC))[1] AS last_sender_name,
+              (array_agg(u.avatar_url ORDER BY s.created_at DESC))[1] AS last_sender_avatar
+       FROM gift_sends s
+       JOIN gifts g ON g.id = s.gift_id
+       JOIN users u ON u.id = s.sender_id
+       WHERE s.recipient_id = $1
+       GROUP BY g.id
+       ORDER BY MAX(s.created_at) DESC
+       LIMIT 200`,
+      [targetId]
+    );
+    const totals = rows.reduce(
+      (sum, row) => ({
+        count: sum.count + Number(row.count || 0),
+        coins: sum.coins + Number(row.coins || 0),
+      }),
+      { count: 0, coins: 0 }
+    );
+    res.json({
+      items: rows.map((row) => ({
+        giftId: row.gift_id,
+        name: row.name,
+        nameEn: row.name_en,
+        design: row.design,
+        videoUrl: row.video_url,
+        coverUrl: row.cover_url,
+        rarity: row.rarity,
+        count: Number(row.count || 0),
+        coins: Number(row.coins || 0),
+        lastReceivedAt: row.last_at,
+        lastSender: row.last_sender_name
+          ? { displayName: row.last_sender_name, avatarUrl: row.last_sender_avatar }
+          : null,
+      })),
+      totals,
     });
   })
 );

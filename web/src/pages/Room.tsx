@@ -29,6 +29,8 @@ import {
   RoomGiftAnnouncement,
   type GiftAnnouncement,
 } from '../components/room/RoomGiftAnnouncement';
+import { UserProfileCard } from '../components/profile/UserProfileCard';
+import { UserProfileScreen } from '../components/profile/UserProfileScreen';
 
 type Panel = 'chat' | 'members' | 'invite' | 'settings' | 'music' | null;
 
@@ -46,6 +48,9 @@ export default function Room() {
   const [messages, setMessages] = useState<RoomMessageData[]>([]);
   const [sending, setSending] = useState(false);
   const [giftOpen, setGiftOpen] = useState(false);
+  const [giftTarget, setGiftTarget] = useState<string | null>(null);
+  const [profileUserId, setProfileUserId] = useState<string | null>(null);
+  const [fullProfileId, setFullProfileId] = useState<string | null>(null);
   const [announcement, setAnnouncement] = useState<GiftAnnouncement | null>(null);
   const [panel, setPanel] = useState<Panel>(null);
   const [presence, setPresence] = useState<PresenceUser[]>([]);
@@ -444,6 +449,7 @@ export default function Room() {
                 onMute={() => void toggleMute(mic)}
                 onKick={() => void kickMic(mic)}
                 onLock={() => void lockMic(mic)}
+                onOpenProfile={() => mic.user && setProfileUserId(mic.user.id)}
               />
             ))}
           </section>
@@ -528,12 +534,36 @@ export default function Room() {
           />
           <RoomGiftSheet
             open={giftOpen}
-            onClose={() => setGiftOpen(false)}
+            onClose={() => {
+              setGiftOpen(false);
+              setGiftTarget(null);
+            }}
             roomId={id}
             speakers={speakers}
+            initialRecipientId={giftTarget}
             onSent={(message) => append(message)}
           />
         </>
+      ) : null}
+
+      {profileUserId ? (
+        <UserProfileCard
+          userId={profileUserId}
+          onClose={() => setProfileUserId(null)}
+          onSendGift={(userId) => {
+            setProfileUserId(null);
+            setGiftTarget(userId);
+            setGiftOpen(true);
+          }}
+          onOpenFull={(userId) => {
+            setProfileUserId(null);
+            setFullProfileId(userId);
+          }}
+        />
+      ) : null}
+
+      {fullProfileId ? (
+        <UserProfileScreen userId={fullProfileId} onClose={() => setFullProfileId(null)} />
       ) : null}
     </div>
   );
