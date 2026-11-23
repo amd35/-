@@ -76,7 +76,7 @@ router.post(
 
     const room = await tx(async (client) => {
       const inserted = await client.query<RoomRow>(
-        'INSERT INTO rooms (name, description, owner_id, created_by) VALUES ($1, $2, $3, $3) RETURNING *',
+        'INSERT INTO rooms (name, description, owner_id, created_by, code) VALUES ($1, $2, $3, $3, (SELECT username FROM users WHERE id = $3)) RETURNING *',
         [name, description, me]
       );
       const created = inserted.rows[0];

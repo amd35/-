@@ -715,6 +715,9 @@ ALTER TABLE rooms ADD COLUMN IF NOT EXISTS mic_color text NOT NULL DEFAULT '#ff3
 ALTER TABLE rooms ADD COLUMN IF NOT EXISTS music_url text;
 ALTER TABLE rooms ADD COLUMN IF NOT EXISTS country text NOT NULL DEFAULT 'العراق';
 ALTER TABLE rooms ADD COLUMN IF NOT EXISTS language text NOT NULL DEFAULT 'العربية';
+-- The room's public ID is its owner's account ID (one number for both).
+ALTER TABLE rooms ADD COLUMN IF NOT EXISTS code text;
+UPDATE rooms r SET code = u.username FROM users u WHERE u.id = r.owner_id AND (r.code IS NULL OR r.code = '');
 
 -- Delegated room staff: 'admin' runs the room, 'supervisor' moderates mics and chat.
 CREATE TABLE IF NOT EXISTS room_roles (

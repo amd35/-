@@ -27,6 +27,7 @@ export const MIC_STYLES = ['fire', 'glass', 'crystal', 'neon', 'gold', 'ice'] as
 
 export interface RoomRow {
   id: string;
+  code: string | null;
   name: string;
   description: string;
   cover_url: string | null;
@@ -104,7 +105,7 @@ export function roomCode(id: string): string {
 export function serializeRoom(row: RoomRow) {
   return {
     id: row.id,
-    code: roomCode(row.id),
+    code: row.code || roomCode(row.id),
     name: row.name,
     description: row.description,
     coverUrl: row.cover_url,
