@@ -1,0 +1,77 @@
+/* Country picker — CountryPicker.tsx */
+.country-field {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  text-align: start;
+  cursor: pointer;
+  font: inherit;
+}
+
+.country-flag {
+  font-size: 20px;
+  line-height: 1;
+}
+
+.country-field-name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.country-code {
+  font-size: 12px;
+  opacity: 0.65;
+  letter-spacing: 0.4px;
+  font-variant-numeric: tabular-nums;
+}
+
+.country-search {
+  margin-bottom: 10px;
+}
+
+.country-list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  max-height: 58vh;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.country-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: transparent;
+  border: 1px solid transparent;
+  color: inherit;
+  font: inherit;
+  text-align: start;
+  cursor: pointer;
+}
+
+.country-row:hover,
+.country-row.active {
+  background: rgba(255, 255, 255, 0.06);
+  border-color: rgba(255, 255, 255, 0.12);
+}
+
+.country-row-name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.country-row-code,
+.country-row-dial {
+  font-size: 12px;
+  opacity: 0.65;
+  font-variant-numeric: tabular-nums;
+}

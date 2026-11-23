@@ -4,6 +4,7 @@ import { api } from '../lib/api';
 import { useAuth } from '../lib/auth';
 import { useI18n } from '../lib/i18n';
 import { Icon, useToast } from '../lib/ui';
+import { CountryPicker } from '../components/CountryPicker';
 
 function AuthHeader({ title, subtitle }: { title: string; subtitle: string }) {
   const navigate = useNavigate();
@@ -109,6 +110,7 @@ export function Register() {
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
   const [password, setPassword] = useState('');
+  const [country, setCountry] = useState('IQ');
   const [otpSent, setOtpSent] = useState(false);
   const [code, setCode] = useState('');
   const [phoneToken, setPhoneToken] = useState('');
@@ -170,6 +172,7 @@ export function Register() {
       await register({
         displayName: name,
         password,
+        country,
         email: mode === 'email' ? email : undefined,
         phone: mode === 'phone' ? phone : undefined,
         phoneToken: mode === 'phone' ? phoneToken : undefined,
@@ -251,6 +254,8 @@ export function Register() {
             ) : null}
           </div>
         )}
+
+        <CountryPicker value={country} onChange={setCountry} label={t('country')} />
 
         <div className="field">
           <label>{t('password')}</label>

@@ -15,6 +15,7 @@ import { CurrencyIcon } from '../CurrencyIcon';
 import { NameCard } from '../Cosmetics';
 import { rankName } from '../RankBadge';
 import { LevelBadge, formatXp } from '../ProgressionBadges';
+import { countryFlag, countryName } from '../../lib/countries';
 import {
   CrownSvg,
   EditSvg,
@@ -281,6 +282,11 @@ export function ProfileHero({
         ) : null}
         <h3 className="rp-card-title">{title}</h3>
         <p className="rp-card-bio">{me.user.bio || t('noBio')}</p>
+        {me.user.country ? (
+          <span className="rp-card-meta">
+            {countryFlag(me.user.country)} {countryName(me.user.country, lang)}
+          </span>
+        ) : null}
         {joined ? (
           <span className="rp-card-meta">
             <Icon name="clock" size={12} /> {t('joined')}: {joined}

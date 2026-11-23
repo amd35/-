@@ -4,6 +4,8 @@ import { Icon, useToast } from '../../lib/ui';
 import { AdminCard, Empty, Field, Toggle, useAdminData } from './shared';
 import { ROOM_BACKGROUNDS } from '../room/RoomBackdrop';
 import { MIC_COLORS, MIC_STYLES } from '../room/micStyles';
+import { CountryPicker } from '../CountryPicker';
+import { findCountry } from '../../lib/countries';
 
 interface AdminMic {
   id: string;
@@ -41,7 +43,7 @@ const EMPTY_FORM = {
   background: 'fire',
   micStyle: 'fire',
   micColor: '#ff3b0f',
-  country: 'العراق',
+  country: 'IQ',
   language: 'العربية',
   micCount: 5,
 };
@@ -77,7 +79,7 @@ export default function RoomsTab() {
       background: room.background ?? 'fire',
       micStyle: room.micStyle ?? 'fire',
       micColor: room.micColor ?? '#ff3b0f',
-      country: room.country ?? 'العراق',
+      country: findCountry(room.country)?.code ?? 'IQ',
       language: room.language ?? 'العربية',
       micCount: room.mics.length,
     });
@@ -314,13 +316,11 @@ export default function RoomsTab() {
             />
           </Field>
           <div className="admin-grid-2">
-            <Field label="الدولة">
-              <input
-                className="input"
-                value={form.country}
-                onChange={(event) => setForm({ ...form, country: event.target.value })}
-              />
-            </Field>
+            <CountryPicker
+              value={form.country}
+              onChange={(code) => setForm({ ...form, country: code })}
+              label="الدولة"
+            />
             <Field label="اللغة">
               <input
                 className="input"

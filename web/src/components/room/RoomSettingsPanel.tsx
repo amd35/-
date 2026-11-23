@@ -3,6 +3,8 @@ import { api } from '../../lib/api';
 import { Sheet } from '../../lib/ui';
 import { ROOM_BACKGROUNDS } from './RoomBackdrop';
 import { ROOM_COVERS, coverValue } from './roomCovers';
+import { CountryPicker } from '../CountryPicker';
+import { findCountry } from '../../lib/countries';
 import type { RoomData, RoomMemberEntry, RoomStaff } from './types';
 
 export interface RoomSettingsPatch {
@@ -42,7 +44,7 @@ export function RoomSettingsPanel({
   const [background, setBackground] = useState(room.background);
   const [coverUrl, setCoverUrl] = useState(room.coverUrl ?? '');
   const [custom, setCustom] = useState('');
-  const [country, setCountry] = useState(room.country);
+  const [country, setCountry] = useState(findCountry(room.country)?.code ?? 'IQ');
   const [language, setLanguage] = useState(room.language);
   const [busy, setBusy] = useState(false);
   const [uploading, setUploading] = useState(false);
@@ -54,7 +56,7 @@ export function RoomSettingsPanel({
     setBackground(room.background);
     setCoverUrl(room.coverUrl ?? '');
     setCustom(/^(https?:\/\/|\/uploads\/)/i.test(room.background) ? room.background : '');
-    setCountry(room.country);
+    setCountry(findCountry(room.country)?.code ?? 'IQ');
     setLanguage(room.language);
     setError('');
   }, [open, room]);
@@ -87,7 +89,7 @@ export function RoomSettingsPanel({
       await onSave({
         background: custom.trim() || background,
         coverUrl: custom.trim() || coverUrl || background,
-        country: country.trim() || 'العراق',
+        country: country || 'IQ',
         language: language.trim() || 'العربية',
       });
       onClose();
@@ -227,10 +229,7 @@ export function RoomSettingsPanel({
         </div>
 
         <div className="admin-grid-2">
-          <div>
-            <label className="room-field-label">الدولة</label>
-            <input className="input" value={country} onChange={(event) => setCountry(event.target.value)} />
-          </div>
+          <CountryPicker value={country} onChange={setCountry} label="الدولة" />
           <div>
             <label className="room-field-label">اللغة</label>
             <input className="input" value={language} onChange={(event) => setLanguage(event.target.value)} />

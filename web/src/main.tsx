@@ -11,6 +11,7 @@ import { setupNativeShell } from './lib/native';
 import './styles.css';
 import './game.css';
 import './lucky.css';
+import './country.css';
 
 void setupNativeShell();
 

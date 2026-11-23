@@ -20,6 +20,7 @@ import { ProfileHero, type ConnectionKind } from '../components/profile/ProfileH
 import { ConnectionsSheet } from '../components/profile/ConnectionsSheet';
 import { LevelBadge, VipBadge, formatXp } from '../components/ProgressionBadges';
 import { ProfileCustomize } from '../components/ProfileCustomize';
+import { CountryPicker } from '../components/CountryPicker';
 import { SecurityCenterSheet } from '../components/security/SecurityCenterSheet';
 import { GiftGallery } from '../components/profile/GiftGallery';
 import type { UserCardData } from '../components/UserCard';
@@ -47,6 +48,7 @@ export function Profile() {
   const [name, setName] = useState(me?.user.displayName ?? '');
   const [bio, setBio] = useState(me?.user.bio ?? '');
   const [age, setAge] = useState(me?.user.age ? String(me.user.age) : '');
+  const [country, setCountry] = useState(me?.user.country ?? 'IQ');
   const [busy, setBusy] = useState(false);
 
   const userId = me?.user.id;
@@ -66,6 +68,7 @@ export function Profile() {
     setName(me.user.displayName);
     setBio(me.user.bio ?? '');
     setAge(me.user.age ? String(me.user.age) : '');
+    setCountry(me.user.country ?? 'IQ');
     void loadStats();
   }, [userId, loadStats]);
 
@@ -99,7 +102,7 @@ export function Profile() {
     try {
       await api('/auth/me', {
         method: 'PATCH',
-        body: { displayName: name, bio, age: age ? Number(age) : undefined },
+        body: { displayName: name, bio, country, age: age ? Number(age) : undefined },
       });
       await refresh();
       setEditOpen(false);
@@ -314,6 +317,7 @@ export function Profile() {
               dir="ltr"
             />
           </div>
+          <CountryPicker value={country} onChange={setCountry} label={t('country')} />
           <div className="field">
             <label>{t('bio')}</label>
             <textarea className="textarea" value={bio} onChange={(event) => setBio(event.target.value)} />
