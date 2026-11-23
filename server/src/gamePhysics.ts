@@ -48,6 +48,8 @@ export interface ShotInput {
 
 export interface ShotOutcome {
   frames: number[][];
+  /** Milliseconds between two frames (clients interpolate between them). */
+  frameMs: number;
   pocketed: { id: string; color: StoneColor }[];
   foul: boolean;
   striker: { x: number; y: number };
@@ -66,6 +68,9 @@ interface Body {
 }
 
 const STEP = 1 / 60;
+/** Capture an animation frame every N physics steps (2 -> 30 fps source, clients interpolate). */
+const FRAME_STRIDE = 2;
+const FRAME_MS = Math.round(STEP * FRAME_STRIDE * 1000);
 const FRICTION = 0.992;
 const RESTITUTION = 0.92;
 const WALL_BOUNCE = 0.82;
@@ -198,13 +203,16 @@ export function simulateShot(state: MatchState, shooter: StoneColor, input: Shot
       }
     }
 
-    if (step % 3 === 0) snapshot();
-    if (foul || !bodies.some((body) => body.alive) || fastest < 10) break;
+    if (step % FRAME_STRIDE === 0) snapshot();
+    // Stop once nothing is visibly moving (16 units/s ~ 1.6% of the board per
+    // second) so the turn passes without a frozen tail at the end of a shot.
+    if (foul || !bodies.some((body) => body.alive) || fastest < 16) break;
   }
   snapshot();
 
   return {
     frames,
+    frameMs: FRAME_MS,
     pocketed,
     foul,
     striker: {

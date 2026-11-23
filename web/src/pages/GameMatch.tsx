@@ -87,7 +87,12 @@ export default function GameMatch() {
       if (String(data.matchId) !== id) return;
       const current = stateRef.current;
       if (!current) return;
-      setAnimation({ frames: data.frames as number[][], stones: current.stones, striker: current.striker });
+      setAnimation({
+        frames: data.frames as number[][],
+        stones: current.stones,
+        striker: current.striker,
+        frameMs: Number(data.frameMs) || undefined,
+      });
       pendingRef.current = data.state as MatchState;
     });
     const offMessage = on('game:message', (data) => {

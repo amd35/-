@@ -588,6 +588,7 @@ export async function shoot(userId: string, matchId: string, input: ShotInput) {
       players: players.rows.map((player) => player.user_id),
       shooter: me.user_id,
       frames: shot.frames,
+      frameMs: shot.frameMs,
       state,
       foul: shot.foul,
       finished,
@@ -600,6 +601,7 @@ export async function shoot(userId: string, matchId: string, input: ShotInput) {
     matchId,
     shooterId: outcome.shooter,
     frames: outcome.frames,
+    frameMs: outcome.frameMs,
     state: outcome.state,
     foul: outcome.foul,
   };
@@ -615,6 +617,7 @@ export async function shoot(userId: string, matchId: string, input: ShotInput) {
   }
   return {
     frames: outcome.frames,
+    frameMs: outcome.frameMs,
     state: outcome.state,
     foul: outcome.foul,
     finished: outcome.finished,
