@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { api } from '../lib/api';
 import { useAuth } from '../lib/auth';
 import { useI18n } from '../lib/i18n';
-import { Avatar, EmptyState, formatCoins, Icon, Sheet, Spinner, useToast } from '../lib/ui';
+import { Avatar, EmptyState, formatCoins, formatCoinsCompact, Icon, Sheet, Spinner, useToast } from '../lib/ui';
 import { AppShell } from '../components/AppShell';
 import type { FrameInfo } from '../components/AvatarFrame';
 import { CosmeticPreview, type CosmeticCategory } from '../components/Cosmetics';
@@ -176,7 +176,7 @@ export default function Frames() {
       right={
         <div className="inline">
           <span className="pill pill-green">
-            <Icon name="coins" size={12} /> {formatCoins(me?.wallet.balance ?? 0)}
+            <Icon name="coins" size={12} /> {formatCoinsCompact(me?.wallet.balance ?? 0)}
           </span>
           <button className="icon-btn" onClick={() => navigate(-1)} aria-label="back">
             <Icon name="arrowRight" size={19} />

@@ -2,7 +2,7 @@ import type { ReactNode } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../lib/auth';
 import { useI18n } from '../lib/i18n';
-import { formatCoins, Icon } from '../lib/ui';
+import { formatCoinsCompact, Icon } from '../lib/ui';
 
 const NAV = [
   { key: 'home', path: '/', icon: 'home' },
@@ -87,7 +87,7 @@ export function CoinPill({ balance }: { balance: number }) {
   return (
     <button className="pill pill-gold coin-chip" onClick={() => navigate('/wallet')} style={{ border: 'none' }}>
       <Icon name="coins" size={15} />
-      <span>{formatCoins(balance)}</span>
+      <span>{formatCoinsCompact(balance)}</span>
       <span className="coin-plus" aria-hidden="true">
         <Icon name="plus" size={11} />
       </span>

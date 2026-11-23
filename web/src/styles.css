@@ -136,6 +136,9 @@ p {
   font-size: 19px;
   font-weight: 700;
   letter-spacing: -0.2px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .topbar .sub {
@@ -151,6 +154,15 @@ p {
   display: flex;
   align-items: center;
   gap: 10px;
+  min-width: 0;
+}
+
+.brand > div {
+  min-width: 0;
+}
+
+.topbar .inline {
+  flex-shrink: 0;
 }
 
 .brand-mark {

@@ -510,6 +510,15 @@ export function formatCoins(value: number): string {
   return new Intl.NumberFormat('en-US').format(Math.round(value || 0));
 }
 
+/** Short form for header chips: 1.14B / 12.5M so the top bar never overflows. */
+export function formatCoinsCompact(value: number): string {
+  const n = Math.round(value || 0);
+  const trim = (num: number) => num.toFixed(2).replace(/\.?0+$/, '');
+  if (n >= 1_000_000_000) return `${trim(n / 1_000_000_000)}B`;
+  if (n >= 1_000_000) return `${trim(n / 1_000_000)}M`;
+  return formatCoins(n);
+}
+
 export function formatTimeAgo(value: string | Date | null | undefined, lang: 'ar' | 'en'): string {
   if (!value) return '';
   const date = new Date(value);
