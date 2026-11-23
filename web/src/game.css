@@ -503,9 +503,10 @@
   overflow: hidden;
   color: #fff;
   background:
-    radial-gradient(90% 55% at 50% -10%, rgba(255, 178, 44, 0.16), transparent 65%),
-    radial-gradient(90% 60% at 50% 115%, rgba(190, 30, 40, 0.16), transparent 70%),
-    #050204;
+    radial-gradient(120% 70% at 50% -20%, rgba(255, 178, 44, 0.18), transparent 60%),
+    radial-gradient(90% 60% at 50% 120%, rgba(150, 25, 45, 0.22), transparent 70%),
+    repeating-linear-gradient(90deg, rgba(255, 255, 255, 0.015) 0 2px, transparent 2px 7px),
+    linear-gradient(180deg, #0b0509, #050204 55%, #080309);
 }
 
 .gm-top {
@@ -629,7 +630,10 @@
   display: block;
   border-radius: 26px;
   touch-action: none;
-  box-shadow: 0 20px 44px rgba(0, 0, 0, 0.7), 0 0 0 1px rgba(255, 207, 64, 0.25);
+  box-shadow:
+    0 24px 48px rgba(0, 0, 0, 0.75),
+    0 0 0 1px rgba(255, 207, 64, 0.3),
+    0 0 34px rgba(255, 178, 44, 0.18);
 }
 
 .game-board.is-live {
