@@ -2,7 +2,7 @@
  * Royal profile screen — laid out in the reference order:
  * top bar (status + settings) → gold name plaque → framed avatar with wings
  * and a level ribbon → level / VIP / position badges → ID bar with copy →
- * identity card → VCoins & Beans balances → six counters → four actions.
+ * identity card → Diamond & Beans balances → six counters → four actions.
  *
  * Every figure comes from the signed-in account (`/auth/me` + `/users/:id`);
  * nothing here is placeholder data.
@@ -16,7 +16,6 @@ import { NameCard } from '../Cosmetics';
 import { rankName } from '../RankBadge';
 import { LevelBadge, formatXp } from '../ProgressionBadges';
 import {
-  CoinSvg,
   CrownSvg,
   EditSvg,
   GiftSvg,
@@ -280,10 +279,12 @@ export function ProfileHero({
 
       {/* 7 — balances */}
       <div className="rp-wallets">
-        <button className="rp-wallet is-coins" type="button" onClick={onWallet}>
+        <button className="rp-wallet is-gems" type="button" onClick={onWallet}>
           <span className="rp-wallet-head">
-            <CoinSvg className="rp-wallet-icon" />
-            <span className="rp-wallet-name">{t('vcoins')}</span>
+            <span className="rp-wallet-icon">
+              <CurrencyIcon code="DIAMOND" size={24} />
+            </span>
+            <span className="rp-wallet-name">{lang === 'ar' ? 'الماس' : 'Diamond'}</span>
           </span>
           <b className="rp-wallet-value">{formatCoins(me.wallet.balance)}</b>
           <span className="rp-wallet-plus" aria-hidden="true">
