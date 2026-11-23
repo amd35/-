@@ -18,6 +18,12 @@ import {
 } from '../serializers';
 import { GIFT_MESSAGE_FIELDS, GIFT_MESSAGE_JOINS, giftFromMessageRow } from '../gifts';
 import { awardXpSafe, getXpSettings } from '../progression';
+import {
+  markSupportReadByUser,
+  noteUserSupportMessage,
+  registerSupportConversation,
+  supportUserId,
+} from '../support';
 import { HttpError, asyncHandler, intParam } from '../utils';
 
 const router = Router();
@@ -49,6 +55,7 @@ router.get(
       `SELECT c.id, c.last_message_at,
               peer.id AS peer_id, peer.username AS peer_username, peer.display_name AS peer_name,
               peer.avatar_url AS peer_avatar, peer.last_seen_at AS peer_last_seen, peer.level AS peer_level,
+              peer.is_support AS peer_is_support,
               ${FRAME_FIELDS},
               ${RANK_FIELDS}, ${VIP_FIELDS},
               lm.body AS last_body, lm.type AS last_type, lm.sender_id AS last_sender,
@@ -67,7 +74,7 @@ router.get(
          FROM messages m WHERE m.conversation_id = c.id
          ORDER BY m.created_at DESC LIMIT 1
        ) lm ON true
-       ORDER BY c.last_message_at DESC
+       ORDER BY peer.is_support DESC, c.last_message_at DESC
        LIMIT 100`,
       [me]
     );
@@ -87,6 +94,7 @@ router.get(
           vip: vipFromRow(row),
           online: isOnline(row.peer_id),
           lastSeenAt: row.peer_last_seen,
+          isSupport: Boolean(row.peer_is_support),
         },
         lastMessage: row.last_at
           ? {
@@ -130,6 +138,9 @@ router.post(
       [me, peerId]
     );
     if (existing) {
+      if (peerId === (await supportUserId())) {
+        await registerSupportConversation(me, existing.id);
+      }
       res.json({ conversationId: existing.id, created: false });
       return;
     }
@@ -145,6 +156,9 @@ router.post(
       );
       return conversationId;
     });
+    if (peerId === (await supportUserId())) {
+      await registerSupportConversation(me, created);
+    }
     res.status(201).json({ conversationId: created, created: true });
   })
 );
@@ -160,7 +174,7 @@ router.get(
     const before = req.query.before ? String(req.query.before) : null;
     const params: unknown[] = [conversationId];
     let sql = `SELECT m.id, m.conversation_id, m.sender_id, m.body, m.type, m.attachment_url,
-                      m.attachment_name, m.created_at, m.read_at, ${GIFT_MESSAGE_FIELDS}
+                      m.attachment_name, m.created_at, m.delivered_at, m.read_at, ${GIFT_MESSAGE_FIELDS}
                FROM messages m ${GIFT_MESSAGE_JOINS}
                WHERE m.conversation_id = $1`;
     if (before) {
@@ -181,7 +195,7 @@ router.get(
       frame_image_url: string | null;
       frame_rarity: string | null;
     }>(
-      `SELECT u.id, u.username, u.level, u.display_name, u.avatar_url, u.last_seen_at, ${FRAME_FIELDS},
+      `SELECT u.id, u.username, u.level, u.display_name, u.avatar_url, u.last_seen_at, u.is_support, ${FRAME_FIELDS},
               ${RANK_FIELDS}, ${VIP_FIELDS}
        FROM conversation_members cm JOIN users u ON u.id = cm.user_id
        ${frameJoins('u')}
@@ -201,6 +215,7 @@ router.get(
           attachmentUrl: row.attachment_url,
           attachmentName: row.attachment_name,
           createdAt: row.created_at,
+          deliveredAt: row.delivered_at,
           readAt: row.read_at,
           mine: row.sender_id === me,
           gift: giftFromMessageRow(row),
@@ -234,7 +249,7 @@ router.post(
     }
 
     const body = String(req.body?.body || '').slice(0, 4000);
-    const type = ['text', 'image', 'file'].includes(String(req.body?.type))
+    const type = ['text', 'image', 'file', 'video', 'audio'].includes(String(req.body?.type))
       ? String(req.body.type)
       : 'text';
     const attachmentUrl = req.body?.attachmentUrl ? String(req.body.attachmentUrl) : null;
@@ -255,6 +270,16 @@ router.post(
       return rows[0];
     });
 
+    // The recipient is online, so the message is delivered the moment it is sent.
+    let deliveredAt: string | null = null;
+    if (peer && isOnline(peer.user_id)) {
+      const delivered = await one<{ delivered_at: string }>(
+        'UPDATE messages SET delivered_at = now() WHERE id = $1 RETURNING delivered_at',
+        [message.id]
+      );
+      deliveredAt = delivered?.delivered_at ?? null;
+    }
+
     const payload = {
       id: message.id,
       conversationId,
@@ -264,6 +289,7 @@ router.post(
       attachmentUrl: message.attachment_url,
       attachmentName: message.attachment_name,
       createdAt: message.created_at,
+      deliveredAt,
       readAt: null,
       mine: false,
     };
@@ -271,7 +297,15 @@ router.post(
     if (peer && peer.user_id === (await botUserId())) {
       scheduleBotReply(me, conversationId, body || attachmentName || '');
     }
-    if (peer) {
+    if (peer && peer.user_id === (await supportUserId())) {
+      // Support threads are answered from the admin panel, not by a chat participant.
+      await noteUserSupportMessage({
+        conversationId,
+        userId: me,
+        body: body || attachmentName || '',
+        type,
+      });
+    } else if (peer) {
       emitToUser(peer.user_id, 'message:new', payload);
       await notify(peer.user_id, 'message', 'رسالة جديدة', body.slice(0, 80), {
         conversationId,
@@ -301,11 +335,12 @@ router.post(
     const conversationId = req.params.id;
     await assertMember(conversationId, me);
     const rows = await q<{ sender_id: string }>(
-      `UPDATE messages SET read_at = now()
+      `UPDATE messages SET read_at = now(), delivered_at = COALESCE(delivered_at, now())
        WHERE conversation_id = $1 AND sender_id <> $2 AND read_at IS NULL
        RETURNING sender_id`,
       [conversationId, me]
     );
+    await markSupportReadByUser(conversationId);
     const senders = [...new Set(rows.map((row) => row.sender_id))];
     for (const sender of senders) {
       emitToUser(sender, 'message:read', { conversationId, readerId: me });
@@ -321,6 +356,13 @@ router.delete(
     const me = reqUser(req).id;
     const conversationId = req.params.id;
     await assertMember(conversationId, me);
+    const supportTicket = await one(
+      'SELECT 1 FROM support_tickets WHERE conversation_id = $1',
+      [conversationId]
+    );
+    if (supportTicket) {
+      throw new HttpError(403, 'لا يمكن حذف محادثة الدعم الفني', 'support_conversation');
+    }
     await q('DELETE FROM conversations WHERE id = $1', [conversationId]);
     res.json({ deleted: true });
   })

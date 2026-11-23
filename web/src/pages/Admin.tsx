@@ -28,9 +28,11 @@ import SecurityTab from '../components/admin/SecurityTab';
 import RoomsTab from '../components/admin/RoomsTab';
 import RoomCupTab from '../components/admin/RoomCupTab';
 import RoomFramesTab from '../components/admin/RoomFramesTab';
+import SupportTab from '../components/admin/SupportTab';
 
 const TABS = [
   { id: 'overview', label: 'نظرة عامة', icon: 'chart' },
+  { id: 'support', label: 'الدعم الفني', icon: 'shield' },
   { id: 'users', label: 'المستخدمون', icon: 'users' },
   { id: 'ranks', label: 'إدارة الرتب والبوكسات', icon: 'star' },
   { id: 'appearance', label: 'مظهر الإدارة', icon: 'sparkle' },
@@ -197,6 +199,7 @@ export default function Admin() {
         </div>
 
         {tab === 'overview' ? <Overview /> : null}
+        {tab === 'support' ? <SupportTab /> : null}
         {tab === 'users' ? <UsersTab /> : null}
         {tab === 'ranks' ? <RanksTab /> : null}
         {tab === 'appearance' ? <AdminLookTab /> : null}

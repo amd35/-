@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { api } from '../lib/api';
 import { useAuth } from '../lib/auth';
 import { useI18n } from '../lib/i18n';
@@ -38,11 +39,15 @@ const ICON_BY_TYPE: Record<string, string> = {
   withdrawal_requested: 'wallet',
   withdrawal_approved: 'check',
   withdrawal_rejected: 'alert',
+  support_reply: 'chat',
+  support_status: 'shield',
+  support_broadcast: 'bell',
 };
 
 export default function Notifications() {
   const { t, lang } = useI18n();
   const { refresh } = useAuth();
+  const navigate = useNavigate();
   const [items, setItems] = useState<NotificationRow[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -59,6 +64,26 @@ export default function Notifications() {
   useEffect(() => {
     void load();
   }, [load]);
+
+  const open = (item: NotificationRow) => {
+    if (!item.readAt) {
+      void api(`/notifications/${item.id}/read`, { method: 'POST' }).catch(() => undefined);
+      setItems((current) =>
+        current.map((row) => (row.id === item.id ? { ...row, readAt: new Date().toISOString() } : row))
+      );
+      void refresh();
+    }
+    const data = item.data ?? {};
+    if (item.type === 'support_reply' && typeof data.conversationId === 'string') {
+      navigate(`/chats/${data.conversationId}`);
+      return;
+    }
+    if (item.type === 'message' && typeof data.conversationId === 'string') {
+      navigate(`/chats/${data.conversationId}`);
+      return;
+    }
+    if (typeof data.link === 'string' && data.link.startsWith('/')) navigate(data.link);
+  };
 
   const markAll = async () => {
     await api('/notifications/read-all', { method: 'POST' }).catch(() => undefined);
@@ -87,7 +112,11 @@ export default function Notifications() {
               <div
                 key={item.id}
                 className="row static"
-                style={{ background: item.readAt ? undefined : 'rgba(214,51,132,0.09)' }}
+                style={{
+                  background: item.readAt ? undefined : 'rgba(214,51,132,0.09)',
+                  cursor: 'pointer',
+                }}
+                onClick={() => open(item)}
               >
                 <div className="icon-btn plain">
                   <Icon name={ICON_BY_TYPE[item.type] ?? 'bell'} size={18} />

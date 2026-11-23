@@ -11020,3 +11020,193 @@ button.ad-hit {
   object-fit: cover;
   display: block;
 }
+
+/* ---- Support: official badge, pinned entry, media and admin inbox ---- */
+.official-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 1px 7px;
+  border-radius: 999px;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.2px;
+  color: #fff;
+  background: linear-gradient(135deg, #22d3ee, #3b82f6);
+  vertical-align: middle;
+  white-space: nowrap;
+}
+
+.support-mark {
+  width: 46px;
+  height: 46px;
+  flex: 0 0 46px;
+  border-radius: 14px;
+  display: grid;
+  place-items: center;
+  color: #fff;
+  background: linear-gradient(135deg, #7c5cff, #22d3ee);
+  box-shadow: 0 10px 24px -14px rgba(124, 92, 255, 0.9);
+}
+
+.support-card {
+  border-color: rgba(34, 211, 238, 0.35);
+  background: linear-gradient(135deg, rgba(124, 92, 255, 0.14), rgba(34, 211, 238, 0.08));
+}
+
+.msg-media {
+  width: 100%;
+  max-width: 240px;
+  border-radius: 12px;
+  display: block;
+  background: #000;
+}
+
+.msg-audio {
+  width: 230px;
+  max-width: 100%;
+  height: 36px;
+}
+
+.tick {
+  opacity: 0.85;
+}
+
+.tick-read {
+  color: #38bdf8;
+  opacity: 1;
+}
+
+.tick-delivered {
+  color: rgba(255, 255, 255, 0.75);
+}
+
+.tick-sent {
+  color: rgba(255, 255, 255, 0.45);
+}
+
+.rec-btn.active {
+  background: #ef4444;
+  color: #fff;
+  animation: recPulse 1.1s ease-in-out infinite;
+}
+
+.rec-hint {
+  text-align: center;
+  font-size: 11.5px;
+  font-weight: 700;
+  color: #ff8fab;
+  padding: 4px 0 2px;
+}
+
+@keyframes recPulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.45); }
+  50% { box-shadow: 0 0 0 7px rgba(239, 68, 68, 0); }
+}
+
+.support-layout {
+  display: grid;
+  grid-template-columns: minmax(220px, 300px) 1fr;
+  gap: 12px;
+  align-items: start;
+}
+
+.support-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-height: 62vh;
+  overflow-y: auto;
+}
+
+.support-item {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  width: 100%;
+  padding: 10px;
+  border-radius: 14px;
+  border: 1px solid transparent;
+  background: rgba(255, 255, 255, 0.03);
+  color: inherit;
+  font: inherit;
+  text-align: start;
+  cursor: pointer;
+}
+
+.support-item.active {
+  border-color: rgba(214, 51, 132, 0.6);
+  background: rgba(214, 51, 132, 0.12);
+}
+
+.support-item .row-meta {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 4px;
+}
+
+.support-state {
+  font-size: 10px;
+  padding: 2px 7px;
+  border-radius: 999px;
+  font-weight: 700;
+}
+
+.support-state.open {
+  background: rgba(134, 239, 172, 0.16);
+  color: #86efac;
+}
+
+.support-state.closed {
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--muted);
+}
+
+.support-thread {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-height: 380px;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  padding: 10px;
+  background: rgba(0, 0, 0, 0.18);
+}
+
+.support-thread-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--line);
+}
+
+.support-messages {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  overflow-y: auto;
+  max-height: 52vh;
+  padding: 4px;
+}
+
+.support-composer {
+  display: flex;
+  align-items: flex-end;
+  gap: 8px;
+  border-top: 1px solid var(--line);
+  padding-top: 8px;
+}
+
+.support-composer .textarea {
+  flex: 1;
+  min-height: 40px;
+  resize: none;
+}
+
+@media (max-width: 860px) {
+  .support-layout {
+    grid-template-columns: 1fr;
+  }
+}

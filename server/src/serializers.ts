@@ -35,6 +35,8 @@ export interface PublicUser {
   level: number;
   /** Active VIP subscription, or null. Independent of the level. */
   vip: VipInfo | null;
+  /** The official support account — shows the verified support badge. */
+  isSupport: boolean;
 }
 
 interface VipColumns {
@@ -83,6 +85,7 @@ interface UserLike extends FrameColumns, RankColumns, VipColumns {
   created_at?: string | Date;
   phone_verified?: boolean | null;
   email_verified?: boolean | null;
+  is_support?: boolean | null;
 }
 
 /**
@@ -216,13 +219,14 @@ export function toPublicUser(row: UserLike): PublicUser {
     rank: rankFromRow(row),
     level: Number(row.level ?? 1) || 1,
     vip: vipFromRow(row),
+    isSupport: Boolean(row.is_support),
   };
 }
 
 export async function getPublicUser(userId: string): Promise<PublicUser | null> {
   const row = await one<UserLike>(
     `SELECT u.id, u.username, u.level, u.display_name, u.avatar_url, u.bio, u.gender, u.country, u.age,
-            u.last_seen_at, u.created_at, u.phone_verified, u.email_verified,
+            u.last_seen_at, u.created_at, u.phone_verified, u.email_verified, u.is_support,
             ${FRAME_FIELDS}, ${RANK_FIELDS}, ${VIP_FIELDS}
      FROM users u ${frameJoins('u')} ${rankJoins('u')} ${vipJoins('u')}
      WHERE u.id = $1`,

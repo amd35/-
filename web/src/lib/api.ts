@@ -94,8 +94,15 @@ export async function api<T = unknown>(path: string, options: RequestOptions = {
   return data as T;
 }
 
+export function wsAdminUrl(): string {
+  return wsUrlWith(getAdminToken() || '');
+}
+
 export function wsUrl(): string {
-  const token = getToken() || '';
+  return wsUrlWith(getToken() || '');
+}
+
+function wsUrlWith(token: string): string {
   const base = API_BASE ? new URL(API_BASE) : null;
   const protocol = (base ? base.protocol : window.location.protocol) === 'https:' ? 'wss' : 'ws';
   const host = base ? base.host : window.location.host;

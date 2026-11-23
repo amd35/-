@@ -31,6 +31,7 @@ interface Conversation {
     frame?: UserCardData['frame'];
     level?: number;
     vip?: VipInfo | null;
+    isSupport?: boolean;
   };
   lastMessage: { body: string; type: string; attachmentUrl: string | null; mine: boolean; createdAt: string } | null;
 }
@@ -129,15 +130,22 @@ export default function Chats() {
                     <LevelBadge level={conversation.peer.level ?? 1} size={13} />
                     <VipBadge vip={conversation.peer.vip} size={12} />
                     <span>{conversation.peer.displayName}</span>
+                    {conversation.peer.isSupport ? (
+                      <span className="official-badge">{t('officialBadge')}</span>
+                    ) : null}
                   </div>
                   <div className="row-sub">
                     {conversation.lastMessage
                       ? `${conversation.lastMessage.mine ? `${t('send')}: ` : ''}${
                           conversation.lastMessage.type === 'image'
                             ? `📷 ${t('photo')}`
-                            : conversation.lastMessage.type === 'file'
-                              ? `📎 ${t('file')}`
-                              : conversation.lastMessage.body
+                            : conversation.lastMessage.type === 'video'
+                              ? `🎬 ${t('videoMessage')}`
+                              : conversation.lastMessage.type === 'audio'
+                                ? `🎙️ ${t('voiceMessage')}`
+                                : conversation.lastMessage.type === 'file'
+                                  ? `📎 ${t('file')}`
+                                  : conversation.lastMessage.body
                         }`
                       : t('noChats')}
                   </div>

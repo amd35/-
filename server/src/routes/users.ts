@@ -48,7 +48,7 @@ const FEED_SELECT = `
   ${frameJoins('u')}
   ${rankJoins('u')}
   ${vipJoins('u')}
-  WHERE u.id <> $1 AND u.is_banned = false AND u.is_bot = false
+  WHERE u.id <> $1 AND u.is_banned = false AND u.is_bot = false AND u.is_support = false
     AND NOT EXISTS (
       SELECT 1 FROM blocked_users bb
       WHERE (bb.user_id = $1 AND bb.blocked_id = u.id)

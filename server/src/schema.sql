@@ -1398,6 +1398,41 @@ CREATE UNIQUE INDEX IF NOT EXISTS ad_events_daily_view_idx
   ON ad_events (ad_id, user_id, day) WHERE kind = 'view';
 CREATE INDEX IF NOT EXISTS ad_events_ad_idx ON ad_events (ad_id, created_at DESC);
 
+-- Official support account (one reserved row, hidden from discovery and pinned in chat).
+ALTER TABLE users ADD COLUMN IF NOT EXISTS is_support boolean NOT NULL DEFAULT false;
+
+-- Delivery receipt for chat messages: set when the recipient is online at send
+-- time or when the thread is opened. `read_at` still marks "seen".
+ALTER TABLE messages ADD COLUMN IF NOT EXISTS delivered_at timestamptz;
+
+-- One support ticket per user: the private conversation with the support account.
+-- `unread_admin` counts user messages the admin has not opened yet.
+CREATE TABLE IF NOT EXISTS support_tickets (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id uuid NOT NULL UNIQUE REFERENCES users(id) ON DELETE CASCADE,
+  conversation_id uuid NOT NULL REFERENCES conversations(id) ON DELETE CASCADE,
+  status text NOT NULL DEFAULT 'open',
+  subject text,
+  unread_admin integer NOT NULL DEFAULT 0,
+  unread_user integer NOT NULL DEFAULT 0,
+  last_message_at timestamptz NOT NULL DEFAULT now(),
+  created_at timestamptz NOT NULL DEFAULT now(),
+  closed_at timestamptz
+);
+CREATE INDEX IF NOT EXISTS support_tickets_status_idx ON support_tickets (status, last_message_at DESC);
+
+-- Audit trail of every support action (reply, broadcast, status change…).
+CREATE TABLE IF NOT EXISTS support_events (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  actor text NOT NULL,
+  action text NOT NULL,
+  ticket_id uuid,
+  user_id uuid,
+  detail text,
+  created_at timestamptz NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS support_events_created_idx ON support_events (created_at DESC);
+
 -- Deleting a frame from the admin panel must not erase the send/charge history,
 -- so the log keeps its own copy of the name and the catalog link may go away.
 ALTER TABLE room_frame_sends ADD COLUMN IF NOT EXISTS frame_name text NOT NULL DEFAULT '';

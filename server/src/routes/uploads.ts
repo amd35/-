@@ -23,6 +23,12 @@ const ALLOWED = new Set([
   '.m4a',
   '.ogg',
   '.webm',
+  '.wav',
+  '.aac',
+  '.mp4',
+  '.mov',
+  '.m4v',
+  '.3gp',
 ]);
 
 const storage = multer.diskStorage({
@@ -35,7 +41,7 @@ const storage = multer.diskStorage({
 
 export const upload = multer({
   storage,
-  limits: { fileSize: 8 * 1024 * 1024 },
+  limits: { fileSize: 25 * 1024 * 1024 },
   fileFilter: (_req, file, cb) => {
     const ext = path.extname(file.originalname).toLowerCase();
     if (!ALLOWED.has(ext)) {

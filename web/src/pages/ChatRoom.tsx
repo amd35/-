@@ -17,10 +17,11 @@ interface Message {
   conversationId: string;
   senderId: string;
   body: string;
-  type: 'text' | 'image' | 'file' | 'gift';
+  type: 'text' | 'image' | 'file' | 'video' | 'audio' | 'gift';
   attachmentUrl: string | null;
   attachmentName?: string | null;
   createdAt: string;
+  deliveredAt?: string | null;
   readAt: string | null;
   mine: boolean;
   gift?: GiftMessage['gift'];
@@ -37,6 +38,7 @@ interface Peer {
   rank?: RankInfo | null;
   level?: number;
   vip?: VipInfo | null;
+  isSupport?: boolean;
 }
 
 export default function ChatRoom() {
@@ -56,12 +58,14 @@ export default function ChatRoom() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [sending, setSending] = useState(false);
   const [giftOpen, setGiftOpen] = useState(false);
+  const [recording, setRecording] = useState(false);
   const [reveal, setReveal] = useState<{ gift: GiftVisual; senderName: string; recipientName?: string } | null>(
     null
   );
 
   const listRef = useRef<HTMLDivElement | null>(null);
   const fileRef = useRef<HTMLInputElement | null>(null);
+  const recorderRef = useRef<MediaRecorder | null>(null);
   const typingTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const lastTypingAt = useRef(0);
 
@@ -122,6 +126,16 @@ export default function ChatRoom() {
         )
       );
     });
+    const offDelivered = on('message:delivered', (data) => {
+      if (String(data.conversationId) !== id) return;
+      setMessages((current) =>
+        current.map((message) =>
+          message.mine && !message.deliveredAt
+            ? { ...message, deliveredAt: new Date().toISOString() }
+            : message
+        )
+      );
+    });
     const offTyping = on('chat:typing', (data) => {
       if (String(data.conversationId) !== id) return;
       setPeerTyping(true);
@@ -131,6 +145,7 @@ export default function ChatRoom() {
     return () => {
       offNew();
       offRead();
+      offDelivered();
       offTyping();
       if (typingTimer.current) clearTimeout(typingTimer.current);
     };
@@ -157,28 +172,83 @@ export default function ChatRoom() {
     }
   };
 
+  const sendAttachment = async (file: File) => {
+    if (!id) return;
+    const form = new FormData();
+    form.append('file', file);
+    const upload = await api<{ url: string; name: string; mime: string }>('/uploads', {
+      method: 'POST',
+      form,
+    });
+    const mime = upload.mime || file.type || '';
+    const type = mime.startsWith('image/')
+      ? 'image'
+      : mime.startsWith('video/')
+        ? 'video'
+        : mime.startsWith('audio/')
+          ? 'audio'
+          : 'file';
+    const response = await api<{ message: Message }>(`/chat/conversations/${id}/messages`, {
+      method: 'POST',
+      body: { body: '', type, attachmentUrl: upload.url, attachmentName: upload.name },
+    });
+    appendMessage({ ...response.message, mine: true });
+  };
+
   const onFile = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file || !id) return;
-    const form = new FormData();
-    form.append('file', file);
     try {
-      const upload = await api<{ url: string; name: string; mime: string }>('/uploads', {
-        method: 'POST',
-        form,
-      });
-      const type = upload.mime?.startsWith('image/') ? 'image' : 'file';
-      const response = await api<{ message: Message }>(`/chat/conversations/${id}/messages`, {
-        method: 'POST',
-        body: { body: '', type, attachmentUrl: upload.url, attachmentName: upload.name },
-      });
-      appendMessage({ ...response.message, mine: true });
+      await sendAttachment(file);
     } catch (error) {
       toast.push((error as Error).message, 'error');
     } finally {
       event.target.value = '';
     }
   };
+
+  const toggleRecord = async () => {
+    if (recording) {
+      recorderRef.current?.stop();
+      return;
+    }
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const recorder = new MediaRecorder(stream);
+      const chunks: BlobPart[] = [];
+      recorder.ondataavailable = (event) => {
+        if (event.data.size) chunks.push(event.data);
+      };
+      recorder.onstop = () => {
+        stream.getTracks().forEach((track) => track.stop());
+        setRecording(false);
+        const blob = new Blob(chunks, { type: recorder.mimeType || 'audio/webm' });
+        if (blob.size < 500) return;
+        const extension = blob.type.includes('ogg') ? 'ogg' : 'webm';
+        const file = new File([blob], `voice-${Date.now()}.${extension}`, {
+          type: blob.type || 'audio/webm',
+        });
+        void sendAttachment(file).catch((error: Error) => toast.push(error.message, 'error'));
+      };
+      recorder.start();
+      recorderRef.current = recorder;
+      setRecording(true);
+    } catch {
+      toast.push('تعذر الوصول إلى الميكروفون', 'error');
+    }
+  };
+
+  useEffect(
+    () => () => {
+      const recorder = recorderRef.current;
+      if (recorder && recorder.state !== 'inactive') {
+        recorder.onstop = null;
+        recorder.stop();
+        recorder.stream.getTracks().forEach((track) => track.stop());
+      }
+    },
+    []
+  );
 
   const onChangeText = (value: string) => {
     setText(value);
@@ -245,27 +315,32 @@ export default function ChatRoom() {
             <LevelBadge level={peer?.level ?? 1} size={14} />
             <VipBadge vip={peer?.vip} size={13} />
             <span>{peer?.displayName ?? t('loading')}</span>
+            {peer?.isSupport ? <span className="official-badge">{t('officialBadge')}</span> : null}
           </div>
           <div className="row-sub">
             {peerTyping ? '…' : isOnline ? t('onlineNow') : t('offline')}
           </div>
         </div>
-        <button
-          className="icon-btn"
-          onClick={() => callPeer('voice')}
-          aria-label="voice call"
-          disabled={!peer}
-        >
-          <Icon name="phone" size={18} />
-        </button>
-        <button
-          className="icon-btn"
-          onClick={() => callPeer('video')}
-          aria-label="video call"
-          disabled={!peer}
-        >
-          <Icon name="video" size={18} />
-        </button>
+        {!peer?.isSupport ? (
+          <>
+            <button
+              className="icon-btn"
+              onClick={() => callPeer('voice')}
+              aria-label="voice call"
+              disabled={!peer}
+            >
+              <Icon name="phone" size={18} />
+            </button>
+            <button
+              className="icon-btn"
+              onClick={() => callPeer('video')}
+              aria-label="video call"
+              disabled={!peer}
+            >
+              <Icon name="video" size={18} />
+            </button>
+          </>
+        ) : null}
         <button className="icon-btn" onClick={() => setMenuOpen(true)} aria-label="menu">
           <Icon name="settings" size={18} />
         </button>
@@ -338,6 +413,12 @@ export default function ChatRoom() {
               {message.type === 'image' && message.attachmentUrl ? (
                 <img src={assetUrl(message.attachmentUrl)} alt={message.attachmentName || 'image'} />
               ) : null}
+              {message.type === 'video' && message.attachmentUrl ? (
+                <video className="msg-media" src={assetUrl(message.attachmentUrl)} controls playsInline />
+              ) : null}
+              {message.type === 'audio' && message.attachmentUrl ? (
+                <audio className="msg-audio" src={assetUrl(message.attachmentUrl)} controls />
+              ) : null}
               {message.type === 'file' && message.attachmentUrl ? (
                 <a href={assetUrl(message.attachmentUrl)} target="_blank" rel="noreferrer" className="inline">
                   <Icon name="package" size={16} /> {message.attachmentName || t('file')}
@@ -347,7 +428,13 @@ export default function ChatRoom() {
               <div className="msg-meta">
                 <span>{formatClock(message.createdAt)}</span>
                 {message.mine ? (
-                  <Icon name={message.readAt ? 'checkCheck' : 'check'} size={13} />
+                  <Icon
+                    name={message.readAt || message.deliveredAt ? 'checkCheck' : 'check'}
+                    size={13}
+                    className={
+                      message.readAt ? 'tick tick-read' : message.deliveredAt ? 'tick tick-delivered' : 'tick tick-sent'
+                    }
+                  />
                 ) : null}
               </div>
             </div>
@@ -362,12 +449,13 @@ export default function ChatRoom() {
         ) : null}
       </div>
 
+      {recording ? <div className="rec-hint">{t('recording')}</div> : null}
       <form className="composer" onSubmit={submit}>
         <input
           ref={fileRef}
           type="file"
           hidden
-          accept="image/*,.pdf,.doc,.docx,.txt"
+          accept="image/*,video/*,audio/*,.pdf,.doc,.docx,.txt"
           onChange={(event) => void onFile(event)}
         />
         <button
@@ -399,6 +487,16 @@ export default function ChatRoom() {
             }
           }}
         />
+        <button
+          type="button"
+          className={`icon-btn ${recording ? 'rec-btn active' : ''}`}
+          onClick={() => void toggleRecord()}
+          aria-label={t('recordVoice')}
+          title={recording ? t('recording') : t('recordVoice')}
+          disabled={!peer}
+        >
+          <Icon name={recording ? 'micOff' : 'mic'} size={19} />
+        </button>
         <button className="send-btn" disabled={!text.trim() || sending} aria-label="send">
           <Icon name="send" size={19} />
         </button>
@@ -432,15 +530,23 @@ export default function ChatRoom() {
 
       <Sheet open={menuOpen} onClose={() => setMenuOpen(false)} title={peer?.displayName}>
         <div className="stack">
-          <button className="btn btn-ghost btn-block" onClick={() => void blockPeer()}>
-            <Icon name="ban" size={17} /> {t('block')}
-          </button>
-          <button className="btn btn-ghost btn-block" onClick={() => void reportPeer()}>
-            <Icon name="alert" size={17} /> {t('report')}
-          </button>
-          <button className="btn btn-danger btn-block" onClick={() => void deleteConversation()}>
-            <Icon name="trash" size={17} /> {t('deleteChat')}
-          </button>
+          {peer?.isSupport ? (
+            <div className="tiny muted center" style={{ padding: '10px 4px' }}>
+              هذه محادثة الدعم الفني الرسمية — تُحفظ تلقائياً ولا يمكن حذفها.
+            </div>
+          ) : (
+            <>
+              <button className="btn btn-ghost btn-block" onClick={() => void blockPeer()}>
+                <Icon name="ban" size={17} /> {t('block')}
+              </button>
+              <button className="btn btn-ghost btn-block" onClick={() => void reportPeer()}>
+                <Icon name="alert" size={17} /> {t('report')}
+              </button>
+              <button className="btn btn-danger btn-block" onClick={() => void deleteConversation()}>
+                <Icon name="trash" size={17} /> {t('deleteChat')}
+              </button>
+            </>
+          )}
         </div>
       </Sheet>
     </div>

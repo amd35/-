@@ -41,7 +41,8 @@ export function isOnline(userId: string): boolean {
 }
 
 export function onlineUserIds(): string[] {
-  return [...byUser.keys()];
+  // Admin panel sockets are keyed `admin:<id>`; they are not app users.
+  return [...byUser.keys()].filter((id) => !id.startsWith('admin:'));
 }
 
 export function emitToUser(userId: string, event: string, data: unknown): void {
@@ -52,6 +53,14 @@ export function emitToUser(userId: string, event: string, data: unknown): void {
 
 export function emitToUsers(userIds: string[], event: string, data: unknown): void {
   for (const userId of new Set(userIds)) emitToUser(userId, event, data);
+}
+
+/** Pushes an event to every connected admin panel socket. */
+export function emitToAdmins(event: string, data: unknown): void {
+  for (const [id, clients] of byUser) {
+    if (!id.startsWith('admin:')) continue;
+    for (const client of clients) send(client.ws, event, data);
+  }
 }
 
 export function broadcast(event: string, data: unknown): void {
@@ -65,12 +74,20 @@ export function attachRealtime(server: Server): void {
 
   wss.on('connection', (ws, req) => {
     let userId: string;
+    let isAdmin = false;
     try {
       const url = new URL(req.url || '/', 'http://localhost');
       const token = url.searchParams.get('token') || '';
       const payload = verifyToken(token);
-      if (payload.kind !== 'user') throw new Error('not a user token');
-      userId = payload.sub;
+      if (payload.kind === 'admin') {
+        // Admin panels listen for support events; they are not chat participants.
+        userId = `admin:${payload.sub}`;
+        isAdmin = true;
+      } else if (payload.kind === 'user') {
+        userId = payload.sub;
+      } else {
+        throw new Error('unknown token kind');
+      }
     } catch {
       ws.close(4001, 'unauthorized');
       return;
@@ -82,8 +99,8 @@ export function attachRealtime(server: Server): void {
     if (!byUser.has(userId)) byUser.set(userId, new Set());
     byUser.get(userId)!.add(client);
 
-    send(ws, 'ready', { userId, onlineUserIds: onlineUserIds() });
-    if (firstConnection) {
+    send(ws, 'ready', { userId, onlineUserIds: isAdmin ? [] : onlineUserIds() });
+    if (!isAdmin && firstConnection) {
       void q('UPDATE users SET last_seen_at = now() WHERE id = $1', [userId]);
       broadcast('presence', { userId, online: true });
     }
@@ -93,6 +110,7 @@ export function attachRealtime(server: Server): void {
     });
 
     ws.on('message', (raw) => {
+      if (isAdmin) return;
       let parsed: { event?: string; data?: Record<string, unknown> };
       try {
         parsed = JSON.parse(String(raw));
@@ -122,8 +140,10 @@ export function attachRealtime(server: Server): void {
       set.delete(client);
       if (set.size === 0) {
         byUser.delete(userId);
-        void q('UPDATE users SET last_seen_at = now() WHERE id = $1', [userId]);
-        broadcast('presence', { userId, online: false, lastSeenAt: new Date().toISOString() });
+        if (!isAdmin) {
+          void q('UPDATE users SET last_seen_at = now() WHERE id = $1', [userId]);
+          broadcast('presence', { userId, online: false, lastSeenAt: new Date().toISOString() });
+        }
       }
     });
 
