@@ -1,6 +1,6 @@
 import { one, q } from './db';
 import { endCall, acceptCall, cancelCall, inviteCall, rejectCall, type CallKind } from './calls';
-import { onSocketEvent, onSocketClose, emitToUser, emitToUsers } from './realtime';
+import { broadcast, onSocketEvent, onSocketClose, emitToUser, emitToUsers } from './realtime';
 import { assertCapability } from './security/service';
 import { isUuid } from './utils';
 
@@ -132,6 +132,19 @@ export function registerSocketHandlers(): void {
     return true;
   };
 
+  /**
+   * The seat goes with the account: once the user has no socket left in the
+   * room, their mic is released so nobody stays seated after leaving.
+   */
+  const releaseSeats = async (roomId: string, userId: string) => {
+    if (roomPresence.get(roomId)?.has(userId)) return;
+    const released = await q(
+      'UPDATE room_mics SET user_id = NULL, joined_at = NULL, muted = false WHERE room_id = $1 AND user_id = $2 RETURNING id',
+      [roomId, userId]
+    );
+    if (released.length) broadcast('room', { roomId });
+  };
+
   onSocketEvent('room:join', async ({ userId, data, client }) => {
     const roomId = String(data.roomId || '');
     if (!roomId) return;
@@ -142,7 +155,10 @@ export function registerSocketHandlers(): void {
     // A socket that switches rooms leaves the previous one first.
     for (const previous of [...(clientRooms.get(client.id) ?? [])]) {
       if (previous === roomId) continue;
-      if (leaveRoom(client.id, previous, userId)) void pushPresence(previous);
+      if (leaveRoom(client.id, previous, userId)) {
+        void pushPresence(previous);
+        void releaseSeats(previous, userId);
+      }
     }
     const joined = clientRooms.get(client.id) ?? new Set<string>();
     const first = !joined.has(roomId);
@@ -155,7 +171,9 @@ export function registerSocketHandlers(): void {
   onSocketEvent('room:leave', async ({ userId, data, client }) => {
     const roomId = String(data.roomId || '');
     if (!roomId) return;
-    if (leaveRoom(client.id, roomId, userId)) await pushPresence(roomId);
+    if (!leaveRoom(client.id, roomId, userId)) return;
+    await pushPresence(roomId);
+    await releaseSeats(roomId, userId);
   });
 
   // WebRTC audio signaling between room members (server only relays).
@@ -171,7 +189,10 @@ export function registerSocketHandlers(): void {
   onSocketClose((userId, clientId) => {
     const rooms = [...(clientRooms.get(clientId) ?? [])];
     for (const roomId of rooms) {
-      if (leaveRoom(clientId, roomId, userId)) void pushPresence(roomId);
+      if (!leaveRoom(clientId, roomId, userId)) continue;
+      void pushPresence(roomId);
+      // Closing the app also leaves the room, so the seat is freed with it.
+      void releaseSeats(roomId, userId);
     }
   });
 

@@ -95,6 +95,7 @@ export default function Room() {
   const entryShown = useRef(false);
   const [showEntry, setShowEntry] = useState(false);
   const [safetyMonitor, setSafetyMonitor] = useState(false);
+  const [saveBusy, setSaveBusy] = useState(false);
 
   const entryCosmetic = me?.cosmetics?.entry ?? null;
   const myMic = room?.mics.find((mic) => mic.mine) ?? null;
@@ -645,6 +646,22 @@ export default function Room() {
     }
   };
 
+  /** «حفظ الغرفة»: pins the room so it keeps floating with the account. */
+  const toggleSave = async () => {
+    if (saveBusy) return;
+    setSaveBusy(true);
+    try {
+      const state = await api<{ saved: boolean }>(`/rooms/${id}/save`, { method: 'POST' });
+      setRoom((current) => (current ? { ...current, saved: state.saved } : current));
+      window.dispatchEvent(new Event('rooms:saved'));
+      toast.push(state.saved ? 'تم حفظ الغرفة — تبقى معك' : 'تم إزالة الغرفة المحفوظة', 'success');
+    } catch (error) {
+      toast.push((error as Error).message, 'error');
+    } finally {
+      setSaveBusy(false);
+    }
+  };
+
   const toggleLike = async () => {
     try {
       const state = await api<{ liked: boolean; likes: number }>(`/rooms/${id}/like`, { method: 'POST' });
@@ -849,12 +866,36 @@ export default function Room() {
         />
       ) : null}
 
+      {room && !loading ? (
+        <button
+          type="button"
+          className={`room-save-bubble${room.saved ? ' on' : ''}`}
+          onClick={() => void toggleSave()}
+          aria-pressed={room.saved}
+          aria-label={room.saved ? 'الغرفة محفوظة' : 'حفظ الغرفة'}
+        >
+          <span className="room-save-ring">
+            {room.avatarUrl ?? room.coverUrl ? (
+              <img src={assetUrl((room.avatarUrl ?? room.coverUrl) as string)} alt="" />
+            ) : (
+              <Icon name="heart" size={20} fill="currentColor" />
+            )}
+            {room.saved ? (
+              <span className="room-save-check" aria-hidden="true">
+                ✓
+              </span>
+            ) : null}
+          </span>
+          <span className="room-save-label">{room.saved ? 'محفوظة' : 'حفظ الغرفة'}</span>
+        </button>
+      ) : null}
+
       {myMic && voiceModerationSupported() ? (
         <button
           type="button"
           className="btn btn-ghost btn-sm"
           title="بموافقتك يُحوَّل كلامك إلى نص لفحص المخالفات فقط"
-          style={{ position: 'fixed', insetInlineStart: 12, bottom: 92, zIndex: 40, fontSize: 11 }}
+          style={{ position: 'fixed', insetInlineEnd: 12, bottom: 92, zIndex: 40, fontSize: 11 }}
           onClick={() => setSafetyMonitor((value) => !value)}
         >
           <Icon name="shield" size={14} /> {safetyMonitor ? 'إيقاف مراقبة السلامة' : 'مراقبة السلامة الصوتية'}

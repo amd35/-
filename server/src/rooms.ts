@@ -263,7 +263,7 @@ export async function roomOwner(ownerId: string | null) {
 export async function getRoomDetail(roomId: string, meId: string) {
   const room = await one<RoomRow>('SELECT * FROM rooms WHERE id = $1', [roomId]);
   if (!room || !room.is_active) throw new HttpError(404, 'Room not found', 'room_not_found');
-  const [mics, owner, access, roles, frames, capacity, like, member, staff] = await Promise.all([
+  const [mics, owner, access, roles, frames, capacity, like, member, staff, save] = await Promise.all([
     roomMics(roomId, meId),
     roomOwner(room.owner_id),
     roomAccess(roomId, meId, room.owner_id),
@@ -273,6 +273,7 @@ export async function getRoomDetail(roomId: string, meId: string) {
     roomLikeState(roomId, meId),
     isRoomMember(roomId, meId),
     roomStaff(roomId),
+    roomSaveState(roomId, meId),
   ]);
   return {
     ...serializeRoom(room),
@@ -284,6 +285,7 @@ export async function getRoomDetail(roomId: string, meId: string) {
     capacity,
     staff,
     ...like,
+    ...save,
     member,
   };
 }
@@ -317,20 +319,32 @@ export async function roomRoles(roomId: string): Promise<RoomRoleEntry[]> {
 }
 
 export async function listRooms(userId?: string | null) {
-  const rows = await q<RoomRow & { mic_count: string; occupied: string }>(
+  const rows = await q<RoomRow & { mic_count: string; occupied: string; saved: boolean }>(
     `SELECT r.*,
        (SELECT count(*)::text FROM room_mics m WHERE m.room_id = r.id) AS mic_count,
-       (SELECT count(*)::text FROM room_mics m WHERE m.room_id = r.id AND m.user_id IS NOT NULL) AS occupied
+       (SELECT count(*)::text FROM room_mics m WHERE m.room_id = r.id AND m.user_id IS NOT NULL) AS occupied,
+       EXISTS (SELECT 1 FROM saved_rooms s WHERE s.room_id = r.id AND s.user_id = $1::uuid) AS saved
      FROM rooms r
      WHERE r.is_active = true
-     ORDER BY r.sort_order ASC, r.created_at ASC`
+     ORDER BY r.sort_order ASC, r.created_at ASC`,
+    [userId ?? null]
   );
   return rows.map((row) => ({
     ...serializeRoom(row),
     micCount: Number(row.mic_count),
     occupied: Number(row.occupied),
     mine: Boolean(userId && row.created_by === userId),
+    saved: Boolean(row.saved),
   }));
+}
+
+/** Is this room pinned to the user's floating bubble (حفظ الغرفة)? */
+export async function roomSaveState(roomId: string, userId: string) {
+  const row = await one('SELECT 1 AS pinned FROM saved_rooms WHERE room_id = $1 AND user_id = $2', [
+    roomId,
+    userId,
+  ]);
+  return { saved: Boolean(row) };
 }
 
 /** Admin view: every room (active or not) with its seats and current occupants. */

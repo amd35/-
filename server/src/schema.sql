@@ -1753,6 +1753,15 @@ CREATE TABLE IF NOT EXISTS room_likes (
   PRIMARY KEY (room_id, user_id)
 );
 
+-- Rooms the user pinned from the stage (حفظ الغرفة). The saved room floats in the
+-- app as a round bubble so it can be reopened with one tap.
+CREATE TABLE IF NOT EXISTS saved_rooms (
+  user_id uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  room_id uuid NOT NULL REFERENCES rooms(id) ON DELETE CASCADE,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  PRIMARY KEY (user_id, room_id)
+);
+
 -- Admin-defined upgrades sold inside a room's own store. `member_capacity` is
 -- the member limit the tier unlocks; `price_diamonds` is charged once per room.
 CREATE TABLE IF NOT EXISTS room_upgrade_tiers (

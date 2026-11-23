@@ -4,6 +4,7 @@ import { useAuth } from '../lib/auth';
 import { useI18n } from '../lib/i18n';
 import { formatCoinsCompact, Icon } from '../lib/ui';
 import { CurrencyIcon } from './CurrencyIcon';
+import { SavedRoomBubble } from './SavedRoomBubble';
 
 const NAV = [
   { key: 'home', path: '/', icon: 'home' },
@@ -79,6 +80,7 @@ export function AppShell({
       </header>
       )}
       {children}
+      <SavedRoomBubble />
       <BottomNav active={active} />
     </div>
   );

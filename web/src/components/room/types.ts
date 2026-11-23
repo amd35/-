@@ -103,6 +103,8 @@ export interface RoomData {
   staff: RoomStaff;
   /** Is the caller a stored member of this room? */
   member: boolean;
+  /** Is the room pinned to the caller's floating bubble (حفظ الغرفة)? */
+  saved: boolean;
   liked: boolean;
   likes: number;
 }

@@ -938,6 +938,28 @@ router.post(
   })
 );
 
+/** «حفظ الغرفة» — pins the room to the app's floating bubble. Toggles on each call. */
+router.post(
+  '/:id/save',
+  requireAuth(),
+  asyncHandler(async (req, res) => {
+    const me = reqUser(req).id;
+    const roomId = req.params.id;
+    const removed = await q(
+      'DELETE FROM saved_rooms WHERE user_id = $1 AND room_id = $2 RETURNING room_id',
+      [me, roomId]
+    );
+    if (removed.length) {
+      res.json({ saved: false });
+      return;
+    }
+    const room = await one('SELECT 1 FROM rooms WHERE id = $1 AND is_active = true', [roomId]);
+    if (!room) throw new HttpError(404, 'Room not found', 'room_not_found');
+    await q('INSERT INTO saved_rooms (user_id, room_id) VALUES ($1, $2) ON CONFLICT DO NOTHING', [me, roomId]);
+    res.json({ saved: true });
+  })
+);
+
 /** The heart in the member list. */
 router.post(
   '/:id/like',
