@@ -1,6 +1,5 @@
 import { Icon } from '../../lib/ui';
 import { assetUrl } from '../../lib/api';
-import { coverUrlFor } from './roomCovers';
 
 /**
  * Compact room header: a round room picture, the room name beside it and the
@@ -10,7 +9,7 @@ import { coverUrlFor } from './roomCovers';
 export function RoomHeader({
   name,
   code,
-  cover,
+  avatar,
   canManage,
   onBack,
   onSettings,
@@ -18,7 +17,7 @@ export function RoomHeader({
 }: {
   name: string;
   code: string;
-  cover?: string | null;
+  avatar?: string | null;
   owner?: unknown;
   occupied?: number;
   total?: number;
@@ -33,9 +32,7 @@ export function RoomHeader({
   onMembers?: () => void;
   onStore?: () => void;
 }) {
-  const photo = cover
-    ? coverUrlFor(cover) ?? (/^(https?:|\/uploads)/.test(cover) ? assetUrl(cover) : null)
-    : null;
+  const photo = avatar && /^(https?:|\/uploads\/)/.test(avatar) ? assetUrl(avatar) : null;
 
   const picture = (
     <>

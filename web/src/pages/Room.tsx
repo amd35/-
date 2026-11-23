@@ -680,7 +680,7 @@ export default function Room() {
           <RoomHeader
             name={room.name}
             code={room.code}
-            cover={room.coverUrl || room.background}
+            avatar={room.avatarUrl}
             owner={room.owner}
             occupied={occupied}
             total={room.mics.length}

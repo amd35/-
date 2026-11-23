@@ -717,6 +717,9 @@ ALTER TABLE rooms ADD COLUMN IF NOT EXISTS country text NOT NULL DEFAULT 'الع
 ALTER TABLE rooms ADD COLUMN IF NOT EXISTS language text NOT NULL DEFAULT 'العربية';
 -- The room's public ID is its owner's account ID (one number for both).
 ALTER TABLE rooms ADD COLUMN IF NOT EXISTS code text;
+-- The room's own profile picture (the round photo in the stage header); the
+-- cover behind the stage stays a separate image.
+ALTER TABLE rooms ADD COLUMN IF NOT EXISTS avatar_url text;
 UPDATE rooms r SET code = u.username FROM users u WHERE u.id = r.owner_id AND (r.code IS NULL OR r.code = '');
 
 -- Delegated room staff: 'admin' runs the room, 'supervisor' moderates mics and chat.

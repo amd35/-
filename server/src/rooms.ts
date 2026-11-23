@@ -31,6 +31,7 @@ export interface RoomRow {
   name: string;
   description: string;
   cover_url: string | null;
+  avatar_url: string | null;
   rules: string;
   is_active: boolean;
   sort_order: number;
@@ -109,6 +110,7 @@ export function serializeRoom(row: RoomRow) {
     name: row.name,
     description: row.description,
     coverUrl: row.cover_url,
+    avatarUrl: row.avatar_url,
     rules: row.rules,
     isActive: row.is_active,
     sortOrder: Number(row.sort_order),

@@ -1,13 +1,11 @@
 import { useEffect, useRef, useState } from 'react';
-import { api } from '../../lib/api';
+import { api, assetUrl } from '../../lib/api';
 import { Sheet } from '../../lib/ui';
-import { coverUrlFor } from './roomCovers';
 import type { RoomData } from './types';
 
 export interface RoomIdentityPatch {
   name: string;
-  coverUrl: string;
-  background: string;
+  avatarUrl: string;
 }
 
 /** Owner sheet: rename the room and replace its picture from the device. */
@@ -23,7 +21,7 @@ export function RoomIdentitySheet({
   onSave: (patch: RoomIdentityPatch) => Promise<void>;
 }) {
   const [name, setName] = useState(room.name);
-  const [cover, setCover] = useState(room.coverUrl || room.background);
+  const [avatar, setAvatar] = useState(room.avatarUrl ?? '');
   const [busy, setBusy] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState('');
@@ -32,11 +30,11 @@ export function RoomIdentitySheet({
   useEffect(() => {
     if (!open) return;
     setName(room.name);
-    setCover(room.coverUrl || room.background);
+    setAvatar(room.avatarUrl ?? '');
     setError('');
   }, [open, room]);
 
-  const photo = coverUrlFor(cover) ?? (/^(https?:|\/uploads\/)/i.test(cover) ? cover : null);
+  const photo = /^(https?:|\/uploads\/)/i.test(avatar) ? assetUrl(avatar) : null;
 
   const upload = async (file: File) => {
     setUploading(true);
@@ -45,7 +43,7 @@ export function RoomIdentitySheet({
       const form = new FormData();
       form.append('file', file);
       const uploaded = await api<{ url: string }>('/uploads', { method: 'POST', form });
-      setCover(uploaded.url);
+      setAvatar(uploaded.url);
     } catch (uploadError) {
       setError((uploadError as Error).message);
     } finally {
@@ -62,7 +60,7 @@ export function RoomIdentitySheet({
     setBusy(true);
     setError('');
     try {
-      await onSave({ name: trimmed, coverUrl: cover, background: cover });
+      await onSave({ name: trimmed, avatarUrl: avatar });
       onClose();
     } catch (saveError) {
       setError((saveError as Error).message);

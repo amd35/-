@@ -75,6 +75,7 @@ export interface RoomData {
   name: string;
   description: string;
   coverUrl: string | null;
+  avatarUrl: string | null;
   rules: string;
   background: string;
   micStyle: string;

@@ -868,6 +868,7 @@ router.post(
 
     const background = req.body?.background === undefined ? null : String(req.body.background).slice(0, 500);
     const coverUrl = req.body?.coverUrl === undefined ? null : String(req.body.coverUrl).trim().slice(0, 500);
+    const avatarUrl = req.body?.avatarUrl === undefined ? null : String(req.body.avatarUrl).trim().slice(0, 500);
     const musicUrl =
       req.body?.musicUrl === undefined ? null : String(req.body.musicUrl).trim().slice(0, 500) || '';
     const country = req.body?.country === undefined ? null : String(req.body.country).trim().slice(0, 60);
@@ -878,11 +879,12 @@ router.post(
          name = COALESCE(NULLIF($7, ''), name),
          background = COALESCE($2, background),
          cover_url = CASE WHEN $3::text IS NULL THEN cover_url ELSE NULLIF($3, '') END,
+         avatar_url = CASE WHEN $8::text IS NULL THEN avatar_url ELSE NULLIF($8, '') END,
          music_url = CASE WHEN $4::text IS NULL THEN music_url ELSE NULLIF($4, '') END,
          country = COALESCE(NULLIF($5, ''), country),
          language = COALESCE(NULLIF($6, ''), language)
        WHERE id = $1`,
-      [roomId, background, coverUrl, musicUrl, country, language, name]
+      [roomId, background, coverUrl, musicUrl, country, language, name, avatarUrl]
     );
     broadcast('room', { roomId });
     res.json({ room: await getRoomDetail(roomId, me) });
