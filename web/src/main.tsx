@@ -9,6 +9,7 @@ import { BackgroundsProvider } from './lib/backgrounds';
 import { CallProvider } from './lib/call';
 import { setupNativeShell } from './lib/native';
 import './styles.css';
+import './game.css';
 
 void setupNativeShell();
 

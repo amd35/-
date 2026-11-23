@@ -39,6 +39,9 @@ import agentRoutes from './routes/agents';
 import adminAgentRoutes from './routes/adminAgents';
 import securityRoutes from './routes/security';
 import adminSecurityRoutes from './routes/adminSecurity';
+import gameRoutes from './routes/game';
+import adminGameRoutes from './routes/adminGame';
+import { registerGameSocket, startGameLoop } from './game';
 
 const PORT = Number(process.env.PORT || 4000);
 const app = express();
@@ -108,6 +111,8 @@ app.use('/api/support', supportRoutes);
 app.use('/api/admin', adminSupportRoutes);
 app.use('/api', agentRoutes);
 app.use('/api/admin', adminAgentRoutes);
+app.use('/api/game', gameRoutes);
+app.use('/api/admin/game', adminGameRoutes);
 app.use('/api/security', securityRoutes);
 app.use('/api/admin', adminSecurityRoutes);
 
@@ -152,6 +157,7 @@ app.use((error: unknown, _req: Request, res: Response, _next: NextFunction) => {
 const server = http.createServer(app);
 attachRealtime(server);
 registerSocketHandlers();
+registerGameSocket();
 
 async function bootstrap(): Promise<void> {
   await waitForDatabase();
@@ -162,6 +168,7 @@ async function bootstrap(): Promise<void> {
   startBillingLoop();
   startCupLoop();
   startRoomLevelLoop();
+  startGameLoop();
   server.listen(PORT, '0.0.0.0', () => {
     console.log(`[api] listening on 0.0.0.0:${PORT}`);
   });

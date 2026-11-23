@@ -28,6 +28,8 @@ import AdDetails from './pages/AdDetails';
 import Admin from './pages/Admin';
 import AgentPanel from './pages/AgentPanel';
 import Agents from './pages/Agents';
+import Game from './pages/Game';
+import GameMatch from './pages/GameMatch';
 
 function Protected({ children }: { children: ReactNode }) {
   const { token, loading, me } = useAuth();
@@ -196,6 +198,22 @@ export default function App() {
           element={
             <Protected>
               <Agents />
+            </Protected>
+          }
+        />
+        <Route
+          path="/game"
+          element={
+            <Protected>
+              <Game />
+            </Protected>
+          }
+        />
+        <Route
+          path="/game/:id"
+          element={
+            <Protected>
+              <GameMatch />
             </Protected>
           }
         />

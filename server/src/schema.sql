@@ -1788,3 +1788,79 @@ CREATE TABLE IF NOT EXISTS room_bans (
   created_at timestamptz NOT NULL DEFAULT now(),
   PRIMARY KEY (room_id, user_id)
 );
+
+-- ---------------------------------------------------------------- «أم الحجار» game
+-- A real-time two-player stone game. Gold entry fees, prizes and refunds all go
+-- through `gold_transactions` (wallet.moveGold), never through a client balance.
+CREATE TABLE IF NOT EXISTS game_settings (
+  id boolean PRIMARY KEY DEFAULT true CHECK (id),
+  enabled boolean NOT NULL DEFAULT true,
+  entry_fee integer NOT NULL DEFAULT 100 CHECK (entry_fee >= 0),
+  min_entry integer NOT NULL DEFAULT 50 CHECK (min_entry >= 0),
+  max_entry integer NOT NULL DEFAULT 5000 CHECK (max_entry >= 0),
+  app_percent integer NOT NULL DEFAULT 10 CHECK (app_percent BETWEEN 0 AND 50),
+  updated_at timestamptz NOT NULL DEFAULT now()
+);
+INSERT INTO game_settings (id) VALUES (true) ON CONFLICT (id) DO NOTHING;
+
+CREATE TABLE IF NOT EXISTS game_matches (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  mode text NOT NULL DEFAULT 'quick' CHECK (mode IN ('quick', 'private')),
+  code text,
+  host_id uuid REFERENCES users(id) ON DELETE SET NULL,
+  status text NOT NULL DEFAULT 'waiting' CHECK (status IN ('waiting', 'playing', 'finished', 'cancelled')),
+  entry_fee integer NOT NULL DEFAULT 0 CHECK (entry_fee >= 0),
+  pot integer NOT NULL DEFAULT 0,
+  app_cut integer NOT NULL DEFAULT 0,
+  prize integer NOT NULL DEFAULT 0,
+  winner_id uuid REFERENCES users(id) ON DELETE SET NULL,
+  turn_user_id uuid REFERENCES users(id) ON DELETE SET NULL,
+  state jsonb NOT NULL DEFAULT '{}'::jsonb,
+  last_action_at timestamptz NOT NULL DEFAULT now(),
+  created_at timestamptz NOT NULL DEFAULT now(),
+  started_at timestamptz,
+  ended_at timestamptz
+);
+CREATE INDEX IF NOT EXISTS game_matches_status_idx ON game_matches (status, created_at DESC);
+CREATE UNIQUE INDEX IF NOT EXISTS game_matches_code_uidx
+  ON game_matches (code) WHERE code IS NOT NULL AND status = 'waiting';
+
+CREATE TABLE IF NOT EXISTS game_players (
+  match_id uuid NOT NULL REFERENCES game_matches(id) ON DELETE CASCADE,
+  user_id uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  color text NOT NULL CHECK (color IN ('white', 'black')),
+  score integer NOT NULL DEFAULT 0,
+  paid integer NOT NULL DEFAULT 0,
+  shots integer NOT NULL DEFAULT 0,
+  joined_at timestamptz NOT NULL DEFAULT now(),
+  PRIMARY KEY (match_id, user_id)
+);
+CREATE INDEX IF NOT EXISTS game_players_user_idx ON game_players (user_id, joined_at DESC);
+
+CREATE TABLE IF NOT EXISTS game_messages (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  match_id uuid NOT NULL REFERENCES game_matches(id) ON DELETE CASCADE,
+  user_id uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  kind text NOT NULL DEFAULT 'text' CHECK (kind IN ('text', 'emoji', 'system')),
+  body text NOT NULL DEFAULT '',
+  created_at timestamptz NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS game_messages_match_idx ON game_messages (match_id, created_at);
+
+CREATE TABLE IF NOT EXISTS game_reports (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  match_id uuid REFERENCES game_matches(id) ON DELETE SET NULL,
+  reporter_id uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  target_id uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  reason text NOT NULL DEFAULT '',
+  status text NOT NULL DEFAULT 'open' CHECK (status IN ('open', 'resolved', 'dismissed')),
+  created_at timestamptz NOT NULL DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS game_bans (
+  user_id uuid PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+  reason text NOT NULL DEFAULT '',
+  until timestamptz NOT NULL,
+  banned_by uuid REFERENCES users(id) ON DELETE SET NULL,
+  created_at timestamptz NOT NULL DEFAULT now()
+);
