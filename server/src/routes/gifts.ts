@@ -14,7 +14,7 @@ import { notify } from '../notify';
 import { awardXpSafe, getXpSettings, xpForCoins } from '../progression';
 import { getSettings } from '../settings';
 import { moveCoins } from '../wallet';
-import { HttpError, asyncHandler } from '../utils';
+import { HttpError, asyncHandler, isUuid } from '../utils';
 import { assertCapability } from '../security/service';
 
 const router = Router();
@@ -78,6 +78,9 @@ router.post(
     const requestId = String(req.body?.requestId || '').trim().slice(0, 80);
     if (!giftId || !conversationId) {
       throw new HttpError(400, 'Gift and conversation are required', 'invalid_gift');
+    }
+    if (!isUuid(conversationId)) {
+      throw new HttpError(404, 'Conversation not found', 'conversation_not_found');
     }
     if (requestId.length < 8) {
       throw new HttpError(400, 'Missing request id', 'invalid_request');

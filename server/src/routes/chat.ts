@@ -24,7 +24,7 @@ import {
   registerSupportConversation,
   supportUserId,
 } from '../support';
-import { HttpError, asyncHandler, intParam } from '../utils';
+import { HttpError, asyncHandler, intParam, isUuid } from '../utils';
 import {
   assertCapability,
   detectSpamBurst,
@@ -35,6 +35,7 @@ import {
 const router = Router();
 
 async function assertMember(conversationId: string, userId: string) {
+  if (!isUuid(conversationId)) throw new HttpError(404, 'Conversation not found', 'conversation_not_found');
   const member = await one<{ conversation_id: string }>(
     'SELECT conversation_id FROM conversation_members WHERE conversation_id = $1 AND user_id = $2',
     [conversationId, userId]

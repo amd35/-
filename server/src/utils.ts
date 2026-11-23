@@ -20,6 +20,13 @@ export function asyncHandler(
   };
 }
 
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+/** Guards a uuid column against a malformed path/body value (Postgres would throw). */
+export function isUuid(value: unknown): value is string {
+  return typeof value === 'string' && UUID_RE.test(value);
+}
+
 /** Iraq has a single fixed UTC+3 offset (no daylight saving since 2008). */
 export const BAGHDAD_TZ = 'Asia/Baghdad';
 const BAGHDAD_OFFSET_MS = 3 * 60 * 60 * 1000;

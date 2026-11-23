@@ -2,6 +2,7 @@ import { one, q } from './db';
 import { endCall, acceptCall, cancelCall, inviteCall, rejectCall, type CallKind } from './calls';
 import { onSocketEvent, onSocketClose, emitToUser, emitToUsers } from './realtime';
 import { assertCapability } from './security/service';
+import { isUuid } from './utils';
 
 /** Bridges realtime events (call control + WebRTC signaling + typing) to the call service. */
 export function registerSocketHandlers(): void {
@@ -53,6 +54,7 @@ export function registerSocketHandlers(): void {
 
   onSocketEvent('chat:typing', async ({ userId, data }) => {
     const conversationId = String(data.conversationId || '');
+    if (!isUuid(conversationId)) return;
     const member = await one(
       'SELECT 1 FROM conversation_members WHERE conversation_id = $1 AND user_id = $2',
       [conversationId, userId]
