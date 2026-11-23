@@ -10359,6 +10359,12 @@ table.data tr:hover td {
   pointer-events: none;
 }
 
+/* The official artwork is drawn ~2.14× taller than the avatar: centring its
+   transparent window on the photo keeps the crown and banner balanced. */
+.rp-avatar .av-frame-art {
+  top: -40%;
+}
+
 .rp-avatar-ring {
   position: relative;
   display: inline-flex;
