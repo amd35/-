@@ -1795,8 +1795,8 @@ CREATE TABLE IF NOT EXISTS room_bans (
 CREATE TABLE IF NOT EXISTS game_settings (
   id boolean PRIMARY KEY DEFAULT true CHECK (id),
   enabled boolean NOT NULL DEFAULT true,
-  entry_fee integer NOT NULL DEFAULT 1000 CHECK (entry_fee >= 0),
-  min_entry integer NOT NULL DEFAULT 1000 CHECK (min_entry >= 0),
+  entry_fee integer NOT NULL DEFAULT 100 CHECK (entry_fee >= 0),
+  min_entry integer NOT NULL DEFAULT 50 CHECK (min_entry >= 0),
   max_entry integer NOT NULL DEFAULT 5000 CHECK (max_entry >= 0),
   app_percent integer NOT NULL DEFAULT 10 CHECK (app_percent BETWEEN 0 AND 50),
   updated_at timestamptz NOT NULL DEFAULT now()

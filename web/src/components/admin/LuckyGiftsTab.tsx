@@ -129,15 +129,16 @@ export default function LuckyGiftsTab() {
           }
           label="تشغيل هدايا الحظ في الغرف"
         />
-        <Field label="سعر المحاولة الواحدة (ماسة)">
+        <Field label="سعر المحاولة الواحدة (ماسة)" hint="من 1000 إلى 5000 ماسة كحد أقصى">
           <input
             className="input"
             type="number"
-            min={1}
+            min={1000}
+            max={5000}
             value={form.lucky_gift_price}
             onChange={(event) =>
               setForm((current) =>
-                current ? { ...current, lucky_gift_price: Number(event.target.value) || 1 } : current
+                current ? { ...current, lucky_gift_price: Number(event.target.value) || 1000 } : current
               )
             }
             dir="ltr"

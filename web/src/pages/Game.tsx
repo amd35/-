@@ -17,7 +17,7 @@ export default function Game() {
 
   const [data, setData] = useState<GameSnapshot | null>(null);
   const [loading, setLoading] = useState(true);
-  const [fee, setFee] = useState(1000);
+  const [fee, setFee] = useState(100);
   const [waiting, setWaiting] = useState<{ code: string | null; fee: number } | null>(null);
   const [busy, setBusy] = useState(false);
   const [joinOpen, setJoinOpen] = useState(false);
@@ -66,7 +66,7 @@ export default function Game() {
     return pot - Math.floor((pot * settings.appPercent) / 100);
   }, [fee, settings]);
 
-  const step = settings ? Math.max(100, Math.round((settings.maxEntry - settings.minEntry) / 10 / 500) * 500) : 500;
+  const step = settings ? Math.max(10, Math.round((settings.maxEntry - settings.minEntry) / 10) || 10) : 50;
 
   const play = async () => {
     if (busy) return;

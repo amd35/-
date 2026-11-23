@@ -260,7 +260,7 @@ const COERCE: Record<string, (value: unknown) => unknown> = {
   gift_announcement_gift_ids: (v) => (Array.isArray(v) ? v.map(String).slice(0, 500) : []),
   gift_announcement_rarity_effects: (v) => readRarityEffects(v),
   lucky_gift_enabled: (v) => Boolean(v),
-  lucky_gift_price: (v) => Math.max(1, Math.trunc(Number(v) || 1000)),
+  lucky_gift_price: (v) => Math.min(5000, Math.max(1000, Math.trunc(Number(v) || 1000))),
   lucky_gift_prizes: (v) => readLuckyPrizes(v),
   profile_show_balances: (v) => Boolean(v),
   level_up_effects: (v) => Boolean(v),
