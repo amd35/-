@@ -7020,7 +7020,13 @@ table.data tr:hover td {
   justify-content: center;
   overflow: hidden;
   pointer-events: none;
-  background: radial-gradient(circle at 50% 40%, #2a0d42 0%, #0a0410 58%, #030106 100%);
+  /* See-through reveal: the room and its mics stay visible behind the gift. */
+  background: radial-gradient(
+    circle at 50% 40%,
+    rgba(42, 13, 66, 0.26) 0%,
+    rgba(10, 4, 16, 0.1) 58%,
+    rgba(3, 1, 6, 0) 100%
+  );
   animation: roomGiftStageIn 0.35s ease both;
 }
 
@@ -7333,6 +7339,13 @@ table.data tr:hover td {
     color-mix(in srgb, var(--mic-accent, #ff5a1f) 35%, transparent),
     transparent 72%
   );
+}
+
+/* The default (fire) seats are transparent too: only the glowing gold ring shows. */
+[data-mic-style='fire'] .seat-ring {
+  background: transparent;
+  border-color: rgba(255, 210, 74, 0.85);
+  backdrop-filter: none;
 }
 
 /* Transparent mic seat designs picked from the admin panel. */
