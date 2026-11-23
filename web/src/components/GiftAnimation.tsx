@@ -515,7 +515,7 @@ export function GiftReveal({
   }, [soundKey]);
 
   useEffect(() => {
-    const timer = setTimeout(onClose, 5600);
+    const timer = setTimeout(onClose, 7000);
     return () => clearTimeout(timer);
   }, [onClose]);
 

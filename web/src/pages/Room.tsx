@@ -110,7 +110,7 @@ export default function Room() {
     if (flashTimer.current) clearTimeout(flashTimer.current);
     setPlaying({ gift: message.gift, name: message.displayName });
     playGiftSound(message.gift);
-    flashTimer.current = setTimeout(() => setPlaying(null), 4500);
+    flashTimer.current = setTimeout(() => setPlaying(null), 6000);
   }, []);
 
   // Seats, roles, background and music change: refresh the stage.
