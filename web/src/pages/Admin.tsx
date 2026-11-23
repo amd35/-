@@ -20,6 +20,7 @@ import AdsTab from '../components/admin/AdsTab';
 import PremiumIdsTab from '../components/admin/PremiumIdsTab';
 import GiftsTab from '../components/admin/GiftsTab';
 import GiftAnnouncementsTab from '../components/admin/GiftAnnouncementsTab';
+import LuckyGiftsTab from '../components/admin/LuckyGiftsTab';
 import OrdersTab from '../components/admin/OrdersTab';
 import FinancialTab from '../components/admin/FinancialTab';
 import FinanceTab from '../components/admin/FinanceTab';
@@ -55,6 +56,7 @@ const TABS = [
   { id: 'premium-ids', label: 'أرقام ID المميزة', icon: 'card' },
   { id: 'gift-store', label: 'متجر الهدايا المتحركة', icon: 'gift' },
   { id: 'gift-announcements', label: 'إعلانات الهدايا', icon: 'sparkle' },
+  { id: 'lucky-gifts', label: 'هدايا الحظ 🍀', icon: 'sparkle' },
   { id: 'rooms', label: 'غرف الدردشة والمايكات', icon: 'mic' },
   { id: 'room-upgrades', label: 'متجر ترقيات الغرف', icon: 'package' },
   { id: 'game', label: 'لعبة أم الحجار', icon: 'play' },
@@ -227,6 +229,7 @@ export default function Admin() {
         {tab === 'premium-ids' ? <PremiumIdsTab /> : null}
         {tab === 'gift-store' ? <GiftsTab /> : null}
         {tab === 'gift-announcements' ? <GiftAnnouncementsTab /> : null}
+        {tab === 'lucky-gifts' ? <LuckyGiftsTab /> : null}
         {tab === 'rooms' ? <RoomsTab /> : null}
         {tab === 'room-upgrades' ? <RoomUpgradesTab /> : null}
         {tab === 'game' ? <GameTab /> : null}

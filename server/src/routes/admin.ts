@@ -401,6 +401,8 @@ const FINANCIAL_SETTING_KEYS = [
   'withdrawal_fee_percent',
   'withdrawal_methods',
   'gold_gifts_enabled',
+  'lucky_gift_price',
+  'lucky_gift_prizes',
   'gift_recipient_percent',
   'gift_host_percent',
   'gift_admin_percent',
@@ -1671,6 +1673,42 @@ router.get(
         count: Number(totals?.count || 0),
       },
       transactions: rows,
+    });
+  })
+);
+
+// ------------------------------------------------------------ lucky gifts
+/** «هدايا الحظ»: economy totals plus the latest spins, for the admin panel. */
+router.get(
+  '/lucky-gifts',
+  asyncHandler(async (_req, res) => {
+    const totals = await one<{ spins: string; spent: string; paid: string; winners: string }>(
+      `SELECT count(*)::text AS spins,
+              COALESCE(SUM(cost), 0)::text AS spent,
+              COALESCE(SUM(prize), 0)::text AS paid,
+              COALESCE(SUM(CASE WHEN prize > 0 THEN 1 ELSE 0 END), 0)::text AS winners
+       FROM lucky_gift_spins`
+    );
+    const rows = await q(
+      `SELECT s.id, s.cost, s.prize, s.created_at,
+              u.display_name, u.username, u.avatar_url,
+              r.name AS room_name
+       FROM lucky_gift_spins s
+       JOIN users u ON u.id = s.user_id
+       LEFT JOIN rooms r ON r.id = s.room_id
+       ORDER BY s.created_at DESC LIMIT 100`
+    );
+    const spent = Number(totals?.spent || 0);
+    const paid = Number(totals?.paid || 0);
+    res.json({
+      totals: {
+        spins: Number(totals?.spins || 0),
+        spent,
+        paid,
+        profit: spent - paid,
+        winners: Number(totals?.winners || 0),
+      },
+      spins: rows,
     });
   })
 );

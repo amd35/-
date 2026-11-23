@@ -89,6 +89,19 @@
   `/admin/users/:id/...`), and deleting any chat message with `DELETE /api/chat/messages/:id`
   (sender or `users.is_admin`; pushes `message:deleted` to the other members).
 
+## Lucky gifts (هدايا الحظ) and the repeat-send bar
+- `lucky_gift_spins` is both the history and the idempotency ledger (`request_id` unique). Settings:
+  `lucky_gift_enabled`, `lucky_gift_price` (default 1000), `lucky_gift_prizes` = `[{amount, weight}]`.
+- `POST /api/rooms/:id/lucky-gifts` inserts the spin, charges `transactions.type = 'lucky_gift'`, draws a
+  prize with `pickLuckyPrize` (`server/src/luckyGifts.ts`, crypto random, admin weights), credits
+  `'lucky_gift_prize'` and broadcasts `room_lucky_gift`. Both ledger rows use the spin id, so a retried
+  request can never charge or pay twice; an insufficient balance returns 402.
+- Client: `LuckyGiftOverlay` (bubble → burst → prize, sounds in `lib/luckySound.ts`) is queued one at a
+  time in `Room.tsx`; `GiftRepeatBar` is the 5-second «أرسل المزيد» bar that opens after a room gift and
+  queues rapid taps so none are dropped.
+- Admin: the «هدايا الحظ 🍀» tab edits the price/ladder (weights → % shown live) and lists spins via
+  `GET /api/admin/lucky-gifts`.
+
 ## Room levels (مستوى الغرفة)
 - `rooms.level_xp` is the only stored value; the level (1..100) is a pure function of it
   (`server/src/roomLevels.ts`), so it can always be recomputed and never drifts.

@@ -26,6 +26,7 @@ import {
 } from '../roomMembers';
 import { purchaseRoomUpgrade, roomStoreSnapshot } from '../roomStore';
 import { getSettings } from '../settings';
+import { pickLuckyPrize } from '../luckyGifts';
 import { moveCoins, moveGold } from '../wallet';
 import { awardXpSafe, getXpSettings, xpForCoins } from '../progression';
 import { activeRankFor, isOfficialAdmin } from '../ranks';
@@ -597,6 +598,109 @@ router.post(
       recipientCoins: outcome.recipientCoins,
       hostCoins: outcome.hostCoins,
       currency: outcome.currency,
+    });
+  })
+);
+
+/**
+ * «هدايا الحظ»: one paid try per spin. The server charges the diamonds, draws the
+ * prize with the admin's weights, credits it and announces the result to the room.
+ * `requestId` keeps a retried request from charging (or paying) twice.
+ */
+router.post(
+  '/:id/lucky-gifts',
+  requireAuth(),
+  asyncHandler(async (req, res) => {
+    const me = reqUser(req).id;
+    const roomId = req.params.id;
+    const settings = await getSettings();
+    if (!settings.gifts_enabled || !settings.lucky_gift_enabled) {
+      throw new HttpError(403, 'Lucky gifts are disabled', 'lucky_gifts_disabled');
+    }
+    await assertCapability(me, 'gifts');
+
+    const requestId = String(req.body?.requestId || '').trim().slice(0, 80);
+    if (requestId.length < 8) throw new HttpError(400, 'Missing request id', 'invalid_request');
+
+    const room = await one<{ is_active: boolean }>('SELECT is_active FROM rooms WHERE id = $1', [roomId]);
+    if (!room?.is_active) throw new HttpError(404, 'Room not found', 'room_not_found');
+    const price = Math.max(1, Math.trunc(Number(settings.lucky_gift_price) || 1000));
+
+    const outcome = await tx(async (c) => {
+      const existing = await c.query('SELECT * FROM lucky_gift_spins WHERE request_id = $1', [requestId]);
+      if (existing.rowCount) {
+        const row = existing.rows[0];
+        if (row.user_id !== me) {
+          throw new HttpError(409, 'This request was already used', 'duplicate_request');
+        }
+        return { spin: row, duplicate: true };
+      }
+
+      const draw = pickLuckyPrize(settings.lucky_gift_prizes);
+      const inserted = await c.query(
+        `INSERT INTO lucky_gift_spins (request_id, room_id, user_id, cost, prize, tier_index)
+         VALUES ($1, $2, $3, $4, $5, $6)
+         ON CONFLICT (request_id) DO NOTHING
+         RETURNING *`,
+        [requestId, roomId, me, price, draw.tier.amount, draw.index]
+      );
+      if (!inserted.rowCount) {
+        throw new HttpError(409, 'This request was already used', 'duplicate_request');
+      }
+      const spin = inserted.rows[0];
+
+      // Charge first: moveCoins throws 402 when the balance cannot cover the try.
+      const charged = await moveCoins(c, {
+        userId: me,
+        amount: -price,
+        type: 'lucky_gift',
+        refType: 'lucky_gift_spin',
+        refId: spin.id,
+        meta: { roomId, prize: draw.tier.amount },
+      });
+      if (!charged.applied) {
+        throw new HttpError(409, 'This request was already used', 'duplicate_request');
+      }
+
+      if (draw.tier.amount > 0) {
+        await moveCoins(c, {
+          userId: me,
+          amount: draw.tier.amount,
+          type: 'lucky_gift_prize',
+          refType: 'lucky_gift_spin',
+          refId: spin.id,
+          meta: { roomId, cost: price },
+        });
+      }
+      return { spin, duplicate: false };
+    });
+
+    const cost = Number(outcome.spin.cost);
+    const prize = Number(outcome.spin.prize);
+    if (!outcome.duplicate) {
+      const winner = await one<{
+        display_name: string | null;
+        username: string | null;
+        avatar_url: string | null;
+      }>('SELECT display_name, username, avatar_url FROM users WHERE id = $1', [me]);
+      broadcast('room_lucky_gift', {
+        roomId,
+        spin: {
+          id: outcome.spin.id,
+          userId: me,
+          name: winner?.display_name || winner?.username || '',
+          avatarUrl: winner?.avatar_url ?? null,
+          cost,
+          prize,
+          createdAt: outcome.spin.created_at,
+        },
+      });
+      emitToUser(me, 'wallet:update', {});
+    }
+
+    res.status(201).json({
+      spin: { id: outcome.spin.id, cost, prize, createdAt: outcome.spin.created_at },
+      duplicate: outcome.duplicate,
     });
   })
 );

@@ -7,8 +7,11 @@ import { useRealtime } from '../lib/realtime';
 import { Icon, Sheet, Spinner, useToast } from '../lib/ui';
 import {
   RoomGiftSheet,
+  type RepeatGiftInfo,
   type RoomMessageData,
 } from '../components/RoomGiftSheet';
+import { GiftRepeatBar } from '../components/GiftRepeatBar';
+import { LuckyGiftOverlay, type LuckyGiftSpin } from '../components/room/LuckyGiftOverlay';
 import { EntryBanner } from '../components/Cosmetics';
 import { VipEntryBanner } from '../components/ProgressionBadges';
 import { ADMIN_BADGE_BY_RANK, isAdminDesign } from '../components/AdminRoyal';
@@ -73,6 +76,8 @@ export default function Room() {
   const [profileUserId, setProfileUserId] = useState<string | null>(null);
   const [fullProfileId, setFullProfileId] = useState<string | null>(null);
   const [announcement, setAnnouncement] = useState<GiftAnnouncement | null>(null);
+  const [repeatGift, setRepeatGift] = useState<RepeatGiftInfo | null>(null);
+  const [luckySpin, setLuckySpin] = useState<LuckyGiftSpin | null>(null);
   const [panel, setPanel] = useState<Panel>(null);
   const [presence, setPresence] = useState<PresenceUser[]>([]);
   const [members, setMembers] = useState<RoomMemberEntry[]>([]);
@@ -85,6 +90,7 @@ export default function Room() {
   const [musicMuted, setMusicMuted] = useState(false);
   const announcementRef = useRef<GiftAnnouncement | null>(null);
   const announcementQueue = useRef<GiftAnnouncement[]>([]);
+  const luckyQueue = useRef<LuckyGiftSpin[]>([]);
   const musicRef = useRef<HTMLAudioElement | null>(null);
   const entryShown = useRef(false);
   const [showEntry, setShowEntry] = useState(false);
@@ -211,6 +217,20 @@ export default function Room() {
     setActiveAnnouncement(announcementQueue.current.shift() ?? null);
   }, [setActiveAnnouncement]);
 
+  /** One lucky bubble at a time; spins that arrive together wait their turn. */
+  const showLucky = useCallback((spin: LuckyGiftSpin) => {
+    setLuckySpin((current) => {
+      if (!current) return spin;
+      if (luckyQueue.current.some((queued) => queued.id === spin.id)) return current;
+      luckyQueue.current.push(spin);
+      return current;
+    });
+  }, []);
+
+  const finishLucky = useCallback(() => {
+    setLuckySpin(luckyQueue.current.shift() ?? null);
+  }, []);
+
   // Seats, roles, background and music change: refresh the stage.
   useEffect(() => {
     const off = on('room', (data) => {
@@ -251,6 +271,16 @@ export default function Room() {
     });
     return off;
   }, [on, id, enqueueAnnouncement]);
+
+  // «هدايا الحظ»: the bubble reveal reaches every member at the same moment.
+  useEffect(() => {
+    const off = on('room_lucky_gift', (data) => {
+      if (data.roomId !== id) return;
+      const spin = data.spin as LuckyGiftSpin | null;
+      if (spin) showLucky(spin);
+    });
+    return off;
+  }, [on, id, showLucky]);
 
   // Frames gifted in the room reach every member at the same moment.
   useEffect(() => {
@@ -352,6 +382,9 @@ export default function Room() {
   useEffect(() => {
     announcementQueue.current = [];
     setActiveAnnouncement(null);
+    luckyQueue.current = [];
+    setLuckySpin(null);
+    setRepeatGift(null);
   }, [id, setActiveAnnouncement]);
 
   const act = async (mic: RoomMic) => {
@@ -758,6 +791,10 @@ export default function Room() {
             />
           ) : null}
 
+          {luckySpin ? (
+            <LuckyGiftOverlay key={luckySpin.id} spin={luckySpin} onDone={finishLucky} />
+          ) : null}
+
           <RoomCup roomId={id} />
 
           {room.rules ? <p className="room-rules-line">{room.rules}</p> : null}
@@ -923,8 +960,21 @@ export default function Room() {
             roomId={id}
             speakers={speakers}
             initialRecipientId={giftTarget}
-            onSent={(message) => append(message)}
+            onSent={(message, repeat) => {
+              append(message);
+              if (repeat) setRepeatGift(repeat);
+            }}
           />
+
+          {repeatGift ? (
+            <GiftRepeatBar
+              key={`${repeatGift.gift.id}-${repeatGift.recipient.id}-${repeatGift.quantity}`}
+              roomId={id}
+              info={repeatGift}
+              onSent={append}
+              onClose={() => setRepeatGift(null)}
+            />
+          ) : null}
           <RoomFramesSheet
             open={framesOpen}
             onClose={() => setFramesOpen(false)}

@@ -1864,3 +1864,28 @@ CREATE TABLE IF NOT EXISTS game_bans (
   banned_by uuid REFERENCES users(id) ON DELETE SET NULL,
   created_at timestamptz NOT NULL DEFAULT now()
 );
+
+-- --------------------------------------------------------------- lucky gifts
+-- «هدايا الحظ» inside voice rooms: every spin is one paid try. `request_id`
+-- makes a retried request idempotent (one row, one charge, one prize).
+CREATE TABLE IF NOT EXISTS lucky_gift_spins (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  request_id text NOT NULL UNIQUE,
+  room_id uuid REFERENCES rooms(id) ON DELETE SET NULL,
+  user_id uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  cost integer NOT NULL CHECK (cost >= 0),
+  prize integer NOT NULL DEFAULT 0 CHECK (prize >= 0),
+  tier_index integer NOT NULL DEFAULT 0,
+  created_at timestamptz NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS lucky_gift_spins_user_idx ON lucky_gift_spins (user_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS lucky_gift_spins_room_idx ON lucky_gift_spins (room_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS lucky_gift_spins_created_idx ON lucky_gift_spins (created_at DESC);
+
+INSERT INTO app_settings (key, value)
+SELECT * FROM (VALUES
+  ('lucky_gift_enabled', 'true'::jsonb),
+  ('lucky_gift_price', '1000'::jsonb),
+  ('lucky_gift_prizes', '[{"amount":0,"weight":28},{"amount":500,"weight":24},{"amount":1000,"weight":20},{"amount":2000,"weight":14},{"amount":5000,"weight":9},{"amount":10000,"weight":4},{"amount":25000,"weight":1}]'::jsonb)
+) AS seed(key, value)
+ON CONFLICT (key) DO NOTHING;

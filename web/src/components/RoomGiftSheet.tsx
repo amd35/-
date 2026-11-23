@@ -4,6 +4,7 @@ import { useI18n } from '../lib/i18n';
 import { formatCoins, Icon, Sheet, Spinner, useToast } from '../lib/ui';
 import { GiftCover } from './GiftAnimation';
 import { CurrencyIcon } from './CurrencyIcon';
+import { LuckyClover } from './room/LuckyClover';
 import type { GiftItem } from './GiftShop';
 import type { RankInfo } from './RankBadge';
 
@@ -41,6 +42,21 @@ export interface RoomSpeaker {
   avatarUrl: string | null;
 }
 
+/** What the «أرسل هدية» bar needs to repeat the last send. */
+export interface RepeatGiftInfo {
+  gift: GiftItem;
+  recipient: RoomSpeaker;
+  quantity: number;
+  currency: 'diamond' | 'gold';
+  balance: number;
+}
+
+export interface LuckyGiftInfo {
+  enabled: boolean;
+  price: number;
+  prizes: number[];
+}
+
 const RARITY_LABEL: Record<string, string> = {
   common: 'عادي',
   rare: 'نادر',
@@ -70,7 +86,7 @@ export function RoomGiftSheet({
   onClose: () => void;
   roomId: string;
   speakers: RoomSpeaker[];
-  onSent: (message: RoomMessageData) => void;
+  onSent: (message: RoomMessageData, repeat?: RepeatGiftInfo) => void;
   /** Preselects the person whose profile card opened the gift shop. */
   initialRecipientId?: string | null;
 }) {
@@ -81,11 +97,14 @@ export function RoomGiftSheet({
   const [goldBalance, setGoldBalance] = useState(0);
   const [goldGiftsEnabled, setGoldGiftsEnabled] = useState(false);
   const [currency, setCurrency] = useState<'diamond' | 'gold'>('diamond');
+  const [tab, setTab] = useState<'gifts' | 'lucky'>('gifts');
+  const [lucky, setLucky] = useState<LuckyGiftInfo | null>(null);
   const [loading, setLoading] = useState(false);
   const [recipientId, setRecipientId] = useState('');
   const [selected, setSelected] = useState<GiftItem | null>(null);
   const [quantity, setQuantity] = useState(1);
   const [sending, setSending] = useState(false);
+  const [sendingLucky, setSendingLucky] = useState(false);
   const requestRef = useRef('');
   // `speakers` is a fresh array on every render of the room, so depend on the id
   // string instead — otherwise the effect re-fetches the gift list in a loop.
@@ -95,15 +114,23 @@ export function RoomGiftSheet({
     if (!open) return;
     setSelected(null);
     setQuantity(1);
+    setTab('gifts');
     setRecipientId((current) => initialRecipientId || current || firstSpeakerId);
     requestRef.current = '';
     setLoading(true);
-    api<{ gifts: GiftItem[]; balance: number; goldBalance: number; goldGiftsEnabled: boolean }>('/gifts')
+    api<{
+      gifts: GiftItem[];
+      balance: number;
+      goldBalance: number;
+      goldGiftsEnabled: boolean;
+      luckyGift?: LuckyGiftInfo;
+    }>('/gifts')
       .then((response) => {
         setGifts(response.gifts);
         setBalance(response.balance);
         setGoldBalance(response.goldBalance ?? 0);
         setGoldGiftsEnabled(Boolean(response.goldGiftsEnabled));
+        setLucky(response.luckyGift ?? null);
       })
       .catch((error: Error) => toast.push(error.message, 'error'))
       .finally(() => setLoading(false));
@@ -125,12 +152,25 @@ export function RoomGiftSheet({
         body: { giftId: selected.id, recipientId, requestId: requestRef.current, quantity, currency },
       });
       requestRef.current = '';
+      const nextBalance = activeBalance - selected.price * quantity;
       if (currency === 'gold') {
-        setGoldBalance((current) => current - selected.price * quantity);
+        setGoldBalance(nextBalance);
       } else {
-        setBalance((current) => current - selected.price * quantity);
+        setBalance(nextBalance);
       }
-      onSent(response.message);
+      const recipient =
+        speakers.find((speaker) => speaker.id === recipientId) ?? {
+          id: recipientId,
+          displayName: '',
+          avatarUrl: null,
+        };
+      onSent(response.message, {
+        gift: selected,
+        recipient,
+        quantity,
+        currency,
+        balance: nextBalance,
+      });
       setSelected(null);
       onClose();
     } catch (error) {
@@ -138,109 +178,201 @@ export function RoomGiftSheet({
     } finally {
       setSending(false);
     }
-  }, [activeBalance, currency, onClose, onSent, quantity, recipientId, roomId, selected, sending, t, toast]);
+  }, [
+    activeBalance,
+    currency,
+    onClose,
+    onSent,
+    quantity,
+    recipientId,
+    roomId,
+    selected,
+    sending,
+    speakers,
+    t,
+    toast,
+  ]);
+
+  // One lucky try: the server charges, draws and credits; the room gets the overlay.
+  const sendLucky = useCallback(async () => {
+    if (!lucky || sendingLucky) return;
+    if (balance < lucky.price) {
+      toast.push(t('insufficientCoins'), 'error');
+      return;
+    }
+    setSendingLucky(true);
+    try {
+      const response = await api<{ spin: { id: string; cost: number; prize: number } }>(
+        `/rooms/${roomId}/lucky-gifts`,
+        { method: 'POST', body: { requestId: newRequestId() } }
+      );
+      setBalance((current) => current - response.spin.cost + response.spin.prize);
+      onClose();
+    } catch (error) {
+      toast.push((error as Error).message, 'error');
+    } finally {
+      setSendingLucky(false);
+    }
+  }, [balance, lucky, onClose, roomId, sendingLucky, t, toast]);
 
   return (
     <Sheet open={open} onClose={onClose} title={t('giftShop')}>
       <div className="gift-shop">
         <div className="gift-shop-head">
-          <span className="tiny muted">{t('roomGiftTo')}</span>
+          <span className="tiny muted">{tab === 'lucky' ? 'هدايا الحظ' : t('roomGiftTo')}</span>
           <span className="spacer" />
           <span className="pill pill-gold">
-            <CurrencyIcon code={currency === 'gold' ? 'GOLD' : 'DIAMOND'} size={13} /> {formatCoins(activeBalance)}
+            <CurrencyIcon code={currency === 'gold' && tab === 'gifts' ? 'GOLD' : 'DIAMOND'} size={13} />{' '}
+            {formatCoins(tab === 'gifts' && currency === 'gold' ? goldBalance : balance)}
           </span>
         </div>
 
-        {goldGiftsEnabled ? (
+        {lucky?.enabled ? (
           <div className="seg" style={{ marginBottom: 10 }}>
-            <button className={currency === 'diamond' ? 'active' : ''} onClick={() => setCurrency('diamond')}>
-              الماس
+            <button className={tab === 'gifts' ? 'active' : ''} onClick={() => setTab('gifts')}>
+              الهدايا
             </button>
-            <button className={currency === 'gold' ? 'active' : ''} onClick={() => setCurrency('gold')}>
-              الذهب
+            <button className={tab === 'lucky' ? 'active' : ''} onClick={() => setTab('lucky')}>
+              🍀 هدايا الحظ
             </button>
           </div>
         ) : null}
 
-        {speakers.length === 0 ? (
-          <p className="tiny muted center">{t('roomNoSpeakers')}</p>
-        ) : (
-          <div className="room-gift-people">
-            {speakers.map((speaker) => (
-              <button
-                key={speaker.id}
-                type="button"
-                className={`room-gift-person ${recipientId === speaker.id ? 'active' : ''}`}
-                onClick={() => setRecipientId(speaker.id)}
-              >
-                <span className="room-gift-avatar">
-                  {speaker.avatarUrl ? (
-                    <img src={assetUrl(speaker.avatarUrl)} alt="" />
-                  ) : (
-                    speaker.displayName.charAt(0)
-                  )}
+        {tab === 'lucky' && lucky ? (
+          <div className="lucky-shop">
+            <div className="lucky-shop-hero">
+              <span className="lucky-shop-orb">
+                <LuckyClover size={58} />
+              </span>
+              <div className="lucky-shop-copy">
+                <b>هدايا الحظ</b>
+                <span className="tiny muted">
+                  فقاعة ذهبية تنفجر بجائزة فورية تُضاف إلى رصيدك، ويشاهدها كل من في الغرفة
                 </span>
-                <span>{speaker.displayName}</span>
-              </button>
-            ))}
-          </div>
-        )}
+              </div>
+            </div>
 
-        {loading ? (
-          <Spinner label={t('loading')} />
+            <div className="lucky-shop-prizes">
+              {lucky.prizes.map((amount) => (
+                <span key={amount} className={`lucky-prize-chip${amount === 0 ? ' empty' : ''}`}>
+                  {amount === 0 ? 'لا شيء' : `+${formatCoins(amount)}`}
+                  {amount > 0 ? <CurrencyIcon code="DIAMOND" size={11} /> : null}
+                </span>
+              ))}
+            </div>
+
+            <p className="tiny muted center">الجوائز تُسحب على الخادم حسب احتمالات لوحة الإدارة</p>
+
+            <button
+              className="btn btn-gold btn-block"
+              onClick={() => void sendLucky()}
+              disabled={sendingLucky || balance < lucky.price}
+            >
+              {sendingLucky ? (
+                <span className="spinner" />
+              ) : (
+                <span className="lucky-btn-mark">
+                  <LuckyClover size={18} />
+                </span>
+              )}
+              جرّب حظك · {formatCoins(lucky.price)}
+              <CurrencyIcon code="DIAMOND" size={13} />
+            </button>
+          </div>
         ) : (
-          <div className="gift-grid">
-            {gifts.map((gift) => (
-              <button
-                key={gift.id}
-                type="button"
-                className={`gift-card ${activeBalance < gift.price ? 'locked' : ''} ${selected?.id === gift.id ? 'selected' : ''}`}
-                onClick={() => setSelected(gift)}
-              >
-                <span className={`gift-rarity-pill rarity-${gift.rarity}`}>
-                  {RARITY_LABEL[gift.rarity] ?? gift.rarity}
-                </span>
-                <GiftCover gift={gift} className="gift-card-art" />
-                <span className="gift-card-name">{gift.name}</span>
-                <span className="gift-card-price">
-                  <CurrencyIcon code={currency === 'gold' ? 'GOLD' : 'DIAMOND'} size={12} /> {formatCoins(gift.price)}
-                </span>
-              </button>
-            ))}
-            {gifts.length === 0 ? (
-              <div className="empty" style={{ gridColumn: '1 / -1' }}>
-                <Icon name="gift" size={22} />
-                <span className="tiny">{t('noResults')}</span>
+          <>
+            {goldGiftsEnabled ? (
+              <div className="seg" style={{ marginBottom: 10 }}>
+                <button className={currency === 'diamond' ? 'active' : ''} onClick={() => setCurrency('diamond')}>
+                  الماس
+                </button>
+                <button className={currency === 'gold' ? 'active' : ''} onClick={() => setCurrency('gold')}>
+                  الذهب
+                </button>
               </div>
             ) : null}
-          </div>
+
+            {speakers.length === 0 ? (
+              <p className="tiny muted center">{t('roomNoSpeakers')}</p>
+            ) : (
+              <div className="room-gift-people">
+                {speakers.map((speaker) => (
+                  <button
+                    key={speaker.id}
+                    type="button"
+                    className={`room-gift-person ${recipientId === speaker.id ? 'active' : ''}`}
+                    onClick={() => setRecipientId(speaker.id)}
+                  >
+                    <span className="room-gift-avatar">
+                      {speaker.avatarUrl ? (
+                        <img src={assetUrl(speaker.avatarUrl)} alt="" />
+                      ) : (
+                        speaker.displayName.charAt(0)
+                      )}
+                    </span>
+                    <span>{speaker.displayName}</span>
+                  </button>
+                ))}
+              </div>
+            )}
+
+            {loading ? (
+              <Spinner label={t('loading')} />
+            ) : (
+              <div className="gift-grid">
+                {gifts.map((gift) => (
+                  <button
+                    key={gift.id}
+                    type="button"
+                    className={`gift-card ${activeBalance < gift.price ? 'locked' : ''} ${selected?.id === gift.id ? 'selected' : ''}`}
+                    onClick={() => setSelected(gift)}
+                  >
+                    <span className={`gift-rarity-pill rarity-${gift.rarity}`}>
+                      {RARITY_LABEL[gift.rarity] ?? gift.rarity}
+                    </span>
+                    <GiftCover gift={gift} className="gift-card-art" />
+                    <span className="gift-card-name">{gift.name}</span>
+                    <span className="gift-card-price">
+                      <CurrencyIcon code={currency === 'gold' ? 'GOLD' : 'DIAMOND'} size={12} /> {formatCoins(gift.price)}
+                    </span>
+                  </button>
+                ))}
+                {gifts.length === 0 ? (
+                  <div className="empty" style={{ gridColumn: '1 / -1' }}>
+                    <Icon name="gift" size={22} />
+                    <span className="tiny">{t('noResults')}</span>
+                  </div>
+                ) : null}
+              </div>
+            )}
+
+            <div className="gift-qty">
+              <span className="gift-qty-label">عدد الهدايا</span>
+              <div className="gift-qty-row">
+                {QUANTITIES.map((count) => (
+                  <button
+                    key={count}
+                    type="button"
+                    className={`gift-qty-chip${quantity === count ? ' active' : ''}`}
+                    onClick={() => setQuantity(count)}
+                  >
+                    {count}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <button
+              className="btn btn-primary btn-block"
+              onClick={() => void send()}
+              disabled={!selected || !recipientId || sending}
+            >
+              {sending ? <span className="spinner" /> : <Icon name="gift" size={18} />}
+              {t('sendGift')}
+              {selected ? ` · ${formatCoins(selected.price * quantity)}` : ''}
+            </button>
+          </>
         )}
-
-        <div className="gift-qty">
-          <span className="gift-qty-label">عدد الهدايا</span>
-          <div className="gift-qty-row">
-            {QUANTITIES.map((count) => (
-              <button
-                key={count}
-                type="button"
-                className={`gift-qty-chip${quantity === count ? ' active' : ''}`}
-                onClick={() => setQuantity(count)}
-              >
-                {count}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        <button
-          className="btn btn-primary btn-block"
-          onClick={() => void send()}
-          disabled={!selected || !recipientId || sending}
-        >
-          {sending ? <span className="spinner" /> : <Icon name="gift" size={18} />}
-          {t('sendGift')}
-          {selected ? ` · ${formatCoins(selected.price * quantity)}` : ''}
-        </button>
       </div>
     </Sheet>
   );

@@ -1,0 +1,567 @@
+/* ============================ «هدايا الحظ» ============================
+   Lucky-gift bubble reveal, the 5-second repeat-send bar and the lucky
+   section inside the room gift sheet. */
+
+.lucky-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 95;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 18px;
+  overflow: hidden;
+  background:
+    radial-gradient(circle at 50% 42%, rgba(255, 200, 70, 0.22), transparent 58%),
+    radial-gradient(circle at 50% 50%, rgba(120, 70, 8, 0.35), transparent 70%),
+    rgba(6, 4, 2, 0.92);
+  animation: luckyFade 0.25s ease-out;
+}
+
+.lucky-rays {
+  position: absolute;
+  width: 140vmax;
+  height: 140vmax;
+  background: conic-gradient(
+    from 0deg,
+    rgba(255, 214, 90, 0.16) 0deg 9deg,
+    transparent 9deg 34deg,
+    rgba(255, 236, 170, 0.1) 34deg 40deg,
+    transparent 40deg 68deg
+  );
+  animation: luckySpin 18s linear infinite;
+  opacity: 0.9;
+  pointer-events: none;
+}
+
+.lucky-stage {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: min(74vw, 300px);
+  height: min(74vw, 300px);
+}
+
+.lucky-orb {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: min(58vw, 236px);
+  height: min(58vw, 236px);
+  border-radius: 50%;
+  background:
+    radial-gradient(circle at 34% 26%, #fffdf0 0%, #ffe9a0 26%, #ffc63c 52%, #b87c11 78%, #6b4606 100%);
+  box-shadow:
+    0 0 26px rgba(255, 214, 90, 0.75),
+    0 0 70px rgba(255, 190, 60, 0.5),
+    0 0 140px rgba(255, 170, 40, 0.32),
+    inset 0 -14px 30px rgba(90, 52, 0, 0.55),
+    inset 0 12px 26px rgba(255, 255, 255, 0.55);
+  animation: luckyShake 0.42s ease-in-out infinite;
+}
+
+.lucky-orb::after {
+  content: '';
+  position: absolute;
+  inset: 12% 18% 58% 16%;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(255, 255, 255, 0.95), rgba(255, 255, 255, 0) 70%);
+  filter: blur(2px);
+  pointer-events: none;
+}
+
+.lucky-orb-halo {
+  position: absolute;
+  inset: -18%;
+  border-radius: 50%;
+  border: 2px solid rgba(255, 236, 170, 0.55);
+  box-shadow: 0 0 34px rgba(255, 214, 90, 0.55), inset 0 0 34px rgba(255, 214, 90, 0.35);
+  animation: luckyHalo 1.6s ease-in-out infinite;
+}
+
+.lucky-orb-core {
+  display: grid;
+  place-items: center;
+  filter: drop-shadow(0 6px 14px rgba(90, 52, 0, 0.55));
+}
+
+.phase-burst .lucky-orb {
+  animation: luckyPop 0.42s cubic-bezier(0.2, 1.6, 0.4, 1) forwards;
+}
+
+.phase-burst .lucky-orb-halo,
+.phase-reveal .lucky-orb {
+  display: none;
+}
+
+.lucky-flash {
+  position: absolute;
+  width: 160%;
+  height: 160%;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(255, 255, 255, 0.95), rgba(255, 230, 150, 0.4) 40%, transparent 70%);
+  opacity: 0;
+  pointer-events: none;
+}
+
+.phase-burst .lucky-flash {
+  animation: luckyFlash 0.7s ease-out forwards;
+}
+
+.lucky-particles {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  pointer-events: none;
+}
+
+.lucky-particle {
+  position: absolute;
+  width: var(--size);
+  height: var(--size);
+  border-radius: 2px;
+  background: linear-gradient(135deg, #fffbe8, #ffd24a 45%, #b9821a);
+  box-shadow: 0 0 10px rgba(255, 214, 90, 0.9);
+  transform: rotate(45deg);
+  animation: luckyFly 1.05s cubic-bezier(0.15, 0.7, 0.35, 1) var(--delay) forwards;
+}
+
+.lucky-caption {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  text-align: center;
+  padding: 0 16px;
+}
+
+.lucky-caption-title {
+  font-size: 12px;
+  font-weight: 900;
+  letter-spacing: 0.6px;
+  color: #ffdf7d;
+  text-shadow: 0 0 14px rgba(255, 190, 60, 0.8);
+}
+
+.lucky-caption-name {
+  font-size: 20px;
+  font-weight: 900;
+  color: #fff;
+  text-shadow: 0 2px 12px rgba(0, 0, 0, 0.65);
+}
+
+.lucky-caption-cost {
+  font-size: 10.5px;
+  color: rgba(255, 236, 196, 0.65);
+}
+
+.lucky-reveal {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  width: min(86vw, 340px);
+  padding: 16px 18px 14px;
+  border-radius: 22px;
+  border: 1px solid rgba(255, 214, 90, 0.55);
+  background: linear-gradient(180deg, rgba(48, 30, 4, 0.94), rgba(16, 10, 2, 0.96));
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.65), 0 0 40px rgba(255, 190, 60, 0.35);
+  animation: luckyRevealPop 0.45s cubic-bezier(0.2, 1.5, 0.4, 1);
+}
+
+.lucky-reveal-avatar {
+  display: grid;
+  place-items: center;
+  width: 54px;
+  height: 54px;
+  border-radius: 50%;
+  overflow: hidden;
+  border: 2px solid #ffd75e;
+  box-shadow: 0 0 18px rgba(255, 214, 90, 0.7);
+  background: #2a1b05;
+  color: #ffe9a8;
+  font-weight: 900;
+  font-size: 22px;
+}
+
+.lucky-reveal-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.lucky-reveal-name {
+  font-size: 14px;
+  font-weight: 800;
+  color: #fff;
+}
+
+.lucky-reveal-label {
+  font-size: 11px;
+  font-weight: 800;
+  color: #ffdf7d;
+  letter-spacing: 0.4px;
+}
+
+.lucky-reveal-amount {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 6px;
+  font-size: 40px;
+  font-weight: 900;
+  line-height: 1;
+  color: #ffe066;
+  text-shadow: 0 0 22px rgba(255, 190, 60, 0.85), 0 4px 0 rgba(120, 70, 4, 0.55);
+  font-variant-numeric: tabular-nums;
+}
+
+.lucky-reveal-amount small {
+  font-size: 13px;
+  font-weight: 800;
+  color: #ffdf7d;
+}
+
+.lucky-reveal-empty {
+  font-size: 13px;
+  font-weight: 700;
+  color: rgba(255, 236, 196, 0.8);
+  text-align: center;
+}
+
+.lucky-reveal .btn {
+  margin-top: 8px;
+}
+
+/* ------------------------- repeat-send bar ------------------------- */
+
+.gift-repeat {
+  position: fixed;
+  inset-inline: 0;
+  bottom: calc(10px + env(safe-area-inset-bottom, 0px));
+  /* Above the gift reveal stage (60) so it stays visible and tappable. */
+  z-index: 65;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 5px;
+  padding: 0 10px;
+  pointer-events: none;
+  animation: luckySlideUp 0.25s ease-out;
+}
+
+.gift-repeat-card {
+  pointer-events: auto;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: min(96vw, 430px);
+  padding: 8px 10px;
+  border-radius: 18px;
+  border: 1px solid rgba(255, 214, 90, 0.5);
+  background: linear-gradient(180deg, rgba(44, 26, 6, 0.95), rgba(14, 9, 3, 0.96));
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.6), 0 0 22px rgba(255, 190, 60, 0.22);
+}
+
+.gift-repeat-art {
+  display: grid;
+  place-items: center;
+  width: 46px;
+  height: 46px;
+  flex: 0 0 auto;
+  border-radius: 12px;
+  overflow: hidden;
+  background: rgba(255, 214, 90, 0.08);
+  border: 1px solid rgba(255, 214, 90, 0.25);
+}
+
+.gift-repeat-cover {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.gift-repeat-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
+.gift-repeat-copy b {
+  font-size: 12px;
+  color: #fff;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.gift-repeat-count {
+  font-size: 10px;
+  font-weight: 800;
+  color: #ffd75e;
+}
+
+.gift-repeat-timer {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 46px;
+  height: 46px;
+  flex: 0 0 auto;
+  border-radius: 50%;
+  background:
+    radial-gradient(circle, #1c1204 58%, transparent 60%),
+    conic-gradient(#ffd75e calc(var(--p, 1) * 360deg), rgba(255, 214, 90, 0.16) 0);
+}
+
+.gift-repeat-timer b {
+  font-size: 17px;
+  font-weight: 900;
+  color: #ffe9a8;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+
+.gift-repeat-timer small {
+  font-size: 7.5px;
+  color: rgba(255, 236, 196, 0.7);
+}
+
+.gift-repeat-send {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  flex: 0 0 auto;
+  min-width: 84px;
+  padding: 9px 10px;
+  border: 0;
+  border-radius: 14px;
+  background: linear-gradient(180deg, #ffe27a, #f3b62c 60%, #c98a12);
+  color: #2a1a00;
+  font-size: 10px;
+  font-weight: 900;
+  cursor: pointer;
+  box-shadow: 0 6px 18px rgba(255, 190, 60, 0.35);
+  transition: transform 0.12s ease, box-shadow 0.12s ease;
+}
+
+.gift-repeat-send:active {
+  transform: scale(0.96);
+  box-shadow: 0 3px 10px rgba(255, 190, 60, 0.3);
+}
+
+.gift-repeat-hint {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin: 0;
+  font-size: 9.5px;
+  color: rgba(255, 236, 196, 0.72);
+}
+
+.gift-repeat-balance {
+  margin-inline-start: 6px;
+  color: rgba(255, 236, 196, 0.55);
+}
+
+/* --------------------- lucky section in the sheet --------------------- */
+
+.lucky-shop {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.lucky-shop-hero {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  border-radius: 18px;
+  border: 1px solid rgba(255, 214, 90, 0.35);
+  background:
+    radial-gradient(circle at 18% 20%, rgba(255, 214, 90, 0.22), transparent 62%),
+    linear-gradient(180deg, rgba(46, 28, 5, 0.9), rgba(18, 11, 2, 0.92));
+}
+
+.lucky-shop-orb {
+  display: grid;
+  place-items: center;
+  width: 68px;
+  height: 68px;
+  flex: 0 0 auto;
+  border-radius: 50%;
+  background: radial-gradient(circle at 34% 26%, #fffdf0, #ffe9a0 30%, #ffc63c 58%, #b87c11 100%);
+  box-shadow: 0 0 18px rgba(255, 214, 90, 0.6), inset 0 -6px 14px rgba(90, 52, 0, 0.45);
+  animation: luckyHalo 2.4s ease-in-out infinite;
+}
+
+.lucky-shop-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.lucky-shop-copy b {
+  font-size: 14px;
+  color: #ffe9a8;
+}
+
+.lucky-shop-prizes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.lucky-prize-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 4px 9px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 214, 90, 0.35);
+  background: rgba(255, 214, 90, 0.1);
+  color: #ffe9a8;
+  font-size: 10.5px;
+  font-weight: 800;
+}
+
+.lucky-prize-chip.empty {
+  border-color: rgba(255, 255, 255, 0.16);
+  background: rgba(255, 255, 255, 0.05);
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.lucky-btn-mark {
+  display: inline-flex;
+}
+
+/* ------------------------------ motion ------------------------------ */
+
+@keyframes luckyFade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes luckySpin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes luckyShake {
+  0%,
+  100% {
+    transform: translate3d(0, 0, 0) rotate(0deg) scale(1);
+  }
+  25% {
+    transform: translate3d(-3px, 2px, 0) rotate(-2.2deg) scale(1.02);
+  }
+  50% {
+    transform: translate3d(3px, -2px, 0) rotate(2.2deg) scale(1.04);
+  }
+  75% {
+    transform: translate3d(-2px, -1px, 0) rotate(-1.4deg) scale(1.02);
+  }
+}
+
+@keyframes luckyHalo {
+  0%,
+  100% {
+    transform: scale(1);
+    opacity: 0.75;
+  }
+  50% {
+    transform: scale(1.06);
+    opacity: 1;
+  }
+}
+
+@keyframes luckyPop {
+  0% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  55% {
+    transform: scale(1.35);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1.7);
+    opacity: 0;
+  }
+}
+
+@keyframes luckyFlash {
+  0% {
+    opacity: 0;
+    transform: scale(0.4);
+  }
+  18% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(1.35);
+  }
+}
+
+@keyframes luckyFly {
+  0% {
+    transform: translate3d(0, 0, 0) rotate(45deg) scale(0.4);
+    opacity: 0;
+  }
+  12% {
+    opacity: 1;
+  }
+  100% {
+    transform: translate3d(var(--dx), var(--dy), 0) rotate(calc(45deg + var(--rot))) scale(1);
+    opacity: 0;
+  }
+}
+
+@keyframes luckyRevealPop {
+  0% {
+    transform: translateY(14px) scale(0.9);
+    opacity: 0;
+  }
+  100% {
+    transform: translateY(0) scale(1);
+    opacity: 1;
+  }
+}
+
+@keyframes luckySlideUp {
+  from {
+    transform: translateY(24px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .lucky-rays,
+  .lucky-orb,
+  .lucky-orb-halo,
+  .lucky-shop-orb,
+  .lucky-particle {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+  }
+}

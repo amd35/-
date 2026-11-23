@@ -10,6 +10,7 @@ import { CallProvider } from './lib/call';
 import { setupNativeShell } from './lib/native';
 import './styles.css';
 import './game.css';
+import './lucky.css';
 
 void setupNativeShell();
 

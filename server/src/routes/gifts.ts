@@ -80,6 +80,14 @@ router.get(
       giftsEnabled: settings.gifts_enabled,
       goldGiftsEnabled: settings.gold_gifts_enabled,
       currencies: GIFT_CURRENCIES,
+      // «هدايا الحظ»: the client only needs the price and the prize amounts.
+      luckyGift: {
+        enabled: settings.gifts_enabled && settings.lucky_gift_enabled,
+        price: Number(settings.lucky_gift_price),
+        prizes: settings.lucky_gift_prizes
+          .map((tier) => Number(tier.amount))
+          .sort((a, b) => a - b),
+      },
     });
   })
 );

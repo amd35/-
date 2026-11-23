@@ -19,6 +19,24 @@ export interface WithdrawalMethod {
   note: string;
 }
 
+/** One rung of the lucky-gift prize ladder. */
+export interface LuckyPrizeTier {
+  /** Diamonds paid when this rung is drawn (0 = no prize). */
+  amount: number;
+  /** Relative chance; the server draws proportionally to the total weight. */
+  weight: number;
+}
+
+export const LUCKY_PRIZE_DEFAULTS: LuckyPrizeTier[] = [
+  { amount: 0, weight: 28 },
+  { amount: 500, weight: 24 },
+  { amount: 1000, weight: 20 },
+  { amount: 2000, weight: 14 },
+  { amount: 5000, weight: 9 },
+  { amount: 10000, weight: 4 },
+  { amount: 25000, weight: 1 },
+];
+
 export interface AppSettings {
   voice_price: number;
   video_price: number;
@@ -62,6 +80,12 @@ export interface AppSettings {
   gift_announcement_scope: 'all' | 'selected';
   gift_announcement_gift_ids: string[];
   gift_announcement_rarity_effects: Record<string, GiftAnnouncementEffect>;
+  /** «هدايا الحظ»: one paid try per spin, prizes drawn by the weights below. */
+  lucky_gift_enabled: boolean;
+  /** Diamonds charged for one lucky try. */
+  lucky_gift_price: number;
+  /** Prize ladder; `weight` is the relative chance of that amount. */
+  lucky_gift_prizes: LuckyPrizeTier[];
   /** Show a user's coin balance to other users on their profile card. */
   profile_show_balances: boolean;
   /** Play the royal level-up celebration (animation + sound) when a user levels up. */
@@ -114,6 +138,9 @@ export const SETTINGS_DEFAULTS: AppSettings = {
   gift_announcement_scope: 'all',
   gift_announcement_gift_ids: [],
   gift_announcement_rarity_effects: { ...GIFT_RARITY_EFFECT_DEFAULTS },
+  lucky_gift_enabled: true,
+  lucky_gift_price: 1000,
+  lucky_gift_prizes: LUCKY_PRIZE_DEFAULTS.map((tier) => ({ ...tier })),
   profile_show_balances: true,
   level_up_effects: true,
   cup_enabled: true,
@@ -186,6 +213,20 @@ function readWithdrawalMethods(value: unknown): WithdrawalMethod[] {
   return out;
 }
 
+/** Sanitizes the admin-managed lucky-gift prize ladder. */
+function readLuckyPrizes(value: unknown): LuckyPrizeTier[] {
+  const source = Array.isArray(value) ? value : [];
+  const out: LuckyPrizeTier[] = [];
+  for (const raw of source.slice(0, 12)) {
+    const item = raw && typeof raw === 'object' ? (raw as Record<string, unknown>) : {};
+    const amount = Math.min(10_000_000, Math.max(0, Math.trunc(Number(item.amount) || 0)));
+    const weight = Math.min(1_000_000, Math.max(0, Number(item.weight) || 0));
+    out.push({ amount, weight });
+  }
+  // An empty or all-zero ladder would never pay: fall back to the defaults.
+  return out.some((tier) => tier.weight > 0) ? out : LUCKY_PRIZE_DEFAULTS.map((tier) => ({ ...tier }));
+}
+
 const COERCE: Record<string, (value: unknown) => unknown> = {
   voice_price: (v) => Math.max(0, Math.trunc(Number(v) || 0)),
   video_price: (v) => Math.max(0, Math.trunc(Number(v) || 0)),
@@ -218,6 +259,9 @@ const COERCE: Record<string, (value: unknown) => unknown> = {
   gift_announcement_scope: (v) => (v === 'selected' ? 'selected' : 'all'),
   gift_announcement_gift_ids: (v) => (Array.isArray(v) ? v.map(String).slice(0, 500) : []),
   gift_announcement_rarity_effects: (v) => readRarityEffects(v),
+  lucky_gift_enabled: (v) => Boolean(v),
+  lucky_gift_price: (v) => Math.max(1, Math.trunc(Number(v) || 1000)),
+  lucky_gift_prizes: (v) => readLuckyPrizes(v),
   profile_show_balances: (v) => Boolean(v),
   level_up_effects: (v) => Boolean(v),
   cup_enabled: (v) => Boolean(v),
