@@ -17,6 +17,7 @@ import { emitToUser, isOnline, onlineUserIds } from '../realtime';
 import { getSettings, updateSettings } from '../settings';
 import { FRAME_RARITIES, FrameRow, serializeFrame } from '../frames';
 import { GIFT_RARITIES, GiftRow, moveProfit, serializeGift } from '../gifts';
+import { serializeRoomFrame, type RoomFrameRow } from '../roomFrames';
 import { HttpError, asyncHandler, intParam, iraqDateStr, nextIraqMidnight } from '../utils';
 import { moveCoins } from '../wallet';
 import { giftUpload, upload } from './uploads';
@@ -1319,6 +1320,158 @@ router.get(
       },
       transactions: rows,
     });
+  })
+);
+
+// ------------------------------------------------------------- room frames
+/** Room gift frames are a separate catalog from the cosmetic/gift stores. */
+function readRoomFrameBody(body: Record<string, unknown>) {
+  const out: {
+    name?: string;
+    name_en?: string;
+    image_url?: string;
+    price?: number;
+    is_active?: boolean;
+    sort_order?: number;
+  } = {};
+  if (body.name !== undefined) {
+    const name = String(body.name).trim().slice(0, 60);
+    if (!name) throw new HttpError(400, 'Frame name is required', 'invalid_frame');
+    out.name = name;
+  }
+  if (body.nameEn !== undefined) out.name_en = String(body.nameEn).trim().slice(0, 60);
+  if (body.imageUrl !== undefined) {
+    const url = String(body.imageUrl).trim().slice(0, 500);
+    if (!url) throw new HttpError(400, 'Frame image is required', 'invalid_frame');
+    out.image_url = url;
+  }
+  if (body.price !== undefined) {
+    const price = Math.trunc(Number(body.price));
+    if (!Number.isFinite(price) || price < 0) throw new HttpError(400, 'Invalid frame price', 'invalid_frame');
+    out.price = price;
+  }
+  if (body.isActive !== undefined) out.is_active = Boolean(body.isActive);
+  if (body.sortOrder !== undefined) out.sort_order = Math.trunc(Number(body.sortOrder)) || 0;
+  return out;
+}
+
+router.get(
+  '/room-frames',
+  asyncHandler(async (_req, res) => {
+    const rows = await q<RoomFrameRow & { sends: number }>(
+      `SELECT f.*, (SELECT count(*)::int FROM room_frame_sends s WHERE s.frame_id = f.id) AS sends
+         FROM room_frames f ORDER BY f.sort_order, f.created_at`
+    );
+    // Send/charge log the administration can audit.
+    const log = await q<{
+      id: string;
+      frame_name: string;
+      price: number;
+      duration_seconds: number;
+      starts_at: string;
+      expires_at: string;
+      created_at: string;
+      sender_name: string | null;
+      sender_username: string | null;
+      recipient_name: string | null;
+      recipient_username: string | null;
+      room_name: string | null;
+    }>(
+      `SELECT s.id, COALESCE(f.name, s.frame_name) AS frame_name, s.price, s.duration_seconds,
+              s.starts_at, s.expires_at, s.created_at,
+              sender.display_name AS sender_name, sender.username AS sender_username,
+              recipient.display_name AS recipient_name, recipient.username AS recipient_username,
+              r.name AS room_name
+         FROM room_frame_sends s
+         LEFT JOIN room_frames f ON f.id = s.frame_id
+         JOIN users sender ON sender.id = s.sender_id
+         JOIN users recipient ON recipient.id = s.recipient_id
+         JOIN rooms r ON r.id = s.room_id
+        ORDER BY s.created_at DESC LIMIT 100`
+    );
+    res.json({
+      frames: rows.map((row) => ({ ...serializeRoomFrame(row), sends: row.sends })),
+      log,
+    });
+  })
+);
+
+router.post(
+  '/room-frames/upload',
+  upload.single('file'),
+  asyncHandler(async (req, res) => {
+    if (!req.file) throw new HttpError(400, 'No file received', 'missing_file');
+    res.status(201).json({ url: `/uploads/${req.file.filename}`, name: req.file.originalname });
+  })
+);
+
+router.post(
+  '/room-frames',
+  asyncHandler(async (req, res) => {
+    const fields = readRoomFrameBody((req.body ?? {}) as Record<string, unknown>);
+    if (!fields.name) throw new HttpError(400, 'Frame name is required', 'invalid_frame');
+    if (!fields.image_url) throw new HttpError(400, 'Frame image is required', 'invalid_frame');
+    const created = await one<RoomFrameRow>(
+      `INSERT INTO room_frames (name, name_en, image_url, price, is_active, sort_order)
+       VALUES ($1, $2, $3, $4, $5, $6) RETURNING *`,
+      [
+        fields.name,
+        fields.name_en || fields.name,
+        fields.image_url,
+        fields.price ?? 99,
+        fields.is_active ?? true,
+        fields.sort_order ?? 0,
+      ]
+    );
+    res.status(201).json({ frame: created ? serializeRoomFrame(created) : null });
+  })
+);
+
+/** Saves the whole display order in one request (admin list arrows). */
+router.post(
+  '/room-frames/reorder',
+  asyncHandler(async (req, res) => {
+    const ids = Array.isArray(req.body?.ids) ? (req.body.ids as unknown[]).map(String) : [];
+    if (!ids.length) throw new HttpError(400, 'Order list is required', 'invalid_order');
+    await tx(async (c) => {
+      for (let index = 0; index < ids.length; index += 1) {
+        await c.query('UPDATE room_frames SET sort_order = $2 WHERE id = $1', [ids[index], index * 10]);
+      }
+    });
+    res.json({ reordered: ids.length });
+  })
+);
+
+router.patch(
+  '/room-frames/:id',
+  asyncHandler(async (req, res) => {
+    const existing = await one<RoomFrameRow>('SELECT * FROM room_frames WHERE id = $1', [req.params.id]);
+    if (!existing) throw new HttpError(404, 'Frame not found', 'frame_not_found');
+    const fields = readRoomFrameBody((req.body ?? {}) as Record<string, unknown>);
+    const updated = await one<RoomFrameRow>(
+      `UPDATE room_frames
+          SET name = $2, name_en = $3, image_url = $4, price = $5, is_active = $6, sort_order = $7
+        WHERE id = $1 RETURNING *`,
+      [
+        existing.id,
+        fields.name ?? existing.name,
+        fields.name_en ?? existing.name_en,
+        fields.image_url ?? existing.image_url,
+        fields.price ?? Number(existing.price),
+        fields.is_active ?? existing.is_active,
+        fields.sort_order ?? Number(existing.sort_order),
+      ]
+    );
+    res.json({ frame: updated ? serializeRoomFrame(updated) : null });
+  })
+);
+
+router.delete(
+  '/room-frames/:id',
+  asyncHandler(async (req, res) => {
+    const deleted = await one('DELETE FROM room_frames WHERE id = $1 RETURNING id', [req.params.id]);
+    if (!deleted) throw new HttpError(404, 'Frame not found', 'frame_not_found');
+    res.json({ deleted: true });
   })
 );
 

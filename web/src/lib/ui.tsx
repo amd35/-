@@ -263,6 +263,12 @@ const ICONS: Record<string, ReactNode> = {
     </>
   ),
   sparkle: <path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9z" />,
+  frame: (
+    <>
+      <rect x="3.2" y="3.2" width="17.6" height="17.6" rx="5" />
+      <circle cx="12" cy="12" r="4.4" />
+    </>
+  ),
   play: <path d="M8 5.5v13l11-6.5z" />,
 };
 

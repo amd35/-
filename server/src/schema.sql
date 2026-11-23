@@ -1270,3 +1270,57 @@ ALTER TABLE payment_orders ALTER COLUMN amount TYPE bigint;
 ALTER TABLE recharge_packages ALTER COLUMN coins TYPE bigint;
 ALTER TABLE recharge_packages ALTER COLUMN bonus_coins TYPE bigint;
 ALTER TABLE gifts ALTER COLUMN price TYPE bigint;
+
+-- ---------------------------------------------------- room gift frames
+-- A frame catalog gifted inside voice rooms, completely separate from the gift
+-- store: the administration uploads a transparent PNG, sets a name and a price,
+-- and members send it to a person on a mic for coins.
+CREATE TABLE IF NOT EXISTS room_frames (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  name text NOT NULL,
+  name_en text NOT NULL DEFAULT '',
+  image_url text NOT NULL,
+  price integer NOT NULL DEFAULT 99 CHECK (price >= 0),
+  -- The reveal length belongs to the server; the client never receives a timer.
+  duration_seconds integer NOT NULL DEFAULT 60 CHECK (duration_seconds > 0),
+  is_active boolean NOT NULL DEFAULT true,
+  sort_order integer NOT NULL DEFAULT 0,
+  created_at timestamptz NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS room_frames_order_idx ON room_frames (sort_order, created_at);
+
+-- One row per sent frame. `starts_at`/`expires_at` are written by the server, so
+-- the remaining time survives a rejoin and can never be changed by the client.
+CREATE TABLE IF NOT EXISTS room_frame_sends (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  request_id text NOT NULL UNIQUE,
+  frame_id uuid NOT NULL REFERENCES room_frames(id) ON DELETE CASCADE,
+  room_id uuid NOT NULL REFERENCES rooms(id) ON DELETE CASCADE,
+  sender_id uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  recipient_id uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  price integer NOT NULL CHECK (price >= 0),
+  duration_seconds integer NOT NULL DEFAULT 60,
+  starts_at timestamptz NOT NULL DEFAULT now(),
+  expires_at timestamptz NOT NULL,
+  created_at timestamptz NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS room_frame_sends_live_idx
+  ON room_frame_sends (room_id, recipient_id, expires_at DESC);
+CREATE INDEX IF NOT EXISTS room_frame_sends_log_idx ON room_frame_sends (created_at DESC);
+
+-- Deleting a frame from the admin panel must not erase the send/charge history,
+-- so the log keeps its own copy of the name and the catalog link may go away.
+ALTER TABLE room_frame_sends ADD COLUMN IF NOT EXISTS frame_name text NOT NULL DEFAULT '';
+ALTER TABLE room_frame_sends ALTER COLUMN frame_id DROP NOT NULL;
+DO $$
+BEGIN
+  IF EXISTS (
+    SELECT 1 FROM pg_constraint
+     WHERE conname = 'room_frame_sends_frame_id_fkey' AND confdeltype = 'c'
+  ) THEN
+    ALTER TABLE room_frame_sends DROP CONSTRAINT room_frame_sends_frame_id_fkey;
+    ALTER TABLE room_frame_sends
+      ADD CONSTRAINT room_frame_sends_frame_id_fkey
+      FOREIGN KEY (frame_id) REFERENCES room_frames(id) ON DELETE SET NULL;
+  END IF;
+END $$;

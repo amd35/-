@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { assetUrl } from '../../lib/api';
 import { Avatar, Icon } from '../../lib/ui';
 import { isArtFrame, type FrameInfo } from '../AvatarFrame';
 import { RankBadge, type RankInfo } from '../RankBadge';
@@ -38,6 +39,7 @@ export function MicSeat({
   onKick,
   onLock,
   onOpenProfile,
+  giftFrame,
 }: {
   mic: RoomMic;
   level: number;
@@ -50,6 +52,8 @@ export function MicSeat({
   onLock: () => void;
   /** Tapping someone else's avatar opens their quick profile card. */
   onOpenProfile?: () => void;
+  /** Frame gifted to this member: drawn around the avatar, never over the face. */
+  giftFrame?: { imageUrl: string; name: string } | null;
 }) {
   const [menu, setMenu] = useState(false);
   const speaking = Boolean(mic.user) && !mic.muted && level > 0.14;
@@ -73,6 +77,14 @@ export function MicSeat({
       >
         <span className="seat-ring">
           <span className="seat-glow" />
+          {mic.user && giftFrame ? (
+            <img
+              className="seat-gift-frame"
+              src={assetUrl(giftFrame.imageUrl)}
+              alt=""
+              aria-hidden="true"
+            />
+          ) : null}
           {mic.user ? (
             <Avatar
               user={{

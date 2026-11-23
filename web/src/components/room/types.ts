@@ -11,6 +11,15 @@ export interface RoomRoleEntry {
   role: 'admin' | 'supervisor';
 }
 
+export interface RoomFrameWear {
+  userId: string;
+  frameId: string;
+  name: string;
+  imageUrl: string;
+  expiresAt: string;
+  remainingMs: number;
+}
+
 export interface RoomData {
   id: string;
   code: string;
@@ -31,4 +40,6 @@ export interface RoomData {
   canModerate: boolean;
   roles: RoomRoleEntry[];
   mics: RoomMic[];
+  /** Frames still running in this room (server clock). */
+  frames: RoomFrameWear[];
 }

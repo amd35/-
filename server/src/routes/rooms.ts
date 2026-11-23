@@ -14,6 +14,7 @@ import {
 import { notify } from '../notify';
 import { GiftRow, moveProfit } from '../gifts';
 import { cupSnapshot, ensureCompetition, recordCupGift } from '../roomCup';
+import { ROOM_FRAME_DURATION_SECONDS, listRoomFrames, type RoomFrameRow } from '../roomFrames';
 import { getSettings } from '../settings';
 import { moveCoins } from '../wallet';
 import { awardXpSafe, getXpSettings, xpForCoins } from '../progression';
@@ -82,6 +83,100 @@ router.get(
   requireAuth(),
   asyncHandler(async (req, res) => {
     res.json(await cupSnapshot(req.params.id, reqUser(req).id));
+  })
+);
+
+/** Frame catalog for the room sheet — a separate system from the gift store. */
+router.get(
+  '/:id/frames',
+  requireAuth(),
+  asyncHandler(async (req, res) => {
+    const me = reqUser(req).id;
+    const room = await one<{ id: string }>('SELECT id FROM rooms WHERE id = $1 AND is_active = true', [
+      req.params.id,
+    ]);
+    if (!room) throw new HttpError(404, 'Room not found', 'room_not_found');
+    const [frames, wallet] = await Promise.all([
+      listRoomFrames(),
+      one<{ balance: number }>('SELECT balance FROM wallets WHERE user_id = $1', [me]),
+    ]);
+    res.json({ frames, balance: Number(wallet?.balance ?? 0) });
+  })
+);
+
+/** Gifts a frame to a member on a mic. Price and duration are decided server-side. */
+router.post(
+  '/:id/frames/send',
+  requireAuth(),
+  asyncHandler(async (req, res) => {
+    const me = reqUser(req).id;
+    const roomId = req.params.id;
+    const frameId = String(req.body?.frameId ?? '').trim();
+    const recipientId = String(req.body?.recipientId ?? '').trim();
+    const requestId = String(req.body?.requestId ?? '').trim().slice(0, 80);
+    if (!frameId || !recipientId) {
+      throw new HttpError(400, 'Choose a frame and a recipient', 'invalid_frame_gift');
+    }
+    if (!requestId) throw new HttpError(400, 'Missing request id', 'invalid_request');
+
+    const outcome = await tx(async (c) => {
+      const room = await c.query<{ is_active: boolean }>('SELECT is_active FROM rooms WHERE id = $1', [roomId]);
+      if (!room.rows[0]?.is_active) throw new HttpError(404, 'Room not found', 'room_not_found');
+
+      // Only someone sitting on a mic has an avatar to wear the frame.
+      const seated = await c.query('SELECT 1 FROM room_mics WHERE room_id = $1 AND user_id = $2 LIMIT 1', [
+        roomId,
+        recipientId,
+      ]);
+      if (!seated.rowCount) throw new HttpError(409, 'This member is not on a mic', 'recipient_not_seated');
+
+      const found = await c.query<RoomFrameRow>(
+        'SELECT * FROM room_frames WHERE id = $1 AND is_active = true',
+        [frameId]
+      );
+      const frame = found.rows[0];
+      if (!frame) throw new HttpError(404, 'Frame not found', 'frame_not_found');
+      const price = Number(frame.price);
+
+      const inserted = await c.query<{ id: string; expires_at: string }>(
+        `INSERT INTO room_frame_sends
+           (request_id, frame_id, frame_name, room_id, sender_id, recipient_id, price, duration_seconds, starts_at, expires_at)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8::int, now(), now() + ($8::int * interval '1 second'))
+         ON CONFLICT (request_id) DO NOTHING
+         RETURNING id, expires_at`,
+        [requestId, frame.id, frame.name, roomId, me, recipientId, price, ROOM_FRAME_DURATION_SECONDS]
+      );
+      const send = inserted.rows[0];
+      if (!send) throw new HttpError(409, 'This frame request was already used', 'duplicate_request');
+
+      // Charge and grant live in one transaction: a failure rolls the row back and
+      // the unique (user, type, ref) ledger row makes a repeated charge impossible.
+      if (price > 0) {
+        const moved = await moveCoins(c, {
+          userId: me,
+          amount: -price,
+          type: 'room_frame_send',
+          refType: 'room_frame_send',
+          refId: send.id,
+          meta: { frameId: frame.id, frameName: frame.name, recipientId, roomId },
+        });
+        if (!moved.applied) throw new HttpError(409, 'This frame was already sent', 'duplicate_request');
+      }
+      return { send, frame, price };
+    });
+
+    const frameInfo = {
+      userId: recipientId,
+      frameId: outcome.frame.id,
+      name: outcome.frame.name,
+      imageUrl: outcome.frame.image_url,
+      expiresAt: outcome.send.expires_at,
+      remainingMs: ROOM_FRAME_DURATION_SECONDS * 1000,
+    };
+    // Everyone in the room receives the same frame at the same moment.
+    broadcast('room_frame', { roomId, frame: frameInfo });
+    emitToUser(me, 'wallet:update', {});
+    res.status(201).json({ frame: frameInfo });
   })
 );
 

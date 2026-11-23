@@ -22,6 +22,7 @@ import { RoomSettingsPanel, type RoomSettingsPatch } from '../components/room/Ro
 import { RoomMusicPanel } from '../components/room/RoomMusicPanel';
 import { RoomChatPanel } from '../components/room/RoomChatPanel';
 import { RoomCup } from '../components/room/RoomCup';
+import { RoomFramesSheet, type WornFrame } from '../components/room/RoomFramesSheet';
 import type { RoomData } from '../components/room/types';
 import { useRoomVoice } from '../lib/roomVoice';
 import {
@@ -32,6 +33,9 @@ import { UserProfileCard } from '../components/profile/UserProfileCard';
 import { UserProfileScreen } from '../components/profile/UserProfileScreen';
 
 type Panel = 'chat' | 'members' | 'invite' | 'settings' | 'music' | null;
+
+/** A worn frame plus the local moment it disappears (server time converted once). */
+type LiveFrame = WornFrame & { endsAt: number };
 
 export default function Room() {
   const { id = '' } = useParams();
@@ -48,6 +52,8 @@ export default function Room() {
   const [sending, setSending] = useState(false);
   const [giftOpen, setGiftOpen] = useState(false);
   const [giftTarget, setGiftTarget] = useState<string | null>(null);
+  const [framesOpen, setFramesOpen] = useState(false);
+  const [frames, setFrames] = useState<Record<string, LiveFrame>>({});
   const [profileUserId, setProfileUserId] = useState<string | null>(null);
   const [fullProfileId, setFullProfileId] = useState<string | null>(null);
   const [announcement, setAnnouncement] = useState<GiftAnnouncement | null>(null);
@@ -79,6 +85,14 @@ export default function Room() {
     try {
       const response = await api<{ room: RoomData }>(`/rooms/${id}`);
       setRoom(response.room);
+      // The server sends the real time left, so a rejoin never shows a dead frame.
+      const now = Date.now();
+      const live: Record<string, LiveFrame> = {};
+      for (const frame of response.room.frames ?? []) {
+        const remaining = Number(frame.remainingMs);
+        if (remaining > 0) live[frame.userId] = { ...frame, endsAt: now + remaining };
+      }
+      setFrames(live);
     } catch (error) {
       toast.push((error as Error).message, 'error');
     } finally {
@@ -105,6 +119,26 @@ export default function Room() {
     const timer = setTimeout(() => setShowEntry(false), 3400);
     return () => clearTimeout(timer);
   }, [room, entryCosmetic, me?.vip]);
+
+  /** Puts a freshly gifted frame around its recipient's avatar. */
+  const applyFrame = useCallback((frame: WornFrame) => {
+    const remaining = Number(frame.remainingMs);
+    if (!(remaining > 0)) return;
+    setFrames((current) => ({ ...current, [frame.userId]: { ...frame, endsAt: Date.now() + remaining } }));
+  }, []);
+
+  // A gifted frame removes itself the moment the server's minute is over.
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setFrames((current) => {
+        const now = Date.now();
+        const entries = Object.entries(current);
+        const live = entries.filter(([, frame]) => frame.endsAt > now);
+        return live.length === entries.length ? current : Object.fromEntries(live);
+      });
+    }, 1000);
+    return () => clearInterval(timer);
+  }, []);
 
   const append = useCallback((message: RoomMessageData) => {
     setMessages((current) =>
@@ -172,6 +206,16 @@ export default function Room() {
     });
     return off;
   }, [on, id, enqueueAnnouncement]);
+
+  // Frames gifted in the room reach every member at the same moment.
+  useEffect(() => {
+    const off = on('room_frame', (data) => {
+      if (data.roomId !== id) return;
+      const frame = data.frame as WornFrame | null;
+      if (frame) applyFrame(frame);
+    });
+    return off;
+  }, [on, id, applyFrame]);
 
   // Live occupancy and moderation events.
   useEffect(() => {
@@ -371,6 +415,20 @@ export default function Room() {
     else toast.push(t('micBusy'), 'error');
   };
 
+  // Frame recipients: everyone sitting on a mic, since they are the ones with
+  // an avatar on the stage.
+  const frameMembers = useMemo(
+    () =>
+      room?.mics
+        .filter((mic) => mic.user)
+        .map((mic) => ({
+          id: mic.user!.id,
+          displayName: mic.user!.displayName,
+          avatarUrl: mic.user!.avatarUrl,
+        })) ?? [],
+    [room]
+  );
+
   const occupied = presence.length || room?.mics.filter((mic) => mic.user).length || 0;
   const speakers =
     room?.mics
@@ -446,6 +504,7 @@ export default function Room() {
                 onKick={() => void kickMic(mic)}
                 onLock={() => void lockMic(mic)}
                 onOpenProfile={() => mic.user && setProfileUserId(mic.user.id)}
+                giftFrame={mic.user ? frames[mic.user.id] ?? null : null}
               />
             ))}
           </section>
@@ -466,6 +525,7 @@ export default function Room() {
           onMusic={() => setPanel('music')}
           onChat={() => setPanel('chat')}
           onGifts={() => setGiftOpen(true)}
+          onFrames={() => setFramesOpen(true)}
           onMic={micButton}
           micOn={Boolean(myMic)}
           micMuted={Boolean(myMic?.muted)}
@@ -538,6 +598,14 @@ export default function Room() {
             speakers={speakers}
             initialRecipientId={giftTarget}
             onSent={(message) => append(message)}
+          />
+          <RoomFramesSheet
+            open={framesOpen}
+            onClose={() => setFramesOpen(false)}
+            roomId={id}
+            members={frameMembers}
+            meId={me?.user.id ?? null}
+            onSent={applyFrame}
           />
         </>
       ) : null}

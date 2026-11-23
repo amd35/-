@@ -9216,3 +9216,155 @@ table.data tr:hover td {
   color: var(--muted-2);
   letter-spacing: 0.2px;
 }
+
+/* ------------------------------------------------------- gifted room frames */
+/* The gifted frame sits behind the avatar so the face, name and mic number
+   stay untouched — it reads as a real ring, not a sticker over the photo. */
+.seat-gift-frame {
+  position: absolute;
+  inset: -28%;
+  width: 156%;
+  height: 156%;
+  object-fit: contain;
+  pointer-events: none;
+  z-index: 0;
+  filter: drop-shadow(0 0 10px rgba(255, 214, 94, 0.6));
+  animation: seatFrameIn 0.35s ease both;
+}
+
+.seat-ring .avatar-wrap,
+.seat-ring .avatar,
+.seat-ring .seat-empty {
+  position: relative;
+  z-index: 1;
+}
+
+@keyframes seatFrameIn {
+  from {
+    opacity: 0;
+    transform: scale(0.7);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.room-frames-sheet {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.room-frames-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.room-frames-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.room-frame-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 8px;
+  border-radius: 16px;
+  border: 1px solid var(--line);
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.room-frame-preview {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 84px;
+  height: 84px;
+}
+
+.room-frame-preview-art {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  pointer-events: none;
+}
+
+.room-frame-preview-avatar {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  background: radial-gradient(circle at 34% 28%, #6b4a8f, #2a1338);
+}
+
+.room-frame-name {
+  font-size: 12.5px;
+  font-weight: 700;
+  text-align: center;
+}
+
+.room-frame-price {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  font-weight: 800;
+  color: #ffd75e;
+}
+
+.room-frame-people {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.room-frame-confirm {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  padding: 16px;
+  border-radius: 18px;
+  border: 1px solid rgba(255, 207, 64, 0.45);
+  background: rgba(255, 207, 64, 0.08);
+  text-align: center;
+}
+
+.room-frame-confirm-avatar {
+  display: grid;
+  place-items: center;
+  width: 46px;
+  height: 46px;
+  border-radius: 50%;
+  overflow: hidden;
+  font-weight: 800;
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.room-frame-confirm-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.room-frame-confirm-text {
+  margin: 0;
+  font-size: 14px;
+}
+
+.room-frame-confirm-actions {
+  display: flex;
+  gap: 8px;
+  width: 100%;
+}
+
+.room-frame-confirm-actions .btn {
+  flex: 1;
+}

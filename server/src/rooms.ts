@@ -2,6 +2,7 @@ import type { PoolClient } from 'pg';
 import { one, q } from './db';
 import { activeRankFor, isOfficialAdmin } from './ranks';
 import { isOnline } from './realtime';
+import { activeRoomFrames } from './roomFrames';
 import {
   FRAME_FIELDS,
   RANK_FIELDS,
@@ -255,13 +256,14 @@ export async function roomOwner(ownerId: string | null) {
 export async function getRoomDetail(roomId: string, meId: string) {
   const room = await one<RoomRow>('SELECT * FROM rooms WHERE id = $1', [roomId]);
   if (!room || !room.is_active) throw new HttpError(404, 'Room not found', 'room_not_found');
-  const [mics, owner, access, roles] = await Promise.all([
+  const [mics, owner, access, roles, frames] = await Promise.all([
     roomMics(roomId, meId),
     roomOwner(room.owner_id),
     roomAccess(roomId, meId, room.owner_id),
     roomRoles(roomId),
+    activeRoomFrames(roomId),
   ]);
-  return { ...serializeRoom(room), owner, ...access, roles, mics };
+  return { ...serializeRoom(room), owner, ...access, roles, mics, frames };
 }
 
 export interface RoomRoleEntry {

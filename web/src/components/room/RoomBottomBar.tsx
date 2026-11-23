@@ -9,6 +9,7 @@ export function RoomBottomBar({
   onMusic,
   onChat,
   onGifts,
+  onFrames,
   onMic,
   micOn,
   micMuted,
@@ -20,6 +21,7 @@ export function RoomBottomBar({
   onMusic: () => void;
   onChat: () => void;
   onGifts: () => void;
+  onFrames: () => void;
   onMic: () => void;
   micOn: boolean;
   micMuted: boolean;
@@ -37,6 +39,10 @@ export function RoomBottomBar({
         <>
           <button type="button" className="room-more-backdrop" onClick={() => setMore(false)} aria-label="إغلاق" />
           <div className="room-more-sheet" role="dialog" aria-label="أدوات الغرفة">
+            <button type="button" onClick={pick(onFrames)}>
+              <Icon name="frame" size={18} />
+              <span>الإطار</span>
+            </button>
             <button type="button" onClick={pick(onInvite)}>
               <Icon name="plus" size={18} />
               <span>دعوة الأصدقاء</span>
