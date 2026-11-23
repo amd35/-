@@ -5,7 +5,7 @@ import { broadcast } from '../realtime';
 import { MIC_KINDS, MIC_STYLES, RoomRow, allRoomsWithMics, packMicPositions, serializeRoom } from '../rooms';
 import { listUpgradeTiers, serializeTier, type RoomUpgradeTierRow } from '../roomStore';
 import { HttpError, asyncHandler } from '../utils';
-import { giftUpload } from './uploads';
+import { imageUpload } from './uploads';
 
 const router = Router();
 router.use(requireAdmin());
@@ -314,7 +314,7 @@ router.delete(
 
 router.post(
   '/upload',
-  giftUpload.single('file'),
+  imageUpload.single('file'),
   asyncHandler(async (req, res) => {
     if (!req.file) throw new HttpError(400, 'No file received', 'missing_file');
     res.status(201).json({ url: `/uploads/${req.file.filename}` });
