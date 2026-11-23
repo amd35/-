@@ -136,7 +136,7 @@ const ar: Record<string, string> = {
   maxWithdraw: 'الحد الأقصى للسحب',
   fee: 'العمولة',
   beans: 'فاصوليا',
-  gold: 'ذهب',
+  gold: 'الذهب',
   markAllRead: 'تحديد الكل كمقروء',
   adminPanel: 'لوحة التحكم',
   adminLogin: 'دخول الإدارة',
