@@ -5,8 +5,9 @@ import { useAuth } from '../lib/auth';
 import { useI18n } from '../lib/i18n';
 import { formatCoins, formatCountdown, Icon, Sheet, useCountdown, useToast } from '../lib/ui';
 import { AppShell } from '../components/AppShell';
+import { GiftCodeSheet } from '../components/GiftCodeSheet';
 
-type SheetKind = 'password' | 'privacy' | 'calls' | 'support' | 'about' | 'delete' | null;
+type SheetKind = 'gift' | 'password' | 'privacy' | 'calls' | 'support' | 'about' | 'delete' | null;
 
 export default function Settings() {
   const { me, refresh, logout } = useAuth();
@@ -111,6 +112,15 @@ export default function Settings() {
               <div className="row-sub">{lang === 'ar' ? 'العربية' : 'English'}</div>
             </div>
             <span className="pill">{lang === 'ar' ? 'EN' : 'AR'}</span>
+          </div>
+
+          <div className="row" onClick={() => setSheet('gift')}>
+            <Icon name="gift" size={19} />
+            <div className="row-main">
+              <div className="row-title">{t('redeemGiftCode')}</div>
+              <div className="row-sub">{t('giftCodeHint')}</div>
+            </div>
+            <Icon name="arrowLeft" size={17} />
           </div>
 
           <div className="row" onClick={() => setSheet('password')}>
@@ -230,6 +240,8 @@ export default function Settings() {
           </button>
         </div>
       </Sheet>
+
+      <GiftCodeSheet open={sheet === 'gift'} onClose={() => setSheet(null)} />
 
       <Sheet open={sheet === 'calls'} onClose={() => setSheet(null)} title={t('callSettings')}>
         <div className="stack">
