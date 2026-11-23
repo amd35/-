@@ -33,10 +33,12 @@ export function MicSeat({
   level,
   busy,
   canModerate,
+  canManage,
   onTake,
   onLeave,
   onMute,
   onKick,
+  onBan,
   onLock,
   onOpenProfile,
   giftFrame,
@@ -45,10 +47,13 @@ export function MicSeat({
   level: number;
   busy: boolean;
   canModerate: boolean;
+  /** Owner/vice-owner: the extra powers (lock, year ban). */
+  canManage: boolean;
   onTake: () => void;
   onLeave: () => void;
   onMute: () => void;
   onKick: () => void;
+  onBan: (hours: number) => void;
   onLock: () => void;
   /** Tapping someone else's avatar opens their quick profile card. */
   onOpenProfile?: () => void;
@@ -157,7 +162,29 @@ export function MicSeat({
               <Icon name="logout" size={13} /> إنزال من المايك
             </button>
           ) : null}
-          {canModerate ? (
+          {canModerate && mic.user && !mic.mine ? (
+            <button
+              type="button"
+              onClick={() => {
+                setMenu(false);
+                onBan(2);
+              }}
+            >
+              <Icon name="ban" size={13} /> حظر ساعتين
+            </button>
+          ) : null}
+          {canManage && mic.user && !mic.mine ? (
+            <button
+              type="button"
+              onClick={() => {
+                setMenu(false);
+                onBan(24 * 365);
+              }}
+            >
+              <Icon name="ban" size={13} /> حظر سنة
+            </button>
+          ) : null}
+          {canManage ? (
             <button
               type="button"
               onClick={() => {

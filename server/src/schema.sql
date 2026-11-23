@@ -1742,3 +1742,13 @@ CREATE TABLE IF NOT EXISTS room_upgrades (
 -- `id` is the wallet-ledger reference of the purchase, so a retry cannot charge twice.
 ALTER TABLE room_upgrades ADD COLUMN IF NOT EXISTS id uuid NOT NULL DEFAULT gen_random_uuid();
 CREATE UNIQUE INDEX IF NOT EXISTS room_upgrades_id_uidx ON room_upgrades (id);
+
+-- Temporary room bans: a banned visitor cannot join until `until`.
+CREATE TABLE IF NOT EXISTS room_bans (
+  room_id uuid NOT NULL REFERENCES rooms(id) ON DELETE CASCADE,
+  user_id uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  until timestamptz NOT NULL,
+  banned_by uuid REFERENCES users(id) ON DELETE SET NULL,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  PRIMARY KEY (room_id, user_id)
+);

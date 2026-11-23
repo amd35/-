@@ -681,6 +681,52 @@ router.post(
   })
 );
 
+/** Temporarily ban someone: supervisors up to 2 hours, owner/vice-owner up to a year. */
+router.post(
+  '/:id/bans',
+  requireAuth(),
+  asyncHandler(async (req, res) => {
+    const me = reqUser(req).id;
+    const roomId = req.params.id;
+    const { room, access } = await moderateAccess(roomId, me);
+    const userId = String(req.body?.userId || '');
+    const hours = Math.floor(Number(req.body?.hours));
+    if (!userId || !Number.isFinite(hours) || hours <= 0) {
+      throw new HttpError(400, 'Invalid ban', 'invalid_ban');
+    }
+    const maxHours = access.canManage ? 24 * 365 : 2;
+    if (hours > maxHours) {
+      throw new HttpError(403, `المشرف يستطيع الحظر ${maxHours} ساعة كحد أقصى`, 'ban_too_long');
+    }
+    if (userId === room.owner_id) throw new HttpError(403, 'لا يمكن حظر صاحب الغرفة', 'cannot_ban_owner');
+    const target = await one('SELECT 1 FROM users WHERE id = $1', [userId]);
+    if (!target) throw new HttpError(404, 'User not found', 'user_not_found');
+    const staffRow = await one<{ role: string }>(
+      'SELECT role FROM room_roles WHERE room_id = $1 AND user_id = $2',
+      [roomId, userId]
+    );
+    if (staffRow && !access.canManage) {
+      throw new HttpError(403, 'لا يمكن للمشرف حظر إدارة الغرفة', 'cannot_ban_staff');
+    }
+    await q(
+      `INSERT INTO room_bans (room_id, user_id, until, banned_by)
+       VALUES ($1, $2, now() + ($3 || ' hours')::interval, $4)
+       ON CONFLICT (room_id, user_id)
+       DO UPDATE SET until = EXCLUDED.until, banned_by = EXCLUDED.banned_by`,
+      [roomId, userId, hours, me]
+    );
+    await q(
+      'UPDATE room_mics SET user_id = NULL, joined_at = NULL, muted = false WHERE room_id = $1 AND user_id = $2',
+      [roomId, userId]
+    );
+    await removeRoomMember(roomId, userId);
+    emitToUser(userId, 'room:banned', { roomId, hours });
+    broadcast('room', { roomId });
+    broadcast('room_members', { roomId });
+    res.json({ room: await getRoomDetail(roomId, me) });
+  })
+);
+
 /** Grant or revoke a delegated room role (owner only). */
 router.post(
   '/:id/roles',

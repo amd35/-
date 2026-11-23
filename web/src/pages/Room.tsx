@@ -21,6 +21,7 @@ import { RoomInvitePanel } from '../components/room/RoomInvitePanel';
 import { RoomSettingsPanel, type RoomSettingsPatch } from '../components/room/RoomSettingsPanel';
 import { RoomIdentitySheet, type RoomIdentityPatch } from '../components/room/RoomIdentitySheet';
 import { RoomMusicPanel } from '../components/room/RoomMusicPanel';
+import { RoomMusicDisc } from '../components/room/RoomMusicDisc';
 import { RoomChatPanel } from '../components/room/RoomChatPanel';
 import { RoomCup } from '../components/room/RoomCup';
 import { RoomFramesSheet, type WornFrame } from '../components/room/RoomFramesSheet';
@@ -269,10 +270,20 @@ export default function Room() {
       toast.push('تم إنزالك من المايك', 'info');
       void load();
     });
+    const offBanned = on('room:banned', (data) => {
+      if (data.roomId !== id) return;
+      toast.push(
+        Number(data.hours) > 2 ? 'تم حظرك من الغرفة لمدة سنة' : 'تم حظرك من الغرفة لمدة ساعتين',
+        'error'
+      );
+      send('room:leave', { roomId: id });
+      navigate('/rooms');
+    });
     return () => {
       offPresence();
       offMute();
       offKick();
+      offBanned();
     };
   }, [on, id, load, toast]);
 
@@ -427,6 +438,21 @@ export default function Room() {
       const response = await api<{ room: RoomData }>(`/rooms/${id}/mics/${mic.id}/kick`, { method: 'POST' });
       setRoom(response.room);
       toast.push('تم إنزال المستخدم من المايك', 'success');
+    } catch (error) {
+      toast.push((error as Error).message, 'error');
+    }
+  };
+
+  /** Staff ban: 2 hours for supervisors, up to a year for the owner / vice-owner. */
+  const banUser = async (userId: string, hours: number) => {
+    try {
+      const response = await api<{ room: RoomData }>(`/rooms/${id}/bans`, {
+        method: 'POST',
+        body: { userId, hours },
+      });
+      setRoom(response.room);
+      void loadMembers();
+      toast.push(hours > 2 ? 'تم حظر المستخدم سنة' : 'تم حظر المستخدم ساعتين', 'success');
     } catch (error) {
       toast.push((error as Error).message, 'error');
     }
@@ -696,6 +722,8 @@ export default function Room() {
             onStore={() => void openStore()}
           />
 
+          <RoomMusicDisc playing={Boolean(room.musicUrl) && !musicMuted} onOpen={() => setPanel('music')} />
+
           {announcement ? (
             <RoomGiftAnnouncement
               key={announcement.id}
@@ -721,10 +749,12 @@ export default function Room() {
                 level={voice.levels[mic.user?.id ?? ''] ?? 0}
                 busy={busyMic === mic.id}
                 canModerate={room.canModerate}
+                canManage={room.canManage}
                 onTake={() => requestMic(mic)}
                 onLeave={() => requestLeaveMic(mic)}
                 onMute={() => void toggleMute(mic)}
                 onKick={() => void kickMic(mic)}
+                onBan={(hours) => void banUser(mic.user!.id, hours)}
                 onLock={() => void lockMic(mic)}
                 onOpenProfile={() => mic.user && setProfileUserId(mic.user.id)}
                 giftFrame={mic.user ? frames[mic.user.id] ?? null : null}

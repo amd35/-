@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { api } from '../../lib/api';
 import { Icon, Sheet } from '../../lib/ui';
 import type { RoomData } from './types';
 
@@ -22,6 +23,8 @@ export function RoomMusicPanel({
 }) {
   const [url, setUrl] = useState(room.musicUrl ?? '');
   const [busy, setBusy] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const [error, setError] = useState('');
 
   useEffect(() => {
     if (open) setUrl(room.musicUrl ?? '');
@@ -34,6 +37,23 @@ export function RoomMusicPanel({
       onClose();
     } finally {
       setBusy(false);
+    }
+  };
+
+  /** A song picked from the device becomes the room's shared track. */
+  const upload = async (file: File) => {
+    setUploading(true);
+    setError('');
+    try {
+      const form = new FormData();
+      form.append('file', file);
+      const uploaded = await api<{ url: string }>('/uploads', { method: 'POST', form });
+      setUrl(uploaded.url);
+      await save(uploaded.url);
+    } catch (uploadError) {
+      setError((uploadError as Error).message);
+    } finally {
+      setUploading(false);
     }
   };
 
@@ -57,7 +77,23 @@ export function RoomMusicPanel({
 
         {canManage ? (
           <>
-            <label className="room-field-label">رابط الملف الصوتي (يسمعه الجميع)</label>
+            <label className="room-field-label">أغنية من الجهاز (يسمعها الجميع)</label>
+            <label className="btn btn-ghost btn-block btn-sm" style={{ position: 'relative', overflow: 'hidden' }}>
+              <Icon name="volume" size={14} /> {uploading ? 'جارٍ رفع الأغنية…' : 'اختيار أغنية من الجهاز'}
+              <input
+                type="file"
+                accept="audio/*"
+                style={{ position: 'absolute', inset: 0, opacity: 0, cursor: 'pointer' }}
+                disabled={busy || uploading}
+                onChange={(event) => {
+                  const file = event.target.files?.[0];
+                  event.target.value = '';
+                  if (file) void upload(file);
+                }}
+              />
+            </label>
+            {error ? <p className="tiny" style={{ color: '#ff8a8a' }}>{error}</p> : null}
+            <label className="room-field-label">أو رابط ملف صوتي (يسمعه الجميع)</label>
             <input
               className="input"
               dir="ltr"

@@ -8795,6 +8795,67 @@ table.data tr:hover td {
   animation: roomPulse 2.2s ease-in-out infinite;
 }
 
+.room-vinyl {
+  position: absolute;
+  top: 96px;
+  left: 12px;
+  width: 58px;
+  height: 58px;
+  padding: 0;
+  border: 0;
+  background: none;
+  cursor: pointer;
+  z-index: 6;
+}
+
+.room-vinyl-disc {
+  position: relative;
+  display: block;
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  background: repeating-radial-gradient(circle at 50% 50%, #1b1b1f 0 2px, #0a0a0c 2px 4px);
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.6), inset 0 0 0 1px rgba(255, 255, 255, 0.08);
+}
+
+.room-vinyl-label {
+  position: absolute;
+  inset: 32%;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #f6d97a, #c99a3c);
+  color: #2a1c06;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.room-vinyl-hole {
+  position: absolute;
+  inset: 47%;
+  border-radius: 50%;
+  background: #0a0a0c;
+}
+
+.room-vinyl.spinning .room-vinyl-disc {
+  animation: roomVinylSpin 3.2s linear infinite;
+}
+
+@keyframes roomVinylSpin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.room-music-state > div {
+  flex: 1;
+  min-width: 0;
+}
+
+.room-music-state .tiny {
+  overflow-wrap: anywhere;
+}
+
 .room-audio-sinks {
   display: none;
 }

@@ -210,6 +210,14 @@ export async function joinRoomMember(roomId: string, userId: string): Promise<Ro
     );
     if (!room.rows[0]?.is_active) throw new HttpError(404, 'Room not found', 'room_not_found');
 
+    const ban = await client.query<{ until: string }>(
+      'SELECT until FROM room_bans WHERE room_id = $1 AND user_id = $2 AND until > now()',
+      [roomId, userId]
+    );
+    if (ban.rowCount) {
+      throw new HttpError(403, 'أنت محظور من هذه الغرفة مؤقتاً', 'room_banned', { until: ban.rows[0].until });
+    }
+
     const existing = await client.query(
       'SELECT 1 FROM room_members WHERE room_id = $1 AND user_id = $2',
       [roomId, userId]
