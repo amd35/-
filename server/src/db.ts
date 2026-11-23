@@ -6,6 +6,10 @@ import bcrypt from 'bcryptjs';
 
 const { Pool } = pg;
 
+// Coin columns are BIGINT; node-postgres returns BIGINT as a string by default, so
+// parse it as a number (coin amounts stay well below Number.MAX_SAFE_INTEGER).
+pg.types.setTypeParser(20, (value: string) => Number(value));
+
 export const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
   max: 12,

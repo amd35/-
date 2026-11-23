@@ -1222,3 +1222,42 @@ FROM (VALUES
   ('admin_official', 'official')
 ) AS p(rank_key, suffix)
 ON CONFLICT (rank_key) DO NOTHING;
+
+-- ------------------------------------------------------- coin column widths
+-- Coin amounts outgrew 32-bit integers (an admin can grant billions of coins), so
+-- every wallet, ledger and payout column holds 64-bit values. These ALTERs are
+-- idempotent and keep the existing CHECK constraints.
+ALTER TABLE wallets ALTER COLUMN balance TYPE bigint;
+ALTER TABLE wallets ALTER COLUMN reserved TYPE bigint;
+ALTER TABLE wallets ALTER COLUMN earned TYPE bigint;
+ALTER TABLE wallets ALTER COLUMN spent TYPE bigint;
+ALTER TABLE transactions ALTER COLUMN amount TYPE bigint;
+ALTER TABLE transactions ALTER COLUMN balance_after TYPE bigint;
+ALTER TABLE calls ALTER COLUMN coins_charged TYPE bigint;
+ALTER TABLE calls ALTER COLUMN coins_refunded TYPE bigint;
+ALTER TABLE call_sessions ALTER COLUMN coins_reserved TYPE bigint;
+ALTER TABLE call_sessions ALTER COLUMN coins_charged TYPE bigint;
+ALTER TABLE earnings ALTER COLUMN coins TYPE bigint;
+ALTER TABLE admin_earnings ALTER COLUMN coins TYPE bigint;
+ALTER TABLE gift_sends ALTER COLUMN coins TYPE bigint;
+ALTER TABLE gift_sends ALTER COLUMN recipient_coins TYPE bigint;
+ALTER TABLE gift_sends ALTER COLUMN admin_coins TYPE bigint;
+ALTER TABLE gift_codes ALTER COLUMN coins TYPE bigint;
+ALTER TABLE gift_code_redemptions ALTER COLUMN coins TYPE bigint;
+ALTER TABLE profit_wallets ALTER COLUMN total_earned TYPE bigint;
+ALTER TABLE profit_wallets ALTER COLUMN available TYPE bigint;
+ALTER TABLE profit_wallets ALTER COLUMN pending TYPE bigint;
+ALTER TABLE profit_wallets ALTER COLUMN withdrawn TYPE bigint;
+ALTER TABLE profit_transactions ALTER COLUMN amount TYPE bigint;
+ALTER TABLE profit_transactions ALTER COLUMN balance_after TYPE bigint;
+ALTER TABLE room_cup_ledger ALTER COLUMN coins TYPE bigint;
+ALTER TABLE room_cup_ledger ALTER COLUMN owner_coins TYPE bigint;
+ALTER TABLE room_cup_ledger ALTER COLUMN admin_coins TYPE bigint;
+ALTER TABLE room_cup_winners ALTER COLUMN prize TYPE bigint;
+ALTER TABLE withdrawal_requests ALTER COLUMN coins TYPE bigint;
+ALTER TABLE withdrawal_requests ALTER COLUMN amount_iqd TYPE bigint;
+ALTER TABLE payment_orders ALTER COLUMN coins TYPE bigint;
+ALTER TABLE payment_orders ALTER COLUMN amount TYPE bigint;
+ALTER TABLE recharge_packages ALTER COLUMN coins TYPE bigint;
+ALTER TABLE recharge_packages ALTER COLUMN bonus_coins TYPE bigint;
+ALTER TABLE gifts ALTER COLUMN price TYPE bigint;
