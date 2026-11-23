@@ -28,6 +28,7 @@ export default function UsersTab() {
   const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState<AdminUser | null>(null);
   const [amount, setAmount] = useState('');
+  const [goldAmount, setGoldAmount] = useState('');
   const [note, setNote] = useState('');
   const [idTarget, setIdTarget] = useState<AdminUser | null>(null);
   const [code, setCode] = useState('');
@@ -116,6 +117,24 @@ export default function UsersTab() {
     }
   };
 
+  const adjustGold = async () => {
+    if (!selected) return;
+    try {
+      await api(`/admin/users/${selected.id}/gold`, {
+        method: 'POST',
+        admin: true,
+        body: { amount: Number(goldAmount), note },
+      });
+      toast.push('تم تحديث الذهب', 'success');
+      setSelected(null);
+      setGoldAmount('');
+      setNote('');
+      await load();
+    } catch (error) {
+      toast.push((error as Error).message, 'error');
+    }
+  };
+
   return (
     <AdminCard
       title="المستخدمون"
@@ -195,9 +214,9 @@ export default function UsersTab() {
         </Table>
       )}
 
-      <Sheet open={Boolean(selected)} onClose={() => setSelected(null)} title={`تعديل الكونز — ${selected?.display_name ?? ''}`}>
+      <Sheet open={Boolean(selected)} onClose={() => setSelected(null)} title={`تعديل الرصيد — ${selected?.display_name ?? ''}`}>
         <div className="stack">
-          <Field label="المبلغ (سالب للخصم)" hint="كل تعديل يُسجَّل في سجل المحفظة">
+          <Field label="الماس (سالب للخصم)" hint="كل تعديل يُسجَّل في سجل المحفظة">
             <input
               className="input"
               type="number"
@@ -207,11 +226,24 @@ export default function UsersTab() {
               dir="ltr"
             />
           </Field>
+          <Field label="الذهب (سالب للخصم)">
+            <input
+              className="input"
+              type="number"
+              value={goldAmount}
+              onChange={(event) => setGoldAmount(event.target.value)}
+              placeholder="500"
+              dir="ltr"
+            />
+          </Field>
           <Field label="ملاحظة">
             <input className="input" value={note} onChange={(event) => setNote(event.target.value)} />
           </Field>
           <button className="btn btn-primary btn-block" onClick={() => void adjustCoins()}>
-            تطبيق
+            تطبيق على الماس
+          </button>
+          <button className="btn btn-primary btn-block" onClick={() => void adjustGold()}>
+            تطبيق على الذهب
           </button>
         </div>
       </Sheet>

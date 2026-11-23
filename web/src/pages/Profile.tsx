@@ -351,6 +351,7 @@ export function UserProfile() {
   const [reason, setReason] = useState('harassment');
   const [adminOpen, setAdminOpen] = useState(false);
   const [adminCoins, setAdminCoins] = useState('');
+  const [adminGold, setAdminGold] = useState('');
   const [adminNote, setAdminNote] = useState('');
   const [adminBusy, setAdminBusy] = useState(false);
 
@@ -440,6 +441,30 @@ export function UserProfile() {
       });
       toast.push(`تم تعديل الرصيد: ${amount}`, 'success');
       setAdminCoins('');
+      setAdminNote('');
+      setAdminOpen(false);
+    } catch (error) {
+      toast.push((error as Error).message, 'error');
+    } finally {
+      setAdminBusy(false);
+    }
+  };
+
+  const adminGiveGold = async () => {
+    if (!id) return;
+    const amount = Math.trunc(Number(adminGold));
+    if (!Number.isFinite(amount) || amount === 0) {
+      toast.push('أدخل مبلغاً غير صفري', 'error');
+      return;
+    }
+    setAdminBusy(true);
+    try {
+      await api(`/admin/users/${id}/gold`, {
+        method: 'POST',
+        body: { amount, note: adminNote || 'Admin adjustment' },
+      });
+      toast.push(`تم تعديل الذهب: ${amount}`, 'success');
+      setAdminGold('');
       setAdminNote('');
       setAdminOpen(false);
     } catch (error) {
@@ -648,6 +673,16 @@ export function UserProfile() {
             />
           </div>
           <div className="field">
+            <label>تعديل رصيد الذهب (موجب للإضافة، سالب للخصم)</label>
+            <input
+              className="input"
+              type="number"
+              value={adminGold}
+              onChange={(event) => setAdminGold(event.target.value)}
+              dir="ltr"
+            />
+          </div>
+          <div className="field">
             <label>ملاحظة</label>
             <input
               className="input"
@@ -660,7 +695,14 @@ export function UserProfile() {
             onClick={() => void adminGiveCoins()}
             disabled={adminBusy}
           >
-            تطبيق الرصيد
+            تطبيق على الماس
+          </button>
+          <button
+            className="btn btn-primary btn-block"
+            onClick={() => void adminGiveGold()}
+            disabled={adminBusy}
+          >
+            تطبيق على الذهب
           </button>
           <button
             className="btn btn-danger btn-block"
