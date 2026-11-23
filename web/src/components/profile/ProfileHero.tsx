@@ -1,19 +1,30 @@
 /**
- * Royal profile header: crown, name + status, framed avatar, account badges
- * (ID, level, VIP, rank, verification), identity card, balances, the six
- * account counters and the four profile actions — in that order.
+ * Royal profile screen — laid out in the reference order:
+ * top bar (status + settings) → gold name plaque → framed avatar with wings
+ * and a level ribbon → level / VIP / position badges → ID bar with copy →
+ * identity card → VCoins & Diamonds balances → six counters → four actions.
  *
- * Everything is drawn from the signed-in account's real data (`/auth/me` and
- * `/users/:id`); the only visual layer is the gold/purple frame around the
- * avatar, which leaves the equipped avatar frame and the VIP frame untouched.
+ * Every figure comes from the signed-in account (`/auth/me` + `/users/:id`);
+ * nothing here is placeholder data.
  */
 import type { Me } from '../../lib/auth';
 import { assetUrl } from '../../lib/api';
 import { useI18n } from '../../lib/i18n';
-import { Avatar, formatCoins, Icon } from '../../lib/ui';
-import { IdBadge, NameCard } from '../Cosmetics';
-import { RankTag } from '../RankBadge';
-import { LevelBadge, VipBadge, formatXp } from '../ProgressionBadges';
+import { Avatar, formatCoins, Icon, useToast } from '../../lib/ui';
+import { NameCard } from '../Cosmetics';
+import { rankName } from '../RankBadge';
+import { LevelBadge, formatXp } from '../ProgressionBadges';
+import {
+  CoinSvg,
+  CrownSvg,
+  EditSvg,
+  GemSvg,
+  GiftSvg,
+  ShieldSvg,
+  TrophySvg,
+  WalletSvg,
+  WingsSvg,
+} from './RoyalArt';
 
 export interface ProfileStats {
   counts: { friends: number; followers: number; following: number; rooms?: number };
@@ -21,54 +32,43 @@ export interface ProfileStats {
   gifts?: { count: number; coins: number; sent?: number };
 }
 
-function CrownArt({ className }: { className?: string }) {
-  return (
-    <svg className={className} viewBox="0 0 120 64" aria-hidden="true">
-      <defs>
-        <linearGradient id="royal-crown-gold" x1="0" y1="0" x2="0.2" y2="1">
-          <stop offset="0" stopColor="#fff8d6" />
-          <stop offset="0.42" stopColor="#ffd75e" />
-          <stop offset="1" stopColor="#b07807" />
-        </linearGradient>
-      </defs>
-      <path
-        d="M15 46 8 15l26 17L60 7l26 25 26-17-7 31Z"
-        fill="url(#royal-crown-gold)"
-        stroke="#7a4a05"
-        strokeWidth="2.2"
-        strokeLinejoin="round"
-      />
-      <rect x="15" y="44" width="90" height="12" rx="4" fill="url(#royal-crown-gold)" stroke="#7a4a05" strokeWidth="2.2" />
-      <circle cx="60" cy="50" r="4.4" fill="#e11d48" stroke="#7a0b22" strokeWidth="1.2" />
-      <circle cx="38" cy="50" r="3" fill="#ff5b8f" />
-      <circle cx="82" cy="50" r="3" fill="#ff5b8f" />
-      <circle cx="8" cy="13" r="3.6" fill="#fff3c4" stroke="#7a4a05" strokeWidth="1.4" />
-      <circle cx="112" cy="13" r="3.6" fill="#fff3c4" stroke="#7a4a05" strokeWidth="1.4" />
-      <circle cx="60" cy="5" r="4.2" fill="#fff8d6" stroke="#7a4a05" strokeWidth="1.4" />
-    </svg>
-  );
-}
+export type ConnectionKind = 'followers' | 'following' | 'friends';
 
 export function ProfileHero({
   me,
   stats,
+  onSettings,
   onCustomize,
   onEdit,
   onWallet,
+  onEarnings,
   onGifts,
   onAchievements,
+  onRooms,
+  onConnections,
 }: {
   me: Me;
   stats: ProfileStats | null;
+  onSettings: () => void;
   onCustomize: () => void;
   onEdit: () => void;
   onWallet: () => void;
+  onEarnings: () => void;
   onGifts: () => void;
   onAchievements: () => void;
+  onRooms: () => void;
+  onConnections: (kind: ConnectionKind) => void;
 }) {
   const { t, lang } = useI18n();
+  const toast = useToast();
+
   const level = me.level?.level ?? 1;
-  const title = me.adminLook?.label || me.rank?.nameAr || me.vip?.titleAr || '';
+  const xp = me.level?.xp ?? 0;
+  const position = me.adminLook?.label || (me.rank ? rankName(me.rank, lang) : '');
+  const title =
+    position ||
+    (me.vip ? (lang === 'ar' ? me.vip.titleAr : me.vip.titleEn || me.vip.titleAr) : '') ||
+    t('royalMember');
   const joined = me.user.createdAt
     ? new Date(me.user.createdAt).toLocaleDateString(lang === 'ar' ? 'ar-IQ' : 'en-GB', {
         year: 'numeric',
@@ -77,45 +77,130 @@ export function ProfileHero({
       })
     : '';
 
-  const counters = [
-    { key: 'friends', label: t('friendsCount'), value: stats?.counts.friends ?? 0 },
-    { key: 'followers', label: t('followers'), value: stats?.counts.followers ?? 0 },
-    { key: 'following', label: t('followingCount'), value: stats?.counts.following ?? 0 },
-    { key: 'rooms', label: t('roomsCount'), value: stats?.counts.rooms ?? 0 },
-    { key: 'received', label: t('receivedGifts'), value: stats?.gifts?.count ?? 0 },
-    { key: 'sent', label: t('giftsSent'), value: stats?.gifts?.sent ?? 0 },
+  const copyId = async () => {
+    const value = me.user.username;
+    try {
+      await navigator.clipboard.writeText(value);
+      toast.push(t('copied'), 'success');
+    } catch {
+      const field = document.createElement('textarea');
+      field.value = value;
+      field.setAttribute('readonly', '');
+      field.style.position = 'fixed';
+      field.style.opacity = '0';
+      document.body.appendChild(field);
+      field.select();
+      document.execCommand('copy');
+      field.remove();
+      toast.push(t('copied'), 'success');
+    }
+  };
+
+  const counters: {
+    key: string;
+    label: string;
+    value: number;
+    icon: string;
+    tone: string;
+    onClick: () => void;
+  }[] = [
+    {
+      key: 'sent',
+      label: t('giftsSent'),
+      value: stats?.gifts?.sent ?? 0,
+      icon: 'gift',
+      tone: 'rose',
+      onClick: onGifts,
+    },
+    {
+      key: 'received',
+      label: t('receivedGifts'),
+      value: stats?.gifts?.count ?? 0,
+      icon: 'gift',
+      tone: 'gold',
+      onClick: onGifts,
+    },
+    {
+      key: 'rooms',
+      label: t('roomsCount'),
+      value: stats?.counts.rooms ?? 0,
+      icon: 'home',
+      tone: 'violet',
+      onClick: onRooms,
+    },
+    {
+      key: 'followers',
+      label: t('followers'),
+      value: stats?.counts.followers ?? 0,
+      icon: 'users',
+      tone: 'blue',
+      onClick: () => onConnections('followers'),
+    },
+    {
+      key: 'following',
+      label: t('followingCount'),
+      value: stats?.counts.following ?? 0,
+      icon: 'users',
+      tone: 'pink',
+      onClick: () => onConnections('following'),
+    },
+    {
+      key: 'friends',
+      label: t('friendsCount'),
+      value: stats?.counts.friends ?? 0,
+      icon: 'user',
+      tone: 'gold',
+      onClick: () => onConnections('friends'),
+    },
   ];
 
   return (
-    <section className={`royal-profile${me.adminLook ? ' royal-profile-admin' : ''}`}>
+    <section className={`rp-shell${me.adminLook ? ' is-admin' : ''}`}>
       {me.adminLook?.effectsEnabled ? <span className="admin-profile-aura" aria-hidden="true" /> : null}
 
-      <CrownArt className="royal-crown" />
-
-      {/* 1 — name above the avatar, with the account status next to it */}
-      <div className="royal-name-row">
-        {me.cosmetics?.namecard ? (
-          <NameCard
-            cosmetic={me.cosmetics.namecard}
-            name={me.user.displayName}
-            id={me.user.username}
-            avatarUrl={me.user.avatarUrl}
-          />
-        ) : (
-          <h2 className="royal-name">{me.user.displayName}</h2>
-        )}
-        <span className="royal-status">
-          <i className="royal-status-dot" aria-hidden="true" />
+      {/* 1 — status and settings */}
+      <div className="rp-topbar">
+        <span className="rp-status">
+          <i className="rp-status-dot" aria-hidden="true" />
           {t('onlineNow')}
         </span>
+        <button className="rp-gear" type="button" onClick={onSettings} aria-label={t('settings')}>
+          <Icon name="settings" size={18} />
+        </button>
       </div>
 
-      {/* 2 — avatar with the gold frame; tapping opens the existing customizer */}
-      <div className="royal-avatar">
-        <span className="royal-avatar-glow" aria-hidden="true" />
+      {/* 2 — gold name plaque with the crown above and the wings around it */}
+      <div className="rp-plaque">
+        <CrownSvg className="rp-plaque-crown" />
+        <WingsSvg className="rp-plaque-wing is-start" />
+        <WingsSvg className="rp-plaque-wing is-end" flip />
+        <div className="rp-plaque-body">
+          {me.cosmetics?.namecard ? (
+            <NameCard
+              cosmetic={me.cosmetics.namecard}
+              name={me.user.displayName}
+              id={me.user.username}
+              avatarUrl={me.user.avatarUrl}
+            />
+          ) : (
+            <span className="rp-plaque-name">{me.user.displayName}</span>
+          )}
+          {me.user.verified ? (
+            <span className="rp-plaque-check" title={t('verified')} aria-label={t('verified')}>
+              <Icon name="check" size={12} />
+            </span>
+          ) : null}
+        </div>
+      </div>
+
+      {/* 3 — avatar: ornate frame, wings, crown and level ribbon; tap to change photo / frame */}
+      <div className="rp-avatar">
+        <WingsSvg className="rp-avatar-wing is-start" />
+        <WingsSvg className="rp-avatar-wing is-end" flip />
+        <span className="rp-avatar-glow" aria-hidden="true" />
         <button
           type="button"
-          className="royal-avatar-ring"
+          className="rp-avatar-ring"
           onClick={onCustomize}
           aria-label={t('customizeProfile')}
         >
@@ -123,105 +208,135 @@ export function ProfileHero({
           {me.vip?.frameImageUrl ? (
             <img className="vip-avatar-frame" src={assetUrl(me.vip.frameImageUrl)} alt="" />
           ) : null}
-          <span className="avatar-tap-badge">
-            <Icon name="sparkle" size={14} />
+          <span className="rp-avatar-tap">
+            <Icon name="sparkle" size={13} />
+          </span>
+        </button>
+        <span className="rp-level-ribbon">
+          <LevelBadge level={level} size={20} color={me.level?.badgeColor ?? '#ffd75e'} />
+          Lv. {level}
+        </span>
+      </div>
+
+      {/* 4 — level / VIP / position badges */}
+      <div className="rp-badges">
+        <div className="rp-badge is-level">
+          <span className="rp-badge-art">
+            <LevelBadge level={level} size={34} color={me.level?.badgeColor ?? '#ffd75e'} />
+          </span>
+          <span className="rp-badge-label">{t('level')}</span>
+          <b className="rp-badge-value">Lv. {level}</b>
+          <span className="rp-badge-sub">{formatXp(xp)} XP</span>
+        </div>
+        <div className={`rp-badge is-vip${me.vip ? '' : ' is-empty'}`}>
+          <span className="rp-badge-art">
+            <CrownSvg className="rp-badge-crown" />
+          </span>
+          <span className="rp-badge-label">VIP</span>
+          <b className="rp-badge-value">{me.vip ? `VIP ${me.vip.tier}` : '—'}</b>
+          <span className="rp-badge-sub">
+            {me.vip ? (lang === 'ar' ? me.vip.titleAr : me.vip.titleEn || me.vip.titleAr) : t('noVip')}
+          </span>
+        </div>
+        <div className={`rp-badge is-rank${position ? '' : ' is-empty'}`}>
+          <span className="rp-badge-art">
+            <ShieldSvg className="rp-badge-shield" />
+          </span>
+          <span className="rp-badge-label">{t('position')}</span>
+          <b className="rp-badge-value">{position || t('member')}</b>
+          <span className="rp-badge-sub">{t('royalAccount')}</span>
+        </div>
+      </div>
+
+      {/* 5 — account ID with copy */}
+      <div className="rp-idbar">
+        <span className="rp-idbar-label">{t('id')}</span>
+        <b className="rp-idbar-value" dir="ltr">
+          {me.user.username}
+        </b>
+        <button className="rp-copy" type="button" onClick={() => void copyId()} aria-label={t('copyId')}>
+          <Icon name="copy" size={14} />
+        </button>
+      </div>
+
+      {/* 6 — identity card */}
+      <section className="rp-card">
+        <WingsSvg className="rp-card-wing is-start" />
+        <WingsSvg className="rp-card-wing is-end" flip />
+        <h3 className="rp-card-title">{title}</h3>
+        <p className="rp-card-bio">{me.user.bio || t('noBio')}</p>
+        {joined ? (
+          <span className="rp-card-meta">
+            <Icon name="clock" size={12} /> {t('joined')}: {joined}
+          </span>
+        ) : null}
+      </section>
+
+      {/* 7 — balances */}
+      <div className="rp-wallets">
+        <button className="rp-wallet is-coins" type="button" onClick={onWallet}>
+          <span className="rp-wallet-head">
+            <CoinSvg className="rp-wallet-icon" />
+            <span className="rp-wallet-name">{t('vcoins')}</span>
+          </span>
+          <b className="rp-wallet-value">{formatCoins(me.wallet.balance)}</b>
+          <span className="rp-wallet-plus" aria-hidden="true">
+            <Icon name="plus" size={13} />
+          </span>
+        </button>
+        <button className="rp-wallet is-gems" type="button" onClick={onEarnings}>
+          <span className="rp-wallet-head">
+            <GemSvg className="rp-wallet-icon" />
+            <span className="rp-wallet-name">
+              {t('diamonds')}
+              <small>{t('earnings')}</small>
+            </span>
+          </span>
+          <b className="rp-wallet-value">{formatCoins(me.wallet.earned)}</b>
+          <span className="rp-wallet-plus" aria-hidden="true">
+            <Icon name="plus" size={13} />
           </span>
         </button>
       </div>
 
-      {/* 3 — account information: ID + level, VIP, rank, verification */}
-      <div className="royal-info">
-        <span className="royal-id">
-          <span className="royal-id-label">{t('id')}</span>
-          {me.cosmetics?.id ? (
-            <IdBadge cosmetic={me.cosmetics.id} value={me.user.username} />
-          ) : (
-            <b className="royal-id-value" dir="ltr">
-              {me.user.username}
-            </b>
-          )}
-          <LevelBadge level={level} size={22} color={me.level?.badgeColor ?? '#ffd75e'} />
-        </span>
-        <VipBadge vip={me.vip} size={18} showTitle />
-        {me.rank ? <RankTag rank={me.rank} size={16} /> : null}
-        {me.user.verified ? (
-          <span className="royal-verified" title={t('verified')}>
-            <Icon name="check" size={12} /> {t('verified')}
-          </span>
-        ) : null}
-      </div>
-
-      {/* 4 — identity card: title, bio, status and join date */}
-      <section className="royal-card">
-        {title ? (
-          <div className="royal-card-title">
-            <span className="royal-card-wing" aria-hidden="true" />
-            <span>{title}</span>
-            <span className="royal-card-wing flip" aria-hidden="true" />
-          </div>
-        ) : null}
-        {me.user.bio ? <p className="royal-bio">{me.user.bio}</p> : null}
-        <div className="royal-meta">
-          <span className="royal-meta-item">
-            <Icon name="shield" size={13} /> {t('accountStatus')}: {t('onlineNow')}
-          </span>
-          {joined ? (
-            <span className="royal-meta-item">
-              <Icon name="clock" size={13} /> {t('joined')}: {joined}
-            </span>
-          ) : null}
-        </div>
-      </section>
-
-      {/* 5 — balances: points (XP), coins and earnings */}
-      <div className="royal-balances">
-        <div className="royal-balance">
-          <span className="royal-balance-label">
-            <Icon name="star" size={12} /> {t('points')}
-          </span>
-          <b>{formatXp(me.level?.xp ?? 0)}</b>
-        </div>
-        <div className="royal-balance">
-          <span className="royal-balance-label">
-            <Icon name="coins" size={12} /> {t('coins')}
-          </span>
-          <b>{formatCoins(me.wallet.balance)}</b>
-        </div>
-        <div className="royal-balance">
-          <span className="royal-balance-label">
-            <Icon name="chart" size={12} /> {t('earnings')}
-          </span>
-          <b>{formatCoins(stats?.earnings?.total ?? me.wallet.earned)}</b>
-        </div>
-      </div>
-
-      {/* 6 — six account counters */}
-      <div className="royal-stats">
+      {/* 8 — six counters, each opening its own destination */}
+      <div className="rp-stats">
         {counters.map((item) => (
-          <div className="royal-stat" key={item.key}>
+          <button key={item.key} className="rp-stat" type="button" onClick={item.onClick}>
+            <span className={`rp-stat-icon is-${item.tone}`}>
+              <Icon name={item.icon} size={15} />
+            </span>
             <b>{formatCoins(item.value)}</b>
-            <span>{item.label}</span>
-          </div>
+            <span className="rp-stat-label">{item.label}</span>
+          </button>
         ))}
       </div>
 
-      {/* 7 — profile actions */}
-      <div className="royal-actions">
-        <button className="royal-action is-primary" onClick={onEdit}>
-          <Icon name="user" size={16} />
-          <span>{t('editProfile')}</span>
+      {/* 9 — the four profile actions */}
+      <div className="rp-actions">
+        <button className="rp-action" type="button" onClick={onAchievements}>
+          <span className="rp-action-art">
+            <TrophySvg />
+          </span>
+          <span>{t('achievements')}</span>
         </button>
-        <button className="royal-action" onClick={onWallet}>
-          <Icon name="wallet" size={16} />
-          <span>{t('wallet')}</span>
-        </button>
-        <button className="royal-action" onClick={onGifts}>
-          <Icon name="gift" size={16} />
+        <button className="rp-action" type="button" onClick={onGifts}>
+          <span className="rp-action-art">
+            <GiftSvg />
+          </span>
           <span>{t('gifts')}</span>
         </button>
-        <button className="royal-action" onClick={onAchievements}>
-          <Icon name="shield" size={16} />
-          <span>{t('achievements')}</span>
+        <button className="rp-action" type="button" onClick={onWallet}>
+          <span className="rp-action-art">
+            <WalletSvg />
+          </span>
+          <span>{t('wallet')}</span>
+        </button>
+        <button className="rp-action is-primary" type="button" onClick={onEdit}>
+          <span className="rp-action-art">
+            <EditSvg />
+          </span>
+          <span>{t('editProfile')}</span>
         </button>
       </div>
     </section>

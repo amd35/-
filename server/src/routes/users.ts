@@ -155,6 +155,40 @@ router.post(
 );
 
 router.get(
+  '/:id/followers',
+  requireAuth(),
+  asyncHandler(async (req, res) => {
+    const me = reqUser(req).id;
+    const targetId = String(req.params.id);
+    const rows = await q<FeedRow>(
+      `${FEED_SELECT} AND EXISTS (
+         SELECT 1 FROM follows f WHERE f.following_id = $2 AND f.follower_id = u.id
+       )
+       ORDER BY u.last_seen_at DESC NULLS LAST LIMIT 100`,
+      [me, targetId]
+    );
+    res.json({ users: rows.map(decorate) });
+  })
+);
+
+router.get(
+  '/:id/following',
+  requireAuth(),
+  asyncHandler(async (req, res) => {
+    const me = reqUser(req).id;
+    const targetId = String(req.params.id);
+    const rows = await q<FeedRow>(
+      `${FEED_SELECT} AND EXISTS (
+         SELECT 1 FROM follows f WHERE f.follower_id = $2 AND f.following_id = u.id
+       )
+       ORDER BY u.last_seen_at DESC NULLS LAST LIMIT 100`,
+      [me, targetId]
+    );
+    res.json({ users: rows.map(decorate) });
+  })
+);
+
+router.get(
   '/:id',
   requireAuth(),
   asyncHandler(async (req, res) => {

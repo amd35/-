@@ -49,15 +49,19 @@ export function AppShell({
   right,
   children,
   active,
+  bare,
 }: {
   title: string;
   subtitle?: string;
   right?: ReactNode;
   children: ReactNode;
   active: string;
+  /** Skip the app top bar: the page draws its own header (royal profile). */
+  bare?: boolean;
 }) {
   return (
     <div className="app-shell">
+      {bare ? null : (
       <header className="topbar">
         <div className="brand">
           <div className="brand-mark">
@@ -71,6 +75,7 @@ export function AppShell({
         <div className="spacer" />
         {right}
       </header>
+      )}
       {children}
       <BottomNav active={active} />
     </div>

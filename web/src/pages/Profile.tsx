@@ -16,7 +16,8 @@ import {
 } from '../lib/ui';
 import { AppShell } from '../components/AppShell';
 import { RankTag } from '../components/RankBadge';
-import { ProfileHero } from '../components/profile/ProfileHero';
+import { ProfileHero, type ConnectionKind } from '../components/profile/ProfileHero';
+import { ConnectionsSheet } from '../components/profile/ConnectionsSheet';
 import { LevelBadge, VipBadge, formatXp } from '../components/ProgressionBadges';
 import { ProfileCustomize } from '../components/ProfileCustomize';
 import { GiftGallery } from '../components/profile/GiftGallery';
@@ -38,6 +39,7 @@ export function Profile() {
   const toast = useToast();
   const [editOpen, setEditOpen] = useState(false);
   const [customizeOpen, setCustomizeOpen] = useState(false);
+  const [connections, setConnections] = useState<ConnectionKind | null>(null);
   const [requests, setRequests] = useState<{ id: string; user: UserCardData }[]>([]);
   const [stats, setStats] = useState<ProfileResponse | null>(null);
   const [name, setName] = useState(me?.user.displayName ?? '');
@@ -132,22 +134,18 @@ export function Profile() {
   };
 
   return (
-    <AppShell
-      title={t('profile')}
-      active="profile"
-      right={
-        <button className="icon-btn" onClick={() => navigate('/settings')} aria-label="settings">
-          <Icon name="settings" size={19} />
-        </button>
-      }
-    >
+    <AppShell title={t('profile')} active="profile" bare>
       <div className="page page-tight">
         <ProfileHero
           me={me}
           stats={stats}
+          onSettings={() => navigate('/settings')}
           onCustomize={() => setCustomizeOpen(true)}
           onEdit={() => setEditOpen(true)}
           onWallet={() => navigate('/wallet')}
+          onEarnings={() => navigate('/earnings')}
+          onRooms={() => navigate('/rooms')}
+          onConnections={setConnections}
           onGifts={() =>
             document.getElementById('profile-gifts')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
           }
@@ -288,6 +286,8 @@ export function Profile() {
         onClose={() => setCustomizeOpen(false)}
         onEditInfo={() => setEditOpen(true)}
       />
+
+      <ConnectionsSheet kind={connections} userId={me.user.id} onClose={() => setConnections(null)} />
     </AppShell>
   );
 }
