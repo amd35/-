@@ -204,7 +204,7 @@ export function ProfileHero({
           onClick={onCustomize}
           aria-label={t('customizeProfile')}
         >
-          <Avatar user={{ ...me.user, online: true }} size={104} />
+          <Avatar user={{ ...me.user, online: true }} size={92} />
           {me.vip?.frameImageUrl ? (
             <img className="vip-avatar-frame" src={assetUrl(me.vip.frameImageUrl)} alt="" />
           ) : null}

@@ -10274,17 +10274,17 @@ table.data tr:hover td {
 }
 
 .rp-avatar-wing.is-start {
-  inset-inline-end: calc(50% + 40px);
+  inset-inline-end: calc(50% + 34px);
 }
 
 .rp-avatar-wing.is-end {
-  inset-inline-start: calc(50% + 40px);
+  inset-inline-start: calc(50% + 34px);
 }
 
 .rp-avatar-glow {
   position: absolute;
-  width: 172px;
-  height: 172px;
+  width: 158px;
+  height: 158px;
   border-radius: 50%;
   background: conic-gradient(
     from 210deg,
