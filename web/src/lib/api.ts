@@ -78,6 +78,12 @@ export async function api<T = unknown>(path: string, options: RequestOptions = {
   const text = await response.text();
   const data = text ? (JSON.parse(text) as Record<string, unknown>) : {};
   if (!response.ok) {
+    if (options.admin && response.status === 401) {
+      // The admin token expired or was rejected: drop it so the panel shows its login form
+      // instead of a signed-in shell with empty lists.
+      setAdminToken(null);
+      window.dispatchEvent(new Event('connect:admin-session-ended'));
+    }
     throw new ApiError(
       response.status,
       String(data.error || 'Request failed'),

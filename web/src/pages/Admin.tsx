@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { api, getAdminToken, setAdminToken } from '../lib/api';
 import { Icon, useToast } from '../lib/ui';
@@ -116,6 +116,12 @@ export default function Admin() {
   const [token, setTokenState] = useState<string | null>(getAdminToken());
   const [tab, setTab] = useState<TabId>('overview');
   const [nonce, setNonce] = useState(0);
+
+  useEffect(() => {
+    const endSession = () => setTokenState(null);
+    window.addEventListener('connect:admin-session-ended', endSession);
+    return () => window.removeEventListener('connect:admin-session-ended', endSession);
+  }, []);
 
   if (!token) {
     return (
