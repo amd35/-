@@ -17,7 +17,7 @@ export interface CatalogGift {
   price: number;
 }
 
-export type GiftCategory = 'gifts' | 'flags';
+export type GiftCategory = 'legendary' | 'vip' | 'epic' | 'common' | 'rare' | 'flags';
 
 const RARITY_LABEL: Record<string, string> = {
   common: 'عادي',
@@ -27,10 +27,19 @@ const RARITY_LABEL: Record<string, string> = {
   vip: 'VIP',
 };
 
+/** Sections in the order the shop shows them: the rarest tiers first, flags last. */
+const GIFT_SECTIONS: { key: GiftCategory; label: string }[] = [
+  { key: 'legendary', label: RARITY_LABEL.legendary },
+  { key: 'vip', label: RARITY_LABEL.vip },
+  { key: 'epic', label: RARITY_LABEL.epic },
+  { key: 'common', label: RARITY_LABEL.common },
+  { key: 'rare', label: RARITY_LABEL.rare },
+];
+
 /**
- * The gift grid with its two sections: hand-made gifts and «أعلام الدول».
- * The active section lives in the parent sheet so it survives opening one gift
- * and going back.
+ * The gift grid with a section per rarity (أسطوري، VIP، ملحمي، عادي، نادر) and
+ * «أعلام الدول» last. The active section lives in the parent sheet so it
+ * survives opening one gift and going back.
  */
 export function GiftCatalog<T extends CatalogGift>({
   gifts,
@@ -53,30 +62,38 @@ export function GiftCatalog<T extends CatalogGift>({
   const { t } = useI18n();
   const [query, setQuery] = useState('');
 
+  const regular = useMemo(() => gifts.filter((gift) => !isFlagGift(gift)), [gifts]);
   const flags = useMemo(() => gifts.filter(isFlagGift), [gifts]);
 
   const items = useMemo(() => {
-    if (category !== 'flags') return gifts.filter((gift) => !isFlagGift(gift));
+    if (category !== 'flags') return regular.filter((gift) => gift.rarity === category);
     const needle = query.trim().toLowerCase();
     if (!needle) return flags;
     return flags.filter((gift) =>
       `${gift.name} ${gift.nameEn ?? ''}`.toLowerCase().includes(needle)
     );
-  }, [category, flags, gifts, query]);
+  }, [category, flags, regular, query]);
+
+  const countOf = (key: GiftCategory) =>
+    key === 'flags' ? flags.length : regular.filter((gift) => gift.rarity === key).length;
 
   return (
     <div className="gift-boutique">
       <div className="gift-cats">
+        {GIFT_SECTIONS.map((section) => (
+          <button
+            key={section.key}
+            type="button"
+            className={`gift-cat rarity-${section.key}${category === section.key ? ' active' : ''}`}
+            onClick={() => onCategoryChange(section.key)}
+          >
+            {section.label}
+            <span className="gift-cat-count">{countOf(section.key)}</span>
+          </button>
+        ))}
         <button
           type="button"
-          className={category === 'gifts' ? 'active' : ''}
-          onClick={() => onCategoryChange('gifts')}
-        >
-          {t('giftTabGifts')}
-        </button>
-        <button
-          type="button"
-          className={category === 'flags' ? 'active' : ''}
+          className={`gift-cat flags${category === 'flags' ? ' active' : ''}`}
           onClick={() => onCategoryChange('flags')}
         >
           {t('giftTabFlags')}

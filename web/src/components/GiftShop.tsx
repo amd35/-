@@ -81,7 +81,7 @@ export function GiftShop({
   const [defaultPercent, setDefaultPercent] = useState(60);
   const [loading, setLoading] = useState(false);
   const [selected, setSelected] = useState<GiftItem | null>(null);
-  const [category, setCategory] = useState<GiftCategory>('gifts');
+  const [category, setCategory] = useState<GiftCategory>('legendary');
   const [sending, setSending] = useState(false);
   const requestRef = useRef('');
 
@@ -111,7 +111,7 @@ export function GiftShop({
   useEffect(() => {
     if (!open) return;
     setSelected(null);
-    setCategory('gifts');
+    setCategory('legendary');
     requestRef.current = '';
     void load();
   }, [open, load]);

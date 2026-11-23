@@ -12,11 +12,38 @@
   box-shadow: 0 12px 32px rgba(6, 16, 30, 0.19);
 }
 
-/* Sections: «الهدايا» / «أعلام الدول» as frosted glass pills. */
+/* Sections as frosted glass pills: أسطوري · VIP · ملحمي · عادي · نادر · أعلام الدول.
+   They wrap so every section stays reachable on a phone. */
 .gift-boutique .gift-cats {
   display: flex;
+  flex-wrap: wrap;
   gap: 7px;
   flex: none;
+}
+
+/* Each rarity section keeps the accent of its card pill. */
+.gift-boutique .gift-cats button:not(.active).rarity-legendary {
+  color: #fcd34d;
+  border-color: rgba(245, 158, 11, 0.42);
+}
+
+.gift-boutique .gift-cats button:not(.active).rarity-vip {
+  color: #ffe4f1;
+  border-color: rgba(244, 63, 94, 0.5);
+}
+
+.gift-boutique .gift-cats button:not(.active).rarity-epic {
+  color: #d8b4fe;
+  border-color: rgba(168, 85, 247, 0.42);
+}
+
+.gift-boutique .gift-cats button:not(.active).rarity-common {
+  color: #cbd5e1;
+}
+
+.gift-boutique .gift-cats button:not(.active).rarity-rare {
+  color: #7dd3fc;
+  border-color: rgba(56, 189, 248, 0.4);
 }
 
 .gift-boutique .gift-cats button {

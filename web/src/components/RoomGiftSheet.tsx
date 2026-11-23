@@ -90,7 +90,7 @@ export function RoomGiftSheet({
   const [goldGiftsEnabled, setGoldGiftsEnabled] = useState(false);
   const [currency, setCurrency] = useState<'diamond' | 'gold'>('diamond');
   const [tab, setTab] = useState<'gifts' | 'lucky'>('gifts');
-  const [category, setCategory] = useState<GiftCategory>('gifts');
+  const [category, setCategory] = useState<GiftCategory>('legendary');
   const [lucky, setLucky] = useState<LuckyGiftInfo | null>(null);
   const [loading, setLoading] = useState(false);
   const [recipientId, setRecipientId] = useState('');
@@ -108,7 +108,7 @@ export function RoomGiftSheet({
     setSelected(null);
     setQuantity(1);
     setTab('gifts');
-    setCategory('gifts');
+    setCategory('legendary');
     setRecipientId((current) => initialRecipientId || current || firstSpeakerId);
     requestRef.current = '';
     setLoading(true);
