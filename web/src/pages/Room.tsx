@@ -56,7 +56,11 @@ export default function Room() {
   const [room, setRoom] = useState<RoomData | null>(null);
   const [loading, setLoading] = useState(true);
   const [busyMic, setBusyMic] = useState<string | null>(null);
-  const [micPrompt, setMicPrompt] = useState<{ kind: 'take' | 'leave'; mic: RoomMic } | null>(null);
+  const [micPrompt, setMicPrompt] = useState<{
+    kind: 'take' | 'leave' | 'switch';
+    mic: RoomMic;
+    from?: number;
+  } | null>(null);
   const [joinPrompt, setJoinPrompt] = useState<RoomMic | null>(null);
   const [messages, setMessages] = useState<RoomMessageData[]>([]);
   const [sending, setSending] = useState(false);
@@ -371,6 +375,11 @@ export default function Room() {
     // Non-members join the room first; the sheet offers «انضم الآن» once.
     if (!room?.member && !room?.canManage) {
       setJoinPrompt(mic);
+      return;
+    }
+    // Already seated: moving to another seat is a switch, confirmed first.
+    if (myMic && myMic.id !== mic.id) {
+      setMicPrompt({ kind: 'switch', mic, from: myMic.position });
       return;
     }
     setMicPrompt({ kind: 'take', mic });
@@ -888,13 +897,21 @@ export default function Room() {
       <Sheet
         open={Boolean(micPrompt)}
         onClose={() => setMicPrompt(null)}
-        title={micPrompt?.kind === 'leave' ? 'النزول من المايك' : 'الصعود إلى المايك'}
+        title={
+          micPrompt?.kind === 'leave'
+            ? 'النزول من المايك'
+            : micPrompt?.kind === 'switch'
+              ? 'تبديل المايك'
+              : 'الصعود إلى المايك'
+        }
         center
       >
         <p className="room-mic-confirm-text">
           {micPrompt?.kind === 'leave'
             ? 'هل تريد النزول من المايك؟'
-            : `المايك ${micPrompt?.mic.position ?? ''} — هل تريد الصعود الآن؟`}
+            : micPrompt?.kind === 'switch'
+              ? `هل تريد الانتقال من المايك ${micPrompt.from ?? ''} إلى المايك ${micPrompt.mic.position}؟`
+              : `المايك ${micPrompt?.mic.position ?? ''} — هل تريد الصعود الآن؟`}
         </p>
         <div className="room-mic-confirm-actions">
           <button
@@ -903,7 +920,11 @@ export default function Room() {
             onClick={() => void confirmMicPrompt()}
             disabled={Boolean(busyMic)}
           >
-            {micPrompt?.kind === 'leave' ? 'نزول' : 'اصعد الآن'}
+            {micPrompt?.kind === 'leave'
+              ? 'نزول'
+              : micPrompt?.kind === 'switch'
+                ? 'تبديل'
+                : 'اصعد الآن'}
           </button>
           <button type="button" className="btn btn-ghost" onClick={() => setMicPrompt(null)}>
             إلغاء
