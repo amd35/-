@@ -10329,6 +10329,9 @@ table.data tr:hover td {
   place-items: center;
   width: 100%;
   padding: 8px 0 14px;
+  /* The frame artwork and the photo are lifted a little so the crown clears
+     the name plaque and the whole group sits higher in the card. */
+  transform: translateY(-10px);
 }
 
 .rp-avatar-wing {
