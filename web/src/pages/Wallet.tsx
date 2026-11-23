@@ -17,7 +17,7 @@ import { AppShell } from '../components/AppShell';
 import { CurrencyIcon } from '../components/CurrencyIcon';
 import { GiftCodeButton } from '../components/GiftCodeSheet';
 
-type LedgerTab = 'diamond' | 'gold' | 'beans';
+type LedgerTab = 'coins' | 'beans';
 
 interface LedgerRow {
   id: string;
@@ -99,7 +99,7 @@ interface Order {
   package_name: string | null;
 }
 
-const DIAMOND_LABELS: Record<string, string> = {
+const COIN_LABELS: Record<string, string> = {
   call_charge: 'خصم مكالمة',
   call_reserve: 'حجز مكالمة',
   call_refund: 'إرجاع رصيد',
@@ -109,13 +109,6 @@ const DIAMOND_LABELS: Record<string, string> = {
   gift_code: 'كود هدية',
   gift_send: 'إرسال هدية',
   agent_recharge: 'شحن من وكيل',
-};
-
-const GOLD_LABELS: Record<string, string> = {
-  gift_send: 'إرسال هدية بالذهب',
-  agent_recharge: 'شحن ذهب من وكيل',
-  admin_adjust: 'تعديل إداري',
-  game_spend: 'لعبة',
 };
 
 const BEAN_LABELS: Record<string, string> = {
@@ -153,7 +146,7 @@ export default function Wallet() {
   const [methods, setMethods] = useState<Method[]>([]);
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
-  const [ledgerTab, setLedgerTab] = useState<LedgerTab>('diamond');
+  const [ledgerTab, setLedgerTab] = useState<LedgerTab>('coins');
   const [selected, setSelected] = useState<Package | null>(null);
   const [currency, setCurrency] = useState<'IQD' | 'USD'>('IQD');
   const [provider, setProvider] = useState('manual');
@@ -271,7 +264,6 @@ export default function Wallet() {
     earned: data?.wallet.earned ?? 0,
     spent: data?.wallet.spent ?? 0,
   };
-  const gold = currencies?.gold ?? { balance: data?.wallet.gold ?? me?.wallet?.gold ?? 0 };
   const beans = currencies?.beans ?? { available: 0, pending: 0, withdrawn: 0, totalEarned: 0 };
 
   const beansRequested = Math.max(0, Math.trunc(Number(withdrawBeans || 0)));
@@ -289,14 +281,8 @@ export default function Wallet() {
   const aboveMax = (data?.maxWithdrawalBeans ?? 0) > 0 && beansRequested > (data?.maxWithdrawalBeans ?? 0);
   const aboveAvailable = beansRequested > beans.available;
 
-  const ledgerRows =
-    ledgerTab === 'gold'
-      ? data?.goldTransactions ?? []
-      : ledgerTab === 'beans'
-        ? data?.beanTransactions ?? []
-        : data?.transactions ?? [];
-  const ledgerLabels =
-    ledgerTab === 'gold' ? GOLD_LABELS : ledgerTab === 'beans' ? BEAN_LABELS : DIAMOND_LABELS;
+  const ledgerRows = ledgerTab === 'beans' ? data?.beanTransactions ?? [] : data?.transactions ?? [];
+  const ledgerLabels = ledgerTab === 'beans' ? BEAN_LABELS : COIN_LABELS;
 
   return (
     <AppShell title={t('wallet')} active="wallet">
@@ -305,13 +291,13 @@ export default function Wallet() {
           <div className="inline" style={{ justifyContent: 'space-between' }}>
             <span className="tiny muted">{lang === 'ar' ? 'محفظة يلا فون' : 'Yalla Phone wallet'}</span>
             <span className="pill pill-gold">
-              <Icon name="wallet" size={13} /> {lang === 'ar' ? '3 عملات' : '3 currencies'}
+              <Icon name="wallet" size={13} /> {lang === 'ar' ? 'عملتان' : '2 currencies'}
             </span>
           </div>
           <div className="balance">
-            <CurrencyIcon code="DIAMOND" size={30} />
+            <Icon name="coins" size={26} />
             <strong>{formatCoins(diamond.balance)}</strong>
-            <span className="muted tiny">{lang === 'ar' ? 'ماس' : 'Diamond'}</span>
+            <span className="muted tiny">{t('vcoins')}</span>
           </div>
           <div className="wallet-split">
             <div>
@@ -319,11 +305,7 @@ export default function Wallet() {
               <b>{formatCoins(diamond.reserved)}</b>
             </div>
             <div>
-              <span>{lang === 'ar' ? 'ذهب' : 'Gold'}</span>
-              <b>{formatCoins(gold.balance)}</b>
-            </div>
-            <div>
-              <span>{lang === 'ar' ? 'فاصوليا' : 'Beans'}</span>
+              <span>{t('beans')}</span>
               <b>{formatCoins(beans.available)}</b>
             </div>
           </div>
@@ -340,8 +322,8 @@ export default function Wallet() {
           </button>
           <p className="tiny muted" style={{ marginTop: 8 }}>
             {lang === 'ar'
-              ? 'الذهب والماس للهدايا والألعاب، والفاصوليا أرباح قابلة للسحب. لا تحويل مباشر بين العملات.'
-              : 'Gold and diamond are for gifts and games; beans are withdrawable profits. No direct conversion.'}
+              ? 'الكوزنز للشحن والهدايا، والفاصوليا أرباح قابلة للسحب.'
+              : 'VCoins are for recharge and gifts; beans are withdrawable profits.'}
           </p>
           <GiftCodeButton block onRedeemed={() => void load()} />
         </section>
@@ -351,21 +333,15 @@ export default function Wallet() {
             <h2>{lang === 'ar' ? 'العملات' : 'Currencies'}</h2>
           </div>
           <div className="currency-grid">
-            <div className="currency-card gold">
-              <CurrencyIcon code="GOLD" size={26} />
-              <span>{lang === 'ar' ? 'GOLD · الذهب' : 'GOLD'}</span>
-              <b>{formatCoins(gold.balance)}</b>
-              <span className="tiny muted">{lang === 'ar' ? 'للعب والهدايا' : 'Games & gifts'}</span>
-            </div>
-            <div className="currency-card diamond">
-              <CurrencyIcon code="DIAMOND" size={26} />
-              <span>{lang === 'ar' ? 'DIAMOND · الماس' : 'DIAMOND'}</span>
+            <div className="currency-card coins">
+              <Icon name="coins" size={24} />
+              <span>{t('vcoins')}</span>
               <b>{formatCoins(diamond.balance)}</b>
-              <span className="tiny muted">{lang === 'ar' ? 'هدايا الغرف والدردشة' : 'Room & chat gifts'}</span>
+              <span className="tiny muted">{lang === 'ar' ? 'الشحن والهدايا' : 'Recharge & gifts'}</span>
             </div>
             <div className="currency-card beans">
               <CurrencyIcon code="BEANS" size={26} />
-              <span>{lang === 'ar' ? 'BEANS · الفاصوليا' : 'BEANS'}</span>
+              <span>{t('beans')}</span>
               <b>{formatCoins(beans.available)}</b>
               <span className="tiny muted">
                 {lang === 'ar' ? 'معلّقة' : 'Pending'} {formatCoins(beans.pending)} · {lang === 'ar' ? 'مسحوبة' : 'Withdrawn'}{' '}
@@ -421,7 +397,7 @@ export default function Wallet() {
                   </div>
                   <div className="row-main">
                     <div className="row-title">
-                      {formatCoins(order.coins)} {lang === 'ar' ? 'ماس' : 'diamond'} • {formatCoins(order.amount)}{' '}
+                      {formatCoins(order.coins)} {lang === 'ar' ? 'كونز' : 'coins'} • {formatCoins(order.amount)}{' '}
                       {order.currency}
                     </div>
                     <div className="row-sub">
@@ -465,14 +441,11 @@ export default function Wallet() {
             </span>
           </div>
           <div className="seg">
-            <button className={ledgerTab === 'diamond' ? 'active' : ''} onClick={() => setLedgerTab('diamond')}>
-              {lang === 'ar' ? 'الماس' : 'Diamond'}
-            </button>
-            <button className={ledgerTab === 'gold' ? 'active' : ''} onClick={() => setLedgerTab('gold')}>
-              {lang === 'ar' ? 'الذهب' : 'Gold'}
+            <button className={ledgerTab === 'coins' ? 'active' : ''} onClick={() => setLedgerTab('coins')}>
+              {t('vcoins')}
             </button>
             <button className={ledgerTab === 'beans' ? 'active' : ''} onClick={() => setLedgerTab('beans')}>
-              {lang === 'ar' ? 'الفاصوليا' : 'Beans'}
+              {t('beans')}
             </button>
           </div>
           {loading ? (
@@ -484,12 +457,10 @@ export default function Wallet() {
               {ledgerRows.map((transaction) => (
                 <div key={transaction.id} className="row static">
                   <div className="icon-btn plain">
-                    {ledgerTab === 'gold' ? (
-                      <CurrencyIcon code="GOLD" size={18} />
-                    ) : ledgerTab === 'beans' ? (
+                    {ledgerTab === 'beans' ? (
                       <CurrencyIcon code="BEANS" size={18} />
                     ) : (
-                      <CurrencyIcon code="DIAMOND" size={18} />
+                      <Icon name="coins" size={18} />
                     )}
                   </div>
                   <div className="row-main">
@@ -558,7 +529,7 @@ export default function Wallet() {
           setSelected(null);
           setCreatedOrder(null);
         }}
-        title={selected ? `${selected.name} • ${formatCoins(selected.totalCoins)} ${lang === 'ar' ? 'ماس' : 'diamond'}` : ''}
+        title={selected ? `${selected.name} • ${formatCoins(selected.totalCoins)} ${lang === 'ar' ? 'كونز' : 'coins'}` : ''}
       >
         {selected ? (
           <div className="stack">
@@ -606,9 +577,9 @@ export default function Wallet() {
                 </strong>
               </div>
               <div className="inline" style={{ justifyContent: 'space-between', marginTop: 6 }}>
-                <span className="muted tiny">{lang === 'ar' ? 'الماس' : 'diamond'}</span>
+                <span className="muted tiny">{lang === 'ar' ? 'الكوزنز' : 'coins'}</span>
                 <strong>
-                  {formatCoins(selected.totalCoins)} {lang === 'ar' ? 'ماس' : 'diamond'}
+                  {formatCoins(selected.totalCoins)} {lang === 'ar' ? 'كونز' : 'coins'}
                 </strong>
               </div>
             </div>
