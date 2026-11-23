@@ -65,8 +65,8 @@ export function GiftCatalog<T extends CatalogGift>({
   }, [category, flags, gifts, query]);
 
   return (
-    <>
-      <div className="seg gift-categories">
+    <div className="gift-boutique">
+      <div className="gift-cats">
         <button
           type="button"
           className={category === 'gifts' ? 'active' : ''}
@@ -86,7 +86,7 @@ export function GiftCatalog<T extends CatalogGift>({
 
       {category === 'flags' ? (
         <input
-          className="input"
+          className="input gift-search"
           value={query}
           onChange={(event) => setQuery(event.target.value)}
           placeholder={t('giftSearchCountry')}
@@ -125,6 +125,6 @@ export function GiftCatalog<T extends CatalogGift>({
           </div>
         ) : null}
       </div>
-    </>
+    </div>
   );
 }
