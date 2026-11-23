@@ -1341,6 +1341,25 @@ CREATE INDEX IF NOT EXISTS room_frame_sends_live_idx
   ON room_frame_sends (room_id, recipient_id, expires_at DESC);
 CREATE INDEX IF NOT EXISTS room_frame_sends_log_idx ON room_frame_sends (created_at DESC);
 
+-- App backgrounds managed from the admin panel. One published row per slot is
+-- live; every other row stays as history so a previous background can be restored.
+CREATE TABLE IF NOT EXISTS app_backgrounds (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  slot text NOT NULL,
+  title text NOT NULL DEFAULT '',
+  image_url text NOT NULL,
+  is_active boolean NOT NULL DEFAULT false,
+  starts_at timestamptz,
+  ends_at timestamptz,
+  -- Set the first time a row is published; saved-only drafts never fall back in.
+  published_at timestamptz,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  updated_at timestamptz NOT NULL DEFAULT now()
+);
+ALTER TABLE app_backgrounds ADD COLUMN IF NOT EXISTS published_at timestamptz;
+CREATE INDEX IF NOT EXISTS app_backgrounds_slot_idx ON app_backgrounds (slot, created_at DESC);
+CREATE INDEX IF NOT EXISTS app_backgrounds_active_idx ON app_backgrounds (is_active);
+
 -- Deleting a frame from the admin panel must not erase the send/charge history,
 -- so the log keeps its own copy of the name and the catalog link may go away.
 ALTER TABLE room_frame_sends ADD COLUMN IF NOT EXISTS frame_name text NOT NULL DEFAULT '';

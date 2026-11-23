@@ -15,6 +15,7 @@ import PackagesTab from '../components/admin/PackagesTab';
 import GiftCodesTab from '../components/admin/GiftCodesTab';
 import FramesTab from '../components/admin/FramesTab';
 import AdminLookTab from '../components/admin/AdminLookTab';
+import BackgroundsTab from '../components/admin/BackgroundsTab';
 import PremiumIdsTab from '../components/admin/PremiumIdsTab';
 import GiftsTab from '../components/admin/GiftsTab';
 import GiftAnnouncementsTab from '../components/admin/GiftAnnouncementsTab';
@@ -32,6 +33,7 @@ const TABS = [
   { id: 'users', label: 'المستخدمون', icon: 'users' },
   { id: 'ranks', label: 'إدارة الرتب والبوكسات', icon: 'star' },
   { id: 'appearance', label: 'مظهر الإدارة', icon: 'sparkle' },
+  { id: 'backgrounds', label: 'إدارة خلفيات التطبيق', icon: 'image' },
   { id: 'levels-vip', label: 'المستويات و VIP', icon: 'sparkle' },
   { id: 'level-grants', label: 'إدارة مستويات المستخدمين', icon: 'star' },
   { id: 'calls', label: 'المكالمات', icon: 'phone' },
@@ -196,6 +198,7 @@ export default function Admin() {
         {tab === 'users' ? <UsersTab /> : null}
         {tab === 'ranks' ? <RanksTab /> : null}
         {tab === 'appearance' ? <AdminLookTab /> : null}
+        {tab === 'backgrounds' ? <BackgroundsTab /> : null}
         {tab === 'levels-vip' ? <LevelsVipTab /> : null}
         {tab === 'level-grants' ? <LevelGrantsTab /> : null}
         {tab === 'calls' ? <CallsTab /> : null}

@@ -2,6 +2,7 @@ import type { ReactNode } from 'react';
 import { Navigate, Route, Routes, useNavigate } from 'react-router-dom';
 import { useAuth } from './lib/auth';
 import { useI18n } from './lib/i18n';
+import { BackgroundLayer } from './lib/backgrounds';
 import { Spinner } from './lib/ui';
 import { CallOverlay } from './components/CallOverlay';
 import { DailyBoxModal } from './components/DailyBoxModal';
@@ -45,6 +46,7 @@ export default function App() {
 
   return (
     <>
+      <BackgroundLayer />
       <Routes>
         <Route path="/welcome" element={<Welcome />} />
         <Route path="/login" element={<Login />} />

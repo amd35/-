@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { api } from '../lib/api';
+import { api, assetUrl } from '../lib/api';
 import { useAuth } from '../lib/auth';
+import { useBackgrounds } from '../lib/backgrounds';
 import { useI18n } from '../lib/i18n';
 import { useRealtime } from '../lib/realtime';
 import {
@@ -20,6 +21,18 @@ import { GiftCodeButton } from '../components/GiftCodeSheet';
 import { UserCard, type UserCardData } from '../components/UserCard';
 
 type Tab = 'all' | 'online' | 'favorites';
+
+/** The admin-managed Yalla Phone cover banner; hidden when no cover is published. */
+function HomeCover() {
+  const { backgrounds } = useBackgrounds();
+  const url = assetUrl(backgrounds.yalla_cover);
+  if (!url) return null;
+  return (
+    <div className="home-cover">
+      <img src={url} alt="" loading="lazy" />
+    </div>
+  );
+}
 
 export default function Home() {
   const { t, lang } = useI18n();
@@ -107,6 +120,7 @@ export default function Home() {
       }
     >
       <div className="page">
+        <HomeCover />
         <section className={`free-strip ${free && free.remaining === 0 ? 'empty' : ''}`}>
           <span className="pill pill-gold">
             <Icon name="gift" size={13} /> {free?.remaining ?? 0} / {free?.perDay ?? 5}

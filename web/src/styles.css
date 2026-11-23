@@ -51,6 +51,8 @@ body::before {
   inset: 0;
   z-index: -2;
   background:
+    linear-gradient(180deg, rgba(10, 6, 16, 0.55), rgba(10, 6, 16, 0.85)),
+    var(--app-bg-image, none) center / cover no-repeat fixed,
     radial-gradient(1100px 700px at 12% -10%, rgba(214, 51, 132, 0.22), transparent 60%),
     radial-gradient(900px 620px at 92% 6%, rgba(79, 70, 229, 0.26), transparent 62%),
     radial-gradient(760px 620px at 50% 108%, rgba(139, 92, 246, 0.18), transparent 65%),

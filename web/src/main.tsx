@@ -5,6 +5,7 @@ import { I18nProvider } from './lib/i18n';
 import { ToastProvider } from './lib/ui';
 import { AuthProvider } from './lib/auth';
 import { RealtimeProvider } from './lib/realtime';
+import { BackgroundsProvider } from './lib/backgrounds';
 import { CallProvider } from './lib/call';
 import { setupNativeShell } from './lib/native';
 import './styles.css';
@@ -19,9 +20,11 @@ root.render(
       <ToastProvider>
         <AuthProvider>
           <RealtimeProvider>
-            <CallProvider>
-              <App />
-            </CallProvider>
+            <BackgroundsProvider>
+              <CallProvider>
+                <App />
+              </CallProvider>
+            </BackgroundsProvider>
           </RealtimeProvider>
         </AuthProvider>
       </ToastProvider>

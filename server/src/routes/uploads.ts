@@ -46,6 +46,22 @@ export const upload = multer({
   },
 });
 
+// App backgrounds: JPG/PNG/WebP plus animated GIF/WebP, compressed on the client first.
+const IMAGE_ALLOWED = new Set(['.png', '.jpg', '.jpeg', '.webp', '.gif']);
+
+export const imageUpload = multer({
+  storage,
+  limits: { fileSize: 20 * 1024 * 1024 },
+  fileFilter: (_req, file, cb) => {
+    const ext = path.extname(file.originalname).toLowerCase();
+    if (!IMAGE_ALLOWED.has(ext)) {
+      cb(new HttpError(400, 'Only JPG, PNG, WebP or GIF images are allowed', 'unsupported_file'));
+      return;
+    }
+    cb(null, true);
+  },
+});
+
 // Gift media: MP4/WebM animations and cover images. Bigger limit than chat files.
 const GIFT_ALLOWED = new Set(['.mp4', '.webm', '.png', '.jpg', '.jpeg', '.webp', '.gif']);
 
