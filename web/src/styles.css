@@ -7357,6 +7357,16 @@ table.data tr:hover td {
   transform: scale(0.94);
 }
 
+/* Clean room header: only the artwork and the room name stay visible. */
+.room-head-clean {
+  padding: 4px 8px 6px;
+}
+
+.room-head-gear {
+  left: auto;
+  right: 6px;
+}
+
 .room-head-crest {
   display: grid;
   place-items: center;
