@@ -10346,10 +10346,10 @@ table.data tr:hover td {
   filter: drop-shadow(0 10px 18px rgba(0, 0, 0, 0.6));
 }
 
-/* The frame artwork carries its own wings and glow, so the extra SVG wings and
-   the coloured halo behind it are hidden and nothing shows behind the frame. */
-.rp-avatar-wing,
-.rp-avatar-glow {
+/* The painted admin frame already carries its own wings and halo, so the extra
+   SVG wings and the coloured glow stay hidden behind it. */
+.rp-avatar:has(.av-frame-art) .rp-avatar-wing,
+.rp-avatar:has(.av-frame-art) .rp-avatar-glow {
   display: none;
 }
 

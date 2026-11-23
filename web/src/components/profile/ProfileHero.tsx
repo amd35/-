@@ -60,6 +60,9 @@ export function ProfileHero({
 }) {
   const { t, lang } = useI18n();
   const toast = useToast();
+  /* Wings, halo and aura belong to the royal administration identity only and
+     are switched on per position from the admin panel («المؤثرات»). */
+  const showEffects = Boolean(me.adminLook?.effectsEnabled);
 
   const level = me.level?.level ?? 1;
   const xp = me.level?.xp ?? 0;
@@ -155,7 +158,7 @@ export function ProfileHero({
 
   return (
     <section className={`rp-shell${me.adminLook ? ' is-admin' : ''}`}>
-      {me.adminLook?.effectsEnabled ? <span className="admin-profile-aura" aria-hidden="true" /> : null}
+      {showEffects ? <span className="admin-profile-aura" aria-hidden="true" /> : null}
 
       {/* 1 — status and settings */}
       <div className="rp-topbar">
@@ -171,8 +174,12 @@ export function ProfileHero({
       {/* 2 — gold name plaque with the crown above and the wings around it */}
       <div className="rp-plaque">
         <CrownSvg className="rp-plaque-crown" />
-        <WingsSvg className="rp-plaque-wing is-start" />
-        <WingsSvg className="rp-plaque-wing is-end" flip />
+        {showEffects ? (
+          <>
+            <WingsSvg className="rp-plaque-wing is-start" />
+            <WingsSvg className="rp-plaque-wing is-end" flip />
+          </>
+        ) : null}
         <div className="rp-plaque-body">
           {me.cosmetics?.namecard ? (
             <NameCard
@@ -200,9 +207,13 @@ export function ProfileHero({
 
       {/* 3 — avatar: ornate frame, wings, crown and level ribbon; tap to change photo / frame */}
       <div className="rp-avatar">
-        <WingsSvg className="rp-avatar-wing is-start" />
-        <WingsSvg className="rp-avatar-wing is-end" flip />
-        <span className="rp-avatar-glow" aria-hidden="true" />
+        {showEffects ? (
+          <>
+            <WingsSvg className="rp-avatar-wing is-start" />
+            <WingsSvg className="rp-avatar-wing is-end" flip />
+            <span className="rp-avatar-glow" aria-hidden="true" />
+          </>
+        ) : null}
         <button
           type="button"
           className="rp-avatar-ring"
@@ -217,10 +228,6 @@ export function ProfileHero({
             <Icon name="sparkle" size={13} />
           </span>
         </button>
-        <span className="rp-level-ribbon">
-          <LevelBadge level={level} size={20} color={me.level?.badgeColor ?? '#ffd75e'} />
-          Lv. {level}
-        </span>
       </div>
 
       {/* 4 — level / VIP / position badges */}
@@ -266,8 +273,12 @@ export function ProfileHero({
 
       {/* 6 — identity card */}
       <section className="rp-card">
-        <WingsSvg className="rp-card-wing is-start" />
-        <WingsSvg className="rp-card-wing is-end" flip />
+        {showEffects ? (
+          <>
+            <WingsSvg className="rp-card-wing is-start" />
+            <WingsSvg className="rp-card-wing is-end" flip />
+          </>
+        ) : null}
         <h3 className="rp-card-title">{title}</h3>
         <p className="rp-card-bio">{me.user.bio || t('noBio')}</p>
         {joined ? (
