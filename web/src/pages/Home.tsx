@@ -9,9 +9,7 @@ import {
   Avatar,
   EmptyState,
   formatCoins,
-  formatCountdown,
   Icon,
-  useCountdown,
   useDebounced,
   useToast,
 } from '../lib/ui';
@@ -97,9 +95,6 @@ export default function Home() {
     }
   };
 
-  const free = me?.freeCalls;
-  const countdown = useCountdown(free?.nextResetAt);
-  const percent = free ? Math.round((free.remaining / Math.max(1, free.perDay)) * 100) : 0;
   const hour = new Date().getHours();
   const greeting =
     hour < 12 ? (lang === 'ar' ? 'صباح الخير' : 'Good morning') : hour < 18 ? (lang === 'ar' ? 'مساء الخير' : 'Good afternoon') : lang === 'ar' ? 'مساء الخير' : 'Good evening';
@@ -118,21 +113,6 @@ export default function Home() {
     >
       <div className="page">
         <HomeCover />
-        <section className={`free-strip ${free && free.remaining === 0 ? 'empty' : ''}`}>
-          <span className="pill pill-gold">
-            <Icon name="gift" size={13} /> {free?.remaining ?? 0} / {free?.perDay ?? 5}
-          </span>
-          <div className="free-strip-meter">
-            <div className="meter-track">
-              <div className="meter-fill" style={{ width: `${percent}%` }} />
-            </div>
-          </div>
-          <span className="tiny muted">{formatCountdown(countdown, lang)}</span>
-          <span className="tiny" style={{ color: '#ffd75e' }}>
-            {me?.config.voicePrice ?? 100} / {t('minutes')}
-          </span>
-        </section>
-
         <button type="button" className="room-card" onClick={() => navigate('/rooms')}>
           <span className="room-cover">
             <Icon name="mic" size={24} />
