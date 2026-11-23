@@ -238,7 +238,7 @@ export default function Levels() {
                 className={`level-chip ${row.level === level.level ? 'current' : ''} ${row.level < level.level ? 'done' : ''}`}
               >
                 <div className="level-chip-art">
-                  <LevelBadge level={row.level} size={56} color={row.badgeColor} imageUrl={row.badgeImageUrl} />
+                  <LevelBadge level={row.level} size={72} color={row.badgeColor} imageUrl={row.badgeImageUrl} />
                 </div>
                 <span className="level-chip-level">
                   {t('level')} {row.level}

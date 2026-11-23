@@ -5335,13 +5335,13 @@ table.data tr:hover td {
   display: grid;
   place-items: center;
   width: 100%;
-  height: 60px;
+  height: 78px;
 }
 
 .level-chip-art .level-badge-img,
 .level-chip-art .level-badge {
-  width: 56px;
-  height: 56px;
+  width: 72px;
+  height: 72px;
 }
 
 .level-chip.done {
