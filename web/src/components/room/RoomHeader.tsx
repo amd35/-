@@ -15,22 +15,30 @@ export function RoomHeader({
   owner,
   occupied,
   total,
+  members,
+  capacity,
   country,
   language,
   canManage,
   onBack,
   onSettings,
+  onMembers,
+  onStore,
 }: {
   name: string;
   code: string;
   owner: SeatUser | null;
   occupied: number;
   total: number;
+  members: number;
+  capacity: number;
   country: string;
   language: string;
   canManage: boolean;
   onBack: () => void;
   onSettings: () => void;
+  onMembers: () => void;
+  onStore: () => void;
 }) {
   // The painted artwork frame is profile-sized, so the stage shows a compact
   // crowned ring instead: it keeps the royal identity without covering a seat.
@@ -42,9 +50,10 @@ export function RoomHeader({
         <Icon name="arrowLeft" size={16} />
       </button>
 
-      <div className="room-head-crest">
+      {/* Tapping the room image opens the member list. */}
+      <button type="button" className="room-head-crest" onClick={onMembers} aria-label="أعضاء الغرفة">
         <RoomCrest />
-      </div>
+      </button>
 
       <div className="room-brand">
         <span className="room-brand-gem" aria-hidden="true">◆</span>
@@ -88,6 +97,14 @@ export function RoomHeader({
             <i aria-hidden="true" />
             {occupied} / {total}
           </span>
+          <button
+            type="button"
+            className="room-capacity-chip"
+            onClick={onStore}
+            aria-label="متجر الغرفة وسعة الأعضاء"
+          >
+            <Icon name="users" size={11} /> {members}/{capacity}
+          </button>
           {canManage ? (
             <button type="button" className="room-icon-btn" onClick={onSettings} aria-label="إعدادات الغرفة">
               <Icon name="settings" size={16} />

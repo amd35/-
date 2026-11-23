@@ -11615,3 +11615,263 @@ button.ad-hit {
 .agent-entry-row {
   border-inline-start: 3px solid #ff9d3c;
 }
+
+/* ---------------------------------------------- room members, heart & store */
+.room-head-crest {
+  pointer-events: auto;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+  border-radius: 12px;
+}
+
+.room-head-crest:active {
+  transform: scale(0.97);
+}
+
+.room-capacity-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 2px 7px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 207, 64, 0.35);
+  background: rgba(0, 0, 0, 0.35);
+  color: #ffd75e;
+  font-size: 9px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.room-members-top {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.room-capacity {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 9px 10px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 207, 64, 0.16);
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.room-capacity-line {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 11px;
+  font-weight: 800;
+  color: #ffe9c9;
+}
+
+.room-capacity-line > span {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.room-capacity-bar {
+  height: 5px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.1);
+  overflow: hidden;
+}
+
+.room-capacity-bar i {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #ffd75e, #ff7a3d);
+}
+
+.room-store-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  border: 0;
+  background: transparent;
+  color: #ffd75e;
+  font-size: 10px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.room-members-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.room-heart {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 10px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 90, 120, 0.4);
+  background: rgba(255, 90, 120, 0.12);
+  color: #ff9db2;
+  font-size: 11px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.room-heart.on {
+  background: linear-gradient(180deg, #ff4d6d, #b3132f);
+  color: #fff;
+}
+
+.room-panel-head {
+  margin: 6px 2px 0;
+  font-size: 10px;
+  font-weight: 800;
+  color: rgba(255, 233, 201, 0.7);
+}
+
+.room-role-tag.role-supervisor {
+  background: rgba(120, 170, 255, 0.2);
+  color: #a9c8ff;
+}
+
+.room-role-tag.role-visitor {
+  background: rgba(255, 255, 255, 0.1);
+  color: #cfc6dd;
+}
+
+.room-role-actions {
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.room-icon-btn.danger {
+  color: #ff8a8a;
+  border-color: rgba(255, 90, 90, 0.4);
+}
+
+.room-store {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.room-store-summary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.room-store-stat {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 10px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 207, 64, 0.18);
+  background: rgba(255, 255, 255, 0.04);
+  font-size: 11px;
+  font-weight: 700;
+  color: #ffe9c9;
+}
+
+.room-store-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.room-store-card {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  border-radius: 14px;
+  border: 1px solid rgba(255, 207, 64, 0.18);
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.room-store-card.owned {
+  border-color: rgba(90, 220, 150, 0.45);
+}
+
+.room-store-art {
+  position: relative;
+  aspect-ratio: 1 / 1;
+  display: grid;
+  place-items: center;
+  background: radial-gradient(circle at 50% 40%, rgba(255, 207, 64, 0.18), rgba(0, 0, 0, 0.55));
+  color: #ffd75e;
+}
+
+.room-store-art img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.room-store-owned {
+  position: absolute;
+  inset-block-start: 6px;
+  inset-inline-start: 6px;
+  padding: 2px 7px;
+  border-radius: 999px;
+  background: rgba(20, 120, 70, 0.85);
+  color: #d7ffe9;
+  font-size: 9px;
+  font-weight: 800;
+}
+
+.room-store-body {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 8px;
+  font-size: 12px;
+}
+
+.room-store-cap {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 10px;
+  font-weight: 700;
+  color: #ffd75e;
+}
+
+.room-store-price.done {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 10px;
+  font-weight: 800;
+  color: #7fe3a8;
+}
+
+.room-store-thumb {
+  display: grid;
+  place-items: center;
+  width: 42px;
+  height: 42px;
+  flex: 0 0 auto;
+  overflow: hidden;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 207, 64, 0.25);
+  background: rgba(0, 0, 0, 0.4);
+  color: #ffd75e;
+}
+
+.room-store-thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.pill.off {
+  opacity: 0.55;
+}

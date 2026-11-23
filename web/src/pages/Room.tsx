@@ -23,7 +23,8 @@ import { RoomMusicPanel } from '../components/room/RoomMusicPanel';
 import { RoomChatPanel } from '../components/room/RoomChatPanel';
 import { RoomCup } from '../components/room/RoomCup';
 import { RoomFramesSheet, type WornFrame } from '../components/room/RoomFramesSheet';
-import type { RoomData } from '../components/room/types';
+import { RoomStoreSheet } from '../components/room/RoomStoreSheet';
+import type { RoomCapacity, RoomData, RoomMemberEntry, RoomStoreData } from '../components/room/types';
 import { useRoomVoice } from '../lib/roomVoice';
 import { useVoiceModeration, voiceModerationSupported } from '../lib/voiceModeration';
 import {
@@ -60,6 +61,12 @@ export default function Room() {
   const [announcement, setAnnouncement] = useState<GiftAnnouncement | null>(null);
   const [panel, setPanel] = useState<Panel>(null);
   const [presence, setPresence] = useState<PresenceUser[]>([]);
+  const [members, setMembers] = useState<RoomMemberEntry[]>([]);
+  const [memberBusy, setMemberBusy] = useState(false);
+  const [storeOpen, setStoreOpen] = useState(false);
+  const [storeData, setStoreData] = useState<RoomStoreData | null>(null);
+  const [storeLoading, setStoreLoading] = useState(false);
+  const [busyTier, setBusyTier] = useState<string | null>(null);
   const [forcedMute, setForcedMute] = useState(0);
   const [musicMuted, setMusicMuted] = useState(false);
   const announcementRef = useRef<GiftAnnouncement | null>(null);
@@ -254,6 +261,30 @@ export default function Room() {
     };
   }, [on, id, load, toast]);
 
+  // The member list is fetched when the panel opens and whenever membership changes.
+  useEffect(() => {
+    if (panel === 'members') void loadMembers();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [panel, id]);
+
+  useEffect(() => {
+    const off = on('room_members', (data) => {
+      if (data.roomId !== id) return;
+      void loadMembers();
+    });
+    const offRemoved = on('room:removed', (data) => {
+      if (data.roomId !== id) return;
+      toast.push('تمت إزالتك من الغرفة', 'info');
+      send('room:leave', { roomId: id });
+      navigate('/rooms');
+    });
+    return () => {
+      off();
+      offRemoved();
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [on, id, send, navigate, toast]);
+
   // Announce presence while the room is open.
   useEffect(() => {
     if (!connected || !id) return;
@@ -407,8 +438,123 @@ export default function Room() {
         body: { userId, role },
       });
       setRoom(response.room);
+      void loadMembers();
     } catch (error) {
       toast.push((error as Error).message, 'error');
+    }
+  };
+
+  type MembershipSnapshot = {
+    members: RoomMemberEntry[];
+    capacity: RoomCapacity;
+    liked: boolean;
+    likes: number;
+    member: boolean;
+  };
+
+  const applyMembership = (snapshot: MembershipSnapshot) => {
+    setMembers(snapshot.members);
+    setRoom((current) =>
+      current
+        ? {
+            ...current,
+            capacity: snapshot.capacity,
+            liked: snapshot.liked,
+            likes: snapshot.likes,
+            member: snapshot.member,
+          }
+        : current
+    );
+  };
+
+  const loadMembers = async () => {
+    try {
+      applyMembership(await api<MembershipSnapshot>(`/rooms/${id}/members`));
+    } catch (error) {
+      toast.push((error as Error).message, 'error');
+    }
+  };
+
+  const joinMembership = async () => {
+    if (memberBusy) return;
+    setMemberBusy(true);
+    try {
+      applyMembership(await api<MembershipSnapshot>(`/rooms/${id}/members/join`, { method: 'POST' }));
+      toast.push('أصبحت عضواً في الغرفة', 'success');
+    } catch (error) {
+      const code = (error as { code?: string }).code;
+      toast.push(
+        code === 'room_full'
+          ? 'الغرفة ممتلئة — رقّي الغرفة أو أزل بعض الأعضاء'
+          : (error as Error).message,
+        'error'
+      );
+    } finally {
+      setMemberBusy(false);
+    }
+  };
+
+  const leaveMembership = async () => {
+    if (memberBusy) return;
+    setMemberBusy(true);
+    try {
+      applyMembership(await api<MembershipSnapshot>(`/rooms/${id}/members/leave`, { method: 'POST' }));
+      toast.push('خرجت من قائمة أعضاء الغرفة', 'info');
+    } catch (error) {
+      toast.push((error as Error).message, 'error');
+    } finally {
+      setMemberBusy(false);
+    }
+  };
+
+  const toggleLike = async () => {
+    try {
+      const state = await api<{ liked: boolean; likes: number }>(`/rooms/${id}/like`, { method: 'POST' });
+      setRoom((current) => (current ? { ...current, ...state } : current));
+    } catch (error) {
+      toast.push((error as Error).message, 'error');
+    }
+  };
+
+  const removeMember = async (userId: string) => {
+    try {
+      applyMembership(await api<MembershipSnapshot>(`/rooms/${id}/members/${userId}/remove`, { method: 'POST' }));
+      toast.push('تمت إزالة العضو من الغرفة', 'success');
+    } catch (error) {
+      toast.push((error as Error).message, 'error');
+    }
+  };
+
+  const openStore = async () => {
+    setStoreOpen(true);
+    setStoreLoading(true);
+    try {
+      setStoreData(await api<RoomStoreData>(`/rooms/${id}/store`));
+    } catch (error) {
+      toast.push((error as Error).message, 'error');
+    } finally {
+      setStoreLoading(false);
+    }
+  };
+
+  const buyUpgrade = async (tierId: string) => {
+    if (busyTier) return;
+    setBusyTier(tierId);
+    try {
+      const response = await api<RoomStoreData & { purchased?: { id: string; name: string } }>(
+        `/rooms/${id}/store/${tierId}/purchase`,
+        { method: 'POST' }
+      );
+      setStoreData(response);
+      setRoom((current) => (current ? { ...current, capacity: response.capacity } : current));
+      toast.push(
+        `تم تفعيل ${response.purchased?.name ?? 'الترقية'} — سعة الغرفة الآن ${response.capacity.limit} عضو`,
+        'success'
+      );
+    } catch (error) {
+      toast.push((error as Error).message, 'error');
+    } finally {
+      setBusyTier(null);
     }
   };
 
@@ -478,11 +624,15 @@ export default function Room() {
             owner={room.owner}
             occupied={occupied}
             total={room.mics.length}
+            members={room.capacity.count}
+            capacity={room.capacity.limit}
             country={room.country}
             language={room.language}
             canManage={room.canManage}
             onBack={leaveRoom}
             onSettings={() => setPanel('settings')}
+            onMembers={() => setPanel('members')}
+            onStore={() => void openStore()}
           />
 
           {announcement ? (
@@ -590,11 +740,32 @@ export default function Room() {
           <RoomMembersPanel
             open={panel === 'members'}
             onClose={() => setPanel(null)}
-            users={presence}
-            roles={room.roles}
+            members={members}
+            visitors={presence.filter((user) => !members.some((member) => member.id === user.id))}
+            capacity={room.capacity}
+            liked={room.liked}
+            likes={room.likes}
+            isMember={room.member}
             meId={me?.user.id ?? null}
             canManage={room.canManage}
+            busy={memberBusy}
+            onJoin={() => void joinMembership()}
+            onLeave={() => void leaveMembership()}
+            onToggleLike={() => void toggleLike()}
             onSetRole={(userId, role) => void setRole(userId, role)}
+            onRemove={(userId) => void removeMember(userId)}
+            onOpenStore={() => {
+              setPanel(null);
+              void openStore();
+            }}
+          />
+          <RoomStoreSheet
+            open={storeOpen}
+            onClose={() => setStoreOpen(false)}
+            data={storeData}
+            loading={storeLoading}
+            busyTier={busyTier}
+            onPurchase={(tierId) => void buyUpgrade(tierId)}
           />
           <RoomInvitePanel open={panel === 'invite'} onClose={() => setPanel(null)} roomId={id} />
           <RoomSettingsPanel

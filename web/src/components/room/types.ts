@@ -11,6 +11,46 @@ export interface RoomRoleEntry {
   role: 'admin' | 'supervisor';
 }
 
+export type RoomMemberRole = 'owner' | 'admin' | 'supervisor' | 'member';
+
+/** Members stored for the room vs. the limit the owned upgrade allows. */
+export interface RoomCapacity {
+  count: number;
+  limit: number;
+  tierId: string | null;
+  tierName: string | null;
+}
+
+export interface RoomMemberEntry {
+  id: string;
+  displayName: string;
+  avatarUrl: string | null;
+  level: number;
+  online: boolean;
+  role: RoomMemberRole;
+  joinedAt: string | null;
+}
+
+/** One admin-defined upgrade sold inside the room's own store. */
+export interface RoomUpgradeTier {
+  id: string;
+  name: string;
+  nameEn: string;
+  description: string;
+  imageUrl: string | null;
+  priceDiamonds: number;
+  memberCapacity: number;
+  owned: boolean;
+}
+
+export interface RoomStoreData {
+  tiers: RoomUpgradeTier[];
+  capacity: RoomCapacity;
+  balance: number;
+  isOwner: boolean;
+  canManage: boolean;
+}
+
 export interface RoomFrameWear {
   userId: string;
   frameId: string;
@@ -42,4 +82,9 @@ export interface RoomData {
   mics: RoomMic[];
   /** Frames still running in this room (server clock). */
   frames: RoomFrameWear[];
+  capacity: RoomCapacity;
+  /** Is the caller a stored member of this room? */
+  member: boolean;
+  liked: boolean;
+  likes: number;
 }

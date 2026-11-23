@@ -1684,3 +1684,54 @@ INSERT INTO app_settings (key, value) VALUES
   ('gold_gifts_enabled',   'true'::jsonb),
   ('gift_host_percent',    '10'::jsonb)
 ON CONFLICT (key) DO NOTHING;
+
+-- ============================================================================
+-- Room membership, likes and the room upgrade store
+-- ----------------------------------------------------------------------------
+-- Presence (who has the room open right now) is live over the websocket; a
+-- stored membership is what makes someone an «عضو» of the room, and the room's
+-- capacity is decided by the upgrade tier it owns (1000 members when free).
+-- ============================================================================
+CREATE TABLE IF NOT EXISTS room_members (
+  room_id uuid NOT NULL REFERENCES rooms(id) ON DELETE CASCADE,
+  user_id uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  joined_at timestamptz NOT NULL DEFAULT now(),
+  PRIMARY KEY (room_id, user_id)
+);
+CREATE INDEX IF NOT EXISTS room_members_user_idx ON room_members (user_id);
+
+-- The heart in the member list: one like per user per room.
+CREATE TABLE IF NOT EXISTS room_likes (
+  room_id uuid NOT NULL REFERENCES rooms(id) ON DELETE CASCADE,
+  user_id uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  PRIMARY KEY (room_id, user_id)
+);
+
+-- Admin-defined upgrades sold inside a room's own store. `member_capacity` is
+-- the member limit the tier unlocks; `price_diamonds` is charged once per room.
+CREATE TABLE IF NOT EXISTS room_upgrade_tiers (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  name text NOT NULL,
+  name_en text NOT NULL DEFAULT '',
+  description text NOT NULL DEFAULT '',
+  image_url text,
+  price_diamonds integer NOT NULL DEFAULT 0 CHECK (price_diamonds >= 0),
+  member_capacity integer NOT NULL DEFAULT 1000 CHECK (member_capacity > 0),
+  sort_order integer NOT NULL DEFAULT 0,
+  is_active boolean NOT NULL DEFAULT true,
+  created_at timestamptz NOT NULL DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS room_upgrades (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  room_id uuid NOT NULL REFERENCES rooms(id) ON DELETE CASCADE,
+  tier_id uuid NOT NULL REFERENCES room_upgrade_tiers(id) ON DELETE CASCADE,
+  purchased_by uuid REFERENCES users(id) ON DELETE SET NULL,
+  price_paid integer NOT NULL DEFAULT 0,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  PRIMARY KEY (room_id, tier_id)
+);
+-- `id` is the wallet-ledger reference of the purchase, so a retry cannot charge twice.
+ALTER TABLE room_upgrades ADD COLUMN IF NOT EXISTS id uuid NOT NULL DEFAULT gen_random_uuid();
+CREATE UNIQUE INDEX IF NOT EXISTS room_upgrades_id_uidx ON room_upgrades (id);

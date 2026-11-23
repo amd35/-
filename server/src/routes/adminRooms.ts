@@ -3,6 +3,7 @@ import { q, tx } from '../db';
 import { requireAdmin } from '../auth';
 import { broadcast } from '../realtime';
 import { MIC_KINDS, MIC_STYLES, RoomRow, allRoomsWithMics, packMicPositions, serializeRoom } from '../rooms';
+import { listUpgradeTiers, serializeTier, type RoomUpgradeTierRow } from '../roomStore';
 import { HttpError, asyncHandler } from '../utils';
 import { giftUpload } from './uploads';
 
@@ -215,6 +216,98 @@ router.post(
     });
 
     broadcast('room', { roomId });
+    res.json({ ok: true });
+  })
+);
+
+/**
+ * Room upgrade store: the administration defines every tier the rooms sell —
+ * its name, artwork, diamond price and the member limit it unlocks.
+ */
+function readTier(body: Record<string, unknown>) {
+  const name = String(body?.name ?? '').trim().slice(0, 60);
+  if (!name) throw new HttpError(400, 'Upgrade name is required', 'missing_name');
+  return {
+    name,
+    nameEn: String(body?.nameEn ?? '').trim().slice(0, 60),
+    description: String(body?.description ?? '').trim().slice(0, 200),
+    imageUrl: body?.imageUrl ? String(body.imageUrl).slice(0, 500) : null,
+    priceDiamonds: Math.max(0, Math.trunc(Number(body?.priceDiamonds) || 0)),
+    memberCapacity: Math.max(1, Math.trunc(Number(body?.memberCapacity) || 1000)),
+    sortOrder: Math.trunc(Number(body?.sortOrder) || 0),
+    isActive: body?.isActive === undefined ? true : Boolean(body.isActive),
+  };
+}
+
+router.get(
+  '/upgrade-tiers',
+  asyncHandler(async (_req, res) => {
+    res.json({ tiers: (await listUpgradeTiers(true)).map((row) => serializeTier(row)) });
+  })
+);
+
+router.post(
+  '/upgrade-tiers',
+  asyncHandler(async (req, res) => {
+    const tier = readTier((req.body ?? {}) as Record<string, unknown>);
+    const inserted = await q<RoomUpgradeTierRow>(
+      `INSERT INTO room_upgrade_tiers
+         (name, name_en, description, image_url, price_diamonds, member_capacity, sort_order, is_active)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+       RETURNING *`,
+      [
+        tier.name,
+        tier.nameEn,
+        tier.description,
+        tier.imageUrl,
+        tier.priceDiamonds,
+        tier.memberCapacity,
+        tier.sortOrder,
+        tier.isActive,
+      ]
+    );
+    broadcast('room_upgrade_tiers', {});
+    res.status(201).json({ tier: serializeTier(inserted[0]) });
+  })
+);
+
+router.patch(
+  '/upgrade-tiers/:tierId',
+  asyncHandler(async (req, res) => {
+    const tier = readTier((req.body ?? {}) as Record<string, unknown>);
+    const updated = await q<RoomUpgradeTierRow>(
+      `UPDATE room_upgrade_tiers
+       SET name = $2, name_en = $3, description = $4, image_url = $5, price_diamonds = $6,
+           member_capacity = $7, sort_order = $8, is_active = $9
+       WHERE id = $1
+       RETURNING *`,
+      [
+        req.params.tierId,
+        tier.name,
+        tier.nameEn,
+        tier.description,
+        tier.imageUrl,
+        tier.priceDiamonds,
+        tier.memberCapacity,
+        tier.sortOrder,
+        tier.isActive,
+      ]
+    );
+    if (!updated.length) throw new HttpError(404, 'Upgrade not found', 'upgrade_not_found');
+    broadcast('room_upgrade_tiers', {});
+    res.json({ tier: serializeTier(updated[0]) });
+  })
+);
+
+router.delete(
+  '/upgrade-tiers/:tierId',
+  asyncHandler(async (req, res) => {
+    const deleted = await q<{ id: string }>(
+      'DELETE FROM room_upgrade_tiers WHERE id = $1 RETURNING id',
+      [req.params.tierId]
+    );
+    if (!deleted.length) throw new HttpError(404, 'Upgrade not found', 'upgrade_not_found');
+    broadcast('room_upgrade_tiers', {});
     res.json({ ok: true });
   })
 );

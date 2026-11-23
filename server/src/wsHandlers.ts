@@ -93,6 +93,9 @@ export function registerSocketHandlers(): void {
       [roomId]
     );
     const roleByUser = new Map(roles.map((row) => [row.user_id, row.role]));
+    // Stored membership is what separates an «عضو» from a visitor (زائر).
+    const members = await q<{ user_id: string }>('SELECT user_id FROM room_members WHERE room_id = $1', [roomId]);
+    const memberSet = new Set(members.map((row) => row.user_id));
     return {
       roomId,
       count: users.length,
@@ -103,6 +106,7 @@ export function registerSocketHandlers(): void {
         level: Number(user.level ?? 1) || 1,
         role:
           room?.owner_id === user.id ? 'owner' : roleByUser.get(user.id) ?? 'member',
+        member: room?.owner_id === user.id || memberSet.has(user.id),
       })),
     };
   };

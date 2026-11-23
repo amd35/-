@@ -15,6 +15,14 @@ import { notify } from '../notify';
 import { GiftRow, moveProfit } from '../gifts';
 import { cupSnapshot, ensureCompetition, recordCupGift } from '../roomCup';
 import { ROOM_FRAME_DURATION_SECONDS, listRoomFrames, type RoomFrameRow } from '../roomFrames';
+import {
+  joinRoomMember,
+  leaveRoomMember,
+  removeRoomMember,
+  roomMembershipSnapshot,
+  toggleRoomLike,
+} from '../roomMembers';
+import { purchaseRoomUpgrade, roomStoreSnapshot } from '../roomStore';
 import { getSettings } from '../settings';
 import { moveCoins, moveGold } from '../wallet';
 import { awardXpSafe, getXpSettings, xpForCoins } from '../progression';
@@ -79,6 +87,11 @@ router.post(
           position === 1 ? 'host' : 'speaker',
         ]);
       }
+      // The owner starts as the room's first member.
+      await client.query('INSERT INTO room_members (room_id, user_id) VALUES ($1, $2) ON CONFLICT DO NOTHING', [
+        created.id,
+        me,
+      ]);
       return created;
     });
 
@@ -705,7 +718,105 @@ router.post(
       throw new HttpError(400, 'Unknown role', 'invalid_role');
     }
     broadcast('room', { roomId });
+    // The member panel shows each role, so it refreshes with the staff change.
+    broadcast('room_members', { roomId });
     res.json({ room: await getRoomDetail(roomId, me) });
+  })
+);
+
+/**
+ * Member list, capacity and the heart — everything the room image opens.
+ * Presence (visitors) is pushed separately over the websocket.
+ */
+router.get(
+  '/:id/members',
+  requireAuth(),
+  asyncHandler(async (req, res) => {
+    res.json(await roomMembershipSnapshot(req.params.id, reqUser(req).id));
+  })
+);
+
+/** Join the room as a member. The capacity check runs server-side. */
+router.post(
+  '/:id/members/join',
+  requireAuth(),
+  asyncHandler(async (req, res) => {
+    const me = reqUser(req).id;
+    const roomId = req.params.id;
+    await joinRoomMember(roomId, me);
+    broadcast('room_members', { roomId });
+    broadcast('room', { roomId });
+    res.status(201).json(await roomMembershipSnapshot(roomId, me));
+  })
+);
+
+/** Leave the membership (the user stays a visitor while the room is open). */
+router.post(
+  '/:id/members/leave',
+  requireAuth(),
+  asyncHandler(async (req, res) => {
+    const me = reqUser(req).id;
+    const roomId = req.params.id;
+    await leaveRoomMember(roomId, me);
+    broadcast('room_members', { roomId });
+    res.json(await roomMembershipSnapshot(roomId, me));
+  })
+);
+
+/** The heart in the member list. */
+router.post(
+  '/:id/like',
+  requireAuth(),
+  asyncHandler(async (req, res) => {
+    const roomId = req.params.id;
+    const state = await toggleRoomLike(roomId, reqUser(req).id);
+    broadcast('room_members', { roomId });
+    res.json(state);
+  })
+);
+
+/** Remove a member from the room (owner / vice-owner). Frees their mic too. */
+router.post(
+  '/:id/members/:userId/remove',
+  requireAuth(),
+  asyncHandler(async (req, res) => {
+    const me = reqUser(req).id;
+    const roomId = req.params.id;
+    const room = await one<{ owner_id: string | null }>('SELECT owner_id FROM rooms WHERE id = $1', [roomId]);
+    if (!room) throw new HttpError(404, 'Room not found', 'room_not_found');
+    const access = await roomAccess(roomId, me, room.owner_id);
+    if (!access.canManage) throw new HttpError(403, 'Room management only', 'not_manager');
+
+    const userId = req.params.userId;
+    await removeRoomMember(roomId, userId);
+    emitToUser(userId, 'room:removed', { roomId });
+    broadcast('room_members', { roomId });
+    broadcast('room', { roomId });
+    res.json(await roomMembershipSnapshot(roomId, me));
+  })
+);
+
+/** The room's own store: the admin-defined upgrades and what the room owns. */
+router.get(
+  '/:id/store',
+  requireAuth(),
+  asyncHandler(async (req, res) => {
+    res.json(await roomStoreSnapshot(req.params.id, reqUser(req).id));
+  })
+);
+
+/** Buy an upgrade with diamonds (room owner only). */
+router.post(
+  '/:id/store/:tierId/purchase',
+  requireAuth(),
+  asyncHandler(async (req, res) => {
+    const me = reqUser(req).id;
+    const roomId = req.params.id;
+    const tier = await purchaseRoomUpgrade(roomId, req.params.tierId, me);
+    broadcast('room', { roomId });
+    broadcast('room_members', { roomId });
+    emitToUser(me, 'wallet:update', {});
+    res.status(201).json({ ...(await roomStoreSnapshot(roomId, me)), purchased: { id: tier.id, name: tier.name } });
   })
 );
 

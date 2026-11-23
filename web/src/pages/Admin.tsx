@@ -27,6 +27,7 @@ import ReportsTab from '../components/admin/ReportsTab';
 import BroadcastTab from '../components/admin/BroadcastTab';
 import SecurityTab from '../components/admin/SecurityTab';
 import RoomsTab from '../components/admin/RoomsTab';
+import RoomUpgradesTab from '../components/admin/RoomUpgradesTab';
 import RoomCupTab from '../components/admin/RoomCupTab';
 import RoomFramesTab from '../components/admin/RoomFramesTab';
 import SupportTab from '../components/admin/SupportTab';
@@ -54,6 +55,7 @@ const TABS = [
   { id: 'gift-store', label: 'متجر الهدايا المتحركة', icon: 'gift' },
   { id: 'gift-announcements', label: 'إعلانات الهدايا', icon: 'sparkle' },
   { id: 'rooms', label: 'غرف الدردشة والمايكات', icon: 'mic' },
+  { id: 'room-upgrades', label: 'متجر ترقيات الغرف', icon: 'package' },
   { id: 'room-cup', label: 'إدارة كأس الغرف والأرباح', icon: 'star' },
   { id: 'room-frames', label: 'إدارة الإطارات', icon: 'frame' },
   { id: 'orders', label: 'طلبات الشحن', icon: 'card' },
@@ -224,6 +226,7 @@ export default function Admin() {
         {tab === 'gift-store' ? <GiftsTab /> : null}
         {tab === 'gift-announcements' ? <GiftAnnouncementsTab /> : null}
         {tab === 'rooms' ? <RoomsTab /> : null}
+        {tab === 'room-upgrades' ? <RoomUpgradesTab /> : null}
         {tab === 'room-cup' ? <RoomCupTab /> : null}
         {tab === 'room-frames' ? <RoomFramesTab /> : null}
         {tab === 'orders' ? <OrdersTab /> : null}
