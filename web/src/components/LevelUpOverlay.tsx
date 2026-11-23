@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { useAuth } from '../lib/auth';
 import { useRealtime } from '../lib/realtime';
 import { playLevelUpSound } from '../lib/levelUpSound';
 import { LevelBadge } from './ProgressionBadges';
@@ -13,11 +14,12 @@ interface LevelUpPayload {
 /** Full-screen royal celebration shown the moment the server levels the user up. */
 export function LevelUpOverlay() {
   const { on } = useRealtime();
+  const { refresh } = useAuth();
   const [payload, setPayload] = useState<LevelUpPayload | null>(null);
   const timer = useRef<number | null>(null);
 
   useEffect(() => {
-    const off = on('level:up', (data) => {
+    const offUp = on('level:up', (data) => {
       const level = Number(data?.level);
       if (!Number.isFinite(level) || level < 2) return;
       setPayload({
@@ -27,14 +29,19 @@ export function LevelUpOverlay() {
         badgeImageUrl: typeof data.badgeImageUrl === 'string' ? data.badgeImageUrl : null,
       });
       playLevelUpSound(level);
+      // Pull the new level into every screen (profile, chat, rooms) right away.
+      void refresh();
       if (timer.current) window.clearTimeout(timer.current);
       timer.current = window.setTimeout(() => setPayload(null), 6000);
     });
+    // Admin grant/revoke changes the level without a celebration.
+    const offChanged = on('level:changed', () => void refresh());
     return () => {
-      off();
+      offUp();
+      offChanged();
       if (timer.current) window.clearTimeout(timer.current);
     };
-  }, [on]);
+  }, [on, refresh]);
 
   if (!payload) return null;
 

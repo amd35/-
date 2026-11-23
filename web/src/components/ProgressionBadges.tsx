@@ -66,6 +66,33 @@ export function levelArtUrl(level: number): string {
 }
 
 /**
+ * Card band 1..10 — every ten levels move the card to a richer material
+ * (bronze, steel, gold, emerald, sapphire, amethyst, ruby, obsidian,
+ * celestial, legendary). The card grows with the band.
+ */
+export function levelCardTier(level: number): number {
+  return Math.min(10, Math.max(1, Math.ceil((Number(level) || 1) / 10)));
+}
+
+/** Base hue of each band, shifted a little per level so no two cards match. */
+const LEVEL_BAND_HUES = [28, 212, 45, 158, 222, 278, 352, 14, 195, 42];
+
+export function levelCardHue(level: number): number {
+  const n = Math.min(100, Math.max(1, Math.trunc(Number(level) || 1)));
+  const offset = ((n - 1) % 10) - 4.5;
+  return Math.round(LEVEL_BAND_HUES[levelCardTier(n) - 1] + offset * 3);
+}
+
+/** Badge artwork size inside a ladder card: it grows with the level. */
+export function levelCardBadgeSize(level: number): number {
+  const tier = levelCardTier(level);
+  if (Number(level) === 100) return 116;
+  if (tier <= 3) return 64;
+  if (tier <= 6) return 76;
+  return 88;
+}
+
+/**
  * Level badge shown next to a user's name. Uses the level's own artwork (crown,
  * number and wings that grow with the level); falls back to the gold medallion
  * when the image cannot load.

@@ -7,6 +7,7 @@ import Overview from '../components/admin/Overview';
 import UsersTab from '../components/admin/UsersTab';
 import RanksTab from '../components/admin/RanksTab';
 import LevelsVipTab from '../components/admin/LevelsVipTab';
+import LevelGrantsTab from '../components/admin/LevelGrantsTab';
 import CallsTab from '../components/admin/CallsTab';
 import FreeCallsTab from '../components/admin/FreeCallsTab';
 import PricingTab from '../components/admin/PricingTab';
@@ -32,6 +33,7 @@ const TABS = [
   { id: 'ranks', label: 'إدارة الرتب والبوكسات', icon: 'star' },
   { id: 'appearance', label: 'مظهر الإدارة', icon: 'sparkle' },
   { id: 'levels-vip', label: 'المستويات و VIP', icon: 'sparkle' },
+  { id: 'level-grants', label: 'إدارة مستويات المستخدمين', icon: 'star' },
   { id: 'calls', label: 'المكالمات', icon: 'phone' },
   { id: 'free', label: 'المحاولات المجانية', icon: 'gift' },
   { id: 'pricing', label: 'الأسعار والأرباح', icon: 'percent' },
@@ -195,6 +197,7 @@ export default function Admin() {
         {tab === 'ranks' ? <RanksTab /> : null}
         {tab === 'appearance' ? <AdminLookTab /> : null}
         {tab === 'levels-vip' ? <LevelsVipTab /> : null}
+        {tab === 'level-grants' ? <LevelGrantsTab /> : null}
         {tab === 'calls' ? <CallsTab /> : null}
         {tab === 'free' ? <FreeCallsTab /> : null}
         {tab === 'pricing' ? <PricingTab /> : null}

@@ -5317,31 +5317,176 @@ table.data tr:hover td {
 }
 
 .level-chip {
+  --lvl-hue: 45;
+  --lvl-sat: 70%;
+  --lvl-light: 60%;
+  position: relative;
+  isolation: isolate;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: flex-start;
   gap: 6px;
   min-width: 0;
-  padding: 14px 8px 12px;
+  padding: 12px 8px;
   border-radius: 16px;
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.06), rgba(255, 255, 255, 0.02));
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.35);
+  overflow: hidden;
   text-align: center;
+  background:
+    radial-gradient(120% 90% at 50% 0%, hsl(var(--lvl-hue) var(--lvl-sat) var(--lvl-light) / 0.22), transparent 62%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.07), rgba(255, 255, 255, 0.02));
+  border: 1px solid hsl(var(--lvl-hue) var(--lvl-sat) var(--lvl-light) / 0.4);
+  box-shadow:
+    0 6px 16px rgba(0, 0, 0, 0.35),
+    inset 0 0 0 1px hsl(var(--lvl-hue) var(--lvl-sat) var(--lvl-light) / 0.1);
+  transition: transform 0.18s ease, box-shadow 0.18s ease;
+}
+
+.level-chip > * {
+  position: relative;
+  z-index: 1;
+}
+
+/* Card bands 1..10 — the material gets richer and the card bigger with the level. */
+.level-chip.tier-1 {
+  --lvl-sat: 42%;
+  --lvl-light: 52%;
+}
+
+.level-chip.tier-2 {
+  --lvl-sat: 22%;
+  --lvl-light: 68%;
+}
+
+.level-chip.tier-3 {
+  --lvl-sat: 84%;
+  --lvl-light: 56%;
+  padding: 14px 8px;
+}
+
+.level-chip.tier-4 {
+  --lvl-sat: 62%;
+  --lvl-light: 50%;
+  padding: 14px 8px;
+}
+
+.level-chip.tier-5 {
+  --lvl-sat: 74%;
+  --lvl-light: 58%;
+  padding: 16px 9px;
+}
+
+.level-chip.tier-6 {
+  --lvl-sat: 66%;
+  --lvl-light: 60%;
+  padding: 16px 9px;
+}
+
+.level-chip.tier-7 {
+  --lvl-sat: 78%;
+  --lvl-light: 56%;
+  padding: 18px 10px;
+  border-width: 2px;
+}
+
+.level-chip.tier-8 {
+  --lvl-sat: 52%;
+  --lvl-light: 46%;
+  padding: 18px 10px;
+  border-width: 2px;
+}
+
+.level-chip.tier-9 {
+  --lvl-sat: 72%;
+  --lvl-light: 60%;
+  padding: 20px 10px;
+  border-width: 2px;
+}
+
+.level-chip.tier-10 {
+  --lvl-sat: 88%;
+  --lvl-light: 62%;
+  padding: 22px 12px;
+  border-width: 2px;
+  border-radius: 20px;
+}
+
+/* Moving light across the royal cards. */
+.level-chip.shine::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  background: linear-gradient(
+    115deg,
+    transparent 42%,
+    hsl(var(--lvl-hue) 100% 82% / 0.16) 50%,
+    transparent 58%
+  );
+  transform: translateX(-130%);
+  animation: lvl-card-shine 4.5s ease-in-out infinite;
+  pointer-events: none;
+}
+
+@keyframes lvl-card-shine {
+  0%,
+  55% {
+    transform: translateX(-130%);
+  }
+  100% {
+    transform: translateX(130%);
+  }
+}
+
+/* Level 100: the legendary card takes the full row with rotating rays. */
+.level-chip.is-max {
+  grid-column: 1 / -1;
+  padding: 26px 16px 24px;
+  border-radius: 22px;
+  box-shadow:
+    0 12px 34px rgba(0, 0, 0, 0.5),
+    0 0 26px hsl(var(--lvl-hue) 90% 60% / 0.35);
+}
+
+.level-chip.is-max::before {
+  content: '';
+  position: absolute;
+  inset: -45%;
+  z-index: 0;
+  background: conic-gradient(
+    from 0deg,
+    hsl(var(--lvl-hue) 95% 65% / 0.3),
+    transparent 22%,
+    hsl(0 85% 60% / 0.26) 40%,
+    transparent 62%,
+    hsl(var(--lvl-hue) 95% 65% / 0.3)
+  );
+  animation: lvl-card-rays 14s linear infinite;
+  pointer-events: none;
+}
+
+@keyframes lvl-card-rays {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.level-chip:active {
+  transform: scale(0.985);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .level-chip.shine::after,
+  .level-chip.is-max::before {
+    animation: none;
+  }
 }
 
 .level-chip-art {
   display: grid;
   place-items: center;
   width: 100%;
-  height: 78px;
-}
-
-.level-chip-art .level-badge-img,
-.level-chip-art .level-badge {
-  width: 72px;
-  height: 72px;
+  min-height: 64px;
 }
 
 .level-chip.done {

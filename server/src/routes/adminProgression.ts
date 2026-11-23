@@ -8,10 +8,14 @@ import {
   activeVip,
   awardXp,
   getXpSettingRows,
+  grantUserLevel,
   grantVip,
+  levelGrantLog,
   levelsOverview,
   renewVip,
+  revokeUserLevel,
   revokeVip,
+  searchUsersForLevel,
   serializeVipTier,
   vipHistory,
 } from '../progression';
@@ -180,6 +184,85 @@ router.post(
       level: result.level,
     });
     res.json(result);
+  })
+);
+
+/* ------------------------------------- user level management (1..100) */
+
+/**
+ * Server-side permission for changing user levels. The general admin account
+ * always has it; any other admin only when the general admin enabled the flag.
+ * Every grant/revoke is written to `level_grant_log` with the admin's name.
+ */
+async function assertLevelPermission(admin: { id: string }) {
+  const row = await one<{ can_manage_levels: boolean }>(
+    'SELECT can_manage_levels FROM admin_users WHERE id = $1',
+    [admin.id]
+  );
+  if (!row?.can_manage_levels) {
+    throw new HttpError(403, 'لا تملك صلاحية تعديل مستويات المستخدمين', 'level_permission_missing');
+  }
+}
+
+function userIdsFrom(body: Record<string, unknown>): string[] {
+  const raw = Array.isArray(body.userIds) ? body.userIds : [body.userId];
+  return [...new Set(raw.map((value) => String(value || '').trim()).filter(Boolean))].slice(0, 50);
+}
+
+router.get(
+  '/level-grants/search',
+  asyncHandler(async (req, res) => {
+    await assertLevelPermission(reqAdmin(req));
+    const term = text(req.query.q, 60);
+    if (!term) return res.json({ users: [] });
+    res.json({ users: await searchUsersForLevel(term) });
+  })
+);
+
+router.get(
+  '/level-grants/log',
+  asyncHandler(async (req, res) => {
+    await assertLevelPermission(reqAdmin(req));
+    res.json({ entries: await levelGrantLog(100) });
+  })
+);
+
+/** Grants one level (1..100) to one or several users at once. */
+router.post(
+  '/level-grants/grant',
+  asyncHandler(async (req, res) => {
+    const admin = reqAdmin(req);
+    await assertLevelPermission(admin);
+    const level = intParam(req.body?.level, 0, 1, 100);
+    const ids = userIdsFrom(req.body ?? {});
+    if (!ids.length) throw new HttpError(400, 'اختر مستخدماً واحداً على الأقل', 'missing_users');
+    const reason = text(req.body?.reason, 200) || null;
+    const results = [];
+    for (const userId of ids) {
+      results.push(
+        await grantUserLevel({ userId, level, adminId: admin.id, adminName: admin.username, reason })
+      );
+    }
+    res.json({ updated: results.filter((row) => row.changed).length, results });
+  })
+);
+
+/** Removes an admin-granted level and returns the account to its XP level. */
+router.post(
+  '/level-grants/revoke',
+  asyncHandler(async (req, res) => {
+    const admin = reqAdmin(req);
+    await assertLevelPermission(admin);
+    const ids = userIdsFrom(req.body ?? {});
+    if (!ids.length) throw new HttpError(400, 'اختر مستخدماً واحداً على الأقل', 'missing_users');
+    const reason = text(req.body?.reason, 200) || null;
+    const results = [];
+    for (const userId of ids) {
+      results.push(
+        await revokeUserLevel({ userId, adminId: admin.id, adminName: admin.username, reason })
+      );
+    }
+    res.json({ updated: results.length, results });
   })
 );
 

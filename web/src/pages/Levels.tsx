@@ -10,6 +10,9 @@ import {
   VipBadge,
   formatVipDate,
   formatXp,
+  levelCardBadgeSize,
+  levelCardHue,
+  levelCardTier,
   type LevelRowInfo,
   type LevelState,
   type VipInfo,
@@ -232,23 +235,43 @@ export default function Levels() {
             <span className="tiny muted">{levels.length}</span>
           </div>
           <div className="level-grid">
-            {levels.map((row) => (
-              <div
-                key={row.level}
-                className={`level-chip ${row.level === level.level ? 'current' : ''} ${row.level < level.level ? 'done' : ''}`}
-              >
-                <div className="level-chip-art">
-                  <LevelBadge level={row.level} size={72} color={row.badgeColor} imageUrl={row.badgeImageUrl} />
+            {levels.map((row) => {
+              const tier = levelCardTier(row.level);
+              const isMax = row.level === 100;
+              const isCurrent = row.level === level.level;
+              return (
+                <div
+                  key={row.level}
+                  className={[
+                    'level-chip',
+                    `tier-${tier}`,
+                    isMax ? 'is-max' : '',
+                    tier >= 7 || isCurrent ? 'shine' : '',
+                    isCurrent ? 'current' : '',
+                    row.level < level.level ? 'done' : '',
+                  ]
+                    .filter(Boolean)
+                    .join(' ')}
+                  style={{ '--lvl-hue': levelCardHue(row.level) } as React.CSSProperties}
+                >
+                  <div className="level-chip-art">
+                    <LevelBadge
+                      level={row.level}
+                      size={levelCardBadgeSize(row.level)}
+                      color={row.badgeColor}
+                      imageUrl={row.badgeImageUrl}
+                    />
+                  </div>
+                  <span className="level-chip-level">
+                    {t('level')} {row.level}
+                  </span>
+                  <span className="level-chip-xp">{formatXp(row.xpRequired)} XP</span>
+                  {row.rewardCoins > 0 ? (
+                    <span className="level-chip-reward">+{formatCoins(row.rewardCoins)}</span>
+                  ) : null}
                 </div>
-                <span className="level-chip-level">
-                  {t('level')} {row.level}
-                </span>
-                <span className="level-chip-xp">{formatXp(row.xpRequired)} XP</span>
-                {row.rewardCoins > 0 ? (
-                  <span className="level-chip-reward">+{formatCoins(row.rewardCoins)}</span>
-                ) : null}
-              </div>
-            ))}
+              );
+            })}
           </div>
         </section>
 

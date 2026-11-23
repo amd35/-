@@ -1074,6 +1074,32 @@ CREATE TABLE IF NOT EXISTS level_history (
 CREATE INDEX IF NOT EXISTS level_history_user_idx ON level_history (user_id, created_at DESC);
 CREATE INDEX IF NOT EXISTS level_history_created_idx ON level_history (created_at DESC);
 
+-- Admin-granted level. While `level_granted` is set the account keeps that level
+-- even if XP awards arrive; `users.level` is always the effective level every
+-- screen reads. Revoking clears both and recomputes the level from XP.
+ALTER TABLE users ADD COLUMN IF NOT EXISTS level_granted integer;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS level_before_grant integer;
+
+-- Every grant / revoke, with the admin who did it, the before/after levels and
+-- the optional reason. This is the admin-side audit trail.
+CREATE TABLE IF NOT EXISTS level_grant_log (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  admin_id uuid REFERENCES admin_users(id) ON DELETE SET NULL,
+  admin_name text NOT NULL DEFAULT '',
+  action text NOT NULL CHECK (action IN ('grant', 'revoke')),
+  previous_level integer NOT NULL,
+  new_level integer NOT NULL,
+  reason text,
+  created_at timestamptz NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS level_grant_log_created_idx ON level_grant_log (created_at DESC);
+CREATE INDEX IF NOT EXISTS level_grant_log_user_idx ON level_grant_log (user_id, created_at DESC);
+
+-- Server-side permission for changing user levels. The general admin keeps it;
+-- any other admin account only gets it when the general admin enables it.
+ALTER TABLE admin_users ADD COLUMN IF NOT EXISTS can_manage_levels boolean NOT NULL DEFAULT true;
+
 CREATE TABLE IF NOT EXISTS vip_tiers (
   tier integer PRIMARY KEY CHECK (tier BETWEEN 1 AND 5),
   name_ar text NOT NULL DEFAULT '',

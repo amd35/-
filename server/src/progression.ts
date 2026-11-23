@@ -213,14 +213,55 @@ export function computeLevelState(xp: number, levels: LevelRow[]): LevelState {
   };
 }
 
+/**
+ * Pure: the state of an admin-granted level. The account shows the granted
+ * level (name, badge, next level) while its XP keeps accumulating underneath,
+ * so revoking the grant can drop it back onto the XP ladder.
+ */
+export function grantedLevelState(
+  xp: number,
+  grantLevel: number,
+  levels: LevelRow[]
+): LevelState | null {
+  const active = levels
+    .filter((row) => row.is_active)
+    .sort((a, b) => Number(a.level) - Number(b.level));
+  const index = active.findIndex((row) => Number(row.level) === grantLevel);
+  if (index < 0) return null;
+  const row = active[index];
+  const next = active[index + 1] ?? null;
+  const currentXp = Number(row.xp_required);
+  const nextXp = next ? Number(next.xp_required) : null;
+  const progress =
+    nextXp === null
+      ? 1
+      : Math.min(1, Math.max(0, (xp - currentXp) / Math.max(1, nextXp - currentXp)));
+  return {
+    level: Number(row.level),
+    xp,
+    nameAr: row.name_ar,
+    nameEn: row.name_en,
+    badgeColor: row.badge_color,
+    badgeImageUrl: row.badge_image_url,
+    currentLevelXp: currentXp,
+    nextLevelXp: nextXp,
+    nextLevel: next ? Number(next.level) : null,
+    progress: Number(progress.toFixed(4)),
+    rewardCoins: Number(row.reward_coins),
+  };
+}
+
 export async function getLevelState(userId: string): Promise<LevelState> {
-  const user = await one<{ xp: string | number; level: number }>(
-    'SELECT xp, level FROM users WHERE id = $1',
+  const user = await one<{ xp: string | number; level: number; level_granted: number | null }>(
+    'SELECT xp, level, level_granted FROM users WHERE id = $1',
     [userId]
   );
   if (!user) throw new HttpError(404, 'Account not found', 'account_missing');
   const levels = await loadLevels();
-  const state = computeLevelState(Number(user.xp), levels);
+  const xp = Number(user.xp);
+  const state =
+    (user.level_granted !== null && grantedLevelState(xp, Number(user.level_granted), levels)) ||
+    computeLevelState(xp, levels);
   if (state.level !== Number(user.level)) {
     await q('UPDATE users SET level = $2 WHERE id = $1', [userId, state.level]);
   }
@@ -244,8 +285,8 @@ export async function awardXp(
   { userId, kind, refId, xp }: AwardOptions
 ): Promise<{ awarded: number; levelUp: number | null; level: number }> {
   let amount = Math.max(0, Math.trunc(xp));
-  const current = await c.query<{ xp: string | number; level: number }>(
-    'SELECT xp, level FROM users WHERE id = $1 FOR UPDATE',
+  const current = await c.query<{ xp: string | number; level: number; level_granted: number | null }>(
+    'SELECT xp, level, level_granted FROM users WHERE id = $1 FOR UPDATE',
     [userId]
   );
   if (!current.rowCount) return { awarded: 0, levelUp: null, level: 1 };
@@ -281,6 +322,10 @@ export async function awardXp(
   const totalXp = Number(updated.rows[0].xp);
   const previousLevel = Number(updated.rows[0].level);
   const levels = await loadLevels(c);
+  // A granted level wins over the XP ladder until an admin revokes it.
+  if (current.rows[0].level_granted !== null) {
+    return { awarded: amount, levelUp: null, level: previousLevel };
+  }
   const state = computeLevelState(totalXp, levels);
   if (state.level <= previousLevel) {
     return { awarded: amount, levelUp: null, level: previousLevel };
@@ -577,6 +622,204 @@ export async function levelHistory(userId: string, limit = 50) {
     `SELECT id, level, xp, reward_coins, source, created_at
      FROM level_history WHERE user_id = $1 ORDER BY created_at DESC LIMIT $2`,
     [userId, limit]
+  );
+}
+
+/* ------------------------------------------------- admin level management */
+
+export interface LevelGrantResult {
+  userId: string;
+  displayName: string;
+  previousLevel: number;
+  level: number;
+  changed: boolean;
+  nameAr: string;
+  nameEn: string;
+  badgeImageUrl: string | null;
+}
+
+interface AdminLevelAction {
+  userId: string;
+  adminId: string;
+  adminName: string;
+  reason?: string | null;
+}
+
+interface LevelGrantInput extends AdminLevelAction {
+  level: number;
+}
+
+/**
+ * Grants a level (1..100) to one account, overriding the XP ladder until it is
+ * revoked. Everything happens on the server inside one transaction: the level
+ * override, the audit row, the user's own history and their notification.
+ */
+export async function grantUserLevel({
+  userId,
+  level,
+  adminId,
+  adminName,
+  reason,
+}: LevelGrantInput): Promise<LevelGrantResult> {
+  const note = reason?.trim().slice(0, 200) || null;
+  const result = await tx(async (c) => {
+    const found = await c.query<{
+      id: string;
+      xp: string | number;
+      level: number;
+      level_granted: number | null;
+      display_name: string;
+    }>('SELECT id, xp, level, level_granted, display_name FROM users WHERE id = $1 AND is_bot = false FOR UPDATE', [
+      userId,
+    ]);
+    if (!found.rowCount) throw new HttpError(404, 'المستخدم غير موجود', 'user_missing');
+    const user = found.rows[0];
+    const levels = await loadLevels(c);
+    const row = levels.find((item) => Number(item.level) === level && item.is_active);
+    if (!row) throw new HttpError(404, 'المستوى غير موجود', 'level_missing');
+
+    const previousLevel = Number(user.level);
+    if (user.level_granted !== null && previousLevel === level) {
+      return {
+        userId,
+        displayName: user.display_name,
+        previousLevel,
+        level,
+        changed: false,
+        nameAr: row.name_ar,
+        nameEn: row.name_en,
+        badgeImageUrl: row.badge_image_url,
+      };
+    }
+
+    // Remember where the XP ladder had the account so the grant is reversible.
+    const xpLevel = computeLevelState(Number(user.xp), levels).level;
+    await c.query(
+      `UPDATE users SET level = $2, level_granted = $2, level_before_grant = COALESCE(level_before_grant, $3)
+       WHERE id = $1`,
+      [userId, level, xpLevel]
+    );
+    await c.query(
+      `INSERT INTO level_grant_log (user_id, admin_id, admin_name, action, previous_level, new_level, reason)
+       VALUES ($1, $2, $3, 'grant', $4, $5, $6)`,
+      [userId, adminId, adminName, previousLevel, level, note]
+    );
+    await c.query(
+      `INSERT INTO level_history (user_id, level, xp, reward_coins, source)
+       VALUES ($1, $2, $3, 0, 'admin')`,
+      [userId, level, Number(user.xp)]
+    );
+    await notifyWith(
+      c,
+      userId,
+      'level_granted',
+      'تم تحديث مستواك',
+      `تم تعيين مستواك إلى ${row.name_ar || `المستوى ${level}`}${note ? ` — ${note}` : ''}`,
+      { level, previousLevel, reason: note }
+    );
+    return {
+      userId,
+      displayName: user.display_name,
+      previousLevel,
+      level,
+      changed: true,
+      nameAr: row.name_ar,
+      nameEn: row.name_en,
+      badgeImageUrl: row.badge_image_url,
+    };
+  });
+
+  if (result.changed) {
+    if (result.level > result.previousLevel) {
+      emitToUser(userId, 'level:up', {
+        level: result.level,
+        nameAr: result.nameAr,
+        nameEn: result.nameEn,
+        badgeImageUrl: result.badgeImageUrl,
+      });
+    } else {
+      emitToUser(userId, 'level:changed', { level: result.level });
+    }
+  }
+  return result;
+}
+
+export async function revokeUserLevel({
+  userId,
+  adminId,
+  adminName,
+  reason,
+}: {
+  userId: string;
+  adminId: string;
+  adminName: string;
+  reason?: string | null;
+}) {
+  const result = await tx(async (c) => {
+    const found = await c.query<{
+      id: string;
+      xp: string | number;
+      level: number;
+      level_granted: number | null;
+      display_name: string;
+    }>(
+      'SELECT id, xp, level, level_granted, display_name FROM users WHERE id = $1 AND is_bot = false FOR UPDATE',
+      [userId]
+    );
+    if (!found.rowCount) throw new HttpError(404, 'المستخدم غير موجود', 'user_missing');
+    const user = found.rows[0];
+    if (user.level_granted === null) {
+      throw new HttpError(400, 'لا يوجد مستوى ممنوح لهذا المستخدم', 'no_level_grant');
+    }
+    const levels = await loadLevels(c);
+    const note = reason?.trim().slice(0, 200) || null;
+    const previousLevel = Number(user.level);
+    const xpLevel = computeLevelState(Number(user.xp), levels).level;
+    await c.query(
+      'UPDATE users SET level = $2, level_granted = NULL, level_before_grant = NULL WHERE id = $1',
+      [userId, xpLevel]
+    );
+    await c.query(
+      `INSERT INTO level_grant_log (user_id, admin_id, admin_name, action, previous_level, new_level, reason)
+       VALUES ($1, $2, $3, 'revoke', $4, $5, $6)`,
+      [userId, adminId, adminName, previousLevel, xpLevel, note]
+    );
+    await notifyWith(
+      c,
+      userId,
+      'level_revoked',
+      'تمت إعادة مستوى حسابك',
+      `عاد مستواك إلى المستوى ${xpLevel}`,
+      { level: xpLevel, previousLevel }
+    );
+    return { userId, displayName: user.display_name, previousLevel, level: xpLevel, changed: true };
+  });
+  emitToUser(userId, 'level:changed', { level: result.level });
+  return result;
+}
+
+/** User lookup for the level-management screen (name, 6-digit ID or email). */
+export async function searchUsersForLevel(term: string) {
+  const like = `%${term}%`;
+  return q(
+    `SELECT u.id, u.username, u.display_name, u.avatar_url, u.level, u.level_granted, u.xp,
+            l.name_ar, l.name_en, l.badge_image_url
+     FROM users u
+     LEFT JOIN levels l ON l.level = u.level
+     WHERE u.is_bot = false AND (u.username ILIKE $1 OR u.display_name ILIKE $1 OR u.email ILIKE $1)
+     ORDER BY u.created_at DESC LIMIT 20`,
+    [like]
+  );
+}
+
+export async function levelGrantLog(limit = 100) {
+  return q(
+    `SELECT g.id, g.action, g.previous_level, g.new_level, g.reason, g.created_at, g.admin_name,
+            u.id AS user_id, u.display_name, u.username, u.avatar_url
+     FROM level_grant_log g
+     JOIN users u ON u.id = g.user_id
+     ORDER BY g.created_at DESC LIMIT $1`,
+    [limit]
   );
 }
 
