@@ -68,7 +68,7 @@ export function UserProfileCard({
           <>
             <div className="room-profile-head">
               <span className="room-profile-avatar">
-                <Avatar user={{ ...user, online: isOnline }} size={72} />
+                <Avatar user={{ ...user, online: isOnline }} size={isArtFrame(user.frame) ? 60 : 72} />
                 {isArtFrame(user.frame) ? (
                   <span className="room-profile-crown" aria-hidden="true">
                     👑

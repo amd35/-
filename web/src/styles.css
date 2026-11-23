@@ -2043,6 +2043,14 @@ p {
   transform: scale(0.98);
 }
 
+/* Same artwork centring as the own profile: the transparent window (42.1% of the
+   artwork height) sits on the photo centre instead of 7% below it. */
+.royal-avatar .av-frame-art,
+.room-full-profile-avatar .av-frame-art,
+.room-profile-avatar .av-frame-art {
+  top: -40%;
+}
+
 .royal-profile:has(.av-frame-art) .royal-avatar {
   margin: 34px 0 66px;
 }

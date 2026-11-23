@@ -16,6 +16,7 @@ import {
 } from '../lib/ui';
 import { AppShell } from '../components/AppShell';
 import { RankTag } from '../components/RankBadge';
+import { isArtFrame } from '../components/AvatarFrame';
 import { ProfileHero, type ConnectionKind } from '../components/profile/ProfileHero';
 import { ConnectionsSheet } from '../components/profile/ConnectionsSheet';
 import { LevelBadge, VipBadge, formatXp } from '../components/ProgressionBadges';
@@ -526,7 +527,7 @@ export function UserProfile() {
           <div className="royal-avatar">
             <span className="royal-avatar-glow" aria-hidden="true" />
             <div className="royal-avatar-ring is-static">
-              <Avatar user={{ ...user, online: isOnline }} size={104} />
+              <Avatar user={{ ...user, online: isOnline }} size={isArtFrame(user.frame) ? 87 : 104} />
             </div>
           </div>
           <div className="royal-info">
