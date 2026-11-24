@@ -22,6 +22,8 @@ export interface GiftItem extends Omit<GiftVisual, 'price' | 'rarity'> {
   rarity: string;
   recipientPercent: number | null;
   isActive: boolean;
+  /** Shown in the «هدايا اليوم» limited section — one list for every room. */
+  isDaily?: boolean;
   sortOrder: number;
 }
 

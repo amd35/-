@@ -1,17 +1,15 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useRealtime } from '../../lib/realtime';
+import { formatCoins, Icon } from '../../lib/ui';
 import type { GiftTickerItem } from '../../lib/giftTicker';
-
-function lineFor(item: GiftTickerItem): string {
-  const quantity = item.quantity > 1 ? ` × ${item.quantity}` : '';
-  return `🎁 ${item.giftName}${quantity} — ${item.senderName} ← ${item.recipientName}`;
-}
+import { GiftCover } from '../GiftAnimation';
 
 /**
- * Gift announcement bar under the mic seats in every room. The whole bar sweeps
- * across the stage from the left to the right and disappears; the next gift
- * brings it back. Tapping it opens the room the gift was sent in.
+ * «شريط الهدية» under the mic seats. It shows the gift itself (its video, its
+ * photo or its drawn scene) together with the sender's and the recipient's
+ * names, slides in from the left, holds in the middle so it can be read, then
+ * leaves. Tapping it opens the room the gift was sent in.
  */
 export function RoomGiftMarquee({ initial }: { initial: GiftTickerItem | null }) {
   const { on } = useRealtime();
@@ -35,14 +33,43 @@ export function RoomGiftMarquee({ initial }: { initial: GiftTickerItem | null })
       <button
         key={item.id}
         type="button"
-        className="room-gift-marquee"
+        className={`room-gift-marquee rarity-${item.gift?.rarity ?? 'legendary'}`}
         onClick={() => navigate(`/rooms/${item.roomId}`)}
         onAnimationEnd={(event) => {
           if (event.target === event.currentTarget) setVisible(false);
         }}
       >
-        <span className="room-gift-marquee-badge">🎁 هدية</span>
-        <span className="room-gift-marquee-line">{lineFor(item)}</span>
+        <span className="room-gift-marquee-art">
+          {item.gift ? (
+            <GiftCover
+              gift={{
+                name: item.gift.name,
+                design: item.gift.design,
+                videoUrl: item.gift.videoUrl,
+                coverUrl: item.gift.coverUrl,
+                rarity: item.gift.rarity ?? 'common',
+              }}
+            />
+          ) : (
+            <Icon name="gift" size={26} />
+          )}
+        </span>
+        <span className="room-gift-marquee-body">
+          <span className="room-gift-marquee-gift">
+            {item.giftName}
+            {item.quantity > 1 ? ` × ${item.quantity}` : ''}
+            {item.coins ? (
+              <span className="room-gift-marquee-coins">{formatCoins(item.coins)}</span>
+            ) : null}
+          </span>
+          <span className="room-gift-marquee-flow">
+            <span className="room-gift-marquee-who">من</span>
+            <span className="room-gift-marquee-name">{item.senderName || '—'}</span>
+            <span className="room-gift-marquee-arrow">←</span>
+            <span className="room-gift-marquee-who">إلى</span>
+            <span className="room-gift-marquee-name">{item.recipientName || '—'}</span>
+          </span>
+        </span>
       </button>
     </div>
   );

@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { api, assetUrl } from '../lib/api';
+import { useAuth } from '../lib/auth';
 import { useI18n } from '../lib/i18n';
 import { formatCoins, Icon, Sheet, Spinner, useToast } from '../lib/ui';
 import { GiftCatalog, type GiftCategory } from './GiftCatalog';
@@ -97,6 +98,7 @@ export function RoomGiftSheet({
 }) {
   const { t } = useI18n();
   const toast = useToast();
+  const { me } = useAuth();
   const [gifts, setGifts] = useState<GiftItem[]>([]);
   const [balance, setBalance] = useState(0);
   const [goldBalance, setGoldBalance] = useState(0);
@@ -112,6 +114,8 @@ export function RoomGiftSheet({
   const [freeGift, setFreeGift] = useState<DailyFreeGift | null>(null);
   const [claimingFree, setClaimingFree] = useState(false);
   const [buyingBox, setBuyingBox] = useState(false);
+  const [dailyAdminOpen, setDailyAdminOpen] = useState(false);
+  const [togglingDailyId, setTogglingDailyId] = useState('');
   const [clock, setClock] = useState(() => Date.now());
   const [loading, setLoading] = useState(false);
   const [recipientId, setRecipientId] = useState('');
@@ -124,6 +128,36 @@ export function RoomGiftSheet({
   // string instead — otherwise the effect re-fetches the gift list in a loop.
   const firstSpeakerId = speakers[0]?.id ?? '';
 
+  const loadShop = useCallback(async () => {
+    setLoading(true);
+    try {
+      const response = await api<{
+        gifts: GiftItem[];
+        bag?: BagGiftItem[];
+        balance: number;
+        goldBalance: number;
+        goldGiftsEnabled: boolean;
+        luckyGift?: LuckyGiftInfo;
+        dailyGifts?: GiftItem[];
+        dailyResetsAt?: string;
+        dailyFreeGift?: DailyFreeGift;
+      }>('/gifts');
+      setGifts(response.gifts);
+      setBag(response.bag ?? []);
+      setBalance(response.balance);
+      setGoldBalance(response.goldBalance ?? 0);
+      setGoldGiftsEnabled(Boolean(response.goldGiftsEnabled));
+      setLucky(response.luckyGift ?? null);
+      setDailyGifts(response.dailyGifts ?? []);
+      setDailyResetsAt(response.dailyResetsAt ?? null);
+      setFreeGift(response.dailyFreeGift ?? null);
+    } catch (error) {
+      toast.push((error as Error).message, 'error');
+    } finally {
+      setLoading(false);
+    }
+  }, [toast]);
+
   useEffect(() => {
     if (!open) return;
     setSelected(null);
@@ -133,32 +167,8 @@ export function RoomGiftSheet({
     setCategory('legendary');
     setRecipientId((current) => initialRecipientId || current || firstSpeakerId);
     requestRef.current = '';
-    setLoading(true);
-    api<{
-      gifts: GiftItem[];
-      bag?: BagGiftItem[];
-      balance: number;
-      goldBalance: number;
-      goldGiftsEnabled: boolean;
-      luckyGift?: LuckyGiftInfo;
-      dailyGifts?: GiftItem[];
-      dailyResetsAt?: string;
-      dailyFreeGift?: DailyFreeGift;
-    }>('/gifts')
-      .then((response) => {
-        setGifts(response.gifts);
-        setBag(response.bag ?? []);
-        setBalance(response.balance);
-        setGoldBalance(response.goldBalance ?? 0);
-        setGoldGiftsEnabled(Boolean(response.goldGiftsEnabled));
-        setLucky(response.luckyGift ?? null);
-        setDailyGifts(response.dailyGifts ?? []);
-        setDailyResetsAt(response.dailyResetsAt ?? null);
-        setFreeGift(response.dailyFreeGift ?? null);
-      })
-      .catch((error: Error) => toast.push(error.message, 'error'))
-      .finally(() => setLoading(false));
-  }, [open, firstSpeakerId, initialRecipientId, initialTab, toast]);
+    void loadShop();
+  }, [open, firstSpeakerId, initialRecipientId, initialTab, loadShop]);
 
   // The «هدايا اليوم» countdown ticks only while that section is on screen.
   useEffect(() => {
@@ -334,6 +344,33 @@ export function RoomGiftSheet({
       setBuyingBox(false);
     }
   }, [buyingBox, toast]);
+
+  // «هدايا اليوم» is one list for the whole app: what an admin adds from their
+  // own room shows in every other room too.
+  const toggleDaily = useCallback(
+    async (gift: GiftItem) => {
+      if (togglingDailyId) return;
+      setTogglingDailyId(gift.id);
+      try {
+        await api(`/admin/gifts/${gift.id}`, {
+          method: 'PATCH',
+          body: { isDaily: !gift.isDaily },
+        });
+        await loadShop();
+        toast.push(
+          gift.isDaily
+            ? `أزلنا «${gift.name}» من هدايا اليوم`
+            : `أضفنا «${gift.name}» إلى هدايا اليوم في كل الغرف`,
+          'success'
+        );
+      } catch (error) {
+        toast.push((error as Error).message, 'error');
+      } finally {
+        setTogglingDailyId('');
+      }
+    },
+    [togglingDailyId, loadShop, toast]
+  );
 
   return (
     <Sheet open={open} onClose={onClose} title={t('giftShop')}>
@@ -511,6 +548,37 @@ export function RoomGiftSheet({
                   {buyingBox ? <span className="spinner" /> : <Icon name="gift" size={16} />}
                   هدية عشوائية من المتجر
                 </button>
+                {me?.user.isAdmin ? (
+                  <>
+                    <button
+                      type="button"
+                      className="btn btn-ghost btn-block"
+                      onClick={() => setDailyAdminOpen((current) => !current)}
+                    >
+                      <Icon name="settings" size={16} />
+                      إدارة هدايا اليوم — تظهر في كل الغرف
+                    </button>
+                    {dailyAdminOpen ? (
+                      <div className="daily-admin-list">
+                        {gifts.map((gift) => (
+                          <button
+                            key={gift.id}
+                            type="button"
+                            className={`daily-admin-item ${gift.isDaily ? 'on' : ''}`}
+                            onClick={() => void toggleDaily(gift)}
+                            disabled={togglingDailyId === gift.id}
+                          >
+                            <GiftCover gift={gift} className="daily-admin-art" />
+                            <span className="daily-admin-name">{gift.name}</span>
+                            <span className="daily-admin-state">
+                              {gift.isDaily ? '✓ مضاف' : 'إضافة'}
+                            </span>
+                          </button>
+                        ))}
+                      </div>
+                    ) : null}
+                  </>
+                ) : null}
                 <div className="gift-grid">
                   {dailyGifts.map((gift) => (
                     <button

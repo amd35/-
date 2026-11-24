@@ -283,11 +283,20 @@ export async function getRoomDetail(roomId: string, meId: string) {
     recipient_name: string | null;
     gift_name: string;
     quantity: number;
+    coins: number;
+    gift_design: string | null;
+    gift_video_url: string | null;
+    gift_cover_url: string | null;
+    gift_rarity: string | null;
   }>(
-    `SELECT gs.id, s.display_name AS sender_name, r.display_name AS recipient_name, gs.gift_name, gs.quantity
+    `SELECT gs.id, s.display_name AS sender_name, r.display_name AS recipient_name,
+            gs.gift_name, gs.quantity, gs.coins,
+            g.design AS gift_design, g.video_url AS gift_video_url,
+            g.cover_url AS gift_cover_url, g.rarity AS gift_rarity
        FROM gift_sends gs
        JOIN users s ON s.id = gs.sender_id
        JOIN users r ON r.id = gs.recipient_id
+       LEFT JOIN gifts g ON g.id = gs.gift_id
       WHERE gs.room_id = $1
       ORDER BY gs.created_at DESC
       LIMIT 1`,
@@ -304,6 +313,14 @@ export async function getRoomDetail(roomId: string, meId: string) {
           recipientName: lastGift.recipient_name ?? '',
           giftName: lastGift.gift_name,
           quantity: Math.max(1, Number(lastGift.quantity) || 1),
+          coins: Number(lastGift.coins) || 0,
+          gift: {
+            name: lastGift.gift_name,
+            design: lastGift.gift_design,
+            videoUrl: lastGift.gift_video_url,
+            coverUrl: lastGift.gift_cover_url,
+            rarity: lastGift.gift_rarity ?? 'common',
+          },
         }
       : null,
     owner,

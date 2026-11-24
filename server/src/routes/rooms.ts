@@ -574,8 +574,20 @@ router.post(
       roomId,
       roomName: roomInfo?.name ?? '',
       senderName: message?.displayName ?? '',
+      senderAvatar: message?.avatarUrl ?? null,
       recipientName,
+      recipientAvatar: recipient?.avatar_url ?? null,
       giftName: message?.gift?.name ?? '',
+      gift: message?.gift
+        ? {
+            name: message.gift.name,
+            design: message.gift.design,
+            videoUrl: message.gift.videoUrl,
+            coverUrl: message.gift.coverUrl,
+            rarity: message.gift.rarity,
+          }
+        : null,
+      coins: Number(outcome.coins) || 0,
       quantity,
     });
 

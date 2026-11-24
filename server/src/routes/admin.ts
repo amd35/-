@@ -1619,6 +1619,7 @@ router.patch(
         merged.is_active,
         merged.sort_order,
         merged.host_percent,
+        merged.is_daily,
       ]
     );
     res.json({ gift: updated ? serializeGift(updated) : null });
