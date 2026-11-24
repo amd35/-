@@ -881,8 +881,6 @@ export default function Room() {
         <RoomBottomBar
           onLeave={leaveRoom}
           onInvite={() => setPanel('invite')}
-          onMembers={() => setPanel('members')}
-          onMusic={() => setPanel('music')}
           onChat={() => setPanel('chat')}
           onGifts={() => setGiftOpen(true)}
           onUpgrade={() => void openStore()}

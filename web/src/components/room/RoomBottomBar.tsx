@@ -1,12 +1,10 @@
 import { useState } from 'react';
 import { Icon } from '../../lib/ui';
 
-/** The stage dock: five main controls, with invite/members/music behind "more". */
+/** The stage dock: five main controls, with room tools behind "more". */
 export function RoomBottomBar({
   onLeave,
   onInvite,
-  onMembers,
-  onMusic,
   onChat,
   onGifts,
   onUpgrade,
@@ -18,8 +16,6 @@ export function RoomBottomBar({
 }: {
   onLeave: () => void;
   onInvite: () => void;
-  onMembers: () => void;
-  onMusic: () => void;
   onChat: () => void;
   onGifts: () => void;
   onUpgrade: () => void;
@@ -52,14 +48,6 @@ export function RoomBottomBar({
             <button type="button" onClick={pick(onInvite)}>
               <Icon name="plus" size={18} />
               <span>دعوة الأصدقاء</span>
-            </button>
-            <button type="button" onClick={pick(onMembers)}>
-              <Icon name="users" size={18} />
-              <span>الأعضاء</span>
-            </button>
-            <button type="button" onClick={pick(onMusic)}>
-              <Icon name="volume" size={18} />
-              <span>الموسيقى</span>
             </button>
           </div>
         </>
