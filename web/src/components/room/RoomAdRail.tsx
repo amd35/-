@@ -115,29 +115,40 @@ export function RoomAdRail() {
 
   return (
     <>
-      <div className="room-ad-rail" aria-label="إعلانات الغرفة">
-        <button
-          type="button"
-          className={`room-ad-card${ad.featured ? ' featured' : ''}`}
-          onClick={() => {
-            setWon(null);
-            setConfirm(ad);
-          }}
-        >
-          <span className="room-ad-art">
-            <AdArt gift={ad.gift} />
-          </span>
-          {ad.featured ? <span className="room-ad-badge">هدية اليوم</span> : null}
-          <span className="room-ad-body">
-            <b className="room-ad-title">{ad.title}</b>
-            <span className="room-ad-price">
-              <Icon name="sparkle" size={10} /> {formatCoins(ad.price)} ماسة
-            </span>
-          </span>
-        </button>
+      <div className="room-ad-rail" aria-label="متجر اليومي">
+        <div className="room-ad-track" style={{ animationDuration: `${ads.length * 8}s` }}>
+          {[...ads, ...ads].map((slide, index) => {
+            const isStore = index % ads.length === 0;
+            return (
+              <button
+                key={`${slide.id}-${index}`}
+                type="button"
+                className="room-ad-card"
+                onClick={() => {
+                  setWon(null);
+                  setConfirm(slide);
+                }}
+              >
+                <span className="room-ad-art">
+                  {isStore ? (
+                    <img className="room-ad-store-img" src="/store/daily-store.jpg" alt="" />
+                  ) : (
+                    <AdArt gift={slide.gift} />
+                  )}
+                </span>
+                <span className="room-ad-body">
+                  <b className="room-ad-title">{isStore ? 'متجر اليومي' : slide.title}</b>
+                  <span className="room-ad-price">
+                    <Icon name="sparkle" size={10} /> {formatCoins(slide.price)} ماسة
+                  </span>
+                </span>
+              </button>
+            );
+          })}
+        </div>
       </div>
 
-      <Sheet open={Boolean(confirm)} onClose={() => (busy ? null : setConfirm(null))} title="متجر الهدايا اليومي">
+      <Sheet open={Boolean(confirm)} onClose={() => (busy ? null : setConfirm(null))} title="متجر اليومي">
         {confirm ? (
           <div className="room-ad-confirm">
             <div className="room-ad-confirm-art">

@@ -8829,20 +8829,30 @@ table.data tr:hover td {
 /* «إعلانات الغرفة»: the administration's horizontal banner ads, in one strip
    right under the mic seats. Extra ads scroll sideways instead of stacking. */
 .room-ad-rail {
-  display: flex;
-  flex-direction: row;
-  gap: 6px;
+  display: block;
   width: 100%;
   padding-bottom: 2px;
-  overflow-x: auto;
-  overscroll-behavior-x: contain;
-  scrollbar-width: none;
-  /* The strip always starts at the physical left edge, in Arabic and English. */
+  overflow: hidden;
+  /* The strip always moves from the physical left edge, in Arabic and English. */
   direction: ltr;
 }
 
-.room-ad-rail::-webkit-scrollbar {
-  display: none;
+/* The offers slide by themselves; the list is rendered twice, so the loop is seamless. */
+.room-ad-track {
+  display: flex;
+  width: max-content;
+  animation-name: roomAdScroll;
+  animation-timing-function: linear;
+  animation-iteration-count: infinite;
+}
+
+@keyframes roomAdScroll {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-50%);
+  }
 }
 
 /* One banner = one picture with its writing inside it. */
@@ -8850,8 +8860,9 @@ table.data tr:hover td {
   direction: rtl;
   position: relative;
   flex: none;
-  width: 172px;
-  height: 62px;
+  width: 244px;
+  height: 58px;
+  margin-inline-end: 8px;
   padding: 0;
   overflow: hidden;
   border-radius: 13px;
@@ -8895,12 +8906,19 @@ table.data tr:hover td {
   object-fit: cover;
 }
 
+/* The store banner picture (the daily store's own artwork). */
+.room-ad-store-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
 /* Scrim so the writing inside the picture stays readable. */
 .room-ad-card::after {
   content: '';
   position: absolute;
   inset: 0;
-  background: linear-gradient(to top, rgba(6, 3, 12, 0.94) 4%, rgba(6, 3, 12, 0.6) 46%, rgba(6, 3, 12, 0.08) 100%);
+  background: linear-gradient(to top, rgba(6, 3, 12, 0.9) 2%, rgba(6, 3, 12, 0.35) 52%, rgba(6, 3, 12, 0) 100%);
   pointer-events: none;
 }
 

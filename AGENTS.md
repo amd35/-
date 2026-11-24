@@ -146,9 +146,11 @@
 ## Room ads (إعلانات الغرفة)
 - `room_ads` is admin content: one row per horizontal banner (`title`, `gift_id`, `price`, `is_active`,
   `sort_order`). Three starter banners are seeded only when the table is empty.
-- The strip renders **under the mic seats** in every room (`web/src/components/room/RoomAdRail.tsx`), one row of
-  horizontal rectangle cards that scroll sideways. Tapping a card opens «متجر الهدايا اليومي»; buying charges the
-  ad's price and drops the gift into `gift_bag`, so it can be sent later for free.
+- The stage shows **one** banner under the mic seats (`web/src/components/room/RoomAdRail.tsx`): the store artwork
+  `web/public/store/daily-store.jpg` with «متجر اليومي» written inside it. Tapping it opens «متجر اليومي»; buying
+  charges the ad's price and drops the gift into `gift_bag`, so it can be sent later for free.
+- The store's gift artwork is a real photo: `web/public/store/daily-gift.jpg` is the `roses` gift cover (the
+  `schema.sql` update only replaces the shared default cover, so an admin upload survives a boot).
 - `POST /api/room-ads/:id/buy` writes `room_ad_purchases` (`request_id` unique, the idempotency ledger) and charges
   `transactions.type = 'room_ad_gift'`; a retried tap can never charge twice.
 - `GET /api/room-ads` rotates the list by **Baghdad day** (`dayIndex % active ads`), so a different gift is

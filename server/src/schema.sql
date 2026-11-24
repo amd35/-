@@ -742,6 +742,13 @@ WHERE NOT EXISTS (SELECT 1 FROM gifts);
 UPDATE gifts SET cover_url = 'https://media.base44.com/images/public/6addb0a6b0689d303ed3a495/0f0338134_file_000000007c54821081a33f6e0657af7c.png'
 WHERE cover_url IS NULL AND (design IS NULL OR design NOT LIKE 'flag:%');
 
+-- «متجر اليومي» sells a real rose bouquet: its own photographic artwork, applied
+-- only while the gift still carries the shared default cover, so an admin upload
+-- is never overwritten on boot.
+UPDATE gifts SET cover_url = '/store/daily-gift.jpg'
+WHERE slug = 'roses'
+  AND (cover_url IS NULL OR cover_url LIKE '%0f0338134_file_000000007c54821081a33f6e0657af7c%');
+
 -- Romantic photo gifts: real artwork bundled in web/public/gifts (`design = 'photo'`
 -- makes the sent animation show the photo itself instead of a built-in scene).
 INSERT INTO gifts (slug, name, name_en, description, design, cover_url, price, rarity, sort_order)
