@@ -29,6 +29,8 @@ import { RoomChatPanel } from '../components/room/RoomChatPanel';
 import { RoomCup } from '../components/room/RoomCup';
 import { RoomFramesSheet, type WornFrame } from '../components/room/RoomFramesSheet';
 import { RoomStoreSheet } from '../components/room/RoomStoreSheet';
+import { MicSlotsSheet } from '../components/room/MicSlotsSheet';
+import { RoomSeatsUnlock } from '../components/room/RoomSeatsUnlock';
 import type {
   RoomCapacity,
   RoomData,
@@ -82,6 +84,8 @@ export default function Room() {
   const [presence, setPresence] = useState<PresenceUser[]>([]);
   const [members, setMembers] = useState<RoomMemberEntry[]>([]);
   const [memberBusy, setMemberBusy] = useState(false);
+  const [micsOpen, setMicsOpen] = useState(false);
+  const [seatsUnlock, setSeatsUnlock] = useState<{ slots: number; level: number } | null>(null);
   const [storeOpen, setStoreOpen] = useState(false);
   const [storeData, setStoreData] = useState<RoomStoreData | null>(null);
   const [storeLoading, setStoreLoading] = useState(false);
@@ -417,6 +421,17 @@ export default function Room() {
       setBusyMic(null);
     }
   };
+
+  // A level-up opens more seats: celebrate it once, when `micSlots` grows.
+  const knownSlots = useRef<number | null>(null);
+  useEffect(() => {
+    if (!room) return;
+    const previous = knownSlots.current;
+    knownSlots.current = room.micSlots;
+    if (previous !== null && room.micSlots > previous) {
+      setSeatsUnlock({ slots: room.micSlots, level: room.level });
+    }
+  }, [room]);
 
   /** Tapping a free seat asks first: «اصعد الآن» or «إلغاء». */
   const requestMic = (mic: RoomMic) => {
@@ -812,6 +827,14 @@ export default function Room() {
             <LuckyGiftOverlay key={luckySpin.id} spin={luckySpin} onDone={finishLucky} />
           ) : null}
 
+          {seatsUnlock ? (
+            <RoomSeatsUnlock
+              slots={seatsUnlock.slots}
+              level={seatsUnlock.level}
+              onDone={() => setSeatsUnlock(null)}
+            />
+          ) : null}
+
           <RoomCup roomId={id} />
 
           {room.rules ? <p className="room-rules-line">{room.rules}</p> : null}
@@ -860,6 +883,7 @@ export default function Room() {
           onGifts={() => setGiftOpen(true)}
           onFrames={() => setFramesOpen(true)}
           onUpgrade={() => void openStore()}
+          onMics={() => setMicsOpen(true)}
           onMic={micButton}
           micOn={Boolean(myMic)}
           micMuted={Boolean(myMic?.muted)}
@@ -967,6 +991,15 @@ export default function Room() {
             loading={storeLoading}
             busyTier={busyTier}
             onPurchase={(tierId) => void buyUpgrade(tierId)}
+          />
+          <MicSlotsSheet
+            open={micsOpen}
+            onClose={() => setMicsOpen(false)}
+            room={room}
+            onPick={(mic) => {
+              setMicsOpen(false);
+              requestMic(mic);
+            }}
           />
           <RoomInvitePanel open={panel === 'invite'} onClose={() => setPanel(null)} roomId={id} />
           <RoomIdentitySheet

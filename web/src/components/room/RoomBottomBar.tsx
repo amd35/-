@@ -11,6 +11,7 @@ export function RoomBottomBar({
   onGifts,
   onFrames,
   onUpgrade,
+  onMics,
   onMic,
   micOn,
   micMuted,
@@ -24,6 +25,7 @@ export function RoomBottomBar({
   onGifts: () => void;
   onFrames: () => void;
   onUpgrade: () => void;
+  onMics: () => void;
   onMic: () => void;
   micOn: boolean;
   micMuted: boolean;
@@ -44,6 +46,10 @@ export function RoomBottomBar({
             <button type="button" onClick={pick(onUpgrade)}>
               <Icon name="sparkle" size={18} />
               <span>ترقية الغرفة</span>
+            </button>
+            <button type="button" onClick={pick(onMics)}>
+              <Icon name="mic" size={18} />
+              <span>تبديل المايكات</span>
             </button>
             <button type="button" onClick={pick(onFrames)}>
               <Icon name="frame" size={18} />
