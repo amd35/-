@@ -23,8 +23,16 @@ export function UserProfileCard({
   onClose: () => void;
   onSendGift: (userId: string) => void;
   onOpenFull: (userId: string) => void;
-  /** A member sitting on a mic: send them a frame; your own seat can also be left. */
-  seatActions?: { onLeaveMic?: () => void; onFrames: () => void } | null;
+  /** A member sitting on a mic: frames, and the seat powers for room staff. */
+  seatActions?: {
+    onLeaveMic?: () => void;
+    onFrames: () => void;
+    muted?: boolean;
+    onMute?: () => void;
+    onKick?: () => void;
+    onBan2h?: () => void;
+    onBanYear?: () => void;
+  } | null;
 }) {
   const navigate = useNavigate();
   const toast = useToast();
@@ -139,6 +147,43 @@ export function UserProfileCard({
                   >
                     <Icon name="frame" size={15} /> الإطار
                   </button>
+                  {seatActions.onMute ? (
+                    <button
+                      type="button"
+                      className="room-profile-action"
+                      onClick={seatActions.onMute}
+                    >
+                      <Icon name={seatActions.muted ? 'mic' : 'micOff'} size={15} />
+                      {seatActions.muted ? 'فتح الصوت' : 'كتم الصوت'}
+                    </button>
+                  ) : null}
+                  {seatActions.onKick ? (
+                    <button
+                      type="button"
+                      className="room-profile-action leave"
+                      onClick={seatActions.onKick}
+                    >
+                      <Icon name="logout" size={15} /> إنزال من المايك
+                    </button>
+                  ) : null}
+                  {seatActions.onBan2h ? (
+                    <button
+                      type="button"
+                      className="room-profile-action"
+                      onClick={seatActions.onBan2h}
+                    >
+                      <Icon name="ban" size={15} /> حظر ساعتين
+                    </button>
+                  ) : null}
+                  {seatActions.onBanYear ? (
+                    <button
+                      type="button"
+                      className="room-profile-action"
+                      onClick={seatActions.onBanYear}
+                    >
+                      <Icon name="ban" size={15} /> حظر سنة
+                    </button>
+                  ) : null}
                 </>
               ) : null}
               <button type="button" className="room-profile-action message" onClick={() => void message()}>

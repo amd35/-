@@ -65,7 +65,7 @@ export default function Room() {
   const [loading, setLoading] = useState(true);
   const [busyMic, setBusyMic] = useState<string | null>(null);
   const [micPrompt, setMicPrompt] = useState<{
-    kind: 'take' | 'leave' | 'switch';
+    kind: 'take' | 'leave' | 'switch' | 'unlock';
     mic: RoomMic;
     from?: number;
   } | null>(null);
@@ -108,6 +108,9 @@ export default function Room() {
   const profileMic = profileUserId
     ? (room?.mics.find((mic) => mic.user?.id === profileUserId) ?? null)
     : null;
+  /** Staff powers on someone else's seat live in that member's profile card. */
+  const seatStaffActions =
+    Boolean(profileMic?.user) && profileUserId !== me?.user.id && Boolean(room?.canModerate);
   const speakerIds = useMemo(
     () => room?.mics.filter((mic) => mic.user).map((mic) => mic.user!.id) ?? [],
     [room]
@@ -445,7 +448,9 @@ export default function Room() {
       return;
     }
     if (mic.isLocked) {
-      toast.push('هذا المايك مقفل — لا يمكنك الجلوس عليه', 'error');
+      // Staff unlock it right from the seat; everyone else is told it is closed.
+      if (room?.canManage) setMicPrompt({ kind: 'unlock', mic });
+      else toast.push('هذا المايك مقفل — لا يمكنك الجلوس عليه', 'error');
       return;
     }
     // Non-members join the room first; the sheet offers «انضم الآن» once.
@@ -469,7 +474,16 @@ export default function Room() {
   const confirmMicPrompt = async () => {
     const prompt = micPrompt;
     setMicPrompt(null);
-    if (prompt) await act(prompt.mic);
+    if (!prompt) return;
+    if (prompt.kind === 'unlock') await lockMic(prompt.mic);
+    else await act(prompt.mic);
+  };
+
+  /** From the seat sheet: staff close the seat instead of sitting on it. */
+  const lockFromPrompt = async () => {
+    const prompt = micPrompt;
+    setMicPrompt(null);
+    if (prompt) await lockMic(prompt.mic);
   };
 
   const toggleMute = async (mic: RoomMic) => {
@@ -856,14 +870,7 @@ export default function Room() {
                 mic={mic}
                 level={voice.levels[mic.user?.id ?? ''] ?? 0}
                 busy={busyMic === mic.id}
-                canModerate={room.canModerate}
-                canManage={room.canManage}
                 onTake={() => requestMic(mic)}
-                onLeave={() => requestLeaveMic(mic)}
-                onMute={() => void toggleMute(mic)}
-                onKick={() => void kickMic(mic)}
-                onBan={(hours) => void banUser(mic.user!.id, hours)}
-                onLock={() => void lockMic(mic)}
                 onOpenProfile={() => mic.user && setProfileUserId(mic.user.id)}
                 giftFrame={mic.user ? frames[mic.user.id] ?? null : null}
               />
@@ -1100,7 +1107,7 @@ export default function Room() {
         </div>
       </Sheet>
 
-      {/* Sitting on a mic: «اصعد الآن» / «إلغاء»، والنزول: «نزول» / «إلغاء». */}
+      {/* Pressing a seat: «اصعد الآن» (staff also get «اقفل المايك»), «مغادرة», «تبديل». */}
       <Sheet
         open={Boolean(micPrompt)}
         onClose={() => setMicPrompt(null)}
@@ -1109,7 +1116,9 @@ export default function Room() {
             ? 'مغادرة المايك'
             : micPrompt?.kind === 'switch'
               ? 'تبديل المايك'
-              : 'الصعود إلى المايك'
+              : micPrompt?.kind === 'unlock'
+                ? 'فتح المايك'
+                : 'الصعود إلى المايك'
         }
         center
       >
@@ -1118,7 +1127,9 @@ export default function Room() {
             ? 'هل تريد مغادرة المايك؟'
             : micPrompt?.kind === 'switch'
               ? `هل تريد الانتقال من المايك ${micPrompt.from ?? ''} إلى المايك ${micPrompt.mic.position}؟`
-              : `المايك ${micPrompt?.mic.position ?? ''} — هل تريد الصعود الآن؟`}
+              : micPrompt?.kind === 'unlock'
+                ? `المايك ${micPrompt.mic.position} مقفل — هل تريد فتحه؟`
+                : `المايك ${micPrompt?.mic.position ?? ''} — هل تريد الصعود الآن؟`}
         </p>
         <div className="room-mic-confirm-actions">
           <button
@@ -1131,8 +1142,20 @@ export default function Room() {
               ? 'مغادرة'
               : micPrompt?.kind === 'switch'
                 ? 'تبديل'
-                : 'اصعد الآن'}
+                : micPrompt?.kind === 'unlock'
+                  ? 'افتح المايك'
+                  : 'اصعد الآن'}
           </button>
+          {micPrompt?.kind === 'take' && room?.canManage ? (
+            <button
+              type="button"
+              className="btn btn-ghost"
+              onClick={() => void lockFromPrompt()}
+              disabled={Boolean(busyMic)}
+            >
+              اقفل المايك
+            </button>
+          ) : null}
           <button type="button" className="btn btn-ghost" onClick={() => setMicPrompt(null)}>
             إلغاء
           </button>
@@ -1166,6 +1189,32 @@ export default function Room() {
                     setProfileUserId(null);
                     setFramesOpen(true);
                   },
+                  muted: profileMic.muted,
+                  onMute: seatStaffActions
+                    ? () => {
+                        setProfileUserId(null);
+                        void toggleMute(profileMic);
+                      }
+                    : undefined,
+                  onKick: seatStaffActions
+                    ? () => {
+                        setProfileUserId(null);
+                        void kickMic(profileMic);
+                      }
+                    : undefined,
+                  onBan2h: seatStaffActions
+                    ? () => {
+                        setProfileUserId(null);
+                        void banUser(profileMic.user!.id, 2);
+                      }
+                    : undefined,
+                  onBanYear:
+                    seatStaffActions && room?.canManage
+                      ? () => {
+                          setProfileUserId(null);
+                          void banUser(profileMic.user!.id, 24 * 365);
+                        }
+                      : undefined,
                 }
               : null
           }

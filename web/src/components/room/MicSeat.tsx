@@ -1,4 +1,3 @@
-import { useState } from 'react';
 import { assetUrl } from '../../lib/api';
 import { Avatar, Icon } from '../../lib/ui';
 import { isArtFrame, type FrameInfo } from '../AvatarFrame';
@@ -32,35 +31,20 @@ export function MicSeat({
   mic,
   level,
   busy,
-  canModerate,
-  canManage,
   onTake,
-  onLeave,
-  onMute,
-  onKick,
-  onBan,
-  onLock,
   onOpenProfile,
   giftFrame,
 }: {
   mic: RoomMic;
   level: number;
   busy: boolean;
-  canModerate: boolean;
-  /** Owner/vice-owner: the extra powers (lock, year ban). */
-  canManage: boolean;
+  /** A free seat asks «اصعد الآن» first; a locked one offers «افتح المايك» to staff. */
   onTake: () => void;
-  onLeave: () => void;
-  onMute: () => void;
-  onKick: () => void;
-  onBan: (hours: number) => void;
-  onLock: () => void;
   /** Tapping someone else's avatar opens their quick profile card. */
   onOpenProfile?: () => void;
   /** Frame gifted to this member: drawn around the avatar, never over the face. */
   giftFrame?: { imageUrl: string; name: string } | null;
 }) {
-  const [menu, setMenu] = useState(false);
   const speaking = Boolean(mic.user) && !mic.muted && level > 0.14;
   const owner = mic.kind === 'host';
   // The full painted artwork frame is profile-sized; on a seat it would cover
@@ -125,90 +109,6 @@ export function MicSeat({
           <span className="seat-name-text">{mic.user ? mic.user.displayName : `مايك ${mic.position}`}</span>
         </span>
       </button>
-
-      {canModerate || mic.mine ? (
-        <button
-          type="button"
-          className="seat-menu-btn"
-          onClick={() => setMenu((value) => !value)}
-          aria-label="خيارات المايك"
-        >
-          ⋮
-        </button>
-      ) : null}
-
-      {menu ? (
-        <div className="seat-menu" onMouseLeave={() => setMenu(false)}>
-          {mic.user && (mic.mine || canModerate) ? (
-            <button
-              type="button"
-              onClick={() => {
-                setMenu(false);
-                onMute();
-              }}
-            >
-              <Icon name={mic.muted ? 'mic' : 'micOff'} size={13} />
-              {mic.muted ? 'فتح الصوت' : 'كتم الصوت'}
-            </button>
-          ) : null}
-          {canModerate && mic.user && !mic.mine ? (
-            <button
-              type="button"
-              onClick={() => {
-                setMenu(false);
-                onKick();
-              }}
-            >
-              <Icon name="logout" size={13} /> إنزال من المايك
-            </button>
-          ) : null}
-          {canModerate && mic.user && !mic.mine ? (
-            <button
-              type="button"
-              onClick={() => {
-                setMenu(false);
-                onBan(2);
-              }}
-            >
-              <Icon name="ban" size={13} /> حظر ساعتين
-            </button>
-          ) : null}
-          {canManage && mic.user && !mic.mine ? (
-            <button
-              type="button"
-              onClick={() => {
-                setMenu(false);
-                onBan(24 * 365);
-              }}
-            >
-              <Icon name="ban" size={13} /> حظر سنة
-            </button>
-          ) : null}
-          {canManage ? (
-            <button
-              type="button"
-              onClick={() => {
-                setMenu(false);
-                onLock();
-              }}
-            >
-              <Icon name={mic.isLocked ? 'check' : 'lock'} size={13} />
-              {mic.isLocked ? 'فتح المايك' : 'قفل المايك'}
-            </button>
-          ) : null}
-          {mic.mine ? (
-            <button
-              type="button"
-              onClick={() => {
-                setMenu(false);
-                onLeave();
-              }}
-            >
-              <Icon name="logout" size={13} /> مغادرة المايك
-            </button>
-          ) : null}
-        </div>
-      ) : null}
     </div>
   );
 }
