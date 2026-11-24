@@ -97,15 +97,12 @@ export function RoomAdRail() {
             <span className="room-ad-art">
               <AdArt gift={ad.gift} />
             </span>
+            {ad.featured ? <span className="room-ad-badge">هدية اليوم</span> : null}
             <span className="room-ad-body">
-              {ad.featured ? <span className="room-ad-badge">هدية اليوم</span> : null}
               <b className="room-ad-title">{ad.title}</b>
               <span className="room-ad-price">
                 <Icon name="sparkle" size={10} /> {formatCoins(ad.price)} ماسة
               </span>
-            </span>
-            <span className="room-ad-go" aria-hidden="true">
-              <Icon name="arrowLeft" size={12} />
             </span>
           </button>
         ))}
