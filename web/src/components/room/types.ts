@@ -1,4 +1,5 @@
 import type { RoomMessageData } from '../RoomGiftSheet';
+import type { GiftTickerItem } from '../../lib/giftTicker';
 import type { SeatUser, RoomMic } from './MicSeat';
 
 export type { RoomMic, SeatUser };
@@ -97,6 +98,8 @@ export interface RoomData {
   canModerate: boolean;
   roles: RoomRoleEntry[];
   mics: RoomMic[];
+  /** Latest gift sent in this room, shown in the fixed announcement bar. */
+  lastGift?: GiftTickerItem | null;
   /** Frames still running in this room (server clock). */
   frames: RoomFrameWear[];
   capacity: RoomCapacity;

@@ -275,8 +275,37 @@ export async function getRoomDetail(roomId: string, meId: string) {
     roomStaff(roomId),
     roomSaveState(roomId, meId),
   ]);
+  // The room's latest gift keeps the fixed announcement bar filled for everyone
+  // who walks in, not only for the people who were there when it was sent.
+  const lastGift = await one<{
+    id: string;
+    sender_name: string | null;
+    recipient_name: string | null;
+    gift_name: string;
+    quantity: number;
+  }>(
+    `SELECT gs.id, s.display_name AS sender_name, r.display_name AS recipient_name, gs.gift_name, gs.quantity
+       FROM gift_sends gs
+       JOIN users s ON s.id = gs.sender_id
+       JOIN users r ON r.id = gs.recipient_id
+      WHERE gs.room_id = $1
+      ORDER BY gs.created_at DESC
+      LIMIT 1`,
+    [roomId]
+  );
   return {
     ...serializeRoom(room),
+    lastGift: lastGift
+      ? {
+          id: lastGift.id,
+          roomId,
+          roomName: room.name,
+          senderName: lastGift.sender_name ?? '',
+          recipientName: lastGift.recipient_name ?? '',
+          giftName: lastGift.gift_name,
+          quantity: Math.max(1, Number(lastGift.quantity) || 1),
+        }
+      : null,
     owner,
     ...access,
     roles,

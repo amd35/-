@@ -1,29 +1,21 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../lib/auth';
 import { useRealtime } from '../lib/realtime';
-
-/** One gift sent in a room, pushed to every connected screen. */
-interface GiftTickerItem {
-  id: string;
-  roomId: string;
-  roomName: string;
-  senderName: string;
-  recipientName: string;
-  giftName: string;
-  quantity: number;
-}
+import type { GiftTickerItem } from '../lib/giftTicker';
 
 /**
- * App-wide gift ticker: every room gift sweeps a bar across the screen from the
- * left to the right, then it disappears. It shows on every screen — including
- * the room the gift was sent in — and tapping it opens that room.
+ * App-wide gift ticker for every screen outside the rooms: a room gift sweeps a
+ * bar across the screen from the left to the right, then it disappears. Tapping
+ * it opens the room the gift was sent in. Inside a room the fixed announcement
+ * bar under the mic seats takes over (`RoomGiftMarquee`).
  */
 export function GiftTicker() {
   const { token } = useAuth();
   const { on } = useRealtime();
   const navigate = useNavigate();
+  const { pathname } = useLocation();
   const [item, setItem] = useState<GiftTickerItem | null>(null);
   const queue = useRef<GiftTickerItem[]>([]);
   const showing = useRef(false);
@@ -47,7 +39,7 @@ export function GiftTicker() {
     });
   }, [on]);
 
-  if (!token || !item) return null;
+  if (!token || !item || pathname.startsWith('/rooms/')) return null;
 
   const open = () => {
     navigate(`/rooms/${item.roomId}`);
