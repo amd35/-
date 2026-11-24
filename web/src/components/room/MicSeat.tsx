@@ -76,7 +76,7 @@ export function MicSeat({
       <button
         type="button"
         className="seat-hit"
-        onClick={() => (mic.mine ? onLeave() : mic.user ? onOpenProfile?.() : onTake())}
+        onClick={() => (mic.user ? onOpenProfile?.() : onTake())}
         disabled={busy}
         aria-label={mic.user ? mic.user.displayName : `مايك ${mic.position}`}
       >

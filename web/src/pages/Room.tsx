@@ -1102,7 +1102,7 @@ export default function Room() {
         onClose={() => setMicPrompt(null)}
         title={
           micPrompt?.kind === 'leave'
-            ? 'النزول من المايك'
+            ? 'مغادرة المايك'
             : micPrompt?.kind === 'switch'
               ? 'تبديل المايك'
               : 'الصعود إلى المايك'
@@ -1111,7 +1111,7 @@ export default function Room() {
       >
         <p className="room-mic-confirm-text">
           {micPrompt?.kind === 'leave'
-            ? 'هل تريد النزول من المايك؟'
+            ? 'هل تريد مغادرة المايك؟'
             : micPrompt?.kind === 'switch'
               ? `هل تريد الانتقال من المايك ${micPrompt.from ?? ''} إلى المايك ${micPrompt.mic.position}؟`
               : `المايك ${micPrompt?.mic.position ?? ''} — هل تريد الصعود الآن؟`}
@@ -1124,7 +1124,7 @@ export default function Room() {
             disabled={Boolean(busyMic)}
           >
             {micPrompt?.kind === 'leave'
-              ? 'نزول'
+              ? 'مغادرة'
               : micPrompt?.kind === 'switch'
                 ? 'تبديل'
                 : 'اصعد الآن'}
@@ -1148,6 +1148,20 @@ export default function Room() {
             setProfileUserId(null);
             setFullProfileId(userId);
           }}
+          seatActions={
+            myMic && profileUserId === me?.user.id
+              ? {
+                  onLeaveMic: () => {
+                    setProfileUserId(null);
+                    requestLeaveMic(myMic);
+                  },
+                  onFrames: () => {
+                    setProfileUserId(null);
+                    setFramesOpen(true);
+                  },
+                }
+              : null
+          }
         />
       ) : null}
 

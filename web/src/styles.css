@@ -10639,6 +10639,18 @@ table.data tr:hover td {
   background: rgba(255, 255, 255, 0.06);
 }
 
+.room-profile-action.leave {
+  color: #ffb4b4;
+  background: rgba(255, 45, 45, 0.14);
+  border-color: rgba(255, 99, 99, 0.45);
+}
+
+.room-profile-action.frame {
+  color: #ffd75e;
+  background: rgba(255, 199, 92, 0.1);
+  border-color: rgba(255, 199, 92, 0.45);
+}
+
 .room-profile-action.message {
   background: linear-gradient(135deg, #8b5cf6, #4f46e5);
   border-color: rgba(139, 92, 246, 0.5);

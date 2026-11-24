@@ -17,11 +17,14 @@ export function UserProfileCard({
   onClose,
   onSendGift,
   onOpenFull,
+  seatActions,
 }: {
   userId: string;
   onClose: () => void;
   onSendGift: (userId: string) => void;
   onOpenFull: (userId: string) => void;
+  /** Own profile while sitting on a mic: leave the seat or open the frames. */
+  seatActions?: { onLeaveMic: () => void; onFrames: () => void } | null;
 }) {
   const navigate = useNavigate();
   const toast = useToast();
@@ -118,6 +121,24 @@ export function UserProfileCard({
             </div>
 
             <div className="room-profile-actions">
+              {seatActions ? (
+                <>
+                  <button
+                    type="button"
+                    className="room-profile-action leave"
+                    onClick={seatActions.onLeaveMic}
+                  >
+                    <Icon name="logout" size={15} /> مغادرة المايك
+                  </button>
+                  <button
+                    type="button"
+                    className="room-profile-action frame"
+                    onClick={seatActions.onFrames}
+                  >
+                    <Icon name="frame" size={15} /> الإطار
+                  </button>
+                </>
+              ) : null}
               <button type="button" className="room-profile-action message" onClick={() => void message()}>
                 <Icon name="chat" size={15} /> مراسلة خاصة
               </button>
