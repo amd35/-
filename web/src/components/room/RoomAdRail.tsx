@@ -82,30 +82,28 @@ export function RoomAdRail() {
     }
   };
 
-  if (ads.length === 0) return null;
+  const ad = ads[0];
+  if (!ad) return null;
 
   return (
     <>
       <div className="room-ad-rail" aria-label="إعلانات الغرفة">
-        {ads.map((ad) => (
-          <button
-            key={ad.id}
-            type="button"
-            className={`room-ad-card${ad.featured ? ' featured' : ''}`}
-            onClick={() => setConfirm(ad)}
-          >
-            <span className="room-ad-art">
-              <AdArt gift={ad.gift} />
+        <button
+          type="button"
+          className={`room-ad-card${ad.featured ? ' featured' : ''}`}
+          onClick={() => setConfirm(ad)}
+        >
+          <span className="room-ad-art">
+            <AdArt gift={ad.gift} />
+          </span>
+          {ad.featured ? <span className="room-ad-badge">هدية اليوم</span> : null}
+          <span className="room-ad-body">
+            <b className="room-ad-title">{ad.title}</b>
+            <span className="room-ad-price">
+              <Icon name="sparkle" size={10} /> {formatCoins(ad.price)} ماسة
             </span>
-            {ad.featured ? <span className="room-ad-badge">هدية اليوم</span> : null}
-            <span className="room-ad-body">
-              <b className="room-ad-title">{ad.title}</b>
-              <span className="room-ad-price">
-                <Icon name="sparkle" size={10} /> {formatCoins(ad.price)} ماسة
-              </span>
-            </span>
-          </button>
-        ))}
+          </span>
+        </button>
       </div>
 
       <Sheet open={Boolean(confirm)} onClose={() => (busy ? null : setConfirm(null))} title="متجر الهدايا اليومي">

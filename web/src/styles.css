@@ -9965,11 +9965,11 @@ table.data tr:hover td {
 
 .room-cup-fab {
   position: absolute;
-  top: 96px;
-  right: 12px;
+  top: 98px;
+  right: 14px;
   z-index: 6;
-  width: 58px;
-  height: 58px;
+  width: 40px;
+  height: 40px;
   padding: 0;
   border: 0;
   border-radius: 50%;
@@ -9978,41 +9978,23 @@ table.data tr:hover td {
   -webkit-tap-highlight-color: transparent;
 }
 
+/* No ring, no frame, no plate behind the chalice — the artwork alone. */
 .room-cup-fab-glow {
-  position: absolute;
-  inset: -7px;
-  border-radius: 50%;
-  background: conic-gradient(
-    from 0deg,
-    rgba(255, 214, 90, 0),
-    rgba(255, 214, 90, 0.85),
-    rgba(255, 120, 20, 0),
-    rgba(255, 214, 90, 0.85),
-    rgba(255, 214, 90, 0)
-  );
-  filter: blur(4px);
-  opacity: 0.8;
-  animation: cupRingSpin 7s linear infinite;
+  display: none;
 }
 
 .room-cup-fab::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  border-radius: 50%;
-  border: 1px solid rgba(255, 214, 90, 0.55);
-  background: radial-gradient(120% 120% at 50% 26%, rgba(70, 38, 8, 0.88), rgba(9, 3, 6, 0.94));
-  box-shadow: 0 0 16px rgba(255, 178, 44, 0.4), inset 0 0 14px rgba(255, 120, 20, 0.28);
+  content: none;
 }
 
 .room-cup-fab-art {
   position: absolute;
-  inset: 4px;
+  inset: 0;
   z-index: 1;
-  width: calc(100% - 8px);
-  height: calc(100% - 8px);
+  width: 100%;
+  height: 100%;
   object-fit: contain;
-  filter: drop-shadow(0 0 10px rgba(255, 200, 60, 0.6));
+  filter: drop-shadow(0 2px 5px rgba(0, 0, 0, 0.6));
   animation: cupFloat 4.5s ease-in-out infinite;
 }
 
