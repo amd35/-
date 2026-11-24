@@ -881,7 +881,6 @@ export default function Room() {
           onMusic={() => setPanel('music')}
           onChat={() => setPanel('chat')}
           onGifts={() => setGiftOpen(true)}
-          onFrames={() => setFramesOpen(true)}
           onUpgrade={() => void openStore()}
           onMics={() => setMicsOpen(true)}
           onMic={micButton}

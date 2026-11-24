@@ -9,7 +9,6 @@ export function RoomBottomBar({
   onMusic,
   onChat,
   onGifts,
-  onFrames,
   onUpgrade,
   onMics,
   onMic,
@@ -23,7 +22,6 @@ export function RoomBottomBar({
   onMusic: () => void;
   onChat: () => void;
   onGifts: () => void;
-  onFrames: () => void;
   onUpgrade: () => void;
   onMics: () => void;
   onMic: () => void;
@@ -50,10 +48,6 @@ export function RoomBottomBar({
             <button type="button" onClick={pick(onMics)}>
               <Icon name="mic" size={18} />
               <span>تبديل المايكات</span>
-            </button>
-            <button type="button" onClick={pick(onFrames)}>
-              <Icon name="frame" size={18} />
-              <span>الإطار</span>
             </button>
             <button type="button" onClick={pick(onInvite)}>
               <Icon name="plus" size={18} />
