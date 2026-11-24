@@ -9,6 +9,8 @@ export interface RoomIdentityPatch {
   avatarUrl: string;
 }
 
+type Tab = 'sections' | 'notes';
+
 const ROLE_LABEL: Record<string, string> = {
   owner: 'صاحب الغرفة',
   admin: 'نائب المالك',
@@ -17,8 +19,8 @@ const ROLE_LABEL: Record<string, string> = {
 };
 
 /**
- * هوية الغرفة: every section (identity, level, members, notes) is laid out
- * inside the same sheet, one after the other, with the save button at the end.
+ * هوية الغرفة: identity, level and members sit inside one scroll that ends with
+ * the save button; ملاحظات keeps its own tab as before.
  */
 export function RoomIdentitySheet({
   open,
@@ -35,6 +37,7 @@ export function RoomIdentitySheet({
   canManage: boolean;
   onSave: (patch: RoomIdentityPatch) => Promise<void>;
 }) {
+  const [tab, setTab] = useState<Tab>('sections');
   const [name, setName] = useState(room.name);
   const [avatar, setAvatar] = useState(room.avatarUrl ?? '');
   const [busy, setBusy] = useState(false);
@@ -46,6 +49,7 @@ export function RoomIdentitySheet({
   // update, and that must not wipe what the owner is typing.
   useEffect(() => {
     if (!open) return;
+    setTab('sections');
     setName(room.name);
     setAvatar(room.avatarUrl ?? '');
     setError('');
@@ -106,158 +110,180 @@ export function RoomIdentitySheet({
 
   return (
     <Sheet open={open} onClose={onClose} title="هوية الغرفة">
-      <div className="room-identity-stack">
-        <section className="room-identity-block">
-          <p className="room-identity-block-head">الهوية</p>
-          <div className="room-identity">
-            <div className="room-identity-photo-wrap">
-              <span className="room-identity-photo">
-                {photo ? (
-                  <img src={photo} alt="" />
-                ) : (
-                  <span className="room-identity-photo-fallback" aria-hidden="true">
-                    ♛
-                  </span>
-                )}
-              </span>
-              {canManage ? (
-                <button
-                  type="button"
-                  className="room-identity-camera"
-                  onClick={() => fileRef.current?.click()}
-                  aria-label="تغيير صورة الغرفة"
-                >
-                  {uploading ? '…' : '📷'}
-                </button>
-              ) : null}
-              <input
-                ref={fileRef}
-                type="file"
-                accept="image/*"
-                hidden
-                onChange={(event) => {
-                  const file = event.target.files?.[0];
-                  event.target.value = '';
-                  if (file) void upload(file);
-                }}
-              />
-            </div>
-
-            {canManage ? (
-              <>
-                <button
-                  type="button"
-                  className="room-identity-upload"
-                  onClick={() => fileRef.current?.click()}
-                  disabled={uploading}
-                >
-                  {uploading ? 'جارٍ رفع الصورة…' : 'تغيير الصورة من الجهاز'}
-                </button>
-
-                <label className="room-identity-label" htmlFor="room-identity-name">
-                  اسم الغرفة
-                </label>
-                <input
-                  id="room-identity-name"
-                  className="room-identity-input"
-                  value={name}
-                  maxLength={60}
-                  onChange={(event) => setName(event.target.value)}
-                  placeholder="اكتب اسم الغرفة"
-                />
-
-                {error ? <p className="room-settings-error">{error}</p> : null}
-              </>
-            ) : (
-              <p className="room-identity-name-readonly">{room.name}</p>
-            )}
-          </div>
-        </section>
-
-        <section className="room-identity-block">
-          <p className="room-identity-block-head">المستوى</p>
-          <div className="room-level-panel">
-            <span className="room-level-badge">LV {room.level}</span>
-            <p className="room-level-title">مستوى الغرفة</p>
-            <div className="room-level-bar" aria-hidden="true">
-              <span style={{ width: `${levelPercent}%` }} />
-            </div>
-            <p className="room-level-xp">
-              {room.levelXpNext == null
-                ? 'أعلى مستوى — ما شاء الله'
-                : `${room.levelXp} / ${room.levelXpNext} نقطة تفاعل`}
-            </p>
-            <div className="room-level-stats">
-              <span>
-                <b>{room.micSlots}</b>
-                <i>مايكات</i>
-              </span>
-              <span>
-                <b>
-                  {room.capacity.count}/{room.capacity.limit}
-                </b>
-                <i>أعضاء</i>
-              </span>
-              <span>
-                <b>
-                  {room.staff.viceCount}/{room.staff.viceLimit}
-                </b>
-                <i>نوّاب المالك</i>
-              </span>
-              <span>
-                <b>
-                  {room.staff.supervisorCount}/{room.staff.supervisorLimit}
-                </b>
-                <i>مشرفون</i>
-              </span>
-            </div>
-            <p className="tiny muted center">
-              يرتفع مستوى الغرفة بالدردشة داخل الغرفة وبالبقاء على المايك، وكل مستوى يفتح مقاعد
-              وصلاحيات أكثر.
-            </p>
-          </div>
-        </section>
-
-        <section className="room-identity-block">
-          <p className="room-identity-block-head">الأعضاء ({members.length})</p>
-          <div className="room-panel-list">
-            {members.length === 0 ? <p className="tiny muted center">لا يوجد أعضاء بعد</p> : null}
-            {members.map((member) => {
-              const role = member.role || 'member';
-              return (
-                <div key={member.id} className="room-panel-row">
-                  <Avatar
-                    user={{ displayName: member.displayName, avatarUrl: member.avatarUrl, online: member.online }}
-                    size={34}
-                  />
-                  <span className="room-panel-copy">
-                    <b>{member.displayName}</b>
-                    <span className={`room-role-tag role-${role}`}>{ROLE_LABEL[role] ?? 'عضو'}</span>
-                  </span>
-                </div>
-              );
-            })}
-          </div>
-        </section>
-
-        {showNotes ? (
-          <section className="room-identity-block">
-            <p className="room-identity-block-head">ملاحظات</p>
-            <RoomNotes roomId={room.id} />
-          </section>
-        ) : null}
-
-        {canManage ? (
+      {showNotes ? (
+        <div className="room-identity-tabs" role="tablist">
           <button
             type="button"
-            className="room-identity-save"
-            onClick={() => void save()}
-            disabled={busy || uploading}
+            role="tab"
+            className={`room-identity-tab${tab === 'sections' ? ' on' : ''}`}
+            aria-selected={tab === 'sections'}
+            onClick={() => setTab('sections')}
           >
-            {busy ? 'جارٍ الحفظ…' : 'حفظ التغييرات'}
+            الأقسام
           </button>
-        ) : null}
-      </div>
+          <button
+            type="button"
+            role="tab"
+            className={`room-identity-tab${tab === 'notes' ? ' on' : ''}`}
+            aria-selected={tab === 'notes'}
+            onClick={() => setTab('notes')}
+          >
+            ملاحظات
+          </button>
+        </div>
+      ) : null}
+
+      {tab === 'notes' ? (
+        <div className="room-identity-block">
+          <RoomNotes roomId={room.id} />
+        </div>
+      ) : (
+        <div className="room-identity-stack">
+          <section className="room-identity-block">
+            <p className="room-identity-block-head">الهوية</p>
+            <div className="room-identity">
+              <div className="room-identity-photo-wrap">
+                <span className="room-identity-photo">
+                  {photo ? (
+                    <img src={photo} alt="" />
+                  ) : (
+                    <span className="room-identity-photo-fallback" aria-hidden="true">
+                      ♛
+                    </span>
+                  )}
+                </span>
+                {canManage ? (
+                  <button
+                    type="button"
+                    className="room-identity-camera"
+                    onClick={() => fileRef.current?.click()}
+                    aria-label="تغيير صورة الغرفة"
+                  >
+                    {uploading ? '…' : '📷'}
+                  </button>
+                ) : null}
+                <input
+                  ref={fileRef}
+                  type="file"
+                  accept="image/*"
+                  hidden
+                  onChange={(event) => {
+                    const file = event.target.files?.[0];
+                    event.target.value = '';
+                    if (file) void upload(file);
+                  }}
+                />
+              </div>
+
+              {canManage ? (
+                <>
+                  <button
+                    type="button"
+                    className="room-identity-upload"
+                    onClick={() => fileRef.current?.click()}
+                    disabled={uploading}
+                  >
+                    {uploading ? 'جارٍ رفع الصورة…' : 'تغيير الصورة من الجهاز'}
+                  </button>
+
+                  <label className="room-identity-label" htmlFor="room-identity-name">
+                    اسم الغرفة
+                  </label>
+                  <input
+                    id="room-identity-name"
+                    className="room-identity-input"
+                    value={name}
+                    maxLength={60}
+                    onChange={(event) => setName(event.target.value)}
+                    placeholder="اكتب اسم الغرفة"
+                  />
+
+                  {error ? <p className="room-settings-error">{error}</p> : null}
+                </>
+              ) : (
+                <p className="room-identity-name-readonly">{room.name}</p>
+              )}
+            </div>
+          </section>
+
+          <section className="room-identity-block">
+            <p className="room-identity-block-head">المستوى</p>
+            <div className="room-level-panel">
+              <span className="room-level-badge">LV {room.level}</span>
+              <p className="room-level-title">مستوى الغرفة</p>
+              <div className="room-level-bar" aria-hidden="true">
+                <span style={{ width: `${levelPercent}%` }} />
+              </div>
+              <p className="room-level-xp">
+                {room.levelXpNext == null
+                  ? 'أعلى مستوى — ما شاء الله'
+                  : `${room.levelXp} / ${room.levelXpNext} نقطة تفاعل`}
+              </p>
+              <div className="room-level-stats">
+                <span>
+                  <b>{room.micSlots}</b>
+                  <i>مايكات</i>
+                </span>
+                <span>
+                  <b>
+                    {room.capacity.count}/{room.capacity.limit}
+                  </b>
+                  <i>أعضاء</i>
+                </span>
+                <span>
+                  <b>
+                    {room.staff.viceCount}/{room.staff.viceLimit}
+                  </b>
+                  <i>نوّاب المالك</i>
+                </span>
+                <span>
+                  <b>
+                    {room.staff.supervisorCount}/{room.staff.supervisorLimit}
+                  </b>
+                  <i>مشرفون</i>
+                </span>
+              </div>
+              <p className="tiny muted center">
+                يرتفع مستوى الغرفة بالدردشة داخل الغرفة وبالبقاء على المايك، وكل مستوى يفتح مقاعد
+                وصلاحيات أكثر.
+              </p>
+            </div>
+          </section>
+
+          <section className="room-identity-block">
+            <p className="room-identity-block-head">الأعضاء ({members.length})</p>
+            <div className="room-panel-list">
+              {members.length === 0 ? <p className="tiny muted center">لا يوجد أعضاء بعد</p> : null}
+              {members.map((member) => {
+                const role = member.role || 'member';
+                return (
+                  <div key={member.id} className="room-panel-row">
+                    <Avatar
+                      user={{ displayName: member.displayName, avatarUrl: member.avatarUrl, online: member.online }}
+                      size={34}
+                    />
+                    <span className="room-panel-copy">
+                      <b>{member.displayName}</b>
+                      <span className={`room-role-tag role-${role}`}>{ROLE_LABEL[role] ?? 'عضو'}</span>
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+          </section>
+
+          {canManage ? (
+            <button
+              type="button"
+              className="room-identity-save"
+              onClick={() => void save()}
+              disabled={busy || uploading}
+            >
+              {busy ? 'جارٍ الحفظ…' : 'حفظ التغييرات'}
+            </button>
+          ) : null}
+        </div>
+      )}
     </Sheet>
   );
 }
