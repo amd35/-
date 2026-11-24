@@ -32,7 +32,6 @@ export function GiftTicker() {
     return on('room_gift_announcement', (data) => {
       const incoming = (data as { announcement?: GiftAnnouncement | null }).announcement;
       if (!incoming) return;
-      if (pathRef.current === `/rooms/${incoming.roomId}`) return;
       if (showing.current) {
         queue.current.push(incoming);
         return;
