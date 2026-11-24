@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { api } from '../../lib/api';
 import { formatCoins, Icon, useToast } from '../../lib/ui';
 import { GiftAnimation, GiftCover } from '../GiftAnimation';
@@ -17,6 +17,7 @@ interface AdminGift {
   recipientPercent: number | null;
   rarity: string;
   isActive: boolean;
+  isDaily: boolean;
   sortOrder: number;
   sends: number;
   revenue: number;
@@ -63,6 +64,7 @@ const EMPTY_FORM = {
   rarity: 'epic',
   sortOrder: 0,
   isActive: true,
+  isDaily: false,
 };
 
 export default function GiftsTab() {
@@ -71,6 +73,20 @@ export default function GiftsTab() {
   const [form, setForm] = useState(EMPTY_FORM);
   const [busy, setBusy] = useState(false);
   const [uploading, setUploading] = useState<'video' | 'cover' | null>(null);
+  // «الهدية المجانية اليومية»: one free gift per user per Baghdad day.
+  const settingsData = useAdminData<{
+    settings: { daily_free_gift_enabled: boolean; daily_free_gift_id: string };
+  }>('/admin/settings');
+  const [freeEnabled, setFreeEnabled] = useState(false);
+  const [freeGiftId, setFreeGiftId] = useState('');
+  const [savingFree, setSavingFree] = useState(false);
+
+  useEffect(() => {
+    const settings = settingsData.data?.settings;
+    if (!settings) return;
+    setFreeEnabled(Boolean(settings.daily_free_gift_enabled));
+    setFreeGiftId(settings.daily_free_gift_id || '');
+  }, [settingsData.data]);
 
   const reset = () => setForm(EMPTY_FORM);
 
@@ -89,6 +105,7 @@ export default function GiftsTab() {
       rarity: gift.rarity,
       sortOrder: gift.sortOrder,
       isActive: gift.isActive,
+      isDaily: Boolean(gift.isDaily),
     });
   };
 
@@ -115,6 +132,7 @@ export default function GiftsTab() {
         rarity: form.rarity,
         sortOrder: Number(form.sortOrder),
         isActive: form.isActive,
+        isDaily: form.isDaily,
       };
       if (form.id) {
         await api(`/admin/gifts/${form.id}`, { method: 'PATCH', admin: true, body });
@@ -129,6 +147,22 @@ export default function GiftsTab() {
       toast.push((error as Error).message, 'error');
     } finally {
       setBusy(false);
+    }
+  };
+
+  const saveFreeGift = async () => {
+    setSavingFree(true);
+    try {
+      await api('/admin/settings', {
+        method: 'PUT',
+        admin: true,
+        body: { daily_free_gift_enabled: freeEnabled, daily_free_gift_id: freeGiftId },
+      });
+      toast.push('تم حفظ إعداد الهدية المجانية اليومية', 'success');
+    } catch (error) {
+      toast.push((error as Error).message, 'error');
+    } finally {
+      setSavingFree(false);
     }
   };
 
@@ -184,6 +218,34 @@ export default function GiftsTab() {
 
   return (
     <div className="stack">
+      <AdminCard
+        title="الهدية المجانية اليومية"
+        subtitle="تُضاف إلى جنطة الهدايا مرة واحدة لكل مستخدم في اليوم، وتتجدد منتصف الليل بتوقيت بغداد"
+      >
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 12 }}>
+          <Field label="التفعيل">
+            <Toggle checked={freeEnabled} onChange={setFreeEnabled} label="فعّل الهدية المجانية" />
+          </Field>
+          <Field label="الهدية الممنوحة" hint="اتركها فارغة لاستخدام أول هدية من قسم «هدايا اليوم»">
+            <select
+              className="select"
+              value={freeGiftId}
+              onChange={(event) => setFreeGiftId(event.target.value)}
+            >
+              <option value="">أول هدية من «هدايا اليوم»</option>
+              {(data?.gifts ?? []).map((gift) => (
+                <option key={gift.id} value={gift.id}>
+                  {gift.name} · {formatCoins(gift.price)}
+                </option>
+              ))}
+            </select>
+          </Field>
+        </div>
+        <button className="btn btn-primary" onClick={() => void saveFreeGift()} disabled={savingFree}>
+          <Icon name="check" size={16} /> {savingFree ? 'جارٍ الحفظ…' : 'حفظ إعداد الهدية المجانية'}
+        </button>
+      </AdminCard>
+
       <AdminCard
         title={form.id ? 'تعديل هدية' : 'إضافة هدية جديدة'}
         subtitle="هدية متحركة جاهزة أو فيديو MP4/WebM ترفعه من جهازك — تظهر للمستخدمين مباشرة بعد النشر"
@@ -331,6 +393,13 @@ export default function GiftsTab() {
           </Field>
           <Field label="الحالة">
             <Toggle checked={form.isActive} onChange={(value) => setForm({ ...form, isActive: value })} label="نشطة في المتجر" />
+          </Field>
+          <Field label="هدايا اليوم">
+            <Toggle
+              checked={form.isDaily}
+              onChange={(value) => setForm({ ...form, isDaily: value })}
+              label="ضمن قسم «هدايا اليوم» المحدود"
+            />
           </Field>
         </div>
 

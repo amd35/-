@@ -1499,6 +1499,7 @@ function readGiftBody(body: Record<string, unknown>): Partial<GiftRow> {
     out.rarity = rarity;
   }
   if (body.isActive !== undefined) out.is_active = Boolean(body.isActive);
+  if (body.isDaily !== undefined) out.is_daily = Boolean(body.isDaily);
   if (body.sortOrder !== undefined) out.sort_order = Math.round(Number(body.sortOrder)) || 0;
   return out;
 }
@@ -1562,8 +1563,8 @@ router.post(
     const created = await one<GiftRow>(
       `INSERT INTO gifts
          (slug, name, name_en, description, design, video_url, cover_url, price,
-          recipient_percent, rarity, is_active, sort_order, host_percent)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
+          recipient_percent, rarity, is_active, sort_order, host_percent, is_daily)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
        ON CONFLICT (slug) DO NOTHING
        RETURNING *`,
       [
@@ -1580,6 +1581,7 @@ router.post(
         fields.is_active ?? true,
         fields.sort_order ?? 0,
         fields.host_percent ?? null,
+        fields.is_daily ?? false,
       ]
     );
     if (!created) throw new HttpError(409, 'A gift with this slug already exists', 'gift_slug_taken');
@@ -1601,7 +1603,7 @@ router.patch(
       `UPDATE gifts SET
          name = $2, name_en = $3, description = $4, design = $5, video_url = $6,
          cover_url = $7, price = $8, recipient_percent = $9, rarity = $10,
-         is_active = $11, sort_order = $12, host_percent = $13
+         is_active = $11, sort_order = $12, host_percent = $13, is_daily = $14
        WHERE id = $1 RETURNING *`,
       [
         existing.id,

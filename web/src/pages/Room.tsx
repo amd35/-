@@ -12,6 +12,7 @@ import {
 } from '../components/RoomGiftSheet';
 import { GiftRepeatBar } from '../components/GiftRepeatBar';
 import { LuckyGiftOverlay, type LuckyGiftSpin } from '../components/room/LuckyGiftOverlay';
+import { DailyGiftFab } from '../components/room/DailyGiftFab';
 import { EntryBanner } from '../components/Cosmetics';
 import { VipEntryBanner } from '../components/ProgressionBadges';
 import { ADMIN_BADGE_BY_RANK, isAdminDesign } from '../components/AdminRoyal';
@@ -44,7 +45,6 @@ import {
   type GiftAnnouncement,
 } from '../components/room/RoomGiftAnnouncement';
 import { RoomGiftMarquee } from '../components/room/RoomGiftMarquee';
-import { RoomAdRail } from '../components/room/RoomAdRail';
 import { UserProfileCard } from '../components/profile/UserProfileCard';
 import { UserProfileScreen } from '../components/profile/UserProfileScreen';
 
@@ -73,6 +73,7 @@ export default function Room() {
   const [messages, setMessages] = useState<RoomMessageData[]>([]);
   const [sending, setSending] = useState(false);
   const [giftOpen, setGiftOpen] = useState(false);
+  const [giftTab, setGiftTab] = useState<'gifts' | 'daily'>('gifts');
   const [giftTarget, setGiftTarget] = useState<string | null>(null);
   const [framesOpen, setFramesOpen] = useState(false);
   const [frames, setFrames] = useState<Record<string, LiveFrame>>({});
@@ -902,8 +903,6 @@ export default function Room() {
             ))}
           </section>
 
-          <RoomAdRail />
-
           <RoomGiftMarquee initial={room.lastGift ?? null} />
         </div>
       ) : (
@@ -919,7 +918,10 @@ export default function Room() {
           onLeave={leaveRoom}
           onInvite={() => setPanel('invite')}
           onChat={() => setPanel('chat')}
-          onGifts={() => setGiftOpen(true)}
+          onGifts={() => {
+            setGiftTab('gifts');
+            setGiftOpen(true);
+          }}
           onUpgrade={() => void openStore()}
           onMics={() => setMicsOpen(true)}
           onMusic={() => setPanel('music')}
@@ -1053,9 +1055,19 @@ export default function Room() {
             roomId={id}
             speakers={speakers}
             initialRecipientId={giftTarget}
+            initialTab={giftTab}
             onSent={(message, repeat) => {
               append(message);
               if (repeat) setRepeatGift(repeat);
+            }}
+          />
+
+          {/* «هدايا اليوم»: a small looping ad in the corner, it never covers a control. */}
+          <DailyGiftFab
+            onOpen={() => {
+              setGiftTarget(null);
+              setGiftTab('daily');
+              setGiftOpen(true);
             }}
           />
 
@@ -1187,6 +1199,7 @@ export default function Room() {
           onSendGift={(userId) => {
             setProfileUserId(null);
             setGiftTarget(userId);
+            setGiftTab('gifts');
             setGiftOpen(true);
           }}
           onOpenFull={(userId) => {

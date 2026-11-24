@@ -86,6 +86,10 @@ export interface AppSettings {
   lucky_gift_price: number;
   /** Prize ladder; `weight` is the relative chance of that amount. */
   lucky_gift_prizes: LuckyPrizeTier[];
+  /** Hand out one free gift per user per Baghdad day from the gift shop. */
+  daily_free_gift_enabled: boolean;
+  /** Gift handed out by the free daily claim ('' = the first daily gift). */
+  daily_free_gift_id: string;
   /** Show a user's coin balance to other users on their profile card. */
   profile_show_balances: boolean;
   /** Play the royal level-up celebration (animation + sound) when a user levels up. */
@@ -141,6 +145,8 @@ export const SETTINGS_DEFAULTS: AppSettings = {
   lucky_gift_enabled: true,
   lucky_gift_price: 1000,
   lucky_gift_prizes: LUCKY_PRIZE_DEFAULTS.map((tier) => ({ ...tier })),
+  daily_free_gift_enabled: false,
+  daily_free_gift_id: '',
   profile_show_balances: true,
   level_up_effects: true,
   cup_enabled: true,
@@ -262,6 +268,8 @@ const COERCE: Record<string, (value: unknown) => unknown> = {
   lucky_gift_enabled: (v) => Boolean(v),
   lucky_gift_price: (v) => Math.min(5000, Math.max(1000, Math.trunc(Number(v) || 1000))),
   lucky_gift_prizes: (v) => readLuckyPrizes(v),
+  daily_free_gift_enabled: (v) => Boolean(v),
+  daily_free_gift_id: (v) => (typeof v === 'string' ? v.trim().slice(0, 64) : ''),
   profile_show_balances: (v) => Boolean(v),
   level_up_effects: (v) => Boolean(v),
   cup_enabled: (v) => Boolean(v),

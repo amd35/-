@@ -2053,3 +2053,17 @@ CREATE TABLE IF NOT EXISTS login_reward_claims (
   UNIQUE (user_id, cycle_no, day_no)
 );
 CREATE INDEX IF NOT EXISTS login_reward_claims_user_idx ON login_reward_claims (user_id, claimed_at DESC);
+
+-- «هدايا اليوم»: a daily-limited gift is flagged on the catalog row itself, so the
+-- admin can move any gift in or out of the daily section without a deploy.
+ALTER TABLE gifts ADD COLUMN IF NOT EXISTS is_daily boolean NOT NULL DEFAULT false;
+
+-- One free daily gift per user per Baghdad day. The primary key is the idempotency
+-- guard, so a double tap can never hand out two gifts.
+CREATE TABLE IF NOT EXISTS daily_gift_claims (
+  user_id uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  claim_day text NOT NULL,
+  gift_id uuid NOT NULL REFERENCES gifts(id) ON DELETE CASCADE,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  PRIMARY KEY (user_id, claim_day)
+);

@@ -8826,199 +8826,6 @@ table.data tr:hover td {
   }
 }
 
-/* «إعلانات الغرفة»: the administration's horizontal banner ads, in one strip
-   right under the mic seats. Extra ads scroll sideways instead of stacking. */
-.room-ad-rail {
-  display: block;
-  width: 100%;
-  padding-bottom: 2px;
-  overflow: hidden;
-  /* The strip always moves from the physical left edge, in Arabic and English. */
-  direction: ltr;
-}
-
-/* The offers slide by themselves; the list is rendered twice, so the loop is seamless. */
-.room-ad-track {
-  display: flex;
-  width: max-content;
-  animation-name: roomAdScroll;
-  animation-timing-function: linear;
-  animation-iteration-count: infinite;
-}
-
-@keyframes roomAdScroll {
-  from {
-    transform: translateX(0);
-  }
-  to {
-    transform: translateX(-50%);
-  }
-}
-
-/* One banner = one picture with its writing inside it. */
-.room-ad-card {
-  direction: rtl;
-  position: relative;
-  flex: none;
-  width: 244px;
-  height: 58px;
-  margin-inline-end: 8px;
-  padding: 0;
-  overflow: hidden;
-  border-radius: 13px;
-  border: 1px solid rgba(212, 175, 55, 0.45);
-  background: #150b1d;
-  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.06);
-  backdrop-filter: blur(10px);
-  color: #fff;
-  text-align: start;
-  cursor: pointer;
-  transition: transform 0.18s ease, border-color 0.18s ease;
-}
-
-.room-ad-card:active {
-  transform: scale(0.98);
-}
-
-.room-ad-card.featured {
-  border-color: rgba(255, 213, 79, 0.9);
-  background: linear-gradient(135deg, rgba(64, 28, 8, 0.95), rgba(28, 10, 30, 0.9));
-  box-shadow: 0 6px 18px rgba(255, 178, 40, 0.22), inset 0 1px 0 rgba(255, 255, 255, 0.08);
-}
-
-/* The gift picture fills the whole banner. */
-.room-ad-art {
-  position: absolute;
-  inset: 0;
-  display: grid;
-  place-items: center;
-  overflow: hidden;
-}
-
-.room-ad-art-img {
-  width: 100%;
-  height: 100%;
-}
-
-.room-ad-art-img img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-}
-
-/* The store banner picture (the daily store's own artwork). */
-.room-ad-store-img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-}
-
-/* Scrim so the writing inside the picture stays readable. */
-.room-ad-card::after {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(to top, rgba(6, 3, 12, 0.9) 2%, rgba(6, 3, 12, 0.35) 52%, rgba(6, 3, 12, 0) 100%);
-  pointer-events: none;
-}
-
-.room-ad-body {
-  position: absolute;
-  inset-inline: 0;
-  bottom: 0;
-  z-index: 1;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 1px;
-  padding: 0 6px 5px;
-  text-align: center;
-}
-
-.room-ad-badge {
-  position: absolute;
-  z-index: 2;
-  top: 4px;
-  inset-inline-start: 5px;
-  padding: 1px 6px;
-  border-radius: 999px;
-  font-size: 8px;
-  font-weight: 800;
-  color: #1a0d00;
-  background: linear-gradient(135deg, #ffd75e, #ffab2e);
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.45);
-}
-
-.room-ad-title {
-  max-width: 100%;
-  font-size: 11px;
-  line-height: 1.2;
-  color: #fff;
-  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.85);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.room-ad-price {
-  display: flex;
-  align-items: center;
-  gap: 3px;
-  font-size: 9.5px;
-  color: #ffd75e;
-  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.85);
-}
-
-.room-ad-confirm {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 10px;
-  padding: 4px 2px 8px;
-}
-
-.room-ad-confirm-art {
-  display: grid;
-  place-items: center;
-  width: 110px;
-  height: 110px;
-}
-
-.room-ad-confirm-name {
-  font-size: 15px;
-}
-
-.room-ad-confirm-price {
-  display: flex;
-  align-items: center;
-  gap: 5px;
-  font-weight: 800;
-  color: #ffd75e;
-}
-
-/* «هدية عشوائية»: the mystery box sold inside the daily store. */
-.room-ad-random {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 7px;
-  width: 100%;
-  margin-top: 4px;
-  padding-top: 12px;
-  border-top: 1px solid rgba(212, 175, 55, 0.22);
-}
-
-.room-ad-random-title {
-  font-size: 13px;
-}
-
-.room-ad-won {
-  font-size: 12px;
-  font-weight: 800;
-  color: #7ef7a5;
-  text-align: center;
-}
-
 /* ---------------------------------------------------------------- seats */
 .room-seats {
   display: grid;
@@ -13490,4 +13297,142 @@ button.ad-hit {
   font-weight: 800;
   color: #ffe9c9;
   text-shadow: 0 1px 3px rgba(0, 0, 0, 0.9);
+}
+
+/* «هدايا اليوم» floating ad — a small looping gift button above the bottom bar. */
+.daily-fab {
+  position: fixed;
+  /* Bottom-left of the stage in both directions, as the room ad spec asks. */
+  left: 10px;
+  right: auto;
+  bottom: 96px;
+  z-index: 26;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 0;
+  border: 0;
+  background: none;
+  cursor: pointer;
+  animation: dailyFabFloat 4s ease-in-out infinite;
+}
+
+.daily-fab-orb {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 50px;
+  height: 50px;
+  border-radius: 50%;
+  border: 1px solid rgba(246, 201, 75, 0.75);
+  background: radial-gradient(circle at 30% 25%, rgba(255, 215, 120, 0.32), rgba(22, 8, 34, 0.94) 72%);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.5), 0 0 12px rgba(246, 201, 75, 0.32);
+}
+
+.daily-fab-gift {
+  width: 30px;
+  height: 30px;
+  animation: dailyFabGift 2.8s ease-in-out infinite;
+}
+
+.daily-fab-spark {
+  position: absolute;
+  top: 1px;
+  inset-inline-end: 3px;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: radial-gradient(circle, #cff6ff, rgba(120, 220, 255, 0));
+  animation: dailyFabSpark 2s ease-in-out infinite;
+}
+
+.daily-fab-label {
+  font-size: 10.5px;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 999px;
+  color: #ffe9a6;
+  white-space: nowrap;
+  border: 1px solid rgba(246, 201, 75, 0.55);
+  background: linear-gradient(135deg, rgba(58, 14, 72, 0.95), rgba(26, 6, 38, 0.95));
+}
+
+@keyframes dailyFabFloat {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-5px);
+  }
+}
+
+@keyframes dailyFabGift {
+  0%,
+  100% {
+    transform: rotate(-6deg);
+  }
+  50% {
+    transform: rotate(6deg);
+  }
+}
+
+@keyframes dailyFabSpark {
+  0%,
+  100% {
+    opacity: 0.35;
+    transform: scale(0.8);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.2);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .daily-fab,
+  .daily-fab-gift,
+  .daily-fab-spark {
+    animation: none;
+  }
+}
+
+/* «هدايا اليوم» limited section inside the room gift shop. */
+.daily-gifts {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.daily-gifts-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 8px 12px;
+  border-radius: 12px;
+  border: 1px solid rgba(246, 201, 75, 0.4);
+  background: linear-gradient(135deg, rgba(64, 16, 84, 0.85), rgba(20, 6, 30, 0.9));
+}
+
+.daily-gifts-title {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12.5px;
+  font-weight: 700;
+  color: #ffe9a6;
+}
+
+.daily-gifts-timer {
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  color: #fff;
+  font-variant-numeric: tabular-nums;
+}
+
+.daily-gifts-note {
+  margin: -4px 2px 0;
 }

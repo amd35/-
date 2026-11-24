@@ -16,6 +16,8 @@ export interface GiftRow {
   host_percent: number | null;
   rarity: string;
   is_active: boolean;
+  /** Shown in the «هدايا اليوم» limited section of the room gift shop. */
+  is_daily: boolean;
   sort_order: number;
   created_at: string;
 }
@@ -37,6 +39,7 @@ export function serializeGift(row: GiftRow) {
     hostPercent: row.host_percent === null ? null : Number(row.host_percent),
     rarity: row.rarity,
     isActive: row.is_active,
+    isDaily: row.is_daily,
     sortOrder: row.sort_order,
     createdAt: row.created_at,
   };
@@ -44,6 +47,13 @@ export function serializeGift(row: GiftRow) {
 
 export async function listActiveGifts(): Promise<GiftRow[]> {
   return q<GiftRow>('SELECT * FROM gifts WHERE is_active = true ORDER BY sort_order, price');
+}
+
+/** The «هدايا اليوم» limited section: active gifts flagged by the admin. */
+export async function listDailyGifts(): Promise<GiftRow[]> {
+  return q<GiftRow>(
+    'SELECT * FROM gifts WHERE is_active = true AND is_daily = true ORDER BY sort_order, price'
+  );
 }
 
 /** SQL joins a message row (`m`) to its gift, when it is a gift message. */

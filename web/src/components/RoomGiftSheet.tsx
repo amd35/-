@@ -3,6 +3,7 @@ import { api, assetUrl } from '../lib/api';
 import { useI18n } from '../lib/i18n';
 import { formatCoins, Icon, Sheet, Spinner, useToast } from '../lib/ui';
 import { GiftCatalog, type GiftCategory } from './GiftCatalog';
+import { GiftCover } from './GiftAnimation';
 import { GiftBagGrid, type BagGiftItem } from './GiftBag';
 import { CurrencyIcon } from './CurrencyIcon';
 import { LuckyClover } from './room/LuckyClover';
@@ -58,6 +59,14 @@ export interface LuckyGiftInfo {
   prizes: number[];
 }
 
+/** «الهدية المجانية اليومية»: one claim per Baghdad day, set from the admin panel. */
+export interface DailyFreeGift {
+  enabled: boolean;
+  giftId: string | null;
+  giftName: string | null;
+  claimed: boolean;
+}
+
 /** Quick quantity picks for one gift send. */
 const QUANTITIES = [1, 7, 17, 77, 777, 999, 1000, 2000];
 
@@ -74,6 +83,7 @@ export function RoomGiftSheet({
   speakers,
   onSent,
   initialRecipientId,
+  initialTab = 'gifts',
 }: {
   open: boolean;
   onClose: () => void;
@@ -82,6 +92,8 @@ export function RoomGiftSheet({
   onSent: (message: RoomMessageData, repeat?: RepeatGiftInfo) => void;
   /** Preselects the person whose profile card opened the gift shop. */
   initialRecipientId?: string | null;
+  /** «هدايا اليوم» opens straight on the daily section when the floating ad is tapped. */
+  initialTab?: 'gifts' | 'daily';
 }) {
   const { t } = useI18n();
   const toast = useToast();
@@ -90,11 +102,17 @@ export function RoomGiftSheet({
   const [goldBalance, setGoldBalance] = useState(0);
   const [goldGiftsEnabled, setGoldGiftsEnabled] = useState(false);
   const [currency, setCurrency] = useState<'diamond' | 'gold'>('diamond');
-  const [tab, setTab] = useState<'gifts' | 'bag' | 'lucky'>('gifts');
+  const [tab, setTab] = useState<'gifts' | 'daily' | 'bag' | 'lucky'>('gifts');
   const [bag, setBag] = useState<BagGiftItem[]>([]);
   const [fromBag, setFromBag] = useState(false);
   const [category, setCategory] = useState<GiftCategory>('legendary');
   const [lucky, setLucky] = useState<LuckyGiftInfo | null>(null);
+  const [dailyGifts, setDailyGifts] = useState<GiftItem[]>([]);
+  const [dailyResetsAt, setDailyResetsAt] = useState<string | null>(null);
+  const [freeGift, setFreeGift] = useState<DailyFreeGift | null>(null);
+  const [claimingFree, setClaimingFree] = useState(false);
+  const [buyingBox, setBuyingBox] = useState(false);
+  const [clock, setClock] = useState(() => Date.now());
   const [loading, setLoading] = useState(false);
   const [recipientId, setRecipientId] = useState('');
   const [selected, setSelected] = useState<GiftItem | null>(null);
@@ -111,7 +129,7 @@ export function RoomGiftSheet({
     setSelected(null);
     setFromBag(false);
     setQuantity(1);
-    setTab('gifts');
+    setTab(initialTab);
     setCategory('legendary');
     setRecipientId((current) => initialRecipientId || current || firstSpeakerId);
     requestRef.current = '';
@@ -123,6 +141,9 @@ export function RoomGiftSheet({
       goldBalance: number;
       goldGiftsEnabled: boolean;
       luckyGift?: LuckyGiftInfo;
+      dailyGifts?: GiftItem[];
+      dailyResetsAt?: string;
+      dailyFreeGift?: DailyFreeGift;
     }>('/gifts')
       .then((response) => {
         setGifts(response.gifts);
@@ -131,12 +152,34 @@ export function RoomGiftSheet({
         setGoldBalance(response.goldBalance ?? 0);
         setGoldGiftsEnabled(Boolean(response.goldGiftsEnabled));
         setLucky(response.luckyGift ?? null);
+        setDailyGifts(response.dailyGifts ?? []);
+        setDailyResetsAt(response.dailyResetsAt ?? null);
+        setFreeGift(response.dailyFreeGift ?? null);
       })
       .catch((error: Error) => toast.push(error.message, 'error'))
       .finally(() => setLoading(false));
-  }, [open, firstSpeakerId, initialRecipientId, toast]);
+  }, [open, firstSpeakerId, initialRecipientId, initialTab, toast]);
+
+  // The «هدايا اليوم» countdown ticks only while that section is on screen.
+  useEffect(() => {
+    if (!open || tab !== 'daily') return;
+    setClock(Date.now());
+    const timer = window.setInterval(() => setClock(Date.now()), 1000);
+    return () => window.clearInterval(timer);
+  }, [open, tab]);
 
   const activeBalance = currency === 'gold' ? goldBalance : balance;
+  const dailyRemaining = Math.max(
+    0,
+    (dailyResetsAt ? new Date(dailyResetsAt).getTime() : 0) - clock
+  );
+  const dailyCountdown = [
+    Math.floor(dailyRemaining / 3_600_000),
+    Math.floor((dailyRemaining % 3_600_000) / 60_000),
+    Math.floor((dailyRemaining % 60_000) / 1000),
+  ]
+    .map((part) => String(part).padStart(2, '0'))
+    .join(':');
   const bagTotal = bag.reduce((sum, item) => sum + item.quantity, 0);
   const selectedBagLeft =
     selected && fromBag ? bag.find((item) => item.id === selected.id)?.quantity ?? 0 : 0;
@@ -245,6 +288,53 @@ export function RoomGiftSheet({
     }
   }, [balance, lucky, onClose, roomId, sendingLucky, t, toast]);
 
+  // One free gift per Baghdad day; the server's claim row stops a second one.
+  const claimFree = useCallback(async () => {
+    if (claimingFree || !freeGift?.enabled || freeGift.claimed) return;
+    setClaimingFree(true);
+    try {
+      const response = await api<{
+        claimed: boolean;
+        gift: { name: string };
+        bag: BagGiftItem[];
+        resetsAt: string;
+      }>('/gifts/daily-free', { method: 'POST', body: {} });
+      setBag(response.bag ?? []);
+      setDailyResetsAt(response.resetsAt);
+      setFreeGift((current) => (current ? { ...current, claimed: true } : current));
+      toast.push(
+        response.claimed
+          ? `أضفنا «${response.gift.name}» إلى جنطة الهدايا`
+          : 'استلمت هديتك المجانية لهذا اليوم',
+        response.claimed ? 'success' : 'error'
+      );
+    } catch (error) {
+      toast.push((error as Error).message, 'error');
+    } finally {
+      setClaimingFree(false);
+    }
+  }, [claimingFree, freeGift, toast]);
+
+  // «هدية عشوائية»: the server charges once, picks a random gift and drops it in the bag.
+  const buyRandomBox = useCallback(async () => {
+    if (buyingBox) return;
+    setBuyingBox(true);
+    try {
+      const response = await api<{ giftName: string; balance: number; bagQuantity: number }>(
+        '/room-ads/random-gift',
+        { method: 'POST', body: { requestId: newRequestId() } }
+      );
+      setBalance(response.balance);
+      const fresh = await api<{ bag?: BagGiftItem[] }>('/gifts');
+      setBag(fresh.bag ?? []);
+      toast.push(`فتحت الصندوق: «${response.giftName}» أضيفت إلى جنطتك`, 'success');
+    } catch (error) {
+      toast.push((error as Error).message, 'error');
+    } finally {
+      setBuyingBox(false);
+    }
+  }, [buyingBox, toast]);
+
   return (
     <Sheet open={open} onClose={onClose} title={t('giftShop')}>
       <div className="gift-shop">
@@ -258,6 +348,16 @@ export function RoomGiftSheet({
         </div>
 
         <div className="seg" style={{ marginBottom: 10 }}>
+          <button
+            className={tab === 'daily' ? 'active' : ''}
+            onClick={() => {
+              setTab('daily');
+              setSelected(null);
+              setFromBag(false);
+            }}
+          >
+            هدايا اليوم
+          </button>
           <button
             className={tab === 'gifts' ? 'active' : ''}
             onClick={() => {
@@ -376,6 +476,70 @@ export function RoomGiftSheet({
                   setQuantity(1);
                 }}
               />
+            ) : tab === 'daily' ? (
+              <div className="daily-gifts">
+                <div className="daily-gifts-head">
+                  <span className="daily-gifts-title">
+                    <Icon name="gift" size={14} /> هدايا اليوم المحدودة
+                  </span>
+                  <span className="daily-gifts-timer" dir="ltr">
+                    {dailyCountdown}
+                  </span>
+                </div>
+                <p className="tiny muted daily-gifts-note">
+                  ينتهي العرض بعد — تتجدد هدايا اليوم عند منتصف الليل بتوقيت بغداد
+                </p>
+                {freeGift?.enabled ? (
+                  <button
+                    type="button"
+                    className="btn btn-gold btn-block"
+                    onClick={() => void claimFree()}
+                    disabled={claimingFree || freeGift.claimed}
+                  >
+                    {claimingFree ? <span className="spinner" /> : <Icon name="gift" size={16} />}
+                    {freeGift.claimed
+                      ? 'استلمت هديتك المجانية اليوم'
+                      : `استلم «${freeGift.giftName}» مجاناً`}
+                  </button>
+                ) : null}
+                <button
+                  type="button"
+                  className="btn btn-ghost btn-block"
+                  onClick={() => void buyRandomBox()}
+                  disabled={buyingBox}
+                >
+                  {buyingBox ? <span className="spinner" /> : <Icon name="gift" size={16} />}
+                  هدية عشوائية من المتجر
+                </button>
+                <div className="gift-grid">
+                  {dailyGifts.map((gift) => (
+                    <button
+                      key={gift.id}
+                      type="button"
+                      className={`gift-card ${balance < gift.price ? 'locked' : ''} ${
+                        selected?.id === gift.id && !fromBag ? 'selected' : ''
+                      }`}
+                      onClick={() => {
+                        setSelected(gift);
+                        setFromBag(false);
+                      }}
+                    >
+                      <span className="gift-rarity-pill rarity-legendary">اليوم</span>
+                      <GiftCover gift={gift} className="gift-card-art" />
+                      <span className="gift-card-name">{gift.name}</span>
+                      <span className="gift-card-price">
+                        <CurrencyIcon code="DIAMOND" size={12} /> {formatCoins(gift.price)}
+                      </span>
+                    </button>
+                  ))}
+                  {dailyGifts.length === 0 ? (
+                    <div className="empty" style={{ gridColumn: '1 / -1' }}>
+                      <Icon name="gift" size={22} />
+                      <span className="tiny">لا توجد هدايا محدودة اليوم — تصفح بقية الهدايا</span>
+                    </div>
+                  ) : null}
+                </div>
+              </div>
             ) : (
               <GiftCatalog
                 gifts={gifts}

@@ -16,7 +16,7 @@ import { awardXpSafe, getXpSettings, xpForCoins } from '../progression';
 import { getSettings } from '../settings';
 import { createWithdrawal, enabledMethods, serializeWithdrawal } from '../payouts';
 import { moveCoins, moveGold } from '../wallet';
-import { HttpError, asyncHandler, isUuid } from '../utils';
+import { HttpError, asyncHandler, iraqDateStr, isUuid, nextIraqMidnight } from '../utils';
 import { assertCapability } from '../security/service';
 
 const router = Router();
@@ -75,8 +75,25 @@ router.get(
       listBag(me),
       listGiftPackages(),
     ]);
+    // «هدايا اليوم»: the daily-limited section and the free daily gift, both
+    // renewed at Baghdad midnight (the countdown on the client uses `resetsAt`).
+    const dailyGifts = gifts.filter((gift) => gift.is_daily);
+    const freeGift =
+      gifts.find((gift) => gift.id === settings.daily_free_gift_id) ?? dailyGifts[0] ?? null;
+    const freeClaimed = await one(
+      'SELECT 1 FROM daily_gift_claims WHERE user_id = $1 AND claim_day = $2',
+      [me, iraqDateStr()]
+    );
     res.json({
       gifts: gifts.map(serializeGift),
+      dailyGifts: dailyGifts.map(serializeGift),
+      dailyResetsAt: nextIraqMidnight().toISOString(),
+      dailyFreeGift: {
+        enabled: settings.gifts_enabled && settings.daily_free_gift_enabled && Boolean(freeGift),
+        giftId: freeGift?.id ?? null,
+        giftName: freeGift?.name ?? null,
+        claimed: Boolean(freeClaimed),
+      },
       // «جنطة الهدايا»: gifts the user already owns, plus the bundles on sale.
       bag,
       packages,
@@ -96,6 +113,61 @@ router.get(
           .map((tier) => Number(tier.amount))
           .sort((a, b) => a - b),
       },
+    });
+  })
+);
+
+/**
+ * «الهدية المجانية اليومية»: one free gift per user per Baghdad day, straight into
+ * the gift bag. The claim row's primary key is the idempotency guard, so a double
+ * tap returns the same answer instead of handing out a second gift.
+ */
+router.post(
+  '/daily-free',
+  requireAuth(),
+  asyncHandler(async (req, res) => {
+    const me = reqUser(req).id;
+    const settings = await getSettings();
+    if (!settings.gifts_enabled || !settings.daily_free_gift_enabled) {
+      throw new HttpError(403, 'The daily free gift is disabled', 'daily_gift_disabled');
+    }
+    await assertCapability(me, 'gifts');
+
+    const gifts = await listActiveGifts();
+    const gift =
+      gifts.find((row) => row.id === settings.daily_free_gift_id) ??
+      gifts.find((row) => row.is_daily) ??
+      null;
+    if (!gift) throw new HttpError(404, 'No daily gift configured', 'daily_gift_missing');
+
+    const claimed = await tx(async (c) => {
+      const insert = await c.query(
+        `INSERT INTO daily_gift_claims (user_id, claim_day, gift_id)
+         VALUES ($1, $2, $3)
+         ON CONFLICT (user_id, claim_day) DO NOTHING
+         RETURNING gift_id`,
+        [me, iraqDateStr(), gift.id]
+      );
+      if (!insert.rowCount) return false;
+      await addToBag(c, me, gift.id, 1);
+      return true;
+    });
+
+    const bag = await listBag(me);
+    if (claimed) {
+      await notify(
+        me,
+        'gift_bag',
+        'هدية اليوم المجانية 🎁',
+        `أضفنا «${gift.name}» إلى جنطة هداياك — أرسلها لأي شخص داخل الغرفة`,
+        { giftId: gift.id, giftName: gift.name, source: 'daily_free' }
+      );
+    }
+    res.status(claimed ? 201 : 200).json({
+      claimed,
+      gift: serializeGift(gift),
+      bag,
+      resetsAt: nextIraqMidnight().toISOString(),
     });
   })
 );
