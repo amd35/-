@@ -13559,3 +13559,145 @@ button.ad-hit {
   font-weight: 800;
   color: #ffd166;
 }
+
+/* --------------------------------------- «هدية المليون» app-wide strip */
+/* A diamond gift worth a million or more sweeps this strip through every
+   screen, rooms included. Tapping it asks whether to walk into that room. */
+.big-gift-banner {
+  position: fixed;
+  top: calc(env(safe-area-inset-top, 0px) + 56px);
+  left: 0;
+  z-index: 95;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: min(94vw, 460px);
+  padding: 10px 12px;
+  border-radius: 18px;
+  border: 1px solid rgba(255, 214, 90, 0.75);
+  background: linear-gradient(
+    135deg,
+    rgba(54, 6, 42, 0.97),
+    rgba(124, 18, 90, 0.97) 55%,
+    rgba(46, 10, 74, 0.97)
+  );
+  box-shadow: 0 16px 34px rgba(0, 0, 0, 0.55), 0 0 22px rgba(255, 199, 92, 0.35);
+  color: #fff;
+  text-align: right;
+  cursor: pointer;
+  animation: bigGiftSweep 10s linear forwards;
+}
+
+.big-gift-banner-art {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 46px;
+  height: 46px;
+  border-radius: 14px;
+  overflow: hidden;
+  background: rgba(0, 0, 0, 0.35);
+  border: 1px solid rgba(255, 214, 90, 0.5);
+}
+
+.big-gift-banner-body {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.big-gift-banner-title {
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.4px;
+  color: #ffd75e;
+}
+
+.big-gift-banner-gift {
+  font-size: 13px;
+  font-weight: 800;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.big-gift-banner-names {
+  font-size: 11px;
+  color: #ffe9f4;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.big-gift-banner-cta {
+  flex: none;
+  padding: 6px 10px;
+  border-radius: 999px;
+  background: linear-gradient(135deg, #ffd75e, #ff9f1a);
+  color: #3a1200;
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.big-gift-ask {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.big-gift-ask-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  border-radius: 16px;
+  border: 1px solid rgba(255, 214, 90, 0.4);
+  background: linear-gradient(135deg, rgba(54, 6, 42, 0.85), rgba(46, 10, 74, 0.85));
+}
+
+.big-gift-ask-art {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 64px;
+  height: 64px;
+  border-radius: 16px;
+  overflow: hidden;
+  background: rgba(0, 0, 0, 0.35);
+  border: 1px solid rgba(255, 214, 90, 0.45);
+}
+
+.big-gift-ask-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.big-gift-ask-gift {
+  margin: 0;
+  font-size: 13.5px;
+  font-weight: 800;
+  color: #ffd75e;
+}
+
+@keyframes bigGiftSweep {
+  0% {
+    transform: translateX(-105%);
+    opacity: 0;
+  }
+  6% {
+    transform: translateX(0);
+    opacity: 1;
+  }
+  92% {
+    transform: translateX(0);
+    opacity: 1;
+  }
+  100% {
+    transform: translateX(105%);
+    opacity: 0;
+  }
+}

@@ -6,6 +6,7 @@ import { BackgroundLayer } from './lib/backgrounds';
 import { Spinner } from './lib/ui';
 import { CallOverlay } from './components/CallOverlay';
 import { GiftTicker } from './components/GiftTicker';
+import { BigGiftBanner } from './components/BigGiftBanner';
 import { DailyBoxModal } from './components/DailyBoxModal';
 import { LoginRewardModal } from './components/LoginRewardModal';
 import { LevelUpOverlay } from './components/LevelUpOverlay';
@@ -56,6 +57,7 @@ export default function App() {
     <>
       <BackgroundLayer />
       <GiftTicker />
+      <BigGiftBanner />
       <Routes>
         <Route path="/welcome" element={<Welcome />} />
         <Route path="/login" element={<Login />} />

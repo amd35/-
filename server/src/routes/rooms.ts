@@ -28,6 +28,7 @@ import {
 import { purchaseRoomUpgrade, roomStoreSnapshot } from '../roomStore';
 import { getSettings } from '../settings';
 import { pickLuckyPrize } from '../luckyGifts';
+import { BIG_GIFT_MIN_DIAMONDS, botCrowdEnters } from '../bigGift';
 import { moveCoins, moveGold } from '../wallet';
 import { awardXpSafe, getXpSettings, xpForCoins } from '../progression';
 import { activeRankFor, isOfficialAdmin } from '../ranks';
@@ -588,6 +589,34 @@ router.post(
       coins: Number(outcome.coins) || 0,
       quantity,
     });
+
+    // «هدية المليون»: a diamond gift worth a million or more is an app-wide
+    // event. Its strip sweeps every room and every screen, the bot share of the
+    // crowd walks in, and the rest are real members who tap the strip to join.
+    if (outcome.currency === 'diamond' && Number(outcome.coins) >= BIG_GIFT_MIN_DIAMONDS) {
+      const entrants = await botCrowdEnters(roomId);
+      broadcast('room_big_gift', {
+        id: outcome.sendId,
+        roomId,
+        roomName: roomInfo?.name ?? '',
+        senderName: message?.displayName ?? '',
+        recipientName,
+        giftName: message?.gift?.name ?? '',
+        gift: message?.gift
+          ? {
+              name: message.gift.name,
+              design: message.gift.design,
+              videoUrl: message.gift.videoUrl,
+              coverUrl: message.gift.coverUrl,
+              rarity: message.gift.rarity,
+            }
+          : null,
+        coins: Number(outcome.coins) || 0,
+        quantity,
+        entrants,
+      });
+      if (entrants.length) broadcast('room_members', { roomId });
+    }
 
     // Gift announcement bar. Only a committed send reaches this point, so a
     // failed payment can never produce a phantom announcement. The admin picks

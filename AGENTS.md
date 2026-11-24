@@ -176,6 +176,19 @@
   CSS) as a waving cloth in a gold frame with a liquid SVG ripple and two water sheens; `GiftCatalog.tsx`
   holds the «الهدايا» / «أعلام الدول» sections plus country search, shared by `GiftShop` and `RoomGiftSheet`.
 
+## «هدية المليون» (million-diamond gift)
+- `server/src/bigGift.ts`: a room gift charged in diamonds whose total (`price × quantity`) reaches
+  `BIG_GIFT_MIN_DIAMONDS = 1_000_000` broadcasts `room_big_gift` to **every** socket, so its strip sweeps
+  every screen — inside every room too — not only the rooms tab.
+- The audience is `BIG_GIFT_CROWD = 10` people: `BIG_GIFT_BOT_SHARE = 40%` are the seeded crowd bots
+  (`ensureCrowdBots()` at boot, usernames `000101…000108`, `is_bot = true`, hidden from discovery) who join
+  `room_members` on their own, and the other 60% are real members who tap the strip and walk in.
+- `web/src/components/BigGiftBanner.tsx` is mounted app-wide in `App.tsx` (queues several gifts). Tapping the
+  strip opens the ask sheet: «الدخول إلى الغرفة الآن» opens that room, «إلغاء» stays where the member is. The
+  room itself toasts «دخل N أعضاء الغرفة» from the same event.
+- Crowd bot usernames are numeric on purpose: the boot cleanup only regenerates non-numeric usernames, and
+  generated account codes never start with 0, so `0001xx` stays reserved.
+
 ## Room levels (مستوى الغرفة)
 - `rooms.level_xp` is the only stored value; the level (1..100) is a pure function of it
   (`server/src/roomLevels.ts`), so it can always be recomputed and never drifts.

@@ -360,9 +360,16 @@ export default function Room() {
       send('room:leave', { roomId: id });
       navigate('/rooms');
     });
+    // «هدية المليون»: the crowd that walked into this room.
+    const offBigGift = on('room_big_gift', (data) => {
+      if (data.roomId !== id) return;
+      const entrants = (data as unknown as { entrants?: unknown[] }).entrants;
+      if (entrants?.length) toast.push(`دخل ${entrants.length} أعضاء الغرفة 🎉`, 'success');
+    });
     return () => {
       off();
       offRemoved();
+      offBigGift();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [on, id, send, navigate, toast]);

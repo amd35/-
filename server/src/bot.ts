@@ -38,7 +38,9 @@ let cachedBotId: string | null = null;
 export async function ensureBotUser(): Promise<string> {
   if (cachedBotId) return cachedBotId;
   const existing = await one<{ id: string }>(
-    'SELECT id FROM users WHERE username = $1 OR is_bot = true LIMIT 1',
+    // Her reserved ID wins; a legacy bot row is only the fallback, so the crowd
+    // bots (also `is_bot`) can never be renamed into the companion.
+    'SELECT id FROM users WHERE username = $1 OR is_bot = true ORDER BY (username = $1) DESC LIMIT 1',
     [BOT_USERNAME]
   );
   if (existing) {
