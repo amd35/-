@@ -103,6 +103,10 @@ export default function Room() {
 
   const entryCosmetic = me?.cosmetics?.entry ?? null;
   const myMic = room?.mics.find((mic) => mic.mine) ?? null;
+  /** Seat of the profile currently open, so every mic member can be sent a frame. */
+  const profileMic = profileUserId
+    ? (room?.mics.find((mic) => mic.user?.id === profileUserId) ?? null)
+    : null;
   const speakerIds = useMemo(
     () => room?.mics.filter((mic) => mic.user).map((mic) => mic.user!.id) ?? [],
     [room]
@@ -1148,12 +1152,15 @@ export default function Room() {
             setFullProfileId(userId);
           }}
           seatActions={
-            myMic && profileUserId === me?.user.id
+            profileMic
               ? {
-                  onLeaveMic: () => {
-                    setProfileUserId(null);
-                    requestLeaveMic(myMic);
-                  },
+                  onLeaveMic:
+                    myMic && profileUserId === me?.user.id
+                      ? () => {
+                          setProfileUserId(null);
+                          requestLeaveMic(myMic);
+                        }
+                      : undefined,
                   onFrames: () => {
                     setProfileUserId(null);
                     setFramesOpen(true);
