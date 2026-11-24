@@ -100,6 +100,11 @@ const XP_LABELS: Record<string, string> = {
   chat_message: 'XP لكل رسالة دردشة',
   chat_daily_cap: 'أقصى XP يومي من الدردشة',
   achievement: 'XP للإنجاز / المهمة',
+  daily_xp_cap: 'الحد اليومي لنقاط المستخدم (0 = بلا حد)',
+  game_play: 'نقاط إتمام مباراة لعبة',
+  game_win: 'نقاط الفوز بمباراة لعبة',
+  mic_task_minutes: 'دقائق المايك لمهمة الغرفة',
+  mic_task_xp: 'نقاط إنجاز مهمة المايك',
 };
 
 const VIP_ACTION_LABELS: Record<string, string> = {

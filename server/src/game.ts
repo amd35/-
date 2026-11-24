@@ -12,7 +12,7 @@ import { one, q, tx } from './db';
 import { emitToAdmins, emitToUser, emitToUsers, onlineUserIds, onSocketEvent } from './realtime';
 import { notify } from './notify';
 import { moveGold } from './wallet';
-import { awardXpSafe } from './progression';
+import { awardXpSafe, getXpSettings } from './progression';
 import { moderateTextForUser } from './security/service';
 import { HttpError } from './utils';
 import {
@@ -630,6 +630,7 @@ export async function shoot(userId: string, matchId: string, input: ShotInput) {
 async function afterMatch(playerIds: string[], matchId: string, winnerId: string | null, refunded: boolean) {
   const match = await one<MatchRow>('SELECT * FROM game_matches WHERE id = $1', [matchId]);
   if (!match) return;
+  const xpSettings = await getXpSettings();
   for (const userId of playerIds) {
     const won = winnerId === userId;
     await notify(
@@ -643,7 +644,12 @@ async function afterMatch(playerIds: string[], matchId: string, winnerId: string
           : 'حظاً أوفر في المباراة القادمة!',
       { matchId, won }
     );
-    await awardXpSafe({ userId, kind: won ? 'game_win' : 'game_play', refId: matchId, xp: won ? 60 : 20 });
+    await awardXpSafe({
+      userId,
+      kind: won ? 'game_win' : 'game_play',
+      refId: matchId,
+      xp: won ? xpSettings.game_win ?? 0 : xpSettings.game_play ?? 0,
+    });
   }
   emitToAdmins('game:finished', { matchId, winnerId });
 }

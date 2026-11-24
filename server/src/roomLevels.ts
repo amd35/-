@@ -1,6 +1,7 @@
 import { q, tx } from './db';
 import { broadcast, isOnline } from './realtime';
 import { iraqDateStr } from './utils';
+import { awardMicTaskXp } from './progression';
 
 /**
  * Room levels.
@@ -212,6 +213,13 @@ export async function creditMicMinutes(
 
   for (const [roomId, change] of changes) {
     await applyLevelChange(roomId, change.beforeXp, change.afterXp);
+  }
+
+  // Room task: every completed block of mic minutes pays the user's account
+  // points once per Baghdad day (the daily limit still applies).
+  const touched = new Set(due.map((item) => item.row.user_id));
+  for (const userId of touched) {
+    await awardMicTaskXp(userId);
   }
 }
 

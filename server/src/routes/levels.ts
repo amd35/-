@@ -3,6 +3,7 @@ import { reqUser, requireAuth } from '../auth';
 import { notify } from '../notify';
 import {
   activeVip,
+  dailyPointsState,
   expireVips,
   getLevelState,
   getLevels,
@@ -26,7 +27,7 @@ router.get(
   asyncHandler(async (req, res) => {
     const me = reqUser(req).id;
     await expireVips();
-    const [level, levels, xpSettings, vip, tiers, history, vipLog] = await Promise.all([
+    const [level, levels, xpSettings, vip, tiers, history, vipLog, daily] = await Promise.all([
       getLevelState(me),
       getLevels(),
       getXpSettings(),
@@ -34,9 +35,11 @@ router.get(
       getVipTiers(),
       levelHistory(me),
       vipHistory(me),
+      dailyPointsState(me),
     ]);
     res.json({
       level,
+      daily,
       levels: levels.filter((row) => row.is_active).map(serializeLevel),
       xpSettings,
       vip,

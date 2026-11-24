@@ -42,8 +42,23 @@ interface VipHistoryRow {
   created_at: string;
 }
 
+interface DailyPoints {
+  date: string;
+  earned: number;
+  cap: number;
+  remaining: number | null;
+  percent: number;
+  micMinutes: number;
+  micTargetMinutes: number;
+  micTaskPoints: number;
+  micMinutesToNext: number;
+  gamePlayPoints: number;
+  gameWinPoints: number;
+}
+
 interface LevelsResponse {
   level: LevelState;
+  daily: DailyPoints;
   levels: LevelRowInfo[];
   xpSettings: Record<string, number>;
   vip: VipInfo | null;
@@ -106,7 +121,7 @@ export default function Levels() {
     );
   }
 
-  const { level, levels, vip, tiers, xpSettings, history, vipHistory } = data;
+  const { level, daily, levels, vip, tiers, xpSettings, history, vipHistory } = data;
   const sources = [
     { label: t('xpDaily'), value: `${xpSettings.daily_activity ?? 0} XP` },
     { label: t('xpRecharge'), value: `${xpSettings.recharge_per_100 ?? 0} XP / 100 ${t('coins')}` },
@@ -159,6 +174,51 @@ export default function Levels() {
               {t('level')} {level.level}
             </span>
             <span>{level.nextLevel ? `${t('level')} ${level.nextLevel}` : t('maxLevel')}</span>
+          </div>
+        </section>
+
+        <section className="card daily-points-card">
+          <div className="section-head">
+            <h2 style={{ fontSize: 15 }}>{t('dailyPoints')}</h2>
+            <span className="tiny muted">
+              {daily.cap > 0
+                ? t('dailyPointsOf')
+                    .replace('{earned}', formatXp(daily.earned))
+                    .replace('{cap}', formatXp(daily.cap))
+                : `${formatXp(daily.earned)} • ${t('dailyPointsUnlimited')}`}
+            </span>
+          </div>
+          {daily.cap > 0 ? (
+            <>
+              <div
+                className="xp-track"
+                role="progressbar"
+                aria-valuenow={Math.round(daily.percent * 100)}
+                aria-valuemin={0}
+                aria-valuemax={100}
+              >
+                <div className="xp-fill" style={{ width: `${Math.round(daily.percent * 100)}%` }} />
+              </div>
+              <p className="tiny muted" style={{ marginTop: 6 }}>
+                {t('dailyPointsLeft').replace('{points}', formatXp(daily.remaining ?? 0))}
+              </p>
+            </>
+          ) : null}
+          <div className="xp-sources" style={{ marginTop: 10 }}>
+            <div className="xp-source">
+              <span className="tiny muted">{t('micTask')}</span>
+              <b>
+                {daily.micMinutesToNext} / {daily.micTargetMinutes} {t('minutes')} → {formatXp(daily.micTaskPoints)} XP
+              </b>
+            </div>
+            <div className="xp-source">
+              <span className="tiny muted">{t('gameTask')}</span>
+              <b>
+                {t('gameTaskPoints')
+                  .replace('{win}', `${formatXp(daily.gameWinPoints)} XP`)
+                  .replace('{play}', `${formatXp(daily.gamePlayPoints)} XP`)}
+              </b>
+            </div>
           </div>
         </section>
 

@@ -27,6 +27,11 @@ export const XP_SETTING_KEYS = [
   'chat_message',
   'chat_daily_cap',
   'achievement',
+  'daily_xp_cap',
+  'game_play',
+  'game_win',
+  'mic_task_minutes',
+  'mic_task_xp',
 ] as const;
 
 export interface LevelRow {
@@ -140,6 +145,11 @@ export async function getXpSettings(): Promise<Record<string, number>> {
     chat_message: 2,
     chat_daily_cap: 100,
     achievement: 100,
+    daily_xp_cap: 3000,
+    game_play: 20,
+    game_win: 60,
+    mic_task_minutes: 30,
+    mic_task_xp: 800,
   };
   for (const row of rows) map[row.key] = Number(row.value);
   return map;
@@ -291,16 +301,29 @@ export async function awardXp(
   );
   if (!current.rowCount) return { awarded: 0, levelUp: null, level: 1 };
 
-  if (kind === 'chat' && amount > 0) {
+  if (amount > 0) {
     const settings = await getXpSettings();
-    const cap = settings.chat_daily_cap ?? 0;
-    const today = await c.query<{ total: number }>(
-      `SELECT COALESCE(SUM(xp), 0)::int AS total FROM xp_events
-       WHERE user_id = $1 AND kind = 'chat'
-         AND (created_at AT TIME ZONE 'Asia/Baghdad')::date = $2::date`,
-      [userId, iraqDateStr()]
-    );
-    amount = Math.max(0, Math.min(amount, cap - Number(today.rows[0]?.total ?? 0)));
+    if (kind === 'chat') {
+      const cap = settings.chat_daily_cap ?? 0;
+      const today = await c.query<{ total: number }>(
+        `SELECT COALESCE(SUM(xp), 0)::int AS total FROM xp_events
+         WHERE user_id = $1 AND kind = 'chat'
+           AND (created_at AT TIME ZONE 'Asia/Baghdad')::date = $2::date`,
+        [userId, iraqDateStr()]
+      );
+      amount = Math.max(0, Math.min(amount, cap - Number(today.rows[0]?.total ?? 0)));
+    }
+    // Per-user daily points limit (Baghdad day). Admin grants are exempt.
+    const dailyCap = kind === 'admin' ? 0 : settings.daily_xp_cap ?? 0;
+    if (amount > 0 && dailyCap > 0) {
+      const today = await c.query<{ total: number }>(
+        `SELECT COALESCE(SUM(xp), 0)::int AS total FROM xp_events
+         WHERE user_id = $1 AND kind <> 'admin'
+           AND (created_at AT TIME ZONE 'Asia/Baghdad')::date = $2::date`,
+        [userId, iraqDateStr()]
+      );
+      amount = Math.max(0, Math.min(amount, dailyCap - Number(today.rows[0]?.total ?? 0)));
+    }
   }
   if (amount <= 0) {
     return { awarded: 0, levelUp: null, level: Number(current.rows[0].level) };
@@ -393,6 +416,87 @@ export async function awardDailyActivity(userId: string): Promise<void> {
   const xp = settings.daily_activity ?? 0;
   if (xp <= 0) return;
   await awardXpSafe({ userId, kind: 'daily', refId: iraqDateStr(), xp });
+}
+
+export interface DailyPointsState {
+  /** Baghdad day the numbers belong to (resets at midnight Baghdad time). */
+  date: string;
+  earned: number;
+  /** 0 means unlimited. */
+  cap: number;
+  remaining: number | null;
+  percent: number;
+  micMinutes: number;
+  micTargetMinutes: number;
+  micTaskPoints: number;
+  /** Minutes still needed for the next mic block. */
+  micMinutesToNext: number;
+  gamePlayPoints: number;
+  gameWinPoints: number;
+}
+
+/** Today's earned points, the daily limit and the progress of the daily tasks. */
+export async function dailyPointsState(userId: string): Promise<DailyPointsState> {
+  const settings = await getXpSettings();
+  const day = iraqDateStr();
+  const earnedRow = await one<{ total: string }>(
+    `SELECT COALESCE(SUM(xp), 0)::text AS total FROM xp_events
+      WHERE user_id = $1 AND kind <> 'admin'
+        AND (created_at AT TIME ZONE 'Asia/Baghdad')::date = $2::date`,
+    [userId, day]
+  );
+  const micRow = await one<{ minutes: string }>(
+    `SELECT count(*)::text AS minutes FROM room_xp_events
+      WHERE user_id = $1 AND kind = 'mic_minute'
+        AND (created_at AT TIME ZONE 'Asia/Baghdad')::date = $2::date`,
+    [userId, day]
+  );
+  const earned = Number(earnedRow?.total ?? 0);
+  const cap = Math.max(0, Math.trunc(settings.daily_xp_cap ?? 0));
+  const micMinutes = Number(micRow?.minutes ?? 0);
+  const micTarget = Math.max(1, Math.trunc(settings.mic_task_minutes ?? 30));
+  const inBlock = micMinutes % micTarget;
+  return {
+    date: day,
+    earned,
+    cap,
+    remaining: cap > 0 ? Math.max(0, cap - earned) : null,
+    percent: cap > 0 ? Math.min(1, Number((earned / cap).toFixed(4))) : 0,
+    micMinutes,
+    micTargetMinutes: micTarget,
+    micTaskPoints: Math.max(0, Math.trunc(settings.mic_task_xp ?? 0)),
+    micMinutesToNext: inBlock === 0 ? micTarget : micTarget - inBlock,
+    gamePlayPoints: Math.max(0, Math.trunc(settings.game_play ?? 0)),
+    gameWinPoints: Math.max(0, Math.trunc(settings.game_win ?? 0)),
+  };
+}
+
+/**
+ * Room task: each completed block of `mic_task_minutes` on a mic (per Baghdad
+ * day, counted from the server-credited mic minutes) pays `mic_task_xp` points
+ * once. The unique (user, kind, ref) index makes a retried tick count once.
+ */
+export async function awardMicTaskXp(userId: string): Promise<number> {
+  const settings = await getXpSettings();
+  const target = Math.max(1, Math.trunc(settings.mic_task_minutes ?? 30));
+  const points = Math.max(0, Math.trunc(settings.mic_task_xp ?? 0));
+  if (points <= 0) return 0;
+  const day = iraqDateStr();
+  const row = await one<{ minutes: string }>(
+    `SELECT count(*)::text AS minutes FROM room_xp_events
+      WHERE user_id = $1 AND kind = 'mic_minute'
+        AND (created_at AT TIME ZONE 'Asia/Baghdad')::date = $2::date`,
+    [userId, day]
+  );
+  const blocks = Math.floor(Number(row?.minutes ?? 0) / target);
+  let awarded = 0;
+  for (let block = 1; block <= blocks; block += 1) {
+    const result = await tx((c) =>
+      awardXp(c, { userId, kind: 'mic_task', refId: `${day}:${block}`, xp: points })
+    );
+    awarded += result.awarded;
+  }
+  return awarded;
 }
 
 export function xpForCoins(kind: 'recharge' | 'gift', coins: number, settings: Record<string, number>): number {
