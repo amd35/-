@@ -25,6 +25,8 @@
 - A room's public ID (`rooms.code`) is **the owner's account ID** — one number for the profile and the room.
   `schema.sql` re-syncs it at boot, and every username change (admin set-id, premium-ID purchase) updates the
   owner's rooms in the same transaction. `roomCode(uuid)` is only a fallback for ownerless admin rooms.
+- A room can instead own a **pinned ID** (`rooms.code_pinned = true`): the boot re-sync and the username-change
+  updates skip it, so one owner can run rooms `1`, `2`, `3`. Pinned IDs are set in the database only.
 
 ## Billing invariants (do not break)
 - Free attempts live in `daily_free_calls`, keyed by **Baghdad date** computed with `Intl` on the server.

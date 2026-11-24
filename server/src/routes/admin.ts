@@ -354,8 +354,11 @@ router.post(
     ]);
     if (taken) throw new HttpError(409, 'هذا الآي دي مستخدم من حساب آخر', 'code_taken');
     await q('UPDATE users SET username = $2 WHERE id = $1', [user.id, code]);
-    // The room's public ID is the owner's account ID — keep them identical.
-    await q('UPDATE rooms SET code = $2 WHERE COALESCE(owner_id, created_by) = $1', [user.id, code]);
+    // The room's public ID follows the owner's account ID, except pinned room IDs.
+    await q('UPDATE rooms SET code = $2 WHERE COALESCE(owner_id, created_by) = $1 AND code_pinned = false', [
+      user.id,
+      code,
+    ]);
     await notify(
       user.id,
       'account_id',

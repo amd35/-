@@ -797,10 +797,13 @@ ALTER TABLE rooms ADD COLUMN IF NOT EXISTS code text;
 -- The room's own profile picture (the round photo in the stage header); the
 -- cover behind the stage stays a separate image.
 ALTER TABLE rooms ADD COLUMN IF NOT EXISTS avatar_url text;
--- The room ID is always the owner's (or creator's) current account ID, so the
--- profile and the room never show two different numbers.
+-- The room ID follows the owner's (or creator's) current account ID, so the
+-- profile and the room never show two different numbers — unless the room ID was
+-- pinned on its own (code_pinned), e.g. rooms 2 and 3 of one owner.
+ALTER TABLE rooms ADD COLUMN IF NOT EXISTS code_pinned boolean NOT NULL DEFAULT false;
 UPDATE rooms r SET code = u.username FROM users u
-WHERE u.id = COALESCE(r.owner_id, r.created_by) AND r.code IS DISTINCT FROM u.username;
+WHERE u.id = COALESCE(r.owner_id, r.created_by) AND r.code_pinned = false
+  AND r.code IS DISTINCT FROM u.username;
 
 -- Delegated room staff: 'admin' runs the room, 'supervisor' moderates mics and chat.
 CREATE TABLE IF NOT EXISTS room_roles (
