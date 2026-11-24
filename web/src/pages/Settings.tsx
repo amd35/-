@@ -9,7 +9,7 @@ import { formatCoins, formatCountdown, Icon, Sheet, useCountdown, useToast } fro
 import { AppShell } from '../components/AppShell';
 import { GiftCodeSheet } from '../components/GiftCodeSheet';
 
-type SheetKind = 'gift' | 'password' | 'privacy' | 'calls' | 'support' | 'about' | 'delete' | 'admin' | null;
+type SheetKind = 'gift' | 'password' | 'privacy' | 'calls' | 'support' | 'about' | 'delete' | null;
 
 export default function Settings() {
   const { me, refresh, logout } = useAuth();
@@ -20,7 +20,6 @@ export default function Settings() {
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [deletePassword, setDeletePassword] = useState('');
-  const [adminPassword, setAdminPassword] = useState('');
   const [busy, setBusy] = useState(false);
   const isAdmin = Boolean(me?.user.isAdmin);
   const free = me?.freeCalls;
@@ -85,21 +84,6 @@ export default function Settings() {
       await api('/auth/me', { method: 'DELETE', body: { password: deletePassword } });
       logout();
       navigate('/welcome', { replace: true });
-    } catch (error) {
-      toast.push((error as Error).message, 'error');
-    } finally {
-      setBusy(false);
-    }
-  };
-
-  const enableAdminMode = async () => {
-    setBusy(true);
-    try {
-      await api('/auth/admin-mode', { method: 'POST', body: { password: adminPassword } });
-      await refresh();
-      setAdminPassword('');
-      setSheet(null);
-      toast.push(lang === 'ar' ? 'تم تفعيل وضع الأدمن' : 'Admin mode enabled', 'success');
     } catch (error) {
       toast.push((error as Error).message, 'error');
     } finally {
@@ -314,22 +298,7 @@ export default function Settings() {
                 <Icon name="arrowLeft" size={17} />
               </div>
             </>
-          ) : (
-            <div className="row" onClick={() => setSheet('admin')}>
-              <Icon name="lock" size={19} />
-              <div className="row-main">
-                <div className="row-title">
-                  {lang === 'ar' ? 'تفعيل وضع الأدمن' : 'Enable admin mode'}
-                </div>
-                <div className="row-sub">
-                  {lang === 'ar'
-                    ? 'أدخل كلمة سر الأدمن لإدارة كل شيء من داخل التطبيق'
-                    : 'Enter the admin password to manage everything in the app'}
-                </div>
-              </div>
-              <Icon name="arrowLeft" size={17} />
-            </div>
-          )}
+          ) : null}
         </section>
 
         <section className="list">
@@ -421,37 +390,6 @@ export default function Settings() {
         <p className="tiny muted" style={{ lineHeight: 1.9 }}>
           {t('aboutBody')}
         </p>
-      </Sheet>
-
-      <Sheet
-        open={sheet === 'admin'}
-        onClose={() => setSheet(null)}
-        title={lang === 'ar' ? 'وضع الأدمن' : 'Admin mode'}
-      >
-        <div className="stack">
-          <p className="tiny muted" style={{ lineHeight: 1.9 }}>
-            {lang === 'ar'
-              ? 'أدخل كلمة سر لوحة التحكم مرة واحدة ليصبح هذا الحساب أدمن داخل التطبيق: إدارة المستخدمين والرسائل والصلاحيات بدون فتح اللوحة.'
-              : 'Enter the panel password once so this account becomes an in-app admin: manage users, messages and powers without opening the panel.'}
-          </p>
-          <div className="field">
-            <label>{t('password')}</label>
-            <input
-              className="input"
-              type="password"
-              value={adminPassword}
-              onChange={(event) => setAdminPassword(event.target.value)}
-              dir="ltr"
-            />
-          </div>
-          <button
-            className="btn btn-primary btn-block"
-            onClick={() => void enableAdminMode()}
-            disabled={busy || !adminPassword}
-          >
-            {lang === 'ar' ? 'تفعيل' : 'Enable'}
-          </button>
-        </div>
       </Sheet>
 
       <Sheet open={sheet === 'delete'} onClose={() => setSheet(null)} title={t('deleteAccount')}>
