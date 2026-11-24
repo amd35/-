@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { reqUser, requireAuth } from '../auth';
-import { buyRoomAd, listRoomAds } from '../roomAds';
+import { RANDOM_GIFT_PRICE, buyRandomGift, buyRoomAd, listRoomAds } from '../roomAds';
 import { asyncHandler } from '../utils';
 
 const router = Router();
@@ -11,7 +11,17 @@ router.get(
   requireAuth(),
   asyncHandler(async (_req, res) => {
     const ads = await listRoomAds();
-    res.json({ ads });
+    res.json({ ads, randomGift: { price: RANDOM_GIFT_PRICE } });
+  })
+);
+
+/** Opens the «هدية عشوائية» box inside the daily store. */
+router.post(
+  '/random-gift',
+  requireAuth(),
+  asyncHandler(async (req, res) => {
+    const outcome = await buyRandomGift(reqUser(req).id, req.body?.requestId);
+    res.status(201).json(outcome);
   })
 );
 

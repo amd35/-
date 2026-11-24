@@ -153,6 +153,9 @@
   `transactions.type = 'room_ad_gift'`; a retried tap can never charge twice.
 - `GET /api/room-ads` rotates the list by **Baghdad day** (`dayIndex % active ads`), so a different gift is
   featured every day and no gift repeats until every active ad has had its turn. Duplicate gifts are listed once.
+- The same sheet sells a «هدية عشوائية» mystery box for a fixed `RANDOM_GIFT_PRICE` (500): `POST /api/room-ads/random-gift`
+  charges once, picks a random active gift priced at most 4× the box price and drops it into `gift_bag`. It reuses
+  `room_ad_purchases` with `ad_id = NULL` as its idempotency ledger.
 - Admin: `/admin` → «إعلانات الغرفة 📢» (`GET/POST/PATCH/DELETE /api/admin/room-ads`).
 
 ## Country-flag gifts (أعلام الدول)

@@ -155,6 +155,86 @@ export async function buyRoomAd(userId: string, adId: string, rawRequestId: unkn
   };
 }
 
+/** «هدية عشوائية»: the mystery box sold inside the daily store. */
+export const RANDOM_GIFT_PRICE = 500;
+
+/**
+ * Opens the random-gift box: charges the box price once and drops a random
+ * active gift (at most four times the box price, so the box stays a bargain and
+ * never pays out a jackpot) into the caller's bag.
+ */
+export async function buyRandomGift(userId: string, rawRequestId: unknown) {
+  const requestId = String(rawRequestId ?? '').trim().slice(0, 80);
+  if (requestId.length < 8) throw new HttpError(400, 'Missing request id', 'invalid_request');
+  const price = RANDOM_GIFT_PRICE;
+
+  const outcome = await tx(async (c) => {
+    const pool = await c.query<{ id: string; name: string }>(
+      'SELECT id, name FROM gifts WHERE is_active = true AND price <= $1 ORDER BY random() LIMIT 1',
+      [price * 4]
+    );
+    const gift =
+      pool.rows[0] ??
+      (
+        await c.query<{ id: string; name: string }>(
+          'SELECT id, name FROM gifts WHERE is_active = true ORDER BY random() LIMIT 1'
+        )
+      ).rows[0];
+    if (!gift) throw new HttpError(409, 'No gifts available', 'no_gifts');
+
+    // ad_id stays NULL: this purchase belongs to the box, not to a banner ad.
+    const created = await c.query(
+      `INSERT INTO room_ad_purchases (request_id, ad_id, user_id, gift_id, price)
+       VALUES ($1, NULL, $2, $3, $4)
+       ON CONFLICT (request_id) DO NOTHING
+       RETURNING *`,
+      [requestId, userId, gift.id, price]
+    );
+    if (!created.rowCount) {
+      const existing = await c.query(
+        'SELECT * FROM room_ad_purchases WHERE request_id = $1 AND user_id = $2',
+        [requestId, userId]
+      );
+      if (!existing.rowCount) {
+        throw new HttpError(409, 'This request was already used', 'duplicate_request');
+      }
+      const name = await c.query<{ name: string }>('SELECT name FROM gifts WHERE id = $1', [
+        existing.rows[0].gift_id,
+      ]);
+      return { purchase: existing.rows[0], duplicate: true, giftName: name.rows[0]?.name ?? '' };
+    }
+    const purchase = created.rows[0];
+
+    const charge = await moveCoins(c, {
+      userId,
+      amount: -price,
+      type: 'room_ad_gift',
+      refType: 'random_gift',
+      refId: purchase.id,
+      meta: { giftId: gift.id, giftName: gift.name },
+    });
+    if (!charge.applied) {
+      throw new HttpError(409, 'This purchase was already processed', 'duplicate_request');
+    }
+
+    await addToBag(c, userId, gift.id, 1);
+    return { purchase, duplicate: false, giftName: gift.name };
+  });
+
+  const [wallet, quantity] = await Promise.all([
+    one<{ balance: number }>('SELECT balance FROM wallets WHERE user_id = $1', [userId]),
+    bagQuantity(userId, outcome.purchase.gift_id as string),
+  ]);
+  if (!outcome.duplicate) emitToUser(userId, 'wallet:update', {});
+
+  return {
+    duplicate: outcome.duplicate,
+    giftName: outcome.giftName,
+    balance: Number(wallet?.balance || 0),
+    bagQuantity: quantity,
+  };
+}
+
 /* ------------------------------------------------------------------ admin */
 
 export async function adminRoomAdsOverview() {
