@@ -45,8 +45,10 @@ END;
 $$ LANGUAGE plpgsql;
 
 ALTER TABLE users ALTER COLUMN username SET DEFAULT generate_user_code();
+-- 1 to 12 digits: generated codes are 6-8 digits, while a premium ID (sold in
+-- the store or set by an admin) may be shorter, e.g. "1", and must survive a boot.
 UPDATE users SET username = generate_user_code()
-WHERE is_bot = false AND username !~ '^[0-9]{6,8}$';
+WHERE is_bot = false AND username !~ '^[0-9]{1,12}$';
 DROP SEQUENCE IF EXISTS user_code_seq;
 
 -- Public profile data, exposed as a view over `users` so there is a single source of truth.
