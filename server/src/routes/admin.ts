@@ -1500,6 +1500,15 @@ function readGiftBody(body: Record<string, unknown>): Partial<GiftRow> {
   }
   if (body.isActive !== undefined) out.is_active = Boolean(body.isActive);
   if (body.isDaily !== undefined) out.is_daily = Boolean(body.isDaily);
+  // The admin picks the currency of this specific gift: diamonds by default,
+  // gold only for the gifts he marks here.
+  if (body.currency !== undefined) {
+    const currency = String(body.currency).toLowerCase();
+    if (currency !== 'diamond' && currency !== 'gold') {
+      throw new HttpError(400, 'Invalid gift currency', 'invalid_gift');
+    }
+    out.currency = currency;
+  }
   if (body.sortOrder !== undefined) out.sort_order = Math.round(Number(body.sortOrder)) || 0;
   return out;
 }
@@ -1563,8 +1572,8 @@ router.post(
     const created = await one<GiftRow>(
       `INSERT INTO gifts
          (slug, name, name_en, description, design, video_url, cover_url, price,
-          recipient_percent, rarity, is_active, sort_order, host_percent, is_daily)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
+          recipient_percent, rarity, is_active, sort_order, host_percent, is_daily, currency)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
        ON CONFLICT (slug) DO NOTHING
        RETURNING *`,
       [
@@ -1582,6 +1591,7 @@ router.post(
         fields.sort_order ?? 0,
         fields.host_percent ?? null,
         fields.is_daily ?? false,
+        fields.currency ?? 'diamond',
       ]
     );
     if (!created) throw new HttpError(409, 'A gift with this slug already exists', 'gift_slug_taken');
@@ -1603,7 +1613,7 @@ router.patch(
       `UPDATE gifts SET
          name = $2, name_en = $3, description = $4, design = $5, video_url = $6,
          cover_url = $7, price = $8, recipient_percent = $9, rarity = $10,
-         is_active = $11, sort_order = $12, host_percent = $13, is_daily = $14
+         is_active = $11, sort_order = $12, host_percent = $13, is_daily = $14, currency = $15
        WHERE id = $1 RETURNING *`,
       [
         existing.id,
@@ -1620,6 +1630,7 @@ router.patch(
         merged.sort_order,
         merged.host_percent,
         merged.is_daily,
+        merged.currency === 'gold' ? 'gold' : 'diamond',
       ]
     );
     res.json({ gift: updated ? serializeGift(updated) : null });

@@ -18,6 +18,8 @@ interface AdminGift {
   rarity: string;
   isActive: boolean;
   isDaily: boolean;
+  /** `diamond` (default) or `gold` — only the admin picks it, per gift. */
+  currency: string;
   sortOrder: number;
   sends: number;
   revenue: number;
@@ -65,6 +67,7 @@ const EMPTY_FORM = {
   sortOrder: 0,
   isActive: true,
   isDaily: false,
+  currency: 'diamond' as 'diamond' | 'gold',
 };
 
 export default function GiftsTab() {
@@ -106,6 +109,7 @@ export default function GiftsTab() {
       sortOrder: gift.sortOrder,
       isActive: gift.isActive,
       isDaily: Boolean(gift.isDaily),
+      currency: gift.currency === 'gold' ? 'gold' : 'diamond',
     });
   };
 
@@ -133,6 +137,7 @@ export default function GiftsTab() {
         sortOrder: Number(form.sortOrder),
         isActive: form.isActive,
         isDaily: form.isDaily,
+        currency: form.currency,
       };
       if (form.id) {
         await api(`/admin/gifts/${form.id}`, { method: 'PATCH', admin: true, body });
@@ -269,7 +274,7 @@ export default function GiftsTab() {
               onChange={(event) => setForm({ ...form, nameEn: event.target.value })}
             />
           </Field>
-          <Field label="السعر بالكونز">
+          <Field label="السعر" hint="يُخصم بالعملة المختارة أدناه">
             <input
               className="input"
               type="number"
@@ -278,6 +283,21 @@ export default function GiftsTab() {
               value={form.price}
               onChange={(event) => setForm({ ...form, price: Number(event.target.value) })}
             />
+          </Field>
+          <Field
+            label="عملة الهدية"
+            hint="الماس للهدايا — اختر الذهب فقط للهدايا المحددة التي تريد بيعها بالذهب"
+          >
+            <select
+              className="select"
+              value={form.currency}
+              onChange={(event) =>
+                setForm({ ...form, currency: event.target.value === 'gold' ? 'gold' : 'diamond' })
+              }
+            >
+              <option value="diamond">ماس 💎</option>
+              <option value="gold">ذهب 🥇</option>
+            </select>
           </Field>
           <Field label="نسبة أرباح المستلم %" hint="اتركها فارغة لاستخدام النسبة العامة من إعدادات الأسعار">
             <input
@@ -463,7 +483,9 @@ export default function GiftsTab() {
                     {gift.slug}
                   </div>
                 </td>
-                <td className="amount">{formatCoins(gift.price)}</td>
+                <td className="amount">
+                  {formatCoins(gift.price)} {gift.currency === 'gold' ? '🥇' : '💎'}
+                </td>
                 <td className="tiny" dir="ltr">
                   {gift.recipientPercent === null ? 'افتراضي' : `${gift.recipientPercent}%`}
                 </td>

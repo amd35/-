@@ -24,6 +24,8 @@ export interface GiftItem extends Omit<GiftVisual, 'price' | 'rarity'> {
   isActive: boolean;
   /** Shown in the «هدايا اليوم» limited section — one list for every room. */
   isDaily?: boolean;
+  /** Set by the admin: `gold` for the gifts he priced in gold, else diamonds. */
+  currency?: string | null;
   sortOrder: number;
 }
 
@@ -88,8 +90,6 @@ export function GiftShop({
   const [packages, setPackages] = useState<GiftPackageInfo[]>([]);
   const [balance, setBalance] = useState(0);
   const [goldBalance, setGoldBalance] = useState(0);
-  const [goldGiftsEnabled, setGoldGiftsEnabled] = useState(false);
-  const [currency, setCurrency] = useState<'diamond' | 'gold'>('diamond');
   const [defaultPercent, setDefaultPercent] = useState(60);
   const [loading, setLoading] = useState(false);
   const [selected, setSelected] = useState<GiftItem | null>(null);
@@ -111,14 +111,12 @@ export function GiftShop({
         goldBalance: number;
         defaultRecipientPercent: number;
         giftsEnabled: boolean;
-        goldGiftsEnabled: boolean;
       }>('/gifts');
       setGifts(response.gifts);
       setBag(response.bag ?? []);
       setPackages(response.packages ?? []);
       setBalance(response.balance);
       setGoldBalance(response.goldBalance ?? 0);
-      setGoldGiftsEnabled(Boolean(response.goldGiftsEnabled));
       setDefaultPercent(response.defaultRecipientPercent);
     } catch (error) {
       toast.push((error as Error).message, 'error');
@@ -137,7 +135,10 @@ export function GiftShop({
     void load();
   }, [open, load]);
 
-  const activeBalance = currency === 'gold' ? goldBalance : balance;
+  // The gift's own currency decides the wallet: gold only for the gifts the
+  // admin marked as gold, diamonds for everything else.
+  const payCurrency: 'diamond' | 'gold' = selected?.currency === 'gold' ? 'gold' : 'diamond';
+  const activeBalance = payCurrency === 'gold' ? goldBalance : balance;
   const bagTotal = bag.reduce((sum, item) => sum + item.quantity, 0);
   const bagLeft = selected ? bag.find((item) => item.id === selected.id)?.quantity ?? 0 : 0;
 
@@ -193,7 +194,7 @@ export function GiftShop({
           giftId: selected.id,
           conversationId,
           requestId: requestRef.current,
-          currency: fromBag ? 'diamond' : currency,
+          currency: fromBag ? 'diamond' : payCurrency,
           fromBag,
         },
       });
@@ -206,7 +207,7 @@ export function GiftShop({
             )
             .filter((item) => item.quantity > 0)
         );
-      } else if (currency === 'gold') {
+      } else if (payCurrency === 'gold') {
         setGoldBalance(response.balance ?? goldBalance - selected.price);
       } else {
         setBalance(response.balance ?? balance - selected.price);
@@ -243,7 +244,7 @@ export function GiftShop({
           )}
           <span className="spacer" />
           <span className="pill pill-gold">
-            <CurrencyIcon code={currency === 'gold' && !fromBag ? 'GOLD' : 'DIAMOND'} size={13} />{' '}
+            <CurrencyIcon code={payCurrency === 'gold' && !fromBag ? 'GOLD' : 'DIAMOND'} size={13} />{' '}
             {formatCoins(fromBag ? bagLeft : activeBalance)}
           </span>
         </div>
@@ -262,17 +263,6 @@ export function GiftShop({
             <button className={tab === 'bag' ? 'active' : ''} onClick={() => switchTab('bag')}>
               {t('giftTabBag')}
               {bagTotal > 0 ? ` · ${bagTotal}` : ''}
-            </button>
-          </div>
-        ) : null}
-
-        {goldGiftsEnabled && !fromBag && tab === 'gifts' && !selected ? (
-          <div className="seg" style={{ marginBottom: 10 }}>
-            <button className={currency === 'diamond' ? 'active' : ''} onClick={() => setCurrency('diamond')}>
-              الماس
-            </button>
-            <button className={currency === 'gold' ? 'active' : ''} onClick={() => setCurrency('gold')}>
-              الذهب
             </button>
           </div>
         ) : null}
@@ -306,7 +296,7 @@ export function GiftShop({
                   <div>
                     <span className="tiny muted">{t('giftPrice')}</span>
                     <b className="amount">
-                      <CurrencyIcon code={currency === 'gold' ? 'GOLD' : 'DIAMOND'} size={14} /> {formatCoins(selected.price)}
+                      <CurrencyIcon code={payCurrency === 'gold' ? 'GOLD' : 'DIAMOND'} size={14} /> {formatCoins(selected.price)}
                     </b>
                   </div>
                   <div>
@@ -320,15 +310,21 @@ export function GiftShop({
               <p className="tiny muted">{t('giftToPeer', { name: peerName })}</p>
             </div>
             {!fromBag && activeBalance < selected.price ? (
-              <button
-                className="btn btn-gold btn-block"
-                onClick={() => {
-                  onClose();
-                  navigate('/wallet');
-                }}
-              >
-                <Icon name="plus" size={16} /> {t('buyCoins')}
-              </button>
+              payCurrency === 'gold' ? (
+                <button className="btn btn-gold btn-block" disabled>
+                  <CurrencyIcon code="GOLD" size={15} /> رصيد الذهب غير كافٍ
+                </button>
+              ) : (
+                <button
+                  className="btn btn-gold btn-block"
+                  onClick={() => {
+                    onClose();
+                    navigate('/wallet');
+                  }}
+                >
+                  <Icon name="plus" size={16} /> {t('buyCoins')}
+                </button>
+              )
             ) : (
               <button
                 className="btn btn-primary btn-block gift-send-btn"
@@ -358,8 +354,8 @@ export function GiftShop({
         ) : (
           <GiftCatalog
             gifts={gifts}
-            balance={activeBalance}
-            currency={currency}
+            balance={balance}
+            goldBalance={goldBalance}
             category={category}
             onCategoryChange={setCategory}
             onSelect={(gift) => {

@@ -15,6 +15,8 @@ export interface CatalogGift {
   coverUrl?: string | null;
   rarity: string;
   price: number;
+  /** `gold` only for the gifts the admin priced in gold; diamonds otherwise. */
+  currency?: string | null;
 }
 
 export type GiftCategory = 'legendary' | 'vip' | 'epic' | 'common' | 'rare' | 'flags';
@@ -44,16 +46,16 @@ const GIFT_SECTIONS: { key: GiftCategory; label: string }[] = [
 export function GiftCatalog<T extends CatalogGift>({
   gifts,
   balance,
-  currency,
+  goldBalance,
   category,
   onCategoryChange,
   selectedId,
   onSelect,
 }: {
   gifts: T[];
-  /** Balance of the currency the sheet is charging in. */
+  /** Diamond balance — gifts the admin priced in gold use `goldBalance`. */
   balance: number;
-  currency: 'diamond' | 'gold';
+  goldBalance: number;
   category: GiftCategory;
   onCategoryChange: (category: GiftCategory) => void;
   selectedId?: string | null;
@@ -115,9 +117,9 @@ export function GiftCatalog<T extends CatalogGift>({
           <button
             key={gift.id}
             type="button"
-            className={`gift-card ${balance < gift.price ? 'locked' : ''} ${
-              selectedId === gift.id ? 'selected' : ''
-            }`}
+            className={`gift-card ${
+              (gift.currency === 'gold' ? goldBalance : balance) < gift.price ? 'locked' : ''
+            } ${selectedId === gift.id ? 'selected' : ''}`}
             onClick={() => onSelect(gift)}
           >
             <span className={`gift-rarity-pill rarity-${gift.rarity}`}>
@@ -130,7 +132,7 @@ export function GiftCatalog<T extends CatalogGift>({
             )}
             <span className="gift-card-name">{gift.name}</span>
             <span className="gift-card-price">
-              <CurrencyIcon code={currency === 'gold' ? 'GOLD' : 'DIAMOND'} size={12} />{' '}
+              <CurrencyIcon code={gift.currency === 'gold' ? 'GOLD' : 'DIAMOND'} size={12} />{' '}
               {formatCoins(gift.price)}
             </span>
           </button>

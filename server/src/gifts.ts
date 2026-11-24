@@ -18,6 +18,8 @@ export interface GiftRow {
   is_active: boolean;
   /** Shown in the «هدايا اليوم» limited section of the room gift shop. */
   is_daily: boolean;
+  /** `diamond` (default) or `gold` — set by the admin per gift. */
+  currency: string;
   sort_order: number;
   created_at: string;
 }
@@ -40,6 +42,7 @@ export function serializeGift(row: GiftRow) {
     rarity: row.rarity,
     isActive: row.is_active,
     isDaily: row.is_daily,
+    currency: row.currency === 'gold' ? 'gold' : 'diamond',
     sortOrder: row.sort_order,
     createdAt: row.created_at,
   };

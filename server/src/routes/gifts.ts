@@ -306,16 +306,9 @@ router.post(
     const giftId = String(req.body?.giftId || '');
     const conversationId = String(req.body?.conversationId || '');
     const requestId = String(req.body?.requestId || '').trim().slice(0, 80);
-    const currency = String(req.body?.currency || 'diamond').toLowerCase();
     // Sending an owned gift from «جنطة الهدايا» costs nothing: the package
     // recharge already paid for it, so a copy is taken from the bag instead.
     const fromBag = req.body?.fromBag === true;
-    if (!(GIFT_CURRENCIES as readonly string[]).includes(currency)) {
-      throw new HttpError(400, 'Unsupported gift currency', 'invalid_currency');
-    }
-    if (currency === 'gold' && !settings.gold_gifts_enabled) {
-      throw new HttpError(403, 'Gold gifts are disabled', 'gold_gifts_disabled');
-    }
     if (!giftId || !conversationId) {
       throw new HttpError(400, 'Gift and conversation are required', 'invalid_gift');
     }
@@ -356,6 +349,11 @@ router.post(
       );
       const gift = giftResult.rows[0];
       if (!gift) throw new HttpError(404, 'Gift not found', 'gift_not_found');
+      // The admin prices each gift: diamonds unless he marked this one as gold.
+      const currency = gift.currency === 'gold' ? 'gold' : 'diamond';
+      if (currency === 'gold' && !settings.gold_gifts_enabled) {
+        throw new HttpError(403, 'Gold gifts are disabled', 'gold_gifts_disabled');
+      }
 
       const { recipientPercent, hostPercent, adminPercent } = splitGift(gift, settings, false);
       const price = Number(gift.price);
@@ -572,8 +570,11 @@ router.post(
     res.status(201).json({
       duplicate: false,
       message: { ...payload, mine: true },
-      currency,
-      balance: currency === 'gold' ? Number(senderWallet?.gold || 0) : Number(senderWallet?.balance || 0),
+      currency: String(outcome.send.currency || 'diamond'),
+      balance:
+        outcome.send.currency === 'gold'
+          ? Number(senderWallet?.gold || 0)
+          : Number(senderWallet?.balance || 0),
       recipientCoins: Number(outcome.send.recipient_coins),
       adminCoins: Number(outcome.send.admin_coins),
       fromBag,

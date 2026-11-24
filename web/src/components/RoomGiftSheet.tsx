@@ -102,8 +102,6 @@ export function RoomGiftSheet({
   const [gifts, setGifts] = useState<GiftItem[]>([]);
   const [balance, setBalance] = useState(0);
   const [goldBalance, setGoldBalance] = useState(0);
-  const [goldGiftsEnabled, setGoldGiftsEnabled] = useState(false);
-  const [currency, setCurrency] = useState<'diamond' | 'gold'>('diamond');
   const [tab, setTab] = useState<'gifts' | 'daily' | 'bag' | 'lucky'>('gifts');
   const [bag, setBag] = useState<BagGiftItem[]>([]);
   const [fromBag, setFromBag] = useState(false);
@@ -136,7 +134,6 @@ export function RoomGiftSheet({
         bag?: BagGiftItem[];
         balance: number;
         goldBalance: number;
-        goldGiftsEnabled: boolean;
         luckyGift?: LuckyGiftInfo;
         dailyGifts?: GiftItem[];
         dailyResetsAt?: string;
@@ -146,7 +143,6 @@ export function RoomGiftSheet({
       setBag(response.bag ?? []);
       setBalance(response.balance);
       setGoldBalance(response.goldBalance ?? 0);
-      setGoldGiftsEnabled(Boolean(response.goldGiftsEnabled));
       setLucky(response.luckyGift ?? null);
       setDailyGifts(response.dailyGifts ?? []);
       setDailyResetsAt(response.dailyResetsAt ?? null);
@@ -178,7 +174,10 @@ export function RoomGiftSheet({
     return () => window.clearInterval(timer);
   }, [open, tab]);
 
-  const activeBalance = currency === 'gold' ? goldBalance : balance;
+  // The gift's own currency decides the wallet: gold only for the gifts the
+  // admin marked as gold, diamonds for everything else.
+  const payCurrency: 'diamond' | 'gold' = selected?.currency === 'gold' ? 'gold' : 'diamond';
+  const activeBalance = payCurrency === 'gold' ? goldBalance : balance;
   const dailyRemaining = Math.max(
     0,
     (dailyResetsAt ? new Date(dailyResetsAt).getTime() : 0) - clock
@@ -216,7 +215,7 @@ export function RoomGiftSheet({
           recipientId,
           requestId: requestRef.current,
           quantity,
-          currency: fromBag ? 'diamond' : currency,
+          currency: fromBag ? 'diamond' : payCurrency,
           fromBag,
         },
       });
@@ -232,7 +231,7 @@ export function RoomGiftSheet({
         );
       } else {
         nextBalance = activeBalance - selected.price * quantity;
-        if (currency === 'gold') {
+        if (payCurrency === 'gold') {
           setGoldBalance(nextBalance);
         } else {
           setBalance(nextBalance);
@@ -250,7 +249,7 @@ export function RoomGiftSheet({
         response.message,
         fromBag
           ? undefined
-          : { gift: selected, recipient, quantity, currency, balance: nextBalance }
+          : { gift: selected, recipient, quantity, currency: payCurrency, balance: nextBalance }
       );
       setSelected(null);
       onClose();
@@ -262,7 +261,7 @@ export function RoomGiftSheet({
   }, [
     activeBalance,
     bag,
-    currency,
+    payCurrency,
     fromBag,
     onClose,
     onSent,
@@ -379,8 +378,8 @@ export function RoomGiftSheet({
           <span className="tiny muted">{tab === 'lucky' ? 'هدايا الحظ' : t('roomGiftTo')}</span>
           <span className="spacer" />
           <span className="pill pill-gold">
-            <CurrencyIcon code={currency === 'gold' && tab === 'gifts' ? 'GOLD' : 'DIAMOND'} size={13} />{' '}
-            {formatCoins(tab === 'gifts' && currency === 'gold' ? goldBalance : balance)}
+            <CurrencyIcon code={payCurrency === 'gold' ? 'GOLD' : 'DIAMOND'} size={13} />{' '}
+            {formatCoins(activeBalance)}
           </span>
         </div>
 
@@ -466,17 +465,6 @@ export function RoomGiftSheet({
           </div>
         ) : (
           <>
-            {goldGiftsEnabled && tab === 'gifts' ? (
-              <div className="seg" style={{ marginBottom: 10 }}>
-                <button className={currency === 'diamond' ? 'active' : ''} onClick={() => setCurrency('diamond')}>
-                  الماس
-                </button>
-                <button className={currency === 'gold' ? 'active' : ''} onClick={() => setCurrency('gold')}>
-                  الذهب
-                </button>
-              </div>
-            ) : null}
-
             {speakers.length === 0 ? (
               <p className="tiny muted center">{t('roomNoSpeakers')}</p>
             ) : (
@@ -584,9 +572,9 @@ export function RoomGiftSheet({
                     <button
                       key={gift.id}
                       type="button"
-                      className={`gift-card ${balance < gift.price ? 'locked' : ''} ${
-                        selected?.id === gift.id && !fromBag ? 'selected' : ''
-                      }`}
+                      className={`gift-card ${
+                        (gift.currency === 'gold' ? goldBalance : balance) < gift.price ? 'locked' : ''
+                      } ${selected?.id === gift.id && !fromBag ? 'selected' : ''}`}
                       onClick={() => {
                         setSelected(gift);
                         setFromBag(false);
@@ -596,7 +584,8 @@ export function RoomGiftSheet({
                       <GiftCover gift={gift} className="gift-card-art" />
                       <span className="gift-card-name">{gift.name}</span>
                       <span className="gift-card-price">
-                        <CurrencyIcon code="DIAMOND" size={12} /> {formatCoins(gift.price)}
+                        <CurrencyIcon code={gift.currency === 'gold' ? 'GOLD' : 'DIAMOND'} size={12} />{' '}
+                        {formatCoins(gift.price)}
                       </span>
                     </button>
                   ))}
@@ -611,8 +600,8 @@ export function RoomGiftSheet({
             ) : (
               <GiftCatalog
                 gifts={gifts}
-                balance={activeBalance}
-                currency={currency}
+                balance={balance}
+                goldBalance={goldBalance}
                 category={category}
                 onCategoryChange={setCategory}
                 selectedId={selected?.id}

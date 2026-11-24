@@ -29,6 +29,11 @@
   updates skip it, so one owner can run rooms `1`, `2`, `3`. Pinned IDs are set in the database only.
 
 ## Billing invariants (do not break)
+- Currency split: **gold is the games currency** (`game_settings.entry_fee`, `gold_transactions`),
+  **diamonds are the gifts currency**. Gold is only credited by the admin/agents, never bought in the app.
+- `gifts.currency` (`diamond` default | `gold`) is set **per gift by the admin only** (Gifts tab → «عملة الهدية»);
+  the sender cannot choose. `POST /gifts/send` and `POST /rooms/:id/gifts` ignore any client `currency`
+  and charge the gift's own currency (`moveGold` vs `moveCoins`), still gated by the `gold_gifts_enabled` master switch.
 - Free attempts live in `daily_free_calls`, keyed by **Baghdad date** computed with `Intl` on the server.
   `free_call_uses.call_id` is a primary key, so one attempt can never be linked to two calls.
 - Coins are reserved **per minute** in `call_sessions` at accept and at each 60 s boundary; settlement

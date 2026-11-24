@@ -2058,6 +2058,11 @@ CREATE INDEX IF NOT EXISTS login_reward_claims_user_idx ON login_reward_claims (
 -- admin can move any gift in or out of the daily section without a deploy.
 ALTER TABLE gifts ADD COLUMN IF NOT EXISTS is_daily boolean NOT NULL DEFAULT false;
 
+-- «الماس للهدايا والذهب للألعاب»: every gift is priced in diamonds unless the
+-- admin prices that specific gift in gold from the gifts tab. The sender can
+-- never pick the currency, so gold only reaches a gift the admin chose.
+ALTER TABLE gifts ADD COLUMN IF NOT EXISTS currency text NOT NULL DEFAULT 'diamond';
+
 -- One free daily gift per user per Baghdad day. The primary key is the idempotency
 -- guard, so a double tap can never hand out two gifts.
 CREATE TABLE IF NOT EXISTS daily_gift_claims (

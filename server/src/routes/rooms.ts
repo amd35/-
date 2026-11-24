@@ -371,16 +371,9 @@ router.post(
     // One send can carry several copies of the same gift (1 … 2000).
     const quantity = Math.min(2000, Math.max(1, Math.trunc(Number(req.body?.quantity) || 1)));
     if (recipientId === me) throw new HttpError(400, 'You cannot gift yourself', 'invalid_recipient');
-    const currency = String(req.body?.currency || 'diamond').toLowerCase();
     // «جنطة الهدايا»: sending an owned gift takes copies from the bag instead of
     // charging the sender, because the package recharge already paid for them.
     const fromBag = req.body?.fromBag === true;
-    if (currency !== 'diamond' && currency !== 'gold') {
-      throw new HttpError(400, 'Unsupported gift currency', 'invalid_currency');
-    }
-    if (currency === 'gold' && !settings.gold_gifts_enabled) {
-      throw new HttpError(403, 'Gold gifts are disabled', 'gold_gifts_disabled');
-    }
 
     const outcome = await tx(async (c) => {
       const seat = await c.query('SELECT 1 FROM room_mics WHERE room_id = $1 AND user_id = $2 LIMIT 1', [
@@ -396,6 +389,11 @@ router.post(
       ]);
       const gift = giftResult.rows[0];
       if (!gift) throw new HttpError(404, 'Gift not found', 'gift_not_found');
+      // The admin prices each gift: diamonds unless he marked this one as gold.
+      const currency = gift.currency === 'gold' ? 'gold' : 'diamond';
+      if (currency === 'gold' && !settings.gold_gifts_enabled) {
+        throw new HttpError(403, 'Gold gifts are disabled', 'gold_gifts_disabled');
+      }
 
       const roomRow = await c.query<{ owner_id: string | null }>(
         'SELECT owner_id FROM rooms WHERE id = $1',
