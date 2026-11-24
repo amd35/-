@@ -188,6 +188,9 @@
   room itself toasts «دخل N أعضاء الغرفة» from the same event.
 - Crowd bot usernames are numeric on purpose: the boot cleanup only regenerates non-numeric usernames, and
   generated account codes never start with 0, so `0001xx` stays reserved.
+- «المزيد» → «إعلانات الهدايا» is each member's own switch (`web/src/lib/giftBars.ts`, localStorage key
+  `yalal.hide-gift-bars`): off hides the app-wide ticker, the bar under the mic seats, the million-gift strip
+  and the full-screen gift announcement for that member only. Owner, staff, members and visitors all have it.
 
 ## Room levels (مستوى الغرفة)
 - `rooms.level_xp` is the only stored value; the level (1..100) is a pure function of it

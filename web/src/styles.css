@@ -9418,6 +9418,23 @@ table.data tr:hover td {
   background: rgba(255, 90, 31, 0.18);
 }
 
+/* «إعلانات الهدايا» switch in «المزيد»: gold when the strips show, dim when off. */
+.room-more-sheet .room-more-state {
+  padding: 1px 8px;
+  border-radius: 999px;
+  font-size: 9.5px;
+  font-weight: 800;
+  color: #ffd75e;
+  background: rgba(255, 207, 64, 0.16);
+  border: 1px solid rgba(255, 207, 64, 0.45);
+}
+
+.room-more-sheet .room-more-toggle.off .room-more-state {
+  color: #bdb6c4;
+  background: rgba(255, 255, 255, 0.06);
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
 @keyframes roomMoreUp {
   from {
     opacity: 0;

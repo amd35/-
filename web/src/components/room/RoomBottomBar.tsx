@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Icon } from '../../lib/ui';
+import { setGiftBarsHidden, useGiftBarsHidden } from '../../lib/giftBars';
 
 /** The stage dock: five main controls, with room tools behind "more". */
 export function RoomBottomBar({
@@ -30,6 +31,9 @@ export function RoomBottomBar({
   musicPlaying: boolean;
 }) {
   const [more, setMore] = useState(false);
+  // Everyone in the room — owner, staff, members and visitors — turns the gift
+  // strips and their ads off or on for themselves.
+  const giftBarsOff = useGiftBarsHidden();
   const pick = (action: () => void) => () => {
     setMore(false);
     action();
@@ -61,6 +65,16 @@ export function RoomBottomBar({
             <button type="button" onClick={pick(onInvite)}>
               <Icon name="plus" size={18} />
               <span>دعوة الأصدقاء</span>
+            </button>
+            <button
+              type="button"
+              className={`room-more-toggle${giftBarsOff ? ' off' : ''}`}
+              aria-pressed={!giftBarsOff}
+              onClick={() => setGiftBarsHidden(!giftBarsOff)}
+            >
+              <Icon name="gift" size={18} />
+              <span>إعلانات الهدايا</span>
+              <span className="room-more-state">{giftBarsOff ? 'مخفي' : 'مفعّل'}</span>
             </button>
           </div>
         </>

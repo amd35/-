@@ -5,6 +5,7 @@ import { useAuth } from '../lib/auth';
 import { useI18n } from '../lib/i18n';
 import { useRealtime } from '../lib/realtime';
 import { Icon, Sheet, Spinner, useToast } from '../lib/ui';
+import { giftBarsHidden, useGiftBarsHidden } from '../lib/giftBars';
 import {
   RoomGiftSheet,
   type RepeatGiftInfo,
@@ -60,6 +61,8 @@ export default function Room() {
   const navigate = useNavigate();
   const toast = useToast();
   const { on, send, connected } = useRealtime();
+  // «المزيد» → إعلانات الهدايا: this member's own switch for the gift strips.
+  const giftBarsOff = useGiftBarsHidden();
 
   const [room, setRoom] = useState<RoomData | null>(null);
   const [loading, setLoading] = useState(true);
@@ -283,7 +286,7 @@ export default function Room() {
     const off = on('room_gift_announcement', (data) => {
       if (data.roomId !== id) return;
       const item = data.announcement as GiftAnnouncement | null;
-      if (item) enqueueAnnouncement(item);
+      if (item && !giftBarsHidden()) enqueueAnnouncement(item);
     });
     return off;
   }, [on, id, enqueueAnnouncement]);
@@ -867,7 +870,7 @@ export default function Room() {
             }
           />
 
-          {announcement ? (
+          {announcement && !giftBarsOff ? (
             <RoomGiftAnnouncement
               key={announcement.id}
               item={announcement}

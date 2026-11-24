@@ -4,6 +4,7 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../lib/auth';
 import { useRealtime } from '../lib/realtime';
 import type { GiftTickerItem } from '../lib/giftTicker';
+import { giftBarsHidden, useGiftBarsHidden } from '../lib/giftBars';
 
 /**
  * App-wide gift ticker for every screen outside the rooms: a room gift sweeps a
@@ -19,6 +20,8 @@ export function GiftTicker() {
   const [item, setItem] = useState<GiftTickerItem | null>(null);
   const queue = useRef<GiftTickerItem[]>([]);
   const showing = useRef(false);
+  // «المزيد» → شريط الهدايا: the member can turn the strips off for themselves.
+  const hidden = useGiftBarsHidden();
 
   const next = useCallback(() => {
     const following = queue.current.shift() ?? null;
@@ -29,7 +32,7 @@ export function GiftTicker() {
   useEffect(() => {
     return on('room_gift_ticker', (data) => {
       const incoming = data as unknown as GiftTickerItem | null;
-      if (!incoming?.roomId || !incoming.giftName) return;
+      if (!incoming?.roomId || !incoming.giftName || giftBarsHidden()) return;
       if (showing.current) {
         queue.current.push(incoming);
         return;
@@ -39,7 +42,14 @@ export function GiftTicker() {
     });
   }, [on]);
 
-  if (!token || !item || pathname.startsWith('/rooms/')) return null;
+  useEffect(() => {
+    if (!hidden) return;
+    queue.current = [];
+    showing.current = false;
+    setItem(null);
+  }, [hidden]);
+
+  if (!token || hidden || !item || pathname.startsWith('/rooms/')) return null;
 
   const open = () => {
     navigate(`/rooms/${item.roomId}`);

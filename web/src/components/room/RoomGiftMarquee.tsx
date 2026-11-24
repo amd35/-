@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useRealtime } from '../../lib/realtime';
 import { formatCoins, Icon } from '../../lib/ui';
 import type { GiftTickerItem } from '../../lib/giftTicker';
+import { giftBarsHidden, useGiftBarsHidden } from '../../lib/giftBars';
 import { GiftCover } from '../GiftAnimation';
 
 /**
@@ -16,17 +17,25 @@ export function RoomGiftMarquee({ initial }: { initial: GiftTickerItem | null })
   const navigate = useNavigate();
   const [item, setItem] = useState<GiftTickerItem | null>(initial);
   const [visible, setVisible] = useState(Boolean(initial));
+  // «المزيد» → شريط الهدايا: each member decides whether the bar shows for them.
+  const hidden = useGiftBarsHidden();
 
   useEffect(() => {
     return on('room_gift_ticker', (data) => {
       const incoming = data as unknown as GiftTickerItem | null;
-      if (!incoming?.roomId || !incoming.giftName) return;
+      if (!incoming?.roomId || !incoming.giftName || giftBarsHidden()) return;
       setItem(incoming);
       setVisible(true);
     });
   }, [on]);
 
-  if (!item || !visible) return null;
+  useEffect(() => {
+    if (!hidden) return;
+    setItem(null);
+    setVisible(false);
+  }, [hidden]);
+
+  if (hidden || !item || !visible) return null;
 
   return (
     <div className="room-gift-marquee-slot">

@@ -6,6 +6,7 @@ import { useRealtime } from '../lib/realtime';
 import { formatCoins, Icon, Sheet } from '../lib/ui';
 import { GiftCover } from './GiftAnimation';
 import type { BigGiftEvent } from '../lib/bigGift';
+import { giftBarsHidden, useGiftBarsHidden } from '../lib/giftBars';
 
 /**
  * «شريط هدية المليون»: a diamond gift worth a million or more sweeps a strip
@@ -20,6 +21,8 @@ export function BigGiftBanner() {
   const [ask, setAsk] = useState<BigGiftEvent | null>(null);
   const queue = useRef<BigGiftEvent[]>([]);
   const showing = useRef(false);
+  // «المزيد» → شريط الهدايا: the member can turn the strips off for themselves.
+  const hidden = useGiftBarsHidden();
 
   const next = useCallback(() => {
     const following = queue.current.shift() ?? null;
@@ -30,7 +33,7 @@ export function BigGiftBanner() {
   useEffect(() => {
     return on('room_big_gift', (data) => {
       const incoming = data as unknown as BigGiftEvent | null;
-      if (!incoming?.roomId || !incoming.giftName) return;
+      if (!incoming?.roomId || !incoming.giftName || giftBarsHidden()) return;
       if (showing.current) {
         queue.current.push(incoming);
         return;
@@ -40,7 +43,15 @@ export function BigGiftBanner() {
     });
   }, [on]);
 
-  if (!token) return null;
+  useEffect(() => {
+    if (!hidden) return;
+    queue.current = [];
+    showing.current = false;
+    setItem(null);
+    setAsk(null);
+  }, [hidden]);
+
+  if (!token || hidden) return null;
 
   const dismiss = () => {
     setAsk(null);
