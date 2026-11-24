@@ -7352,7 +7352,7 @@ table.data tr:hover td {
   flex-direction: column;
   gap: 8px;
   height: 100%;
-  padding: 8px 10px calc(92px + env(safe-area-inset-bottom, 0px));
+  padding: 8px 4px calc(92px + env(safe-area-inset-bottom, 0px));
   overflow-y: auto;
   overscroll-behavior: contain;
 }
@@ -8826,6 +8826,144 @@ table.data tr:hover td {
   }
 }
 
+/* «إعلانات الغرفة»: the administration's horizontal banner ads, in one strip
+   right under the mic seats. Extra ads scroll sideways instead of stacking. */
+.room-ad-rail {
+  display: flex;
+  flex-direction: row;
+  gap: 6px;
+  width: 100%;
+  padding-bottom: 2px;
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  scrollbar-width: none;
+  /* The strip always starts at the physical left edge, in Arabic and English. */
+  direction: ltr;
+}
+
+.room-ad-rail::-webkit-scrollbar {
+  display: none;
+}
+
+.room-ad-card {
+  direction: rtl;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  flex: none;
+  width: 172px;
+  padding: 4px 7px;
+  border-radius: 13px;
+  border: 1px solid rgba(212, 175, 55, 0.45);
+  background: linear-gradient(135deg, rgba(28, 12, 34, 0.92), rgba(12, 6, 18, 0.88));
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.06);
+  backdrop-filter: blur(10px);
+  color: #fff;
+  text-align: start;
+  cursor: pointer;
+  transition: transform 0.18s ease, border-color 0.18s ease;
+}
+
+.room-ad-card:active {
+  transform: scale(0.98);
+}
+
+.room-ad-card.featured {
+  border-color: rgba(255, 213, 79, 0.9);
+  background: linear-gradient(135deg, rgba(64, 28, 8, 0.95), rgba(28, 10, 30, 0.9));
+  box-shadow: 0 6px 18px rgba(255, 178, 40, 0.22), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+}
+
+.room-ad-art {
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  flex: none;
+  overflow: hidden;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.room-ad-art-img {
+  width: 100%;
+  height: 100%;
+}
+
+.room-ad-art-img img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.room-ad-body {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  flex: 1;
+  min-width: 0;
+}
+
+.room-ad-badge {
+  align-self: flex-start;
+  padding: 1px 6px;
+  border-radius: 999px;
+  font-size: 8px;
+  font-weight: 800;
+  color: #1a0d00;
+  background: linear-gradient(135deg, #ffd75e, #ffab2e);
+}
+
+.room-ad-title {
+  font-size: 11px;
+  line-height: 1.25;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.room-ad-price {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  font-size: 9.5px;
+  color: #ffd75e;
+}
+
+.room-ad-go {
+  display: grid;
+  place-items: center;
+  flex: none;
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.room-ad-confirm {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  padding: 4px 2px 8px;
+}
+
+.room-ad-confirm-art {
+  display: grid;
+  place-items: center;
+  width: 110px;
+  height: 110px;
+}
+
+.room-ad-confirm-name {
+  font-size: 15px;
+}
+
+.room-ad-confirm-price {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-weight: 800;
+  color: #ffd75e;
+}
+
 /* ---------------------------------------------------------------- seats */
 .room-seats {
   display: grid;
@@ -8837,7 +8975,7 @@ table.data tr:hover td {
   align-items: stretch;
   gap: 10px 2px;
   margin: auto 0;
-  padding: 10px 2px 6px;
+  padding: 10px 0 6px;
   border-radius: 18px;
   background: transparent;
   /* Seats sit a little higher on the stage (+2%). */
@@ -8876,8 +9014,9 @@ table.data tr:hover td {
   position: relative;
   display: grid;
   place-items: center;
-  width: clamp(38px, 11.4vw, 47px);
-  height: clamp(38px, 11.4vw, 47px);
+  /* The stage is wider now: the rings grow with it and fill their column. */
+  width: clamp(44px, 13.2vw, 56px);
+  height: clamp(44px, 13.2vw, 56px);
   border-radius: 50%;
   padding: 0;
   overflow: visible;

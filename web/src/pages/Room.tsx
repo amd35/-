@@ -44,6 +44,7 @@ import {
   type GiftAnnouncement,
 } from '../components/room/RoomGiftAnnouncement';
 import { RoomGiftMarquee } from '../components/room/RoomGiftMarquee';
+import { RoomAdRail } from '../components/room/RoomAdRail';
 import { UserProfileCard } from '../components/profile/UserProfileCard';
 import { UserProfileScreen } from '../components/profile/UserProfileScreen';
 
@@ -900,6 +901,8 @@ export default function Room() {
               />
             ))}
           </section>
+
+          <RoomAdRail />
 
           <RoomGiftMarquee initial={room.lastGift ?? null} />
         </div>

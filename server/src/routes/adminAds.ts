@@ -7,6 +7,12 @@ import {
   toggleAd,
   updateAd,
 } from '../ads';
+import {
+  adminRoomAdsOverview,
+  createRoomAd,
+  deleteRoomAd,
+  updateRoomAd,
+} from '../roomAds';
 import { requireAdmin } from '../auth';
 import { HttpError, asyncHandler } from '../utils';
 import { adUpload } from './uploads';
@@ -73,6 +79,41 @@ router.delete(
   '/ads/:id',
   asyncHandler(async (req, res) => {
     await deleteAd(req.params.id);
+    res.json({ deleted: true });
+  })
+);
+
+/* --------------------------------------------------- room stage ads */
+/* «إعلانات الغرفة»: horizontal banners on the room stage. Each one sells a gift
+   that lands in the buyer's bag; the rail rotates one gift per day. */
+
+router.get(
+  '/room-ads',
+  asyncHandler(async (_req, res) => {
+    res.json(await adminRoomAdsOverview());
+  })
+);
+
+router.post(
+  '/room-ads',
+  asyncHandler(async (req, res) => {
+    const row = await createRoomAd(req.body ?? {});
+    res.status(201).json({ ad: { id: row.id } });
+  })
+);
+
+router.patch(
+  '/room-ads/:id',
+  asyncHandler(async (req, res) => {
+    const row = await updateRoomAd(req.params.id, req.body ?? {});
+    res.json({ ad: { id: row.id } });
+  })
+);
+
+router.delete(
+  '/room-ads/:id',
+  asyncHandler(async (req, res) => {
+    await deleteRoomAd(req.params.id);
     res.json({ deleted: true });
   })
 );

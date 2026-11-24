@@ -143,6 +143,18 @@
 - Client: `web/src/components/GiftBag.tsx` (`GiftBagGrid`, `GiftPackagesGrid`) is shared by `GiftShop`
   (chat: الهدايا / الباقات / الجنطة) and `RoomGiftSheet` (الهدايا / الجنطة / هدايا الحظ).
 
+## Room ads (إعلانات الغرفة)
+- `room_ads` is admin content: one row per horizontal banner (`title`, `gift_id`, `price`, `is_active`,
+  `sort_order`). Three starter banners are seeded only when the table is empty.
+- The strip renders **under the mic seats** in every room (`web/src/components/room/RoomAdRail.tsx`), one row of
+  horizontal rectangle cards that scroll sideways. Tapping a card opens «متجر الهدايا اليومي»; buying charges the
+  ad's price and drops the gift into `gift_bag`, so it can be sent later for free.
+- `POST /api/room-ads/:id/buy` writes `room_ad_purchases` (`request_id` unique, the idempotency ledger) and charges
+  `transactions.type = 'room_ad_gift'`; a retried tap can never charge twice.
+- `GET /api/room-ads` rotates the list by **Baghdad day** (`dayIndex % active ads`), so a different gift is
+  featured every day and no gift repeats until every active ad has had its turn. Duplicate gifts are listed once.
+- Admin: `/admin` → «إعلانات الغرفة 📢» (`GET/POST/PATCH/DELETE /api/admin/room-ads`).
+
 ## Country-flag gifts (أعلام الدول)
 - `ensureFlagGifts()` (`server/src/flagGifts.ts`, called at boot) seeds one gift row per country from
   `server/src/flagCountries.ts` — generated from `web/src/lib/countries.ts`, so add a country there and

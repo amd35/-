@@ -17,6 +17,7 @@ import FramesTab from '../components/admin/FramesTab';
 import AdminLookTab from '../components/admin/AdminLookTab';
 import BackgroundsTab from '../components/admin/BackgroundsTab';
 import AdsTab from '../components/admin/AdsTab';
+import RoomAdsTab from '../components/admin/RoomAdsTab';
 import PremiumIdsTab from '../components/admin/PremiumIdsTab';
 import GiftsTab from '../components/admin/GiftsTab';
 import GiftPackagesTab from '../components/admin/GiftPackagesTab';
@@ -46,6 +47,7 @@ const TABS = [
   { id: 'appearance', label: 'مظهر الإدارة', icon: 'sparkle' },
   { id: 'backgrounds', label: 'إدارة خلفيات التطبيق', icon: 'image' },
   { id: 'ads', label: 'إدارة الإعلانات والأحداث', icon: 'play' },
+  { id: 'room-ads', label: 'إعلانات الغرفة 📢', icon: 'gift' },
   { id: 'levels-vip', label: 'المستويات و VIP', icon: 'sparkle' },
   { id: 'level-grants', label: 'إدارة مستويات المستخدمين', icon: 'star' },
   { id: 'calls', label: 'المكالمات', icon: 'phone' },
@@ -220,6 +222,7 @@ export default function Admin() {
         {tab === 'appearance' ? <AdminLookTab /> : null}
         {tab === 'backgrounds' ? <BackgroundsTab /> : null}
         {tab === 'ads' ? <AdsTab /> : null}
+        {tab === 'room-ads' ? <RoomAdsTab /> : null}
         {tab === 'levels-vip' ? <LevelsVipTab /> : null}
         {tab === 'level-grants' ? <LevelGrantsTab /> : null}
         {tab === 'calls' ? <CallsTab /> : null}

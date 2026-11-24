@@ -629,6 +629,36 @@ CREATE TABLE IF NOT EXISTS gift_package_purchases (
 CREATE INDEX IF NOT EXISTS gift_package_purchases_user_idx
   ON gift_package_purchases (user_id, created_at DESC);
 
+-- «إعلانات الغرفة»: horizontal banner ads the administration adds for the room
+-- stage. Each ad sells one gift for diamonds and drops it into the buyer's gift
+-- bag. The list rotates one ad per Baghdad day, so the featured gift changes
+-- daily and no gift repeats until every active ad has had its turn.
+CREATE TABLE IF NOT EXISTS room_ads (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  title text NOT NULL DEFAULT '',
+  gift_id uuid NOT NULL REFERENCES gifts(id) ON DELETE CASCADE,
+  price integer NOT NULL DEFAULT 0 CHECK (price >= 0),
+  is_active boolean NOT NULL DEFAULT true,
+  sort_order integer NOT NULL DEFAULT 0,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  updated_at timestamptz NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS room_ads_order_idx ON room_ads (sort_order, created_at);
+
+-- One row per ad purchase. `request_id` makes a retried tap idempotent, so a
+-- double tap can never charge twice.
+CREATE TABLE IF NOT EXISTS room_ad_purchases (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  request_id text NOT NULL UNIQUE,
+  ad_id uuid REFERENCES room_ads(id) ON DELETE SET NULL,
+  user_id uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  gift_id uuid NOT NULL REFERENCES gifts(id) ON DELETE RESTRICT,
+  price integer NOT NULL DEFAULT 0,
+  created_at timestamptz NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS room_ad_purchases_user_idx
+  ON room_ad_purchases (user_id, created_at DESC);
+
 -- Starter bundles, only when the admin has not created any package yet.
 INSERT INTO gift_packages (name, name_en, description, price, sort_order)
 SELECT * FROM (VALUES
@@ -728,6 +758,18 @@ SELECT * FROM (VALUES
   ('kiss-sunset',        'بوسة عند الغروب',    'Sunset Kiss',               'بوسة ذهبية وقت الغروب',            'photo', '/gifts/kiss-10.jpg', 2000, 'epic',  290)
 ) AS seed(slug, name, name_en, description, design, cover_url, price, rarity, sort_order)
 ON CONFLICT (slug) DO NOTHING;
+
+-- Starter «إعلانات الغرفة»: three banners, only when the admin has added none.
+-- Prices follow the gift's own price; the rail rotates one per Baghdad day.
+INSERT INTO room_ads (title, gift_id, price, sort_order)
+SELECT seed.title, g.id, g.price, seed.sort_order
+FROM (VALUES
+  ('هدية اليوم — ورود متحركة', 'roses',       10),
+  ('تاج ملكي لجنطتك',          'royal-crown', 20),
+  ('سيارة ذهبية',              'golden-car',  30)
+) AS seed(title, gift_slug, sort_order)
+JOIN gifts g ON g.slug = seed.gift_slug
+WHERE NOT EXISTS (SELECT 1 FROM room_ads);
 
 -- ---------------------------------------------------------------- settings
 INSERT INTO app_settings (key, value) VALUES
