@@ -7802,36 +7802,29 @@ table.data tr:hover td {
   color: #ffe6b0;
 }
 
-/* Identity tabs: الهوية / المستوى / الأعضاء / ملاحظات */
-.room-identity-tabs {
+/* Identity sections stacked in one sheet: الهوية / المستوى / الأعضاء / ملاحظات */
+.room-identity-stack {
   display: flex;
-  gap: 6px;
-  padding: 2px 4px 12px;
-  overflow-x: auto;
-  scrollbar-width: none;
+  flex-direction: column;
+  gap: 12px;
+  padding-bottom: 10px;
 }
 
-.room-identity-tabs::-webkit-scrollbar {
-  display: none;
+.room-identity-block {
+  padding: 12px 12px 8px;
+  border-radius: 18px;
+  border: 1px solid rgba(255, 205, 90, 0.2);
+  background: rgba(20, 6, 10, 0.45);
 }
 
-.room-identity-tab {
-  flex: 0 0 auto;
-  padding: 8px 14px;
-  border-radius: 999px;
-  border: 1px solid rgba(255, 205, 90, 0.28);
-  background: rgba(20, 6, 10, 0.6);
-  color: rgba(255, 232, 180, 0.75);
-  font-family: inherit;
+.room-identity-block-head {
+  margin: 0 0 10px;
+  padding-inline-start: 8px;
+  border-inline-start: 3px solid rgba(255, 205, 90, 0.75);
   font-size: 12.5px;
-  font-weight: 700;
-  cursor: pointer;
-}
-
-.room-identity-tab.on {
-  color: #2a0f02;
-  background: linear-gradient(160deg, #ffe9a6, #f0b437 55%, #d88f1c);
-  border-color: rgba(255, 205, 90, 0.9);
+  font-weight: 800;
+  line-height: 1.1;
+  color: #ffd75e;
 }
 
 /* Room level panel inside the identity sheet. */
