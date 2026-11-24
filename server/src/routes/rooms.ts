@@ -922,6 +922,75 @@ router.get(
   })
 );
 
+/**
+ * Room notes (ملاحظات الغرفة): the upgrades the room owns and the gifts sent
+ * inside it. Members only — a visitor in the room gets 403.
+ */
+router.get(
+  '/:id/notes',
+  requireAuth(),
+  asyncHandler(async (req, res) => {
+    const me = reqUser(req).id;
+    const roomId = req.params.id;
+    // Members and the room's own staff (owner, vice-owner, supervisor) only.
+    const access = await one<{ ok: boolean }>(
+      `SELECT EXISTS (SELECT 1 FROM room_members WHERE room_id = $1 AND user_id = $2)
+           OR EXISTS (SELECT 1 FROM rooms WHERE id = $1 AND (owner_id = $2 OR created_by = $2))
+           OR EXISTS (SELECT 1 FROM room_roles WHERE room_id = $1 AND user_id = $2) AS ok`,
+      [roomId, me]
+    );
+    if (!access?.ok) throw new HttpError(403, 'Notes are for room members only', 'not_member');
+
+    const upgrades = await q<{ name: string; price_paid: number; created_at: string }>(
+      `SELECT t.name, u.price_paid, u.created_at
+       FROM room_upgrades u
+       JOIN room_upgrade_tiers t ON t.id = u.tier_id
+       WHERE u.room_id = $1
+       ORDER BY u.created_at DESC
+       LIMIT 30`,
+      [roomId]
+    );
+    const gifts = await q<{
+      id: string;
+      gift_name: string;
+      quantity: number;
+      coins: number;
+      currency: string;
+      created_at: string;
+      sender_name: string | null;
+      recipient_name: string | null;
+    }>(
+      `SELECT g.id, g.gift_name, g.quantity, g.coins, g.currency, g.created_at,
+              s.display_name AS sender_name, r.display_name AS recipient_name
+       FROM gift_sends g
+       JOIN users s ON s.id = g.sender_id
+       JOIN users r ON r.id = g.recipient_id
+       WHERE g.room_id = $1
+       ORDER BY g.created_at DESC
+       LIMIT 40`,
+      [roomId]
+    );
+
+    res.json({
+      upgrades: upgrades.map((row) => ({
+        name: row.name,
+        price: Number(row.price_paid),
+        at: row.created_at,
+      })),
+      gifts: gifts.map((row) => ({
+        id: row.id,
+        name: row.gift_name,
+        quantity: Number(row.quantity),
+        coins: Number(row.coins),
+        currency: row.currency,
+        sender: row.sender_name || '',
+        recipient: row.recipient_name || '',
+        at: row.created_at,
+      })),
+    });
+  })
+);
+
 /** Join the room as a member. The capacity check runs server-side. */
 router.post(
   '/:id/members/join',

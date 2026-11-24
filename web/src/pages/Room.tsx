@@ -330,7 +330,7 @@ export default function Room() {
 
   // The member list is fetched when the panel opens and whenever membership changes.
   useEffect(() => {
-    if (panel === 'members' || panel === 'settings') void loadMembers();
+    if (panel === 'members' || panel === 'settings' || panel === 'identity') void loadMembers();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [panel, id]);
 
@@ -972,6 +972,8 @@ export default function Room() {
             open={panel === 'identity'}
             onClose={() => setPanel(null)}
             room={room}
+            members={members}
+            canManage={room.canManage}
             onSave={saveIdentity}
           />
           <RoomSettingsPanel

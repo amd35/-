@@ -7562,6 +7562,9 @@ table.data tr:hover td {
   place-items: center;
   width: 50px;
   height: 50px;
+  padding: 0;
+  font-family: inherit;
+  cursor: pointer;
   border-radius: 50%;
   overflow: hidden;
   border: 2px solid rgba(255, 207, 64, 0.8);
@@ -7790,6 +7793,162 @@ table.data tr:hover td {
 .room-identity-save:disabled {
   opacity: 0.65;
   cursor: default;
+}
+
+.room-identity-name-readonly {
+  margin: 4px 0 0;
+  font-size: 16px;
+  font-weight: 800;
+  color: #ffe6b0;
+}
+
+/* Identity tabs: الهوية / المستوى / الأعضاء / ملاحظات */
+.room-identity-tabs {
+  display: flex;
+  gap: 6px;
+  padding: 2px 4px 12px;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.room-identity-tabs::-webkit-scrollbar {
+  display: none;
+}
+
+.room-identity-tab {
+  flex: 0 0 auto;
+  padding: 8px 14px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 205, 90, 0.28);
+  background: rgba(20, 6, 10, 0.6);
+  color: rgba(255, 232, 180, 0.75);
+  font-family: inherit;
+  font-size: 12.5px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.room-identity-tab.on {
+  color: #2a0f02;
+  background: linear-gradient(160deg, #ffe9a6, #f0b437 55%, #d88f1c);
+  border-color: rgba(255, 205, 90, 0.9);
+}
+
+/* Room level panel inside the identity sheet. */
+.room-level-panel {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 4px 18px;
+}
+
+.room-level-badge {
+  padding: 6px 16px;
+  border-radius: 999px;
+  font-size: 15px;
+  font-weight: 800;
+  color: #2a0f02;
+  background: linear-gradient(160deg, #ffe9a6, #f0b437 55%, #d88f1c);
+  box-shadow: 0 8px 18px rgba(216, 143, 28, 0.3);
+}
+
+.room-level-title {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 800;
+  color: #ffe6b0;
+}
+
+.room-level-bar {
+  width: 100%;
+  height: 10px;
+  border-radius: 999px;
+  overflow: hidden;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 205, 90, 0.25);
+}
+
+.room-level-bar span {
+  display: block;
+  height: 100%;
+  background: linear-gradient(90deg, #ff7a3c, #ffd75e);
+}
+
+.room-level-xp {
+  margin: 0;
+  font-size: 12px;
+  color: rgba(255, 232, 180, 0.75);
+}
+
+.room-level-stats {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  width: 100%;
+}
+
+.room-level-stats > span {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 10px;
+  border-radius: 14px;
+  background: rgba(20, 6, 10, 0.6);
+  border: 1px solid rgba(255, 205, 90, 0.22);
+}
+
+.room-level-stats b {
+  font-size: 14px;
+  color: #ffe6b0;
+}
+
+.room-level-stats i {
+  font-style: normal;
+  font-size: 11px;
+  color: rgba(255, 232, 180, 0.65);
+}
+
+/* Room notes: upgrades and the gifts sent inside the room. */
+.room-notes {
+  padding: 0 2px 16px;
+}
+
+.room-note-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 8px;
+  padding: 10px 12px;
+  border-radius: 14px;
+  background: rgba(20, 6, 10, 0.55);
+  border: 1px solid rgba(255, 205, 90, 0.18);
+}
+
+.room-note-icon {
+  font-size: 16px;
+}
+
+.room-note-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  flex: 1;
+}
+
+.room-note-copy b {
+  font-size: 13px;
+  font-weight: 700;
+  color: #ffe6b0;
+}
+
+.room-note-amount {
+  font-size: 12px;
+  font-weight: 800;
+  color: #ffd75e;
+  white-space: nowrap;
 }
 
 .room-head-crest {

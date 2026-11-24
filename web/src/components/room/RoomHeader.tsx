@@ -88,12 +88,12 @@ export function RoomHeader({
       ) : null}
 
       <div className="room-head-row">
-        {onIdentity && canManage ? (
+        {onIdentity ? (
           <button
             type="button"
-            className="room-head-photo is-editable"
+            className={`room-head-photo${canManage ? ' is-editable' : ''}`}
             onClick={onIdentity}
-            aria-label="تغيير اسم الغرفة وصورتها"
+            aria-label={canManage ? 'تغيير اسم الغرفة وصورتها' : 'هوية الغرفة'}
           >
             {picture}
           </button>

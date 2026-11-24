@@ -170,6 +170,10 @@
   seats above the allowance at boot; admin-created rooms start at 5 too.
 - The client shows the level, progress bar and seat count in the room header and an `LV` pill on the
   room list; a level-up broadcasts `room`, so every open stage re-renders with its new seats.
+- «هوية الغرفة» (`RoomIdentitySheet`) opens for every visitor from the room header picture and has four
+  tabs: الهوية (rename + picture, owner only), المستوى (level, XP, seats, staff limits), الأعضاء (member
+  list) and ملاحظات. ملاحظات is shown only to members and room staff and reads
+  `GET /api/rooms/:id/notes` (room upgrades + gifts sent in the room); a visitor gets `403 not_member`.
 
 ## Official recharge agents (وكلاء الشحن)
 - `agents` is the single source of truth for an agency: `status` (`active` | `suspended` | `revoked`),
