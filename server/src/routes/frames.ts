@@ -207,6 +207,8 @@ router.post(
         me,
       ]);
       await c.query('UPDATE users SET username = $2 WHERE id = $1', [me, row.code]);
+      // The room's public ID follows the owner's account ID.
+      await c.query('UPDATE rooms SET code = $2 WHERE COALESCE(owner_id, created_by) = $1', [me, row.code]);
       return { balanceAfter, code: row.code };
     });
     res.status(201).json({ code: outcome.code, balance: outcome.balanceAfter });

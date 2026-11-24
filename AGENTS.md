@@ -19,6 +19,9 @@
   `users.username`, handed out by the `user_code_seq` sequence (column default), and used to log in
   (`/auth/login` matches email, phone or that ID). The companion bot keeps the reserved ID `000001`.
 - Admins can push that ID to a user as an in-app notification: `POST /api/admin/users/:id/send-id`.
+- A room's public ID (`rooms.code`) is **the owner's account ID** — one number for the profile and the room.
+  `schema.sql` re-syncs it at boot, and every username change (admin set-id, premium-ID purchase) updates the
+  owner's rooms in the same transaction. `roomCode(uuid)` is only a fallback for ownerless admin rooms.
 
 ## Billing invariants (do not break)
 - Free attempts live in `daily_free_calls`, keyed by **Baghdad date** computed with `Intl` on the server.
