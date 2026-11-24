@@ -9988,11 +9988,11 @@ table.data tr:hover td {
 
 .room-cup-fab {
   position: absolute;
-  top: 98px;
-  right: 14px;
+  top: 86px;
+  right: 12px;
   z-index: 6;
-  width: 40px;
-  height: 40px;
+  width: 32px;
+  height: 32px;
   padding: 0;
   border: 0;
   border-radius: 50%;
