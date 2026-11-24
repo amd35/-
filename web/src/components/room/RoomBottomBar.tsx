@@ -9,10 +9,12 @@ export function RoomBottomBar({
   onGifts,
   onUpgrade,
   onMics,
+  onMusic,
   onMic,
   micOn,
   micMuted,
   chatOpen,
+  musicPlaying,
 }: {
   onLeave: () => void;
   onInvite: () => void;
@@ -20,10 +22,12 @@ export function RoomBottomBar({
   onGifts: () => void;
   onUpgrade: () => void;
   onMics: () => void;
+  onMusic: () => void;
   onMic: () => void;
   micOn: boolean;
   micMuted: boolean;
   chatOpen: boolean;
+  musicPlaying: boolean;
 }) {
   const [more, setMore] = useState(false);
   const pick = (action: () => void) => () => {
@@ -44,6 +48,15 @@ export function RoomBottomBar({
             <button type="button" onClick={pick(onMics)}>
               <Icon name="mic" size={18} />
               <span>تبديل المايكات</span>
+            </button>
+            <button type="button" onClick={pick(onMusic)}>
+              <span className={`room-vinyl-mini${musicPlaying ? ' spinning' : ''}`} aria-hidden="true">
+                <span className="room-vinyl-disc">
+                  <span className="room-vinyl-label">♪</span>
+                  <span className="room-vinyl-hole" />
+                </span>
+              </span>
+              <span>الموسيقى</span>
             </button>
             <button type="button" onClick={pick(onInvite)}>
               <Icon name="plus" size={18} />

@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react';
 import { Icon } from '../../lib/ui';
 import { assetUrl } from '../../lib/api';
 
@@ -19,6 +20,7 @@ export function RoomHeader({
   onBack,
   onSettings,
   onIdentity,
+  saveButton,
 }: {
   name: string;
   code: string;
@@ -41,6 +43,8 @@ export function RoomHeader({
   onIdentity?: () => void;
   onMembers?: () => void;
   onStore?: () => void;
+  /** «حفظ الغرفة» sits in the same top row as the back arrow. */
+  saveButton?: ReactNode;
 }) {
   const photo = avatar && /^(https?:|\/uploads\/)/.test(avatar) ? assetUrl(avatar) : null;
   const levelPercent =
@@ -86,6 +90,8 @@ export function RoomHeader({
           <Icon name="settings" size={16} />
         </button>
       ) : null}
+
+      {saveButton ?? null}
 
       <div className="room-head-row">
         {onIdentity ? (

@@ -24,7 +24,6 @@ import { RoomInvitePanel } from '../components/room/RoomInvitePanel';
 import { RoomSettingsPanel, type RoomSettingsPatch } from '../components/room/RoomSettingsPanel';
 import { RoomIdentitySheet, type RoomIdentityPatch } from '../components/room/RoomIdentitySheet';
 import { RoomMusicPanel } from '../components/room/RoomMusicPanel';
-import { RoomMusicDisc } from '../components/room/RoomMusicDisc';
 import { RoomChatPanel } from '../components/room/RoomChatPanel';
 import { RoomCup } from '../components/room/RoomCup';
 import { RoomFramesSheet, type WornFrame } from '../components/room/RoomFramesSheet';
@@ -93,6 +92,8 @@ export default function Room() {
   const [busyTier, setBusyTier] = useState<string | null>(null);
   const [forcedMute, setForcedMute] = useState(0);
   const [musicMuted, setMusicMuted] = useState(false);
+  /** Pressing the top back arrow asks first: leave the room or stay in it. */
+  const [leaveAsk, setLeaveAsk] = useState(false);
   const announcementRef = useRef<GiftAnnouncement | null>(null);
   const announcementQueue = useRef<GiftAnnouncement[]>([]);
   const luckyQueue = useRef<LuckyGiftSpin[]>([]);
@@ -825,14 +826,37 @@ export default function Room() {
             country={room.country}
             language={room.language}
             canManage={room.canManage}
-            onBack={leaveRoom}
+            onBack={() => setLeaveAsk(true)}
             onSettings={() => setPanel('settings')}
             onIdentity={() => setPanel('identity')}
             onMembers={() => setPanel('members')}
             onStore={() => void openStore()}
+            saveButton={
+              <button
+                type="button"
+                className={`room-back room-head-save${room.saved ? ' on' : ''}`}
+                onClick={() => void toggleSave()}
+                aria-pressed={room.saved}
+                aria-label={room.saved ? 'الغرفة محفوظة' : 'حفظ الغرفة'}
+                title={room.saved ? 'الغرفة محفوظة' : 'حفظ الغرفة'}
+              >
+                {room.avatarUrl ?? room.coverUrl ? (
+                  <img
+                    className="room-head-save-img"
+                    src={assetUrl((room.avatarUrl ?? room.coverUrl) as string)}
+                    alt=""
+                  />
+                ) : (
+                  <Icon name="heart" size={13} fill="currentColor" />
+                )}
+                {room.saved ? (
+                  <span className="room-head-save-check" aria-hidden="true">
+                    ✓
+                  </span>
+                ) : null}
+              </button>
+            }
           />
-
-          <RoomMusicDisc playing={Boolean(room.musicUrl) && !musicMuted} onOpen={() => setPanel('music')} />
 
           {announcement ? (
             <RoomGiftAnnouncement
@@ -895,35 +919,13 @@ export default function Room() {
           onGifts={() => setGiftOpen(true)}
           onUpgrade={() => void openStore()}
           onMics={() => setMicsOpen(true)}
+          onMusic={() => setPanel('music')}
           onMic={micButton}
           micOn={Boolean(myMic)}
           micMuted={Boolean(myMic?.muted)}
           chatOpen={panel === 'chat'}
+          musicPlaying={Boolean(room.musicUrl) && !musicMuted}
         />
-      ) : null}
-
-      {room && !loading ? (
-        <button
-          type="button"
-          className={`room-save-bubble${room.saved ? ' on' : ''}`}
-          onClick={() => void toggleSave()}
-          aria-pressed={room.saved}
-          aria-label={room.saved ? 'الغرفة محفوظة' : 'حفظ الغرفة'}
-        >
-          <span className="room-save-ring">
-            {room.avatarUrl ?? room.coverUrl ? (
-              <img src={assetUrl((room.avatarUrl ?? room.coverUrl) as string)} alt="" />
-            ) : (
-              <Icon name="heart" size={20} fill="currentColor" />
-            )}
-            {room.saved ? (
-              <span className="room-save-check" aria-hidden="true">
-                ✓
-              </span>
-            ) : null}
-          </span>
-          <span className="room-save-label">{room.saved ? 'محفوظة' : 'حفظ الغرفة'}</span>
-        </button>
       ) : null}
 
       {myMic && voiceModerationSupported() ? (
@@ -1158,6 +1160,19 @@ export default function Room() {
           ) : null}
           <button type="button" className="btn btn-ghost" onClick={() => setMicPrompt(null)}>
             إلغاء
+          </button>
+        </div>
+      </Sheet>
+
+      {/* The top back arrow asks before leaving the room. */}
+      <Sheet open={leaveAsk} onClose={() => setLeaveAsk(false)} title="مغادرة الغرفة" center>
+        <p className="room-mic-confirm-text">هل تريد مغادرة الغرفة أم البقاء فيها؟</p>
+        <div className="room-mic-confirm-actions">
+          <button type="button" className="btn btn-primary" onClick={leaveRoom}>
+            مغادرة الغرفة
+          </button>
+          <button type="button" className="btn btn-ghost" onClick={() => setLeaveAsk(false)}>
+            البقاء في الغرفة
           </button>
         </div>
       </Sheet>

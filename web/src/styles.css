@@ -7539,6 +7539,43 @@ table.data tr:hover td {
   transform: scale(0.94);
 }
 
+/* «حفظ الغرفة» shares the top row with the back arrow. */
+.room-head-save {
+  left: 38px;
+  right: auto;
+  overflow: visible;
+  padding: 0;
+}
+
+.room-head-save-img {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.room-head-save.on {
+  border-color: #ffd75e;
+  box-shadow:
+    0 0 0 1.5px rgba(255, 215, 94, 0.45),
+    0 0 12px rgba(255, 190, 60, 0.6);
+}
+
+.room-head-save-check {
+  position: absolute;
+  inset-block-end: -3px;
+  inset-inline-end: -3px;
+  display: grid;
+  place-items: center;
+  width: 13px;
+  height: 13px;
+  border-radius: 50%;
+  background: linear-gradient(180deg, #ffe680, #d79a08);
+  color: #3b1d00;
+  font-size: 8px;
+  font-weight: 900;
+}
+
 /* Clean room header: round room picture + name, with the room ID underneath. */
 .room-head-clean {
   padding: 6px 8px;
@@ -7553,7 +7590,8 @@ table.data tr:hover td {
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 0 34px;
+  /* Left room for the back arrow and the «حفظ الغرفة» button. */
+  padding: 0 34px 0 72px;
 }
 
 .room-head-photo {
@@ -9284,7 +9322,7 @@ table.data tr:hover td {
   bottom: calc(72px + env(safe-area-inset-bottom, 0px));
   z-index: 7;
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 6px;
   padding: 8px;
   border-radius: 16px;
@@ -9591,6 +9629,22 @@ table.data tr:hover td {
   to {
     transform: rotate(360deg);
   }
+}
+
+/* The vinyl disc now sits inside the «المزيد» sheet. */
+.room-vinyl-mini {
+  display: block;
+  width: 18px;
+  height: 18px;
+}
+
+.room-vinyl-mini .room-vinyl-label {
+  inset: 26%;
+  font-size: 7px;
+}
+
+.room-vinyl-mini.spinning .room-vinyl-disc {
+  animation: roomVinylSpin 3.2s linear infinite;
 }
 
 .room-music-state > div {
