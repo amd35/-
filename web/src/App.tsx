@@ -5,6 +5,7 @@ import { useI18n } from './lib/i18n';
 import { BackgroundLayer } from './lib/backgrounds';
 import { Spinner } from './lib/ui';
 import { CallOverlay } from './components/CallOverlay';
+import { GiftTicker } from './components/GiftTicker';
 import { DailyBoxModal } from './components/DailyBoxModal';
 import { LoginRewardModal } from './components/LoginRewardModal';
 import { LevelUpOverlay } from './components/LevelUpOverlay';
@@ -54,6 +55,7 @@ export default function App() {
   return (
     <>
       <BackgroundLayer />
+      <GiftTicker />
       <Routes>
         <Route path="/welcome" element={<Welcome />} />
         <Route path="/login" element={<Login />} />

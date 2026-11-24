@@ -8476,6 +8476,65 @@ table.data tr:hover td {
 /* The gift owns the whole screen: its artwork on a dark stage, with no card or
    frame around it. A clip's own end closes the reveal; other gifts close after
    the time configured in the admin panel. */
+/* App-wide gift ticker: sweeps left → right across the screen, then disappears. */
+.gift-ticker {
+  position: fixed;
+  top: calc(env(safe-area-inset-top, 0px) + 62px);
+  left: 0;
+  z-index: 70;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  max-width: 90vw;
+  padding: 8px 14px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 199, 92, 0.55);
+  background: linear-gradient(135deg, rgba(30, 8, 26, 0.96), rgba(72, 14, 52, 0.96));
+  box-shadow: 0 10px 26px rgba(0, 0, 0, 0.5), 0 0 18px rgba(255, 199, 92, 0.25);
+  color: #fff;
+  font-size: 12px;
+  font-weight: 700;
+  white-space: nowrap;
+  cursor: pointer;
+  animation: giftTickerSweep 7s linear forwards;
+}
+
+.gift-ticker-gift {
+  color: #ffd75e;
+}
+
+.gift-ticker-names {
+  color: #ffe9f4;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.gift-ticker-cta {
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: rgba(255, 199, 92, 0.16);
+  border: 1px solid rgba(255, 199, 92, 0.45);
+  color: #ffd75e;
+  font-size: 11px;
+}
+
+@keyframes giftTickerSweep {
+  0% {
+    transform: translateX(calc(-100% - 12px));
+    opacity: 0;
+  }
+  8% {
+    opacity: 1;
+  }
+  92% {
+    opacity: 1;
+  }
+  100% {
+    transform: translateX(calc(100vw + 12px));
+    opacity: 0;
+  }
+}
+
 .room-gift-announce {
   position: fixed;
   inset: 0;
@@ -8672,6 +8731,8 @@ table.data tr:hover td {
   padding: 12px 2px 8px;
   border-radius: 18px;
   background: transparent;
+  /* Seats sit a little higher on the stage. */
+  transform: translateY(-18px);
 }
 
 .seat {
