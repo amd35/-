@@ -559,6 +559,26 @@ router.post(
     const message = await roomMessageById(outcome.messageId);
     broadcast('room_message', { roomId, message });
 
+    const recipient = await one<{
+      display_name: string | null;
+      username: string | null;
+      avatar_url: string | null;
+    }>('SELECT display_name, username, avatar_url FROM users WHERE id = $1', [recipientId]);
+    const recipientName = recipient?.display_name || recipient?.username || '';
+    const roomInfo = await one<{ name: string }>('SELECT name FROM rooms WHERE id = $1', [roomId]);
+
+    // Gift ticker: every room gift sweeps across every open screen — inside any
+    // room too — and tapping it opens the room the gift was sent in.
+    broadcast('room_gift_ticker', {
+      id: outcome.sendId,
+      roomId,
+      roomName: roomInfo?.name ?? '',
+      senderName: message?.displayName ?? '',
+      recipientName,
+      giftName: message?.gift?.name ?? '',
+      quantity,
+    });
+
     // Gift announcement bar. Only a committed send reaches this point, so a
     // failed payment can never produce a phantom announcement. The admin picks
     // whether every gift or only a chosen subset is announced, and how it looks.
@@ -567,11 +587,6 @@ router.post(
       (settings.gift_announcement_scope === 'all' ||
         settings.gift_announcement_gift_ids.includes(outcome.giftId));
     if (announced && message?.gift) {
-      const recipient = await one<{
-        display_name: string | null;
-        username: string | null;
-        avatar_url: string | null;
-      }>('SELECT display_name, username, avatar_url FROM users WHERE id = $1', [recipientId]);
       broadcast('room_gift_announcement', {
         roomId,
         announcement: {

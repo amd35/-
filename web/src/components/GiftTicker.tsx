@@ -1,25 +1,31 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { useLocation, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../lib/auth';
 import { useRealtime } from '../lib/realtime';
-import type { GiftAnnouncement } from './room/RoomGiftAnnouncement';
+
+/** One gift sent in a room, pushed to every connected screen. */
+interface GiftTickerItem {
+  id: string;
+  roomId: string;
+  roomName: string;
+  senderName: string;
+  recipientName: string;
+  giftName: string;
+  quantity: number;
+}
 
 /**
- * App-wide gift ticker: whenever anyone sends a gift in a room, a bar sweeps
- * across the screen from the left to the right and then disappears. Tapping it
- * opens the room the gift was sent in. The room itself is skipped — it already
- * reveals the gift full screen.
+ * App-wide gift ticker: every room gift sweeps a bar across the screen from the
+ * left to the right, then it disappears. It shows on every screen — including
+ * the room the gift was sent in — and tapping it opens that room.
  */
 export function GiftTicker() {
   const { token } = useAuth();
   const { on } = useRealtime();
   const navigate = useNavigate();
-  const { pathname } = useLocation();
-  const pathRef = useRef(pathname);
-  pathRef.current = pathname;
-  const [item, setItem] = useState<GiftAnnouncement | null>(null);
-  const queue = useRef<GiftAnnouncement[]>([]);
+  const [item, setItem] = useState<GiftTickerItem | null>(null);
+  const queue = useRef<GiftTickerItem[]>([]);
   const showing = useRef(false);
 
   const next = useCallback(() => {
@@ -29,9 +35,9 @@ export function GiftTicker() {
   }, []);
 
   useEffect(() => {
-    return on('room_gift_announcement', (data) => {
-      const incoming = (data as { announcement?: GiftAnnouncement | null }).announcement;
-      if (!incoming) return;
+    return on('room_gift_ticker', (data) => {
+      const incoming = data as unknown as GiftTickerItem | null;
+      if (!incoming?.roomId || !incoming.giftName) return;
       if (showing.current) {
         queue.current.push(incoming);
         return;
@@ -60,9 +66,9 @@ export function GiftTicker() {
       <span className="gift-ticker-emoji" aria-hidden="true">
         🎁
       </span>
-      <span className="gift-ticker-gift">{item.gift.name}</span>
+      <span className="gift-ticker-gift">{item.giftName}</span>
       <span className="gift-ticker-names">
-        {item.sender.name} ← {item.recipient.name}
+        {item.senderName} ← {item.recipientName}
       </span>
       <span className="gift-ticker-cta">ادخل الغرفة</span>
     </button>,
